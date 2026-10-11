@@ -54,8 +54,8 @@ h1{font-size:26px;font-weight:700;letter-spacing:-.02em;margin:0;white-space:now
 .themebtn{flex:none;width:44px;height:44px;border:1.5px solid var(--line);border-radius:22px;background:var(--panel);color:var(--fg);font-size:19px;line-height:1;cursor:pointer;padding:0}
 @media (min-width:481px){#progress::after{content:" shot"}}
 @media (max-width:480px){.track{display:none}}
-.views{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;padding:3px;background:var(--line);border-radius:10px}
-.views button{min-height:42px;border:0;border-radius:8px;background:transparent;color:var(--fg);font-weight:600;font-size:15px;cursor:pointer;font-variant-numeric:tabular-nums}
+.views{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;padding:3px;background:var(--line);border-radius:10px}
+.views button{min-width:0;padding:0 2px;min-height:42px;border:0;border-radius:8px;background:transparent;color:var(--fg);font-weight:600;font-size:15px;cursor:pointer;font-variant-numeric:tabular-nums}
 .views button[aria-selected="true"]{background:var(--panel)}
 
 .now{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:grid;grid-template-columns:1fr auto;gap:10px 12px;align-items:center}
@@ -71,7 +71,17 @@ h1{font-size:26px;font-weight:700;letter-spacing:-.02em;margin:0;white-space:now
 .intents::-webkit-scrollbar{display:none}
 .chip{flex:none;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;border:1.5px solid var(--line);border-radius:22px;background:var(--panel);color:var(--fg);font-weight:600;font-size:15px;cursor:pointer;white-space:nowrap}
 .chip[aria-pressed="true"]{border-color:var(--fg);background:var(--fg);color:var(--bg)}
-.selects{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.selects{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end}
+.selects .chip{padding:0 12px}
+.msg{margin:0;font-size:13px;color:var(--muted);max-width:60ch}
+.sign textarea{width:100%;min-height:68px;background:var(--sign);color:var(--sign-fg);border:1px solid var(--sign-line);border-radius:8px;padding:10px 12px;font:16px/1.4 var(--sans);resize:vertical}
+.notesbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between}
+.notesbar textarea{width:100%;min-height:120px;font:14px/1.4 var(--sans);background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:10px}
+.dist{font-size:13px;color:var(--muted);font-weight:400;margin-left:6px;font-variant-numeric:tabular-nums}
+.planctl{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.planctl .field:first-child{grid-column:1/-1}
+#viewPlan .btn{width:100%;margin-bottom:14px}
+.leg{margin:0;padding-left:14px;font-size:14px;color:var(--muted)}
 .field{display:flex;flex-direction:column;gap:4px;min-width:0}
 select{width:100%;min-height:44px;padding:0 10px;border:1.5px solid var(--line);border-radius:8px;background:var(--panel);color:var(--fg);font-weight:500;font-size:16px}
 
@@ -190,6 +200,7 @@ footer{font-size:13px;color:var(--muted);max-width:65ch}
     <button type="button" role="tab" data-v="shoot" id="vShoot">Shoot</button>
     <button type="button" role="tab" data-v="browse" id="vBrowse">Browse</button>
     <button type="button" role="tab" data-v="saved" id="vSaved">Saved</button>
+    <button type="button" role="tab" data-v="plan" id="vPlan">Plan</button>
     <button type="button" role="tab" data-v="events" id="vEvents">Events</button>
   </nav>
 
@@ -206,14 +217,25 @@ footer{font-size:13px;color:var(--muted);max-width:65ch}
     <div class="selects">
       <div class="field"><label class="label" for="place">Place</label><select id="place"></select></div>
       <div class="field"><label class="label" for="when">Light</label><select id="when"></select></div>
+      <button type="button" class="chip" id="near" aria-pressed="false">Near me</button>
     </div>
+    <p class="msg" id="nearMsg" hidden></p>
   </section>
 
   <main id="viewShoot"><article class="sign" id="card" aria-live="polite"></article></main>
   <main id="viewList" hidden><div class="list" id="list"></div></main>
+  <main id="viewPlan" hidden>
+    <div class="planctl">
+      <div class="field"><label class="label" for="pStart">Start at</label><select id="pStart"></select></div>
+      <div class="field"><label class="label" for="pTime">Leaving</label><select id="pTime"></select></div>
+      <div class="field"><label class="label" for="pLen">For</label><select id="pLen"><option value="90">1½ hours</option><option value="150" selected>2½ hours</option><option value="240">4 hours</option></select></div>
+    </div>
+    <button type="button" class="btn primary" id="pGo">Make a plan</button>
+    <div class="list" id="plan"></div>
+  </main>
   <main id="viewEvents" hidden><div class="list" id="events"></div></main>
 
-  <footer>Subway photography is allowed by MTA rules without flash, tripods or lights. Diagrams are schematic. Saved and shot marks are kept on this device only. Weather data by Open-Meteo.com.</footer>
+  <footer>Subway photography is allowed by MTA rules without flash, tripods or lights. Diagrams are schematic. Place details were checked against published sources in October 2026; ideas and settings are starting points to test on the street. Saved and shot marks are kept on this device only. Weather data by Open-Meteo.com.</footer>
 </div>
 
 <div class="bar" id="bar"><div class="bar-in">
@@ -237,17 +259,25 @@ const INTENTS = {
 const CITIES = {
  nyc:{name:"New York City",lat:40.7128,lon:-74.006,
   lines:{A:"blue",C:"blue",E:"blue",B:"orange",D:"orange",F:"orange",M:"orange",N:"yellow",Q:"yellow",R:"yellow",W:"yellow",
-  "1":"red","2":"red","3":"red","4":"green","5":"green","6":"green","7":"purple",J:"brown",Z:"brown",S:"gray"},
+  "1":"red","2":"red","3":"red","4":"green","5":"green","6":"green","7":"purple",J:"brown",Z:"brown",S:"gray",L:"gray"},
   places:{
-  chinatown:{name:"Chinatown", stop:"Canal St", lines:"NQRW6JZ"},
-  gct:{name:"Grand Central", stop:"Grand Central–42 St", lines:"4567S"},
-  tsq:{name:"Times Square", stop:"Times Sq–42 St", lines:"1237NQRW"},
-  wsp:{name:"Washington Square", stop:"W 4 St–Wash Sq", lines:"ACEBDFM"},
-  dumbo:{name:"DUMBO", stop:"York St", lines:"F"},
-  coney:{name:"Coney Island", stop:"Stillwell Av", lines:"DFNQ"},
-  soho:{name:"SoHo", stop:"Prince St", lines:"RW"},
-  jh:{name:"Jackson Heights", stop:"74 St–Broadway", lines:"7EFMR"},
-  ferry:{name:"Staten Island Ferry", stop:"South Ferry", lines:"1RW"},
+  chinatown:{lat:40.7144,lon:-73.9981,name:"Chinatown", stop:"Canal St", lines:"NQRW6JZ"},
+  gct:{lat:40.7527,lon:-73.9772,name:"Grand Central", stop:"Grand Central–42 St", lines:"4567S"},
+  tsq:{lat:40.758,lon:-73.9855,name:"Times Square", stop:"Times Sq–42 St", lines:"1237NQRWS"},
+  wsp:{lat:40.7308,lon:-73.9973,name:"Washington Square", stop:"W 4 St–Wash Sq", lines:"ACEBDFM"},
+  dumbo:{lat:40.7033,lon:-73.9894,name:"DUMBO", stop:"York St", lines:"F"},
+  coney:{lat:40.5749,lon:-73.9796,name:"Coney Island", stop:"Stillwell Av", lines:"DFNQ"},
+  soho:{lat:40.7254,lon:-73.999,name:"SoHo", stop:"Prince St", lines:"RW"},
+  jh:{lat:40.7468,lon:-73.8913,name:"Jackson Heights", stop:"74 St–Broadway", lines:"7EFMR"},
+  ferry:{lat:40.7013,lon:-74.0132,name:"Staten Island Ferry", stop:"South Ferry", lines:"1RW"},
+  harlem:{"name": "Harlem", "stop": "125 St (two stations, at St Nicholas Av and Lenox Av)", "lines": "ABCD23", "lat": 40.808, "lon": -73.9454},
+  les:{"name": "Lower East Side", "stop": "Delancey St–Essex St", "lines": "FMJZ", "lat": 40.7186, "lon": -73.9883},
+  flushing:{"name": "Flushing", "stop": "Flushing–Main St", "lines": "7", "lat": 40.7596, "lon": -73.8301},
+  wburg:{"name": "Williamsburg", "stop": "Bedford Av", "lines": "L", "lat": 40.7172, "lon": -73.9571},
+  midtown:{"name": "Midtown at lunch", "stop": "5 Av/53 St", "lines": "EF", "lat": 40.7605, "lon": -73.976},
+  cpark:{"name": "Central Park", "stop": "72 St", "lines": "BC", "lat": 40.774, "lon": -73.9708},
+  rockaway:{"name": "Rockaway Beach", "stop": "Beach 90 St (A to Broad Channel, then the shuttle)", "lines": "S", "lat": 40.5846, "lon": -73.8128},
+  arthur:{"name": "Arthur Avenue", "stop": "Fordham Rd, then a 16-minute walk or the Bx12 bus", "lines": "BD", "lat": 40.8551, "lon": -73.8878},
   subway:{name:"On the subway", stop:"Any station", lines:""}
  }}
 };
@@ -341,15 +371,15 @@ const CAMERAS = {
 // [place, intent, title, look for, work it, rule, recipe, best light]
 const IDEAS = [
 ["chinatown","place","The bend on Doyers Street","The curve of the street with signs stacked on both sides and the pavement leading the eye around the corner.","Stand at the Pell Street end and keep the buildings upright. Wait for one person at the bend to give the street its scale.","Ten frames at most, one for each person who rounds the bend.","deep",["am","gold"]],
-["chinatown","moment","The handoff","Money, bags and fish changing hands at the stalls on Mott and Grand Street.","Stand beside the scale, not in front of the stall. Frame both people from the waist up so hands and faces share the picture.","Press only when two hands are in the frame.","zone",["am","mid"]],
+["chinatown","moment","The handoff","Money, bags and fish changing hands at the pavement stalls on Mott Street, between Grand and Hester Street.","Stand beside the scale, not in front of the stall. Frame both people from the waist up so hands and faces share the picture.","Press only when two hands are in the frame.","zone",["am","mid"]],
 ["chinatown","energy","Canal Street current","Shoppers squeezing past vendors and stacked boxes, all moving in different directions.","Plant yourself against a pole and let the crowd flow around you. Keep one vendor standing still while everyone else blurs.","Stay in one spot for fifteen minutes.","drag",["mid","gold"]],
 ["chinatown","mood","Steam and neon","Fogged restaurant windows, kitchen steam and red signs on Mott and Bayard after dark.","Shoot through the glass and let the reflections sit on top of the people inside. Get close to the window to control what reflects.","Every frame must include glass.","night",["night","rain"]],
 ["chinatown","odd","Columbus Park spectators","Card games, xiangqi boards and erhu players, each with a ring of onlookers.","Photograph the watchers, not the players. Look for the one face reacting differently from the rest of the ring.","No frames of the board itself.","zone",["am","mid"]],
 
-["gct","place","Concourse from the west stairs","The clock, the ticket windows and the constellation ceiling in one view.","Go up the west staircase and shoot handheld from the balcony rail. Choose either floor and clock, or windows and ceiling, unless your lens is wide enough to hold both.","Make one picture that says Grand Central without the ceiling.","interior",["am","mid","gold","night","rain"]],
+["gct","place","Concourse from the west stairs","The clock, the departure boards and the constellation ceiling in one view.","Go up the west staircase and shoot handheld from the top of the stairs. Choose either floor and clock, or windows and ceiling, unless your lens is wide enough to hold both.","Make one picture that says Grand Central without the ceiling.","interior",["am","mid","gold","night","rain"]],
 ["gct","moment","Meeting at the clock","People scanning the crowd, then the wave, the hug or the missed connection at the information booth.","Stand ten steps from the booth with the clock in the upper third. Pick one waiting person and stay with them.","Follow one person until their meeting happens or they leave.","interior",["gold","night"]],
-["gct","energy","Rush-hour river","Evening commuters crossing the marble floor in every direction.","Brace on the balcony rail and find one person standing still to check the departures board.","Shoot only between 5 and 6 pm on a weekday.","drag",["gold"]],
-["gct","mood","Pools of window light","Bright patches from the tall windows moving across the floor, with people passing through as dark shapes.","Expose for the bright patch and wait at its edge. Press when a single figure is fully inside the light.","One figure per frame, never two.","silhouette",["am","mid"]],
+["gct","energy","Rush-hour river","Evening commuters crossing the marble floor in every direction.","Brace on the stair rail at the top of the west staircase and find one person standing still to check the departures board.","Shoot only between 5 and 6 pm on a weekday.","drag",["gold"]],
+["gct","mood","Pools of light","The brightest patches of the marble floor, with people crossing them as dark shapes. Direct sun rarely reaches the floor now that towers surround the building.","Find the brightest patch you can, expose for it and wait at its edge. Press when a single figure is fully inside it.","One figure per frame, never two.","silhouette",["am","mid","gold"]],
 ["gct","odd","The whispering corners","People facing the tiled corners outside the Oyster Bar, talking to the wall while a friend listens across the arch.","Frame one corner tightly so the person appears to be speaking to the tiles. A second frame can show both ends of the arch.","Do not explain the picture; leave the listener out of at least one frame.","interior",["am","mid","gold","night","rain"]],
 
 ["tsq","place","From the red steps","Broadway and Seventh Avenue converging under the screens, seen from above the crowd.","Climb the red steps at Duffy Square and look south. Put the crowd along the bottom edge and let the screens fill the rest.","Shoot it at dusk, when the sky and the screens are the same brightness.","deep",["gold","night"]],
@@ -362,16 +392,16 @@ const IDEAS = [
 ["wsp","moment","Chess corner","A hand hovering over a piece, a slap on the clock, the look across the table.","Work the tables in the southwest corner. Sit down at the next table so the camera is at the players' eye level.","Wait for hands; no frames of people only thinking.","shallow",["mid","gold"]],
 ["wsp","energy","The fountain ring","Dancers, skaters and musicians with a crowd around them.","Get to the front of the ring and crouch. Catch the performer at the top of a jump or spin with the crowd behind.","Feet off the ground in every frame.","freeze",["mid","gold"]],
 ["wsp","mood","Bench light","Low sun through the trees, long shadows across the paths and someone alone with a book.","Shoot toward the sun along the western paths. Let the reader be a small dark shape in a large bright frame.","The person takes up less than a tenth of the picture.","silhouette",["gold"]],
-["wsp","odd","The regulars","The grand piano wheeled in under the arch, the man covered in pigeons, the sign-holders and poets for hire.","Spend time before you shoot. Ask what they are doing; the picture after the conversation is usually better.","Talk to one stranger before photographing them.","shallow",["mid","gold"]],
+["wsp","odd","The regulars","The grand piano wheeled into the park, the men covered in pigeons, and poets typing verses to order.","Spend time before you shoot. Ask what they are doing; the picture after the conversation is usually better.","Talk to one stranger before photographing them.","shallow",["mid","gold"]],
 
-["dumbo","place","Washington Street frame","The Manhattan Bridge tower between brick warehouses, with the Empire State Building visible through its base.","Stand at Washington and Water Street. Move left and right until the Empire State Building sits inside the opening in the tower.","Be there before 8 am, before the crowd arrives.","deep",["am"]],
+["dumbo","place","Washington Street frame","The Manhattan Bridge tower between brick warehouses, with the Empire State Building visible through its base.","Stand on Washington Street between Front and Water Street. Move left and right until the Empire State Building sits inside the opening in the tower.","Be there before 8 am, before the crowd arrives.","deep",["am"]],
 ["dumbo","moment","Between the poses","Couples, wedding parties and tourists posing in the middle of the street, and what happens just after the pose ends.","Stand to one side of someone else's shoot. Wait for the laugh, the dress being fixed or the dash away from a car.","Press only after their photographer lowers the camera.","zone",["mid","gold"]],
 ["dumbo","energy","Under the bridge","Trains crossing overhead, cyclists and skaters coming through the archway on Water Street.","Stand inside the arch facing the light. Blur a cyclist against the still stone.","Every frame needs something moving and something that has not moved in a century.","drag",["mid","gold"]],
 ["dumbo","mood","Blue hour at Pebble Beach","The lower Manhattan skyline switching on while the carousel glows in its glass box.","Use the rocks or a railing as a support. Put a single person at the water's edge in front of the lights.","Shoot only in the twenty minutes after sunset.","night",["gold","night"]],
-["dumbo","odd","Rails in the cobbles","Old freight tracks running through the Belgian block and stopping at nothing.","Follow the rails on Plymouth and Water Street. Get low and let them lead to a modern detail such as a scooter or a stroller.","Old and new must share the frame.","detail",["am","mid","rain"]],
+["dumbo","odd","Rails in the cobbles","Old freight tracks running through the Belgian block and stopping at nothing.","Follow the rails on Plymouth Street, between Pearl and Bridge Street. Get low and let them lead to a modern detail such as a scooter or a stroller.","Old and new must share the frame.","detail",["am","mid","rain"]],
 
 ["coney","place","Boardwalk and Wonder Wheel","The wheel, the parachute tower and the boardwalk planks running to the horizon.","Shoot along the boardwalk with the planks as leading lines. Keep the wheel large by walking toward it, not by cropping.","One frame with people, one with none.","deep",["am","gold"]],
-["coney","moment","The drop","Faces on the Cyclone as it goes over the first hill, or a child's first bite of a hot dog.","For the coaster, stand on Surf Avenue where the track comes closest to the fence. For food, wait near the counter exits.","Open mouths only.","freeze",["mid","gold"]],
+["coney","moment","The drop","Faces on the Cyclone as it goes over the first hill, or a child's first bite of a hot dog.","For the coaster, stand along West 10th Street, which runs beside the long side of the ride. For food, wait near the counter exits.","Open mouths only.","freeze",["mid","gold"]],
 ["coney","energy","Rides in motion","Spinning rides turning into rings of light at dusk.","Brace on a fence in Luna Park and keep the ticket booth or a waiting parent sharp while the ride blurs.","Try 1/15, 1/8 and 1/4 s on the same ride and keep one.","drag",["gold","night"]],
 ["coney","mood","Out of season","Shuttered stands, fog over the beach and one walker on a mile of empty boardwalk.","Go on a weekday morning outside summer. Leave most of the frame empty and place the walker near an edge.","Go only when the weather is bad.","deep",["am","rain"]],
 ["coney","odd","Hand-painted signs","Sideshow banners, painted clams and corn dogs, and lettering no computer made.","Fill the frame with one sign, then make a second frame where a passer-by echoes its colour or its pose.","Collect five signs, each with a person who matches it.","detail",["mid","gold"]],
@@ -383,13 +413,13 @@ const IDEAS = [
 ["soho","odd","Window doubles","Mannequins and passers-by merged in the shop glass.","Stand at an angle to the window until a mannequin and a reflected walker line up. Shift a step to change what the glass shows.","A real person and a fake one in every frame.","zone",["mid","gold","rain"]],
 
 ["jh","place","Under the 7","Roosevelt Avenue running beneath the elevated tracks, with shop signs in several alphabets.","Stand on a corner near 74th Street and include the steel overhead as the top third of the frame.","A train must be in the picture.","deep",["am","mid"]],
-["jh","moment","Street food exchange","Momo, arepa and tamale carts, and the moment the food is passed over.","Buy something first. Then stand at the side of the cart and photograph the next three customers.","Eat before you shoot.","zone",["gold","night"]],
+["jh","moment","Street food exchange","Momo carts and other street-food stalls around the station, and the moment the food is passed over.","Buy something first. Then stand at the side of the cart and photograph the next three customers.","Eat before you shoot.","zone",["gold","night"]],
 ["jh","energy","Roosevelt at dusk","Trains overhead, traffic below and lit signs on both sides.","Brace against a steel column. Let a train or a bus blur past a person waiting to cross.","Stay under the tracks for the whole set.","drag",["gold","night"]],
 ["jh","mood","Ladder light","Sun through the track ties, laying stripes across the street and everyone on it.","Expose for the stripes. Press when a face lands in a bright band and the body stays dark.","A face in light, nothing else.","silhouette",["am","mid"]],
-["jh","odd","Stacked languages","One building front carrying signs in Spanish, Bengali, Nepali and English.","Frame the signs square-on, then wait for someone who seems to belong to one of them to walk through.","At least three alphabets in the frame.","detail",["mid","gold"]],
+["jh","odd","Stacked languages","Shopfronts with signs in Spanish, Bengali, Nepali and English within a few doors of each other.","Frame a run of signs square-on, then wait for someone to walk through.","At least three alphabets in the frame.","detail",["mid","gold"]],
 
-["ferry","place","Skyline off the stern","Lower Manhattan pulling away, with the wake as a line back to it.","Go to the rear deck as the boat leaves Whitehall. Put a railing or a passenger in the foreground for depth.","Shoot in the first five minutes after departure.","deep",["am","gold"]],
-["ferry","moment","The statue side","Everyone crossing to the right-hand rail when the Statue of Liberty comes into view.","Stay back from the rail and photograph the row of raised phones and faces, with the statue small beyond them.","The statue stays smaller than any face.","zone",["mid","gold"]],
+["ferry","place","Skyline off the stern","Lower Manhattan pulling away, with the wake as a line back to it.","Go to the back of the boat as it leaves Whitehall; how much open deck there is depends on the boat. Put a railing or a passenger in the foreground for depth.","Shoot in the first five minutes after departure.","deep",["am","gold"]],
+["ferry","moment","The statue side","On the trip to Staten Island, everyone crossing to the right-hand rail when the Statue of Liberty comes into view. Coming back, it is on the left.","Stay back from the rail and photograph the row of raised phones and faces, with the statue small beyond them.","The statue stays smaller than any face.","zone",["mid","gold"]],
 ["ferry","energy","Boarding surge","The terminal doors opening and several hundred people walking at once.","Stand to one side of the doors inside the Whitehall terminal. Keep the door frame sharp and let the crowd streak.","One crossing, one attempt.","drag",["am","gold"]],
 ["ferry","mood","Window seat at sunset","A lone commuter beside a salt-streaked window with low sun behind.","Ride the boat that leaves about half an hour before sunset. Expose for the window and let the rider go dark.","Indoor seats only; stay off the deck.","silhouette",["gold"]],
 ["ferry","odd","The ones not looking","Regulars asleep, reading or doing a crossword while the tourists crowd the rail.","Sit across the aisle. Frame the commuter in the foreground with the tourists as a blur of backs behind.","Both groups in one frame.","shallow",["am","gold"]],
@@ -398,7 +428,47 @@ const IDEAS = [
 ["subway","moment","Doors closing","The look between someone on the platform and someone inside as the doors shut.","Stand inside by the door, facing out. The window frames the person left behind.","Shoot only through the door glass.","interior",["am","mid","gold","night","rain"]],
 ["subway","energy","Train arriving","A train streaking in behind someone who does not look up.","Brace against a column and keep the waiting rider sharp. Start shooting when you feel the air move.","One still person, one moving train.","drag",["am","mid","gold","night","rain"]],
 ["subway","mood","Last car, late","A nearly empty car, one rider and the flat fluorescent light.","Sit at the far end of the car and include the row of empty seats. Reflections in the dark windows add a second layer.","Ride after 10 pm and stay in one car for three stops.","night",["night"]],
-["subway","odd","Platform concert","A cellist, a bucket drummer or a mariachi trio, and the commuters pretending not to listen.","Frame the musician from the side so the audience is in the background. Leave a dollar.","The listener's face matters more than the instrument.","interior",["gold","night"]]
+["subway","odd","Platform concert","A cellist, a bucket drummer or a mariachi trio, and the commuters pretending not to listen.","Frame the musician from the side so the audience is in the background. Leave a dollar.","The listener's face matters more than the instrument.","interior",["gold","night"]],
+["harlem", "place", "125th Street and the Apollo", "The Apollo Theater marquee with the street life of 125th Street passing beneath it.", "Stand across 125th Street from the theater so the marquee and the pavement below both fit. Wait for a passer-by who fills the foreground.", "The sign and a person in every frame.", "deep", ["gold", "night"]],
+["harlem", "moment", "Sunday best", "Churchgoers in hats and suits greeting each other on the steps before and after Sunday morning services.", "Stand on the public pavement outside one of the large churches near Adam Clayton Powell Jr. Boulevard as the late-morning service ends. Photograph from the street and do not take the camera inside.", "Keep your distance and lower the camera if anyone objects.", "shallow", ["am", "mid"]],
+["harlem", "energy", "Sidewalk commerce", "Vendors' tables, shoppers and music from speakers along 125th Street.", "Plant yourself against a lamppost and let the crowd pass on both sides. Keep one vendor still while the walkers blur.", "Stay in one spot for fifteen minutes.", "drag", ["mid", "gold"]],
+["harlem", "mood", "Brownstone stoops at dusk", "Rows of brownstones in the Mount Morris Park historic district, with stoop railings and warm windows.", "Walk the side streets west of Marcus Garvey Park, around 120th to 123rd Street. Shoot along the row so the stoops repeat into the distance.", "One lit window in every frame.", "night", ["gold", "night"]],
+["harlem", "odd", "Painted walls", "Memorial murals and hand-lettered shop signs, and the people who walk past them without looking.", "Frame a mural square-on, then wait for a passer-by whose clothes or pose echo something in the painting.", "A real person and a painted one in every frame.", "detail", ["mid", "gold"]],
+["les", "place", "Orchard Street fire escapes", "Tenement fire escapes zigzagging above old shop signs and new boutiques.", "Stand in the middle of a quiet block of Orchard Street and shoot along it. Keep the buildings upright and wait for one person in the road.", "Keep every vertical line vertical.", "deep", ["am", "gold"]],
+["les", "moment", "Essex Market counters", "Orders being weighed, wrapped and handed across the counters at the indoor market on Essex Street.", "Buy something first. Then stand at the end of a counter so the stallholder and the customer are both in view.", "Press only when two hands are in the frame.", "interior", ["am", "mid", "gold", "rain"]],
+["les", "energy", "Off the bridge", "Cyclists, scooters and traffic coming off the Williamsburg Bridge onto Delancey Street.", "Stand by the end of the bridge's bike path at Clinton Street and brace on a railing. Blur a cyclist against the still steel.", "Something moving and something fixed in every frame.", "drag", ["mid", "gold"]],
+["les", "mood", "Neon in the window", "Bar and deli neon on Ludlow, Rivington and Orchard Street after dark, with people outside.", "Shoot through the window glass so the neon, the reflections and a face inside sit in layers.", "Every frame must include glass.", "night", ["night", "rain"]],
+["les", "odd", "Old signs, new tenants", "Faded shop names from an earlier business still showing above whatever trades there now.", "Frame the old sign and the new shopfront together, square-on. Wait for a customer to walk in.", "Two eras in one frame.", "detail", ["mid", "gold"]],
+["flushing", "place", "Main Street and Roosevelt Avenue", "Signs in Chinese stacked up the buildings above one of the busiest crossings in the city.", "Stand at the kerb on Main Street and shoot along it, with the signs filling the upper half and the crowd below.", "At least ten signs in the frame.", "deep", ["mid", "gold"]],
+["flushing", "moment", "Food court trays", "Bowls passed over counters and strangers sharing tables in the basement food court at New World Mall.", "Order, sit down, and photograph from your seat at table height. The counters are lit; the tables are dimmer.", "Shoot only while seated.", "interior", ["mid", "gold", "night", "rain"]],
+["flushing", "energy", "The 7 lets out", "The crowd climbing the stairs from the Main Street terminal at rush hour and spreading across the pavement.", "Stand to one side of a station exit and brace against the railing. Keep the railing sharp and let the crowd streak.", "Shoot three trainloads, then stop.", "drag", ["gold"]],
+["flushing", "mood", "Street-food windows", "Skewers, dumplings and steam behind small serving windows lit by bare bulbs after dark.", "Stand at an angle to a window so the vendor is lit and the queue is in shadow. Expose for the vendor.", "A lit face and a dark crowd.", "night", ["night", "rain"]],
+["flushing", "odd", "Produce on the pavement", "Durian, dragon fruit and tanks of live seafood spilling out of shopfronts onto the street.", "Get low and close to the display, with a shopper's hand reaching in.", "A hand in every frame.", "detail", ["am", "mid"]],
+["wburg", "place", "Skyline from Domino Park", "The Williamsburg Bridge and the Manhattan skyline from the waterfront walkway, with the old sugar refinery behind you.", "Walk the elevated walkway and shoot along the railing toward the bridge. Put a person at the rail for scale.", "Bridge, skyline and one person.", "deep", ["am", "gold"]],
+["wburg", "moment", "McCarren Park games", "Handball, kickball and softball games, and the players waiting their turn.", "Stand at the side of a court or field, level with the players, and watch the ones who are not playing.", "Photograph the bench, not the ball.", "shallow", ["mid", "gold"]],
+["wburg", "energy", "Bedford Avenue on Saturday", "Crowds, bikes and buskers around the Bedford Avenue station.", "Crouch at the kerb near the station entrance so the nearest walker is large and the rest stack up behind.", "Feet and faces in the same frame.", "zone", ["mid", "gold"]],
+["wburg", "mood", "Under the Williamsburg Bridge", "Steel, hard shadow bands and trains rumbling overhead where the bridge lands in Brooklyn.", "Stand in the shade under the approach and shoot out toward the light. Wait for a figure to cross a bright strip.", "One figure per frame.", "silhouette", ["am", "mid"]],
+["wburg", "odd", "People in front of murals", "Large painted walls, and passers-by who briefly become part of them.", "Frame a mural square-on from across the street. Wait for someone to line up with a painted shape.", "The person must touch the painting's edge or shape.", "detail", ["mid", "gold"]],
+["midtown", "place", "Sixth Avenue canyon", "The wall of office towers and their plazas along Sixth Avenue in the high 40s and low 50s.", "Stand at a plaza edge and shoot along the avenue. Keep the verticals straight and let the towers fill the frame to the top.", "No sky in the frame.", "deep", ["mid"]],
+["midtown", "moment", "Lunch on the ledge", "Office workers eating alone on plaza steps and ledges, and at the tables in Paley Park on 53rd Street.", "Pick one ledge with a clean background and wait across the pavement. The moment is the first bite or the glance at the phone.", "One person per frame.", "shallow", ["mid"]],
+["midtown", "energy", "Noon crosswalk", "The lunch-hour crowd stepping off the kerb on Fifth Avenue in the low 50s.", "Crouch at the opposite kerb and shoot the first two seconds of each walk signal.", "Five light cycles, one frame from each.", "zone", ["mid"]],
+["midtown", "mood", "Bounced light", "Patches of sunlight reflected off glass towers onto shaded streets, lighting one person at a time.", "Find a bright patch on a shaded side street, expose for it and wait at its edge.", "The lit person and nothing else bright.", "silhouette", ["am", "mid"]],
+["midtown", "odd", "Suits at the food cart", "Office workers in suits queuing at a halal cart, such as the one at 53rd Street and Sixth Avenue.", "Stand to the side of the queue so the cart, the cook and the line are all in view.", "A tie and a foil container in the same frame.", "zone", ["mid"]],
+["cpark", "place", "Bethesda Terrace arcade", "The arches of the arcade framing the terrace and the Lake beyond. The fountain is fenced off for restoration until about summer 2027.", "Stand inside the arcade and shoot out through the centre arch toward the Lake. Wait for one person to walk into the light.", "Shoot from the shade into the light.", "deep", ["am", "gold"]],
+["cpark", "moment", "On Bow Bridge", "Couples and families stopping at the middle of the bridge: the photo, the kiss, the proposal.", "Stand on the lakeside path near the south end of the bridge, by Cherry Hill, and frame the curve of the bridge with the people at its crown.", "Wait for people to stop walking.", "shallow", ["gold"]],
+["cpark", "energy", "Runners on the drive", "Runners and cyclists streaming around the park drive in the early morning and after work.", "Brace against a lamppost at a bend in the drive. Keep one walker or a bench sharp while the runners blur.", "One still thing, everything else moving.", "drag", ["am", "gold"]],
+["cpark", "mood", "The Mall in bad weather", "The tunnel of elms and the rows of benches along the Mall in fog, rain or snow.", "Stand in the centre of the path at the south end and shoot along it. A single figure far down the path completes it.", "Go only when the weather is bad.", "deep", ["am", "rain"]],
+["cpark", "odd", "Under the arcade", "Musicians, singers and wedding parties who use the tiled arcade at Bethesda Terrace for its sound and light.", "Stand to one side so the performer is near and the listeners are behind. The tiled ceiling carries the sound and the light.", "A performer and a listener in every frame.", "interior", ["mid", "gold", "rain"]],
+["rockaway", "place", "Boardwalk to the horizon", "The concrete boardwalk, the dunes and the Atlantic running out of sight.", "Shoot along the boardwalk with the railing as a line. Keep the horizon level and put one walker in the distance.", "One frame with people, one with none.", "deep", ["am", "gold"]],
+["rockaway", "moment", "Out of the water", "Surfers walking up the sand with their boards after a session.", "Stand on the sand near the surfing beach around Beach 90th Street, between the water and the boardwalk, and let them walk toward you.", "Board, face and water in one frame.", "shallow", ["am", "gold"]],
+["rockaway", "energy", "On the wave", "Surfers taking off beside the rock jetties.", "Shoot from the sand beside a jetty, as close to the waterline as you can keep the camera dry. Use the 90 mm crop frame.", "Press only when someone is standing on a board.", "freeze", ["am", "gold"]],
+["rockaway", "mood", "Winter beach", "Empty sand, fog over the water and one person walking a dog.", "Go on a cold weekday morning. Leave most of the frame empty and place the walker near an edge.", "The person takes up less than a tenth of the picture.", "deep", ["am", "rain"]],
+["rockaway", "odd", "Surfboards on the shuttle", "Surfers carrying boards through the elevated station at Beach 90th Street.", "Wait on the platform at Beach 90th Street. Frame the board against the station signs.", "A surfboard and a station sign in the same frame.", "interior", ["am", "mid"]],
+["arthur", "place", "The avenue", "Italian flags, striped awnings and salumeria signs along Arthur Avenue around East 187th Street.", "Stand at the corner of 187th Street and shoot along the avenue, with the awnings as a line down one side.", "At least three shop signs in the frame.", "deep", ["am", "mid"]],
+["arthur", "moment", "Across the counter", "Bread, cheese and sausage being cut, weighed and handed over inside the Arthur Avenue Retail Market.", "Buy something first. Then stand at the end of a counter so both faces are in view.", "Press only when something changes hands.", "interior", ["am", "mid", "rain"]],
+["arthur", "energy", "Saturday shopping", "Shoppers with full bags, double-parked cars and neighbours stopping to talk in the middle of the pavement.", "Crouch at the kerb so the nearest shopper is large and the street stacks up behind.", "Bags in every frame.", "zone", ["mid"]],
+["arthur", "mood", "Café window", "Regulars at small tables inside a pastry shop or espresso bar, seen from the street.", "Shoot through the window so the lettering on the glass, the reflections and the faces inside sit in layers.", "Every frame must include glass.", "shallow", ["mid", "gold"]],
+["arthur", "odd", "Hand-rolled cigars", "Cigar rollers working at a bench inside the Retail Market.", "Ask first. Then get close to the hands and the leaf, with the roller's face soft behind.", "Hands sharp, face soft.", "detail", ["am", "mid", "rain"]]
 ].map((a,n)=>({id:a[0]+"-"+a[1],p:a[0],i:a[1],t:a[2],look:a[3],work:a[4],rule:a[5],r:a[6],w:a[7]}));
 
 // Composition techniques: [name, explanation shown on tap]
@@ -422,7 +492,7 @@ const COMPOSE = {
 "chinatown-energy":["diag","Stand so the crowd crosses the frame corner to corner, with the vendor on a third as the still point."],
 "chinatown-mood":["layers","Three layers: reflections on the glass, the steam, then a face. Keep the red sign in a corner so it colours the frame without taking over."],
 "chinatown-odd":["layers","A player's blurred shoulder in the foreground, the reacting face sharp behind it."],
-"gct-place":["sym","Centre the clock and keep the balcony rail level across the bottom of the frame."],
+"gct-place":["sym","Centre the clock and keep the floor line level across the bottom of the frame."],
 "gct-moment":["thirds","Clock on the upper third, your waiting person on the opposite lower third, with clear floor between them and the crowd."],
 "gct-energy":["juxta","One sharp figure off-centre with the blurred crowd flowing past on both sides. Leave floor in front of the way they face."],
 "gct-mood":["light","The bright patch sits in the middle with darkness on all four edges. Keep the figure small and fully inside the light."],
@@ -466,7 +536,47 @@ const COMPOSE = {
 "subway-moment":["frame","The door window frames the face outside. Press close to the glass to keep your own reflection out."],
 "subway-energy":["thirds","Rider sharp on one third and facing into the frame, the train streaking across the other two thirds."],
 "subway-mood":["space","Shoot down the car: empty seats as repeating shapes, the lone rider small at the far end."],
-"subway-odd":["layers","The instrument in the near foreground, one listener's face sharp in the middle distance."]
+"subway-odd":["layers","The instrument in the near foreground, one listener's face sharp in the middle distance."],
+"harlem-place":["thirds", "Marquee on the upper third, your passer-by on the opposite lower third, with the street between them."],
+"harlem-moment":["frame", "Use the church doorway as the frame, with the group on the steps inside it."],
+"harlem-energy":["diag", "Stand so the pavement crowd crosses the frame corner to corner, with the vendor's table as the still point on a third."],
+"harlem-mood":["lines", "Stoop railings repeat from the near corner to a vanishing point. Place the lit window on a third."],
+"harlem-odd":["juxta", "The painted figure and the passer-by at the same height and size, side by side."],
+"les-place":["lines", "Fire escapes run down both sides to the street's vanishing point. Put the person where the lines meet."],
+"les-moment":["fill", "Hands and the goods in the centre, both faces near the top edge, nothing else."],
+"les-energy":["diag", "The bike path runs diagonally from a lower corner. Catch the cyclist halfway along it."],
+"les-mood":["reflect", "Neon in an upper corner, reflections across the glass, one face inside on a third."],
+"les-odd":["juxta", "Old sign across the top third, new shopfront below, the customer in the doorway between them."],
+"flushing-place":["layers", "Crowd along the bottom, a band of awnings in the middle, stacked signs filling the top."],
+"flushing-moment":["fill", "A bowl and two pairs of hands filling the frame, with one face at the top edge."],
+"flushing-energy":["frame", "The stair opening frames the crowd as it rises. Keep the railing sharp along one side."],
+"flushing-mood":["light", "The serving window is the only bright shape. Let the queue fall dark around it."],
+"flushing-odd":["fill", "Fruit or tanks edge to edge, with the reaching hand entering from a corner."],
+"wburg-place":["lines", "The railing leads from the bottom corner to the bridge tower. The person stands where the line meets the bridge."],
+"wburg-moment":["layers", "Waiting players sharp in the foreground, the game blurred behind them."],
+"wburg-energy":["layers", "Nearest walker large on one side, the station crowd stacked behind, shopfronts as the back layer."],
+"wburg-mood":["light", "Shadow fills most of the frame. The figure stands inside the one bright strip."],
+"wburg-odd":["juxta", "Line the person up with a painted shape of the same size, so the two read as a pair."],
+"midtown-place":["sym", "Centre the avenue's vanishing point with equal walls of tower on both sides."],
+"midtown-moment":["space", "The person small on a lower third, with a large plain wall or empty steps around them."],
+"midtown-energy":["layers", "The front walker large at one edge, the rest of the crowd stepping off in a row behind."],
+"midtown-mood":["light", "Dark street on all sides, one lit person in the bright patch, placed off-centre."],
+"midtown-odd":["juxta", "The suit and the cart side by side at the same scale, steam between them."],
+"cpark-place":["frame", "The centre arch frames the terrace and the Lake. Keep the arch's sides equal and the person inside the opening."],
+"cpark-moment":["thirds", "The bridge curves across the lower third and the couple stand at its crown, on a vertical third."],
+"cpark-energy":["diag", "The drive bends diagonally through the frame. The still walker sits on a third while runners streak along the curve."],
+"cpark-mood":["sym", "Centre the path, with equal rows of benches and elms on both sides and the lone figure at the vanishing point."],
+"cpark-odd":["layers", "Performer near, listeners in the middle, the bright terrace beyond the arches as the back layer."],
+"rockaway-place":["lines", "The railing and the boardwalk edge run from the bottom corners to the horizon. Put the walker where they meet."],
+"rockaway-moment":["thirds", "Surfer on one third, walking into the frame, with the waterline as a level line behind."],
+"rockaway-energy":["thirds", "Surfer on a third, with room in front of the board in the direction of travel."],
+"rockaway-mood":["space", "Horizon low, sky filling most of the frame, the walker and dog tiny near one edge."],
+"rockaway-odd":["juxta", "The surfboard upright beside a station sign, both the same height in the frame."],
+"arthur-place":["lines", "Awnings step down one side toward the vanishing point. A shopper at the near awning gives the scale."],
+"arthur-moment":["fill", "The goods and both pairs of hands in the centre, faces at the top edge."],
+"arthur-energy":["layers", "Shopper and bags large in front, the pavement crowd behind, awnings as the back layer."],
+"arthur-mood":["frame", "The window is the frame. Keep its edges parallel to the picture edges and one face inside each pane."],
+"arthur-odd":["fill", "Hands and tobacco leaf fill the lower two thirds, the face out of focus above."]
 };
 
 /* Visual demos. Schematic drawings by type, not pictures of the actual location.
@@ -528,6 +638,7 @@ Object.entries({
   square:"gct-odd coney-odd jh-odd",
   along:"wsp-moment"
 }).forEach(([k,v])=>v.split(" ").forEach(id=>STANCE_OF[id]=k));
+Object.entries({"down": "harlem-mood les-place flushing-place wburg-place midtown-place cpark-place cpark-mood rockaway-place arthur-place", "side": "les-moment flushing-mood wburg-moment midtown-odd cpark-odd rockaway-odd arthur-moment arthur-odd", "anchor": "harlem-energy les-energy flushing-energy cpark-energy", "glass": "les-mood arthur-mood", "low": "flushing-odd wburg-energy midtown-energy rockaway-moment rockaway-energy arthur-energy", "wait": "harlem-place harlem-moment midtown-moment midtown-mood cpark-moment rockaway-mood", "backlight": "wburg-mood", "square": "harlem-odd les-odd wburg-odd", "along": "flushing-moment"}).forEach(([k,v])=>v.split(" ").forEach(id=>STANCE_OF[id]=k));
 const workDemo = id => { const s=STANCE[STANCE_OF[id]]; if(!s) return "";
   return '<figure class="demo">'+dSvg(s[2],s[0]+": "+s[1],false)+'<figcaption>'+s[0]+'. '+s[1]+' Yellow is you and what the lens sees; white is the subject.</figcaption></figure>'; };
 const composeDemo = key => TECH_ART[key] ? '<figure class="demo">'+dSvg(TECH_ART[key],TECH[key][0]+" example frame",true)+'<figcaption>How the frame should look.</figcaption></figure>' : "";
@@ -750,7 +861,7 @@ const store = {
 };
 const state = {
   city: store.get("city","nyc"), intent: store.get("intent","all"), place: store.get("place","all"), when: store.get("when","all"),
-  camera: store.get("camera","q343"), view:"shoot", tab:"idea", cond:"auto",
+  camera: store.get("camera","q343"), view:"shoot", tab:"idea", cond:"auto", notes: store.get("notes",{}) || {}, pos:null, plan:null,
   saved: new Set(store.get("saved",[])), done: new Set(store.get("done",[])), current:null, history:[]
 };
 if(!CAMERAS[state.camera]) state.camera="q343";
@@ -761,7 +872,7 @@ const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&g
 const cityIdeas = () => IDEAS.filter(x=>PLACES[x.p].city===state.city);
 
 function matches(savedOnly){
-  return cityIdeas().filter(x => (state.intent==="all"||x.i===state.intent) && (state.place==="all"||x.p===state.place)
+  return cityIdeas().filter(x => (state.intent==="all"||x.i===state.intent) && (state.place==="all"||(state.place==="near"?nearSet().has(x.p):x.p===state.place))
     && (state.when==="all"||x.w.includes(state.when)) && (!savedOnly||state.saved.has(x.id)));
 }
 function show(id){
@@ -808,6 +919,7 @@ function renderCard(){
     pane='<div class="part"><span class="label">Look for</span><p>'+esc(x.look)+'</p></div>'+
       '<div class="part"><span class="label">Your rule</span><p>'+esc(x.rule)+'</p></div>'+
       '<div class="part"><span class="label">Best light</span><div class="times">'+x.w.map(w=>'<span class="time">'+WHEN[w]+'</span>').join("")+'</div></div>'+
+      '<div class="part"><label class="label" for="note">Your notes</label><textarea id="note" rows="2" placeholder="What worked, what was different, what to try next time">'+esc(state.notes[x.id]||"")+'</textarea></div>'+
       '<div class="jumps">'+
       (st ? '<button type="button" class="jump" data-tab="work"><span><small>Work it</small>'+esc(st[1])+'</span><span class="go" aria-hidden="true">›</span></button>' : '')+
       (co ? '<button type="button" class="jump" data-tab="compose"><span><small>Compose</small>'+esc(TECH[co[0]][0])+'</span><span class="go" aria-hidden="true">›</span></button>' : '')+
@@ -826,13 +938,16 @@ function renderCard(){
 function renderList(){
   const saved=state.view==="saved", m=matches(saved), box=$("list");
   if(!m.length){ box.innerHTML='<p class="empty">'+(saved?"Nothing saved here yet. Tap Save on an idea in Shoot to keep it in this list.":"No ideas fit these filters. Choose Any, or widen the place or the light.")+'</p>'; return; }
-  box.innerHTML = Object.entries(CITIES[state.city].places).map(([pid,p])=>{
+  const noted=cityIdeas().filter(x=>state.notes[x.id]);
+  box.innerHTML = '<div class="notesbar"><span class="msg">'+m.length+' idea'+(m.length===1?'':'s')+(state.pos?', nearest first':'')+'</span>'+
+    (noted.length?'<button type="button" class="chip" id="copyNotes">Copy my notes ('+noted.length+')</button>':'')+'</div>'+
+  placeOrder().map(pid=>{ const p=PLACES[pid];
     const rows=m.filter(x=>x.p===pid); if(!rows.length) return "";
-    return '<section class="group"><div class="group-head"><b>'+esc(p.name)+'</b>'+whereHtml(PLACES[pid])+'</div>'+rows.map(x=>
+    return '<section class="group"><div class="group-head"><b>'+esc(p.name)+(milesTo(p)!==null?'<span class="dist">'+milesText(milesTo(p))+'</span>':'')+'</b>'+whereHtml(PLACES[pid])+'</div>'+rows.map(x=>
       '<button type="button" class="row'+(state.done.has(x.id)?" done":"")+'" data-id="'+x.id+'">'+
       '<span class="dot" style="background:'+INTENTS[x.i].color+'"></span>'+
       '<span class="t"><b>'+esc(x.t)+'</b><span>'+esc(INTENTS[x.i].name)+(COMPOSE[x.id]?' · '+esc(TECH[COMPOSE[x.id][0]][0]):'')+'</span></span>'+
-      '<span class="marks">'+(state.saved.has(x.id)?'<span class="pill">Saved</span>':'')+(state.done.has(x.id)?'<span class="pill">Shot</span>':'')+'</span>'+
+      '<span class="marks">'+(state.saved.has(x.id)?'<span class="pill">Saved</span>':'')+(state.done.has(x.id)?'<span class="pill">Shot</span>':'')+(state.notes[x.id]?'<span class="pill">Note</span>':'')+'</span>'+
       '<span class="go" aria-hidden="true">›</span></button>').join("")+'</section>';
   }).join("");
 }
@@ -911,14 +1026,61 @@ loadWeather(); setInterval(loadWeather, 15*60*1000);
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ const w=WEATHER[state.city]; if(!w||Date.now()-new Date(w.updated)>10*60*1000) loadWeather(); } });
 $("city").addEventListener("change",loadWeather);
 if("serviceWorker" in navigator) window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+// Plan an outing: a few stops ordered as a walk, with ideas that suit the light at each stop's time.
+function phaseAt(t){ const c=CITIES[state.city]; if(typeof c.lat!=="number") return "mid"; const [rise,set]=sunTimes(t,c.lat,c.lon), m=6e4;
+  return (t<rise-30*m||t>+set+30*m) ? "night" : t>set-120*m ? "gold" : t<+rise+180*m ? "am" : "mid"; }
+function lightAt(t){ const ph=phaseAt(t); if(ph==="night") return "night"; const i=nowInfo();
+  return (Math.abs(t-Date.now())<3*36e5 && /rain|cloud|fog|snow|storm/.test(i.sky||"")) ? "rain" : ph; }
+function kmBetween(a,b){ const r=Math.PI/180, h=Math.sin((a.lat-b.lat)*r/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin((a.lon-b.lon)*r/2)**2; return 6371*2*Math.asin(Math.sqrt(h)); }
+function makePlan(){
+  const withPos=Object.keys(CITIES[state.city].places).filter(id=>typeof PLACES[id].lat==="number"); if(!withPos.length) return null;
+  let cur=$("pStart").value; if(cur==="near"||!PLACES[cur]) cur=state.pos?placeOrder()[0]:withPos[0];
+  const now=new Date(), hv=$("pTime").value; let t=new Date(now);
+  if(hv!=="now"){ t=new Date(now.getFullYear(),now.getMonth(),now.getDate(),+hv); if(t<now) t=new Date(+t+864e5); }
+  const start=new Date(t), end=new Date(+t+(+$("pLen").value)*6e4), stops=[], seen=new Set(), used=new Set();
+  while(t<end && stops.length<5){
+    const key=lightAt(t), here=cityIdeas().filter(x=>x.p===cur);
+    let pool=here.filter(x=>x.w.includes(key)); if(pool.length<2) pool=here;
+    pool=pool.map(x=>({x,r:Math.random()+(state.done.has(x.id)?2:0)})).sort((a,b)=>a.r-b.r).map(o=>o.x);
+    const next=withPos.filter(id=>id!==cur&&!seen.has(id)).map(id=>({id,km:kmBetween(PLACES[cur],PLACES[id])})).sort((a,b)=>a.km-b.km)[0];
+    const walk=next?Math.round(next.km*1.3/0.08):999, mins=walk<=30?Math.max(3,walk):Math.round(15+next.km*3);
+    const left=(end-t)/6e4, canMove=next && mins<=35 && left>=50+mins+20;   // isolated place or little time: stay and shoot more here
+    const want=canMove?2:Math.min(4,Math.max(1,Math.floor(left/25)));
+    const picks=[]; for(const x of pool){ if(picks.length<want && !picks.some(p=>p.i===x.i)) picks.push(x); }
+    for(const x of here){ if(picks.length<want && !picks.includes(x) && !picks.some(p=>p.i===x.i)) picks.push(x); }
+    const stop={place:cur,at:new Date(t),key,ideas:picks}; stops.push(stop); seen.add(cur);
+    t=new Date(+t+Math.max(1,picks.length)*25*6e4);
+    if(!canMove) break;
+    stop.leg={to:next.id,mins,mode:walk<=30?"walk":"by subway"}; t=new Date(+t+mins*6e4); cur=next.id;
+  }
+  return {start,end:t,stops};
+}
+function renderPlan(){
+  const ps=$("pStart"), pt=$("pTime"), keepS=ps.value, keepT=pt.value, tf=d=>d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}).toLowerCase();
+  ps.innerHTML=(state.pos?'<option value="near">Nearest to me</option>':'')+placeOrder().filter(id=>typeof PLACES[id].lat==="number").map(id=>'<option value="'+id+'">'+esc(PLACES[id].name)+'</option>').join("");
+  ps.value=keepS; if(!ps.value) ps.selectedIndex=0;
+  const h0=new Date().getHours(); let opts='<option value="now">Now</option>';
+  for(let h=6;h<=22;h++){ const lab=(h%12||12)+(h<12?" am":" pm"); opts+='<option value="'+h+'">'+lab+(h<=h0?" tomorrow":"")+'</option>'; }
+  pt.innerHTML=opts; pt.value=keepT; if(!pt.value) pt.value="now";
+  const box=$("plan"), p=state.plan;
+  if(!p){ box.innerHTML='<p class="lead">Choose where you will start, when, and how long you have. The plan picks ideas that suit the light at each stop and orders the stops as a walk.</p>'; return; }
+  const mins=Math.round((p.end-p.start)/6e4), n=p.stops.reduce((a,s)=>a+s.ideas.length,0);
+  box.innerHTML='<p class="lead">'+tf(p.start)+' to about '+tf(p.end)+' · '+p.stops.length+' place'+(p.stops.length===1?'':'s')+' · '+n+' ideas. Tap an idea to open it.</p>'+
+    p.stops.map(s=>{ const pl=PLACES[s.place];
+      return '<section class="group"><div class="group-head"><b>'+tf(s.at)+' · '+esc(pl.name)+'</b><span class="where">'+esc(WHEN[s.key])+' · '+esc(pl.stop||"")+' '+bullets(pl.lines,pl.city)+'</span></div>'+
+        s.ideas.map(x=>'<button type="button" class="row'+(state.done.has(x.id)?" done":"")+'" data-id="'+x.id+'"><span class="dot" style="background:'+INTENTS[x.i].color+'"></span>'+
+          '<span class="t"><b>'+esc(x.t)+'</b><span>'+esc(INTENTS[x.i].name)+(COMPOSE[x.id]?' · '+esc(TECH[COMPOSE[x.id][0]][0]):'')+'</span></span><span class="go" aria-hidden="true">›</span></button>').join("")+'</section>'+
+        (s.leg?'<p class="leg">↓ About '+s.leg.mins+' min '+(s.leg.mode==="walk"?"walk":s.leg.mode)+' to '+esc(PLACES[s.leg.to].name)+'</p>':'');
+    }).join("")+'<p class="msg">Travel times are estimated from straight-line distance, so allow extra. Tap Make a plan again for a different set.</p>';
+}
 function render(){
   openTip=null;
-  const shoot=state.view==="shoot", ev=state.view==="events";
-  $("viewShoot").hidden=!shoot; $("viewList").hidden=shoot||ev; $("viewEvents").hidden=!ev; $("bar").hidden=!shoot; $("filters").hidden=ev; $("now").hidden=ev; renderNow();
+  const shoot=state.view==="shoot", ev=state.view==="events", pl=state.view==="plan";
+  $("viewShoot").hidden=!shoot; $("viewList").hidden=shoot||ev||pl; $("viewPlan").hidden=!pl; $("viewEvents").hidden=!ev; $("bar").hidden=!shoot; $("filters").hidden=ev||pl; $("now").hidden=ev||pl; renderNow();
   document.querySelectorAll("#views button").forEach(b=>b.setAttribute("aria-selected",b.dataset.v===state.view));
   const all=cityIdeas(), n=all.filter(x=>state.done.has(x.id)).length;
   $("progress").textContent=n+"/"+all.length; $("progress").setAttribute("aria-label",n+" of "+all.length+" ideas shot"); $("fill").style.width=(all.length?100*n/all.length:0)+"%";
-  if(shoot) renderCard(); else if(ev) renderEvents(); else renderList();
+  if(shoot) renderCard(); else if(ev) renderEvents(); else if(pl) renderPlan(); else renderList();
 }
 function refilter(){ if(!matches(false).some(x=>x.id===state.current)) pick(); render(); }
 function cardToTop(){ const r=$("card").getBoundingClientRect(); if(r.top<0) window.scrollTo({top:window.scrollY+r.top-12,behavior:"smooth"}); }
@@ -931,11 +1093,32 @@ $("intents").addEventListener("click",e=>{ const c=e.target.closest(".chip"); if
   state.intent=c.dataset.i; store.set("intent",state.intent); syncChips(); refilter(); });
 function fill(sel,all,obj,val){ sel.innerHTML=(all?'<option value="all">'+all+'</option>':'')+Object.entries(obj).map(([k,v])=>'<option value="'+k+'">'+esc(v.name||v)+'</option>').join(""); sel.value=val; if(!sel.value) sel.selectedIndex=0; }
 fill($("city"),"",CITIES,state.city);
-const fillPlaces = () => fill($("place"),"Anywhere",CITIES[state.city].places,state.place);
+// Distance helpers. Places carry lat/lon; "Near me" sorts by distance from the device's position.
+function milesTo(p){ if(!state.pos||typeof p.lat!=="number") return null;
+  const r=Math.PI/180, a=Math.sin((p.lat-state.pos.lat)*r/2)**2+Math.cos(p.lat*r)*Math.cos(state.pos.lat*r)*Math.sin((p.lon-state.pos.lon)*r/2)**2;
+  return 3958.8*2*Math.asin(Math.sqrt(a)); }
+const milesText = d => d===null ? "" : d<0.1 ? "here" : d<10 ? d.toFixed(1)+" mi" : Math.round(d)+" mi";
+function placeOrder(){ const ids=Object.keys(CITIES[state.city].places); if(!state.pos) return ids;
+  return ids.map((id,n)=>({id,n,d:milesTo(PLACES[id])})).sort((a,b)=>(a.d===null?1e9:a.d)-(b.d===null?1e9:b.d)||a.n-b.n).map(o=>o.id); }
+function nearSet(){ return new Set(placeOrder().filter(id=>milesTo(PLACES[id])!==null).slice(0,3)); }
+function fillPlaces(){
+  const sel=$("place"); sel.innerHTML='<option value="all">Anywhere</option>'+(state.pos?'<option value="near">Closest 3 to me</option>':'')+
+    placeOrder().map(id=>{ const d=milesText(milesTo(PLACES[id])); return '<option value="'+id+'">'+esc(PLACES[id].name)+(d?' · '+d:'')+'</option>'; }).join("");
+  sel.value=state.place; if(!sel.value){ state.place="all"; sel.value="all"; }
+}
+function syncNear(){ $("near").textContent=state.pos?"Near me ✓":"Near me"; $("near").setAttribute("aria-pressed",!!state.pos); }
 fillPlaces(); fill($("when"),"Any light",WHEN,state.when);
 $("city").addEventListener("change",e=>{state.city=e.target.value;state.place="all";state.history=[];store.set("city",state.city);store.set("place","all");fillPlaces();refilter();});
 $("place").addEventListener("change",e=>{state.place=e.target.value;store.set("place",state.place);refilter();});
 $("when").addEventListener("change",e=>{state.when=e.target.value;store.set("when",state.when);refilter();});
+$("near").addEventListener("click",()=>{
+  const msg=$("nearMsg"); msg.hidden=true;
+  if(state.pos){ state.pos=null; if(state.place==="near") state.place="all"; fillPlaces(); syncNear(); refilter(); return; }
+  const fail=()=>{ msg.textContent="Your location isn't available here. In the installed app, allow location access for Shot List when asked, or check Settings › Privacy › Location Services."; msg.hidden=false; syncNear(); };
+  if(!navigator.geolocation){ fail(); return; }
+  $("near").textContent="Locating…";
+  try{ navigator.geolocation.getCurrentPosition(p=>{ state.pos={lat:p.coords.latitude,lon:p.coords.longitude}; state.place="near"; fillPlaces(); syncNear(); refilter(); }, fail, {timeout:10000,maximumAge:120000}); }catch(e){ fail(); }
+});
 $("cond").addEventListener("change",e=>{state.cond=e.target.value;render();});
 $("useLight").addEventListener("click",e=>{const k=e.currentTarget.dataset.k; state.when=state.when===k?"all":k; store.set("when",state.when); $("when").value=state.when; refilter();});
 setInterval(()=>{ try{ renderNow(); }catch(e){} }, 300000);
@@ -946,17 +1129,28 @@ function syncTheme(){ const d=isDark(); $("theme").textContent=d?"☼":"☾"; $(
 { const t=store.get("theme",null); if(t==="dark"||t==="light") rootEl.setAttribute("data-theme",t); }
 $("theme").addEventListener("click",()=>{ const next=isDark()?"light":"dark"; rootEl.setAttribute("data-theme",next); store.set("theme",next); syncTheme(); });
 syncTheme();
+$("pGo").addEventListener("click",()=>{ state.plan=makePlan(); renderPlan(); });
+$("plan").addEventListener("click",e=>{ const r=e.target.closest(".row"); if(!r) return; show(r.dataset.id); state.view="shoot"; render(); window.scrollTo({top:0}); });
+syncNear();
 $("views").addEventListener("click",e=>{const b=e.target.closest("button"); if(!b) return; state.view=b.dataset.v; render();});
 $("next").addEventListener("click",()=>{pick();render();cardToTop();});
 $("back").addEventListener("click",()=>{ const id=state.history.pop(); if(!id) return; state.current=id; state.tab="idea"; render(); cardToTop(); });
 function toggle(set,key){ if(!state.current) return; set.has(state.current)?set.delete(state.current):set.add(state.current); store.set(key,[...set]); render(); }
 $("save").addEventListener("click",()=>toggle(state.saved,"saved"));
 $("done").addEventListener("click",()=>toggle(state.done,"done"));
-$("list").addEventListener("click",e=>{const r=e.target.closest(".row"); if(!r) return; show(r.dataset.id); state.view="shoot"; render(); window.scrollTo({top:0});});
+function notesText(){ return cityIdeas().filter(x=>state.notes[x.id]).map(x=>PLACES[x.p].name+" · "+x.t+" ["+x.id+"]: "+state.notes[x.id].trim()).join("\n"); }
+$("list").addEventListener("click",e=>{
+  if(e.target.closest("#copyNotes")){ const t=notesText(), bar=e.target.closest(".notesbar"), b=e.target.closest("#copyNotes");
+    const fallback=()=>{ if(!bar.querySelector("textarea")){ const ta=document.createElement("textarea"); ta.readOnly=true; ta.value=t; bar.appendChild(ta); ta.focus(); ta.select(); } b.textContent="Select and copy the text below"; };
+    try{ navigator.clipboard.writeText(t).then(()=>{ b.textContent="Copied"; }, fallback); }catch(err){ fallback(); }
+    return; }
+  const r=e.target.closest(".row"); if(!r) return; show(r.dataset.id); state.view="shoot"; render(); window.scrollTo({top:0});});
 $("card").addEventListener("click",e=>{
   const t=e.target.closest("[data-tab]"); if(t){ state.tab=t.dataset.tab; openTip=null; renderCard(); return; }
   const b=e.target.closest("[data-tip]"); if(b){ openTip = openTip===b.dataset.tip ? null : b.dataset.tip; renderCard(); }
 });
+$("card").addEventListener("input",e=>{ if(e.target.id!=="note"||!state.current) return;
+  const v=e.target.value.trim(); if(v) state.notes[state.current]=e.target.value; else delete state.notes[state.current]; store.set("notes",state.notes); });
 $("card").addEventListener("change",e=>{ if(e.target.id==="camera"){ state.camera=e.target.value; store.set("camera",state.camera); openTip=null; renderCard(); } });
 
 syncChips(); pick(); state.history=[]; render();
