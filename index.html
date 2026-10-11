@@ -126,6 +126,12 @@ select{width:100%;min-height:44px;padding:0 10px;border:1.5px solid var(--line);
 .tip{margin:0;padding:10px 12px;border:1px solid var(--sign-line);border-radius:6px;font-size:15px;max-width:62ch}
 .tip b{display:block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--sign-muted);margin-bottom:2px}
 .part .tip{margin-top:6px;font-size:15px}
+.refphoto{margin:0;display:flex;flex-direction:column;gap:6px}
+.refphoto img{width:100%;max-width:640px;height:auto;display:block;border:1px solid var(--sign-line)}
+.refphoto figcaption{font-size:15px;max-width:62ch}
+.refphoto figcaption span{display:block;margin-top:4px;font-size:12px;color:var(--sign-muted)}
+.refphoto a{color:var(--sign-fg)}
+.reflink{font-weight:600;font-size:15px}
 .hint{font-size:12px;color:var(--sign-muted);margin:0}
 
 .demo{margin:0;display:flex;flex-direction:column;gap:5px}
@@ -639,6 +645,94 @@ Object.entries({
   along:"wsp-moment"
 }).forEach(([k,v])=>v.split(" ").forEach(id=>STANCE_OF[id]=k));
 Object.entries({"down": "harlem-mood les-place flushing-place wburg-place midtown-place cpark-place cpark-mood rockaway-place arthur-place", "side": "les-moment flushing-mood wburg-moment midtown-odd cpark-odd rockaway-odd arthur-moment arthur-odd", "anchor": "harlem-energy les-energy flushing-energy cpark-energy", "glass": "les-mood arthur-mood", "low": "flushing-odd wburg-energy midtown-energy rockaway-moment rockaway-energy arthur-energy", "wait": "harlem-place harlem-moment midtown-moment midtown-mood cpark-moment rockaway-mood", "backlight": "wburg-mood", "square": "harlem-odd les-odd wburg-odd", "along": "flushing-moment"}).forEach(([k,v])=>v.split(" ").forEach(id=>STANCE_OF[id]=k));
+/* Reference photos, one per composition technique, from Wikimedia Commons under free licences.
+   The installed app shows them inline; inside Claude outside images are blocked, so a link is shown instead. */
+const PHOTOS_INLINE = true;
+const TECH_PHOTO = {
+ "lines": {
+  "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Sunrise_Walking_Lignano_Italy_Color_Street_Photography_%28216812003%29.jpeg/960px-Sunrise_Walking_Lignano_Italy_Color_Street_Photography_%28216812003%29.jpeg",
+  "by": "Giuseppe Milo",
+  "lic": "CC BY 3.0",
+  "page": "https://commons.wikimedia.org/wiki/File:Sunrise_Walking_Lignano_Italy_Color_Street_Photography_(216812003).jpeg",
+  "note": "The railings and planks all run to the walker, so the eye lands on the figure first."
+ },
+ "frame": {
+  "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Embarking_on_an_adventure_%28Unsplash%29.jpg/960px-Embarking_on_an_adventure_%28Unsplash%29.jpg",
+  "by": "Mantas Hesthaven",
+  "lic": "CC0",
+  "page": "https://commons.wikimedia.org/wiki/File:Embarking_on_an_adventure_(Unsplash).jpg",
+  "note": "The dark doorway surrounds the figure and hides everything that is not the subject."
+ },
+ "layers": {
+  "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/New_York%2C_New_York_%284302222880%29.jpg/960px-New_York%2C_New_York_%284302222880%29.jpg",
+  "by": "Jazz Guy",
+  "lic": "CC BY 2.0",
+  "page": "https://commons.wikimedia.org/wiki/File:New_York,_New_York_(4302222880).jpg",
+  "note": "Walkers in front, taxis in the middle, buildings behind: three depths that do not overlap."
+ },
+ "space": {
+  "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/D%C3%BClmen%2C_Leuste%2C_B%C3%A4ume_im_Nebel_--_2020_--_5041.jpg/960px-D%C3%BClmen%2C_Leuste%2C_B%C3%A4ume_im_Nebel_--_2020_--_5041.jpg",
+  "by": "Dietmar Rabich",
+  "lic": "CC BY-SA 4.0",
+  "page": "https://commons.wikimedia.org/wiki/File:D%C3%BClmen,_Leuste,_B%C3%A4ume_im_Nebel_--_2020_--_5041.jpg",
+  "note": "Most of the frame is empty fog, which is what gives the small subject its weight. Not a street scene, but the same idea applies to a lone walker."
+ },
+ "sym": {
+  "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Nostrand_Av_IND_td_%282026-02-20%29_09b_-_Upper_Level.jpg/960px-Nostrand_Av_IND_td_%282026-02-20%29_09b_-_Upper_Level.jpg",
+  "by": "Tdorante10",
+  "lic": "CC BY-SA 4.0",
+  "page": "https://commons.wikimedia.org/wiki/File:Nostrand_Av_IND_td_(2026-02-20)_09b_-_Upper_Level.jpg",
+  "note": "The camera is level and centred, so the columns and platform edge mirror each other."
+ },
+ "fill": {
+  "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/Fishmonger_smiling%2C_Maracaibo_street_market%2C_Venezuela.jpg/960px-Fishmonger_smiling%2C_Maracaibo_street_market%2C_Venezuela.jpg",
+  "by": "Wilfredor",
+  "lic": "CC0",
+  "page": "https://commons.wikimedia.org/wiki/File:Fishmonger_smiling,_Maracaibo_street_market,_Venezuela.jpg",
+  "note": "The face runs almost edge to edge. Nothing in the frame competes with it."
+ },
+ "thirds": {
+  "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Cape_Shabla_Lighthouse_3.jpg/960px-Cape_Shabla_Lighthouse_3.jpg",
+  "by": "MrPanyGoff",
+  "lic": "CC BY-SA 3.0",
+  "page": "https://commons.wikimedia.org/wiki/File:Cape_Shabla_Lighthouse_3.jpg",
+  "note": "The subject sits on the left third and the horizon on the lower third. Not a street scene, but place a person where the lighthouse is."
+ },
+ "juxta": {
+  "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/02025_0882_Street_photography_in_Bielsko-Bia%C5%82a.jpg/960px-02025_0882_Street_photography_in_Bielsko-Bia%C5%82a.jpg",
+  "by": "Marsilar",
+  "lic": "CC BY-SA 4.0",
+  "page": "https://commons.wikimedia.org/wiki/File:02025_0882_Street_photography_in_Bielsko-Bia%C5%82a.jpg",
+  "note": "A passer-by lines up with the portraits on display, so the real person and the pictured ones read as a set."
+ },
+ "diag": {
+  "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fb/Tooting_Bec_escalators.jpg/960px-Tooting_Bec_escalators.jpg",
+  "by": "Oxyman",
+  "lic": "CC BY 2.5",
+  "page": "https://commons.wikimedia.org/wiki/File:Tooting_Bec_escalators.jpg",
+  "note": "The handrails run from the bottom corners up into the frame. Step to one side of centre and the same lines become one strong diagonal."
+ },
+ "reflect": {
+  "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/K%C3%B6lnHBF_Empfangshalle_Winter2010_2641r.jpg/960px-K%C3%B6lnHBF_Empfangshalle_Winter2010_2641r.jpg",
+  "by": "Túrelio",
+  "lic": "CC BY-SA 3.0 DE",
+  "page": "https://commons.wikimedia.org/wiki/File:K%C3%B6lnHBF_Empfangshalle_Winter2010_2641r.jpg",
+  "note": "The wet floor repeats the crowd and the lights, and takes up more of the frame than the people do."
+ },
+ "light": {
+  "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/17/Child_and_wave_jump.jpg/960px-Child_and_wave_jump.jpg",
+  "by": "Philippe Alès",
+  "lic": "CC BY-SA 3.0",
+  "page": "https://commons.wikimedia.org/wiki/File:Child_and_wave_jump.jpg",
+  "note": "Exposed for the bright sky and spray, the figure goes fully dark and reads as a shape."
+ }
+};
+function photoDemo(key){ const p=TECH_PHOTO[key]; if(!p) return "";
+  const credit='Photo: '+esc(p.by)+' · '+esc(p.lic)+' · <a href="'+esc(p.page)+'" target="_blank" rel="noopener">Wikimedia Commons ↗</a>';
+  return '<figure class="refphoto"><span class="label">Reference photo</span>'+
+    (PHOTOS_INLINE ? '<img src="'+esc(p.src)+'" alt="Example photograph showing '+esc(TECH[key][0].toLowerCase())+'" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><a class="reflink" href="'+esc(p.page)+'" target="_blank" rel="noopener" hidden>Open the reference photo ↗ (not available offline yet)</a>'
+                   : '<a class="reflink" href="'+esc(p.page)+'" target="_blank" rel="noopener">Open the reference photo ↗</a>')+
+    '<figcaption>'+esc(p.note)+'<span>'+credit+'</span></figcaption></figure>'; }
 const workDemo = id => { const s=STANCE[STANCE_OF[id]]; if(!s) return "";
   return '<figure class="demo">'+dSvg(s[2],s[0]+": "+s[1],false)+'<figcaption>'+s[0]+'. '+s[1]+' Yellow is you and what the lens sees; white is the subject.</figcaption></figure>'; };
 const composeDemo = key => TECH_ART[key] ? '<figure class="demo">'+dSvg(TECH_ART[key],TECH[key][0]+" example frame",true)+'<figcaption>How the frame should look.</figcaption></figure>' : "";
@@ -906,7 +1000,7 @@ function renderCard(){
     pane='<div class="split"><div class="part"><span class="label">Where to stand</span><p>'+esc(x.work)+'</p></div>'+workDemo(x.id)+'</div>';
   } else if(state.tab==="compose" && co){
     pane='<div class="split"><div class="part"><div><button type="button" class="label tipbtn" data-tip="c" aria-expanded="'+(openTip==="c")+'">'+esc(TECH[co[0]][0])+'</button></div><p>'+esc(co[1])+'</p>'+
-      (openTip==="c" ? '<p class="tip"><b>'+esc(TECH[co[0]][0])+'</b>'+esc(TECH[co[0]][1])+'</p>' : '<p class="hint">Tap the technique name for an explanation.</p>')+'</div>'+composeDemo(co[0])+'</div>';
+      (openTip==="c" ? '<p class="tip"><b>'+esc(TECH[co[0]][0])+'</b>'+esc(TECH[co[0]][1])+'</p>' : '<p class="hint">Tap the technique name for an explanation.</p>')+'</div>'+composeDemo(co[0])+'</div>'+photoDemo(co[0]);
   } else if(state.tab==="settings"){
     pane='<div class="field"><label class="label" for="camera">Camera</label><select id="camera">'+
       Object.entries(CAMERAS).map(([k,v])=>'<option value="'+k+'"'+(k===state.camera?" selected":"")+'>'+esc(v.name)+'</option>').join("")+'</select></div>'+
