@@ -247,6 +247,9 @@ footer{font-size:13px;color:var(--muted);max-width:65ch}
 .arow .t{flex:1;min-width:0} .arow .t b{display:block} .arow .t span{font-size:13px;color:var(--sign-muted)} .arow .go{color:var(--sign-muted);font-size:20px}
 .alert-all{align-self:flex-start;min-height:36px;border:0;background:none;color:var(--sign-fg);font-weight:600;font-size:14px;text-decoration:underline;text-underline-offset:3px;padding:0;cursor:pointer}
 .alert :focus-visible{outline-color:var(--sign-fg)}
+.prepbody{padding:12px 14px 14px;display:flex;flex-direction:column;gap:12px}
+.prepbody ul{margin:2px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:5px;font-size:15px;max-width:62ch}
+.prepbody a{color:var(--fg);font-weight:600}
 .callinks{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
 .callinks .chip{text-decoration:none}
 .event .t .etag{display:block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:1px}
@@ -1382,6 +1385,52 @@ function makePlan(){
   }
   return {start,end:t,stops};
 }
+// "Before you leave": what to carry and set for this plan, from its places, times and the current weather.
+const PLACE_NOTES = {"chinatown": "Buy something before photographing at a stall. In Columbus Park, keep to the spectators unless a player agrees.", "gct": "Handheld only. Tripods, lights and stabilizers need a permit.", "tsq": "Costumed characters expect a tip if they pose for you. Candid frames from a distance are a different matter.", "wsp": "Musicians and chess players often expect a tip. Carry a few small bills.", "dumbo": "The Washington Street view fills with people by mid-morning. Before 8 am it is clear.", "coney": "Most rides and food stands run from spring to October. Out of season, the empty boardwalk is the subject.", "soho": "Most shops open around 11 am. Before that the streets are empty, which suits the facades.", "jh": "Buy from a cart before you photograph it.", "ferry": "The ferry is free and the crossing takes about 25 minutes each way. You have to get off at Staten Island and board again.", "harlem": "Outside churches, stay on the public pavement and do not photograph inside.", "les": "Essex Market closes in the evening and earlier on Sunday, so do the counters first.", "flushing": "In the food court, order first and shoot from your seat.", "wburg": "McCarren Park games are busiest on weekend afternoons.", "midtown": "Paley Park is open 8 am to 8 pm and closed on national holidays. The lunch crowd peaks between noon and 2 pm on weekdays.", "cpark": "Bethesda Fountain is fenced off for restoration until about summer 2027. The arcade and terrace are open.", "rockaway": "Take the A to Broad Channel and change to the shuttle. Allow an hour or more from Midtown.", "arthur": "It is about a 16-minute walk from Fordham Rd station. The Retail Market is open daily until 8 pm.", "subway": "No flash, tripods or lights."};
+function planPrep(p){
+  const i=nowInfo(), c=CITIES[state.city], leica=CAMERAS[state.camera].setup==="leica", soon=Math.abs(p.start-Date.now())<6*36e5;
+  const tf=d=>d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}).toLowerCase(), W=[], L=[], P=[], T=[];
+  const sky=soon?i.sky:null, dull=/rain|cloud|fog|snow|storm/.test(sky||"");
+  const names=list=>[...new Set(list.map(o=>PLACES[o.s.place].name))].map(esc).join(" and ");
+  // Weather
+  if(!soon) W.push("This plan starts more than six hours from now, so the current reading may not hold. Check the conditions panel before you leave.");
+  else if(!sky) W.push("No weather reading is loaded. Check the conditions panel, or set the conditions by hand, before you leave.");
+  else{
+    const tc=i.w&&typeof i.w.temp_c==="number"?i.w.temp_c:null, f=tc===null?null:Math.round(tc*9/5+32), pc=i.w&&typeof i.w.precip_chance_today==="number"?i.w.precip_chance_today:null;
+    if(sky==="rain"||sky==="storm"){ W.push("It is raining: lens hood on, a cloth in your pocket, and a bag or coat you can shoot from under."+(leica?" The Q3 is sealed against light rain, not a downpour.":""));
+      if(sky==="storm") W.push("Thunderstorms are about, so favour the stops with cover."); }
+    else if(sky==="snow") W.push("Snow: add about +1 EV, keep the hood on, and wear gloves you can work the dials in.");
+    else if(sky==="fog") W.push("Fog: add +0.7 EV and expect autofocus to hunt. Take a cloth for condensation on the lens.");
+    else if(sky==="cloud") W.push("Overcast: nothing extra to carry. Expect to work one stop wider and at ISO 400 to 1600.");
+    else W.push((sky==="partly"?"Sun and cloud":"Clear")+": nothing extra to carry."+(leica?" Set the shutter type to Hybrid if you plan to shoot wide open.":""));
+    if(pc!==null && pc>=50 && sky!=="rain" && sky!=="storm") W.push("Rain is likely today ("+Math.round(pc)+"% chance), so take the hood and a cloth anyway.");
+    if(tc!==null && tc<=0) W.push("Below freezing ("+f+"°F): carry a spare battery in an inside pocket.");
+    else if(tc!==null && tc<=6) W.push("Cold ("+f+"°F): thin gloves keep the dials usable for longer.");
+    else if(tc!==null && tc>=30) W.push("Hot ("+f+"°F): take water, and keep the camera out of direct sun between stops.");
+  }
+  // Light
+  const st=sunAlt(p.start,c.lat,c.lon,-0.833), sunset=st?st[1]:null, all=p.stops.flatMap(s=>s.ideas.map(x=>({x,s})));
+  const gold=lightWindows(p.start).find(w=>w.k==="gold" && w.s<p.end && w.e>p.start);
+  if(gold){ const at=[...p.stops].reverse().find(s=>s.at<=gold.s)||p.stops[0];
+    L.push("Golden hour is "+tf(gold.s)+" to "+tf(gold.e)+", while you are at "+esc(PLACES[at.place].name)+"."+(dull?" Cloud will mute it today.":" Be in position before it starts.")); }
+  if(sunset && p.start<sunset && p.end>sunset) L.push("The plan runs past sunset ("+tf(sunset)+"). Raise the Auto ISO ceiling to 6400 and expect to open up to the widest aperture.");
+  else if(sunset && p.start>=sunset) L.push("The whole plan is after dark. Set the Auto ISO ceiling to 6400 before you leave.");
+  const drag=all.filter(o=>o.x.r==="drag"), sil=all.filter(o=>o.x.r==="silhouette"), ins=all.filter(o=>o.x.r==="interior");
+  if(drag.length) L.push("Motion blur at "+names(drag)+": you will have no tripod, so look for a pole or railing to brace on.");
+  if(sil.length && dull) L.push("The silhouette idea at "+names(sil)+" needs hard light. Under cloud, shoot it against a bright doorway or window, or swap it.");
+  if(ins.length) L.push("Indoor shooting at "+names(ins)+": the light is low and mixed, so hold 1/125 s and let the ISO climb.");
+  if(sky==="sun" && p.stops.some(s=>s.key==="mid")) L.push("Midday sun is hard. Dial in −0.3 EV and use the shadows as shapes.");
+  // Places
+  [...new Set(p.stops.map(s=>s.place))].forEach(pid=>{ if(PLACE_NOTES[pid]) P.push('<b>'+esc(PLACES[pid].name)+'.</b> '+esc(PLACE_NOTES[pid])); });
+  // Timing
+  const first=p.stops[0], fp=PLACES[first.place], now=new Date();
+  if(state.pos && typeof fp.lat==="number"){ const km=kmBetween(state.pos,fp), walk=Math.round(km*1.3/0.08), mins=walk<=30?Math.max(3,walk):Math.round(15+km*3), leave=new Date(p.start-mins*6e4), how=walk<=30?"on foot":"by subway";
+    T.push(leave>now ? "Leave by "+tf(leave)+". The first stop is about "+mins+" min away "+how+"." : "The first stop is about "+mins+" min away "+how+", so leaving now gets you there about "+tf(new Date(+now+mins*6e4))+"."); }
+  T.push("Start at "+tf(p.start)+" at "+esc(START[first.place]?START[first.place][0]:fp.name)+"."+(START[first.place]?' <a href="'+mapUrl(first.place)+'" target="_blank" rel="noopener">Map ↗</a>':''));
+  T.push("You should finish about "+tf(p.end)+"."+(sunset&&p.start<sunset&&sunset-p.end<3*36e5?" Sunset is at "+tf(sunset)+".":""));
+  const part=(label,items)=>items.length?'<div class="part"><span class="label">'+label+'</span><ul>'+items.map(x=>'<li>'+x+'</li>').join("")+'</ul></div>':'';
+  return '<section class="group prep"><div class="group-head"><b>Before you leave</b></div><div class="prepbody">'+part("Weather",W.map(esc))+part("Light",L)+part("Places",P)+part("Timing",T)+'</div></section>';
+}
 function renderPlan(){
   const ps=$("pStart"), pt=$("pTime"), keepS=ps.value, keepT=pt.value, tf=d=>d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}).toLowerCase();
   ps.innerHTML=(state.pos?'<option value="near">Nearest to me</option>':'')+placeOrder().filter(id=>typeof PLACES[id].lat==="number").map(id=>'<option value="'+id+'">'+esc(PLACES[id].name)+'</option>').join("");
@@ -1392,7 +1441,7 @@ function renderPlan(){
   const box=$("plan"), p=state.plan;
   if(!p){ box.innerHTML='<p class="lead">Choose where you will start, when, and how long you have. The plan picks ideas that suit the light at each stop and orders the stops as a walk.</p>'; return; }
   const mins=Math.round((p.end-p.start)/6e4), n=p.stops.reduce((a,s)=>a+s.ideas.length,0);
-  box.innerHTML='<p class="lead">'+tf(p.start)+' to about '+tf(p.end)+' · '+p.stops.length+' place'+(p.stops.length===1?'':'s')+' · '+n+' ideas. Tap an idea to open it.</p>'+
+  box.innerHTML='<p class="lead">'+tf(p.start)+' to about '+tf(p.end)+' · '+p.stops.length+' place'+(p.stops.length===1?'':'s')+' · '+n+' ideas. Tap an idea to open it.</p>'+planPrep(p)+
     p.stops.map(s=>{ const pl=PLACES[s.place];
       return '<section class="group"><div class="group-head"><b>'+tf(s.at)+' · '+esc(pl.name)+'</b><span class="where">'+esc(WHEN[s.key])+' · '+esc(pl.stop||"")+' '+bullets(pl.lines,pl.city)+'</span>'+startLink(s.place)+'</div>'+
         s.ideas.map(x=>'<button type="button" class="row'+(state.done.has(x.id)?" done":"")+'" data-id="'+x.id+'"><span class="dot" style="background:'+INTENTS[x.i].color+'"></span>'+
