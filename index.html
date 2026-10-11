@@ -295,6 +295,13 @@ footer{font-size:13px;color:var(--muted);max-width:65ch}
 .mapbtns{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.4)}
 .mapbtns button{width:44px;height:44px;border:0;background:rgba(20,22,26,.88);color:#fff;font-size:24px;font-weight:600;line-height:1;cursor:pointer}
 .mapbtns button+button{border-top:1px solid #3a3c42}
+.mapbtns button[data-fit],.mapbtns button[data-locate]{font-size:20px}
+.mapgo{margin-top:4px} .mapgo select{width:100%;min-height:44px;padding:0 12px;border:1.5px solid var(--line);border-radius:12px;background:var(--panel);color:var(--fg);font-size:16px;font-weight:600}
+#mapIntent{margin-top:8px} #mapZoom{margin-top:8px}
+.m-stn{fill:#fff;stroke:#14161a;pointer-events:none} .m-stnm{fill:#14161a;font-family:var(--sans);font-weight:800;pointer-events:none}
+.m-bul{fill:#fff;font-family:var(--sans);font-weight:800;pointer-events:none} .m-bul.dark{fill:#14161a}
+.m-pin.empty .m-dot{fill:#14161a;stroke:#5a5d66;opacity:.55} .m-pin.empty .m-num{opacity:.5}
+.maplegend .lg.stn{background:#fff;border-color:#14161a;box-shadow:0 0 0 1px var(--line)}
 .maplegend{display:flex;flex-wrap:wrap;gap:4px 16px;margin:0 0 12px}
 .maplegend>span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .maplegend .lg{display:inline-block;width:12px;height:12px;border-radius:50%;border:2px solid var(--fg);background:var(--panel)}
@@ -1236,7 +1243,7 @@ const store = {
 };
 const state = {
   city: store.get("city","nyc"), intent: store.get("intent","all"), place: store.get("place","all"), when: store.get("when","all"),
-  camera: store.get("camera","q343"), view:"shoot", tab:"idea", cond:"auto", evType:"all", mapZoom:store.get("mapZoom","city"), mapSel:null, mapEv:null, mapShowEv:store.get("mapShowEv",true)!==false, notes: store.get("notes",{}) || {}, pos:null, plan:null,
+  camera: store.get("camera","q343"), view:"shoot", tab:"idea", cond:"auto", evType:"all", mapZoom:store.get("mapZoom","city"), mapSel:null, mapEv:null, mapIntent:"all", mapShowEv:store.get("mapShowEv",true)!==false, notes: store.get("notes",{}) || {}, pos:null, plan:null,
   saved: new Set(store.get("saved",[])), done: new Set(store.get("done",[])), current:null, history:[]
 };
 if(!CAMERAS[state.camera]) state.camera="q343";
@@ -1605,6 +1612,7 @@ const MAP_PARKS = [[[40.6728,-73.9700],[40.6645,-73.9790],[40.6510,-73.9720],[40
 MAP_STREETS.push(...[["1 Av",0,[[40.7238,-73.9897],[40.8023,-73.9332]]],["3 Av",0,[[40.7299,-73.9906],[40.8058,-73.9359]]],["Park Av",0,[[40.7367,-73.9892],[40.8095,-73.9368]]],["Lexington Av",0,[[40.7387,-73.986],[40.8083,-73.9359]]],["6 Av",0,[[40.7245,-74.0053],[40.7656,-73.9757]]],["7 Av",0,[[40.7364,-74.0005],[40.7668,-73.9786]]],["8 Av",0,[[40.7389,-74.0025],[40.768,-73.9815]]],["Central Park West",0,[[40.768,-73.9815],[40.8003,-73.9583]]],["10 Av",0,[[40.7419,-74.0078],[40.7704,-73.9873]]],["Amsterdam Av",0,[[40.7704,-73.9873],[40.8533,-73.9277]]],["2 Av",0,[[40.7246,-73.9917],[40.805,-73.9339]]],["Madison Av",0,[[40.7411,-73.9878],[40.8138,-73.9354]]],["Lenox Av",0,[[40.7979,-73.9525],[40.8213,-73.9356]]],["Frederick Douglass Blvd",0,[[40.8003,-73.9583],[40.8288,-73.9378]]],["72 St",0,[[40.7791,-73.9825],[40.7683,-73.9564]]],["96 St",0,[[40.7941,-73.971],[40.7837,-73.946]]],["145 St",0,[[40.8268,-73.9529],[40.8182,-73.932]]],["Delancey St",0,[[40.7244,-73.9982],[40.7201,-73.9878]]],["Chambers St",0,[[40.7238,-74.0175],[40.7199,-74.0082]]],["Bedford Av",2,[[40.724,-73.9515],[40.7172,-73.9567],[40.7065,-73.9655],[40.6777,-73.9535],[40.632,-73.9545],[40.586,-73.944]]],["Eastern Pkwy",0,[[40.6745,-73.97],[40.669,-73.931],[40.6685,-73.9225]]],["4 Av",0,[[40.684,-73.9785],[40.6165,-74.0305]]],["Surf Av",0,[[40.5745,-74.002],[40.576,-73.968]]],["Northern Blvd",1,[[40.751,-73.94],[40.753,-73.906],[40.757,-73.87],[40.764,-73.83]]],["Fordham Rd",0,[[40.863,-73.912],[40.862,-73.896],[40.859,-73.88]]]]);
 MAP_SPOTS.push(...[["Grand Army Plaza",40.6743,-73.9701],["Chrysler Building",40.7516,-73.9755],["MoMA",40.7614,-73.9776],["Whitney Museum",40.7396,-74.0089],["Penn Station",40.7505,-73.9934],["Hudson Yards",40.7538,-74.0022],["Columbus Circle",40.7681,-73.9819],["Guggenheim",40.783,-73.959],["Columbia University",40.8075,-73.9626],["The Cloisters",40.8649,-73.9319],["Little Island",40.742,-74.0103],["South Street Seaport",40.7063,-74.0036],["Wall St",40.7069,-74.0113],["City Hall",40.7128,-74.006],["Tompkins Square Park",40.7265,-73.9818],["McCarren Park",40.7205,-73.9515],["Brooklyn Botanic Garden",40.6694,-73.9624],["Gantry Plaza",40.7455,-73.9585],["MoMA PS1",40.7455,-73.947],["Astoria Park",40.779,-73.922],["New York Botanical Garden",40.8623,-73.88],["Roosevelt Island Tram",40.7613,-73.9642],["Madison Square Park",40.742,-73.9875],["Stonewall Inn",40.7338,-74.0021],["Luna Park",40.5743,-73.977]]);
 /* Hand-placed points for each place's starting spot and each event's viewing spot. Events added by the weekly task carry their own lat and lon. */
+const STATION_GEO = {"chinatown":[[40.7187,-74.0002,"NQRW6JZ"]],"gct":[[40.7527,-73.9772,"4567S"]],"tsq":[[40.7557,-73.987,"1237NQRWS"]],"wsp":[[40.7322,-74.0003,"ACEBDFM"]],"dumbo":[[40.7013,-73.9867,"F"]],"coney":[[40.5773,-73.9811,"DFNQ"]],"soho":[[40.7244,-73.9978,"RW"]],"jh":[[40.7465,-73.8912,"7EFMR"]],"ferry":[[40.7025,-74.0135,"1RW"]],"harlem":[[40.8111,-73.9522,"ABCD"],[40.8076,-73.9454,"23"]],"les":[[40.7185,-73.9879,"FMJZ"]],"flushing":[[40.7596,-73.8301,"7"]],"wburg":[[40.7172,-73.9567,"L"]],"midtown":[[40.7603,-73.9751,"EF"]],"cpark":[[40.7757,-73.9762,"BC"]],"rockaway":[[40.588,-73.8135,"S"]],"arthur":[[40.8613,-73.8907,"BD"]]};
 const START_GEO = {"chinatown":[40.7146,-73.998],"gct":[40.7527,-73.9772],"tsq":[40.759,-73.9849],"wsp":[40.7312,-73.9971],"dumbo":[40.7033,-73.9895],"coney":[40.5738,-73.979],"soho":[40.7256,-73.9992],"jh":[40.7467,-73.8915],"ferry":[40.7013,-74.0131],"harlem":[40.8101,-73.95],"les":[40.7183,-73.9881],"flushing":[40.7596,-73.83],"wburg":[40.7172,-73.9567],"midtown":[40.7603,-73.9751],"cpark":[40.774,-73.9708],"rockaway":[40.5843,-73.8125],"arthur":[40.8553,-73.8877]};
 const EVENT_GEO = {"threekings":[40.7916,-73.9447],"lunar":[40.7155,-73.9983],"stpat":[40.7722,-73.9672],"easter":[40.7585,-73.976],"dance":[40.7284,-73.9872],"henge":[40.747,-73.9808],"prday":[40.7697,-73.969],"mermaid":[40.5757,-73.99],"pride":[40.7338,-74.0021],"westindian":[40.6712,-73.9636],"sangennaro":[40.7193,-73.9975],"columbus":[40.7678,-73.9705],"dogparade":[40.727,-73.9795],"halloween":[40.7357,-73.998],"marathon":[40.6706,-73.9886],"veterans":[40.742,-73.9875],"balloons":[40.7813,-73.974],"thanksgiving":[40.7765,-73.9761],"tree":[40.7587,-73.978],"dyker":[40.6155,-74.0125],"nye":[40.758,-73.9855],"aipad":[40.7676,-73.966],"bild":[40.7578,-74.0026],"photoville":[40.7038,-73.9941],"fujikina-nyc-2026":[40.718,-73.9886],"aperture-loves-new-york":[40.7811,-73.976],"bronx-halloween-parade":[40.8205,-73.891],"bryant-park-winter-village":[40.7536,-73.9832],"disability-pride-parade":[40.742,-73.9875],"diwali-times-square":[40.759,-73.985],"jackson-heights-halloween-parade":[40.7497,-73.884],"mano-a-mano-day-of-the-dead":[40.7302,-73.987]};
 function mapEvents(){ const now=new Date(), today=new Date(now.getFullYear(),now.getMonth(),now.getDate()), lim=new Date(today.getFullYear(),today.getMonth(),today.getDate()+42);
@@ -1627,19 +1635,19 @@ function mapShell(box){
   const park=poly([[40.7681,-73.9819],[40.7644,-73.9730],[40.7969,-73.9493],[40.8006,-73.9582]])+MAP_PARKS.map(poly).join("");
   const streets=MAP_STREETS.map(st=>'M'+st[2].map(c=>mapXY(c[0],c[1]).map(n=>n.toFixed(1)).join(" ")).join("L")).join("");
   const bridges=[[[40.7085,-73.9998],[40.7042,-73.9938]],[[40.7102,-73.9928],[40.7050,-73.9883]],[[40.7150,-73.9762],[40.7120,-73.9678]],[[40.7586,-73.9588],[40.7549,-73.9488]],[[40.8517,-73.9640],[40.8517,-73.9465]],[[40.6035,-74.0560],[40.6095,-74.0330]]].map(l=>mapLine(l[0],l[1])).join("");
-  box.innerHTML='<div class="intents" id="mapZoom"></div>'+
+  box.innerHTML='<div class="mapgo"><select id="mapGo" aria-label="Go to a place"></select></div><div class="intents" id="mapIntent"></div><div class="intents" id="mapZoom"></div>'+
     '<div class="mapwrap"><svg class="mapsvg" id="mapSvg" role="group" aria-label="Map of shooting places. Drag to move, pinch to zoom."><rect x="-500" y="-500" width="2500" height="2500" class="m-sea"/>'+
     '<path d="'+MAP_NJ+MAP_NY+'" class="m-ctx"/><path d="'+MAP_LAND+'" class="m-land"/><path d="'+park+'" class="m-park"/><path d="'+streets+'" class="m-street"/><path d="'+bridges+'" class="m-bridge"/>'+
     mapTxt(40.787,-73.957,"MANHATTAN","m-boro",15,-61)+mapTxt(40.648,-73.95,"BROOKLYN","m-boro",22)+mapTxt(40.705,-73.825,"QUEENS","m-boro",22)+mapTxt(40.845,-73.86,"THE BRONX","m-boro",18)+mapTxt(40.585,-74.14,"STATEN ISLAND","m-boro",16)+mapTxt(40.765,-74.085,"NEW JERSEY","m-boro",15)+
     mapTxt(40.772,-74.004,"Hudson River","m-water",7,-62)+mapTxt(40.672,-74.045,"Upper Bay","m-water",8)+mapTxt(40.612,-73.845,"Jamaica Bay","m-water",8)+mapTxt(40.558,-73.905,"Atlantic Ocean","m-water",9)+mapTxt(40.7385,-73.9665,"East River","m-water",5,-68)+
     '<g id="mapDyn"></g></svg>'+
-    '<div class="mapscale" id="mapScale"></div><div class="mapbtns"><button type="button" data-zoom="0.6" aria-label="Zoom in">+</button><button type="button" data-zoom="1.6" aria-label="Zoom out">−</button></div></div>'+
+    '<div class="mapscale" id="mapScale"></div><div class="mapbtns"><button type="button" data-zoom="0.6" aria-label="Zoom in">+</button><button type="button" data-zoom="1.6" aria-label="Zoom out">−</button><button type="button" data-fit="1" aria-label="Show the whole city" title="Whole city">⌂</button><button type="button" data-locate="1" aria-label="Find me on the map" title="Find me">◎</button></div></div>'+
     '<div id="mapPanel"></div>';
   mapGestures($("mapSvg"));
 }
-function mapPts(){ const key=lightAt(new Date()), ideas=cityIdeas();
+function mapPts(){ const key=lightAt(new Date()), ideas=cityIdeas().filter(i=>state.mapIntent==="all"||i.i===state.mapIntent);
   return Object.keys(CITIES[state.city].places).filter(id=>typeof PLACES[id].lat==="number").map(id=>{ const [x,y]=mapXY(PLACES[id].lat,PLACES[id].lon), mine=ideas.filter(i=>i.p===id);
-    return {id,x,y,n:mine.length,fit:mine.filter(i=>i.w.includes(key)).length,done:mine.filter(i=>state.done.has(i.id)).length}; }); }
+    return {id,x,y,n:mine.length,fit:mine.filter(i=>i.w.includes(key)).length,done:mine.filter(i=>state.done.has(i.id)).length,empty:!mine.length}; }); }
 function mapDraw(){
   const svg=$("mapSvg"); if(!svg||!mapV) return; const v=mapV, w=v.w, h=w*MAP_ASPECT, x0=v.cx-w/2, y0=v.cy-h/2, x1=x0+w, y1=y0+h, u=w/(svg.clientWidth||360), f=n=>n.toFixed(1);
   svg.setAttribute("viewBox",f(x0)+" "+f(y0)+" "+f(w)+" "+f(h));
@@ -1654,6 +1662,7 @@ function mapDraw(){
       const rect=[bx,by,bx+tw,by+fs*1.2]; if(rect[0]<x0+2*u||rect[2]>x1-2*u||rect[1]<y0+2*u||rect[3]>y1-2*u||taken.some(t=>hit(t,rect))) continue;
       taken.push(rect); return '<text x="'+f(tx)+'" y="'+f(ty)+'" text-anchor="'+anchor+'" font-size="'+f(fs)+'" class="m-lab'+(p.id===state.mapSel?" on":"")+'">'+esc(name)+'</text>'; }
     return ""; }).join("");
+  if(state.pos){ const [yx,yy]=mapXY(state.pos.lat,state.pos.lon); taken.push([yx-9*u,yy-9*u,yx+9*u,yy+9*u]); }
   let evs="", flags=""; const evList=(state.mapShowEv?mapEvents():[]).filter(e=>e.x>x0+8*u&&e.x<x1-8*u&&e.y>y0+8*u&&e.y<y1-8*u);
   if(w<520) for(const e of evList.sort((a,b)=>(b.id===state.mapEv)-(a.id===state.mapEv)||a.r.o[0]-b.r.o[0])){ const on=e.id===state.mapEv, hw=(e.day.length*3.1+5)*u, hh=7*u, box=[e.x-hw,e.y-hh,e.x+hw,e.y+hh];
     if(!on && taken.some(t=>hit(t,box))) continue; taken.push(box);
@@ -1665,6 +1674,10 @@ function mapDraw(){
   if(w<130) for(const p of pts){ const g=START_GEO[p.id]; if(!g||!START[p.id]) continue; const [x,y]=mapXY(g[0],g[1]); if(Math.hypot(x-p.x,y-p.y)<R+5*u) continue; const name="Start: "+START[p.id][0], fl=10*u, tw=name.length*fl*0.54, dot=[x-5*u,y-5*u,x+5*u,y+5*u]; if(taken.some(t=>hit(t,dot))) continue;
     for(const [bx,anchor,tx] of [[x+8*u,"start",x+8*u],[x-8*u-tw,"end",x-8*u]]){ const rect=[bx,y-fl*0.6,bx+tw,y+fl*0.6]; if(rect[0]<x0+2*u||rect[2]>x1-2*u||taken.some(t=>hit(t,rect))) continue; taken.push(rect,dot);
       flags+='<path d="M'+f(p.x)+' '+f(p.y)+'L'+f(x)+' '+f(y)+'" class="m-startline" stroke-width="'+f(1.2*u)+'" stroke-dasharray="'+f(3*u)+' '+f(3*u)+'"/><path d="M'+f(x)+' '+f(y-6*u)+'L'+f(x+5.5*u)+' '+f(y+4*u)+'H'+f(x-5.5*u)+'Z" class="m-start" stroke-width="'+f(1.2*u)+'"/><text x="'+f(tx)+'" y="'+f(y+fl*0.36)+'" text-anchor="'+anchor+'" font-size="'+f(fl)+'" class="m-startlab">'+esc(name)+'</text>'; break; } }
+  let stations=""; if(w<300) for(const p of pts){ for(const [lat,lon,ln] of (STATION_GEO[p.id]||[])){ const [x,y]=mapXY(lat,lon); if(x<x0||x>x1||y<y0||y>y1) continue; const r=4.2*u, box=[x-r,y-r,x+r,y+r]; if(taken.some(t=>hit(t,box))) continue; taken.push(box);
+      stations+='<circle cx="'+f(x)+'" cy="'+f(y)+'" r="'+f(r)+'" stroke-width="'+f(1.3*u)+'" class="m-stn"/><text x="'+f(x)+'" y="'+f(y+2.2*u)+'" text-anchor="middle" font-size="'+f(5.6*u)+'" class="m-stnm">M</text>';
+      if(w<150){ const col=CITIES[state.city].lines||{}, ls=ln.split("").slice(0,5), bw=9*u, bx0=x+r+2*u; const rect=[bx0,y-bw/2,bx0+ls.length*(bw+1.2*u),y+bw/2]; if(!taken.some(t=>hit(t,rect))){ taken.push(rect);
+        stations+=ls.map((L,n)=>{ const cx=bx0+n*(bw+1.2*u)+bw/2, c=col[L]||"gray"; return '<circle cx="'+f(cx)+'" cy="'+f(y)+'" r="'+f(bw/2)+'" fill="var(--'+c+')"/><text x="'+f(cx)+'" y="'+f(y+2.6*u)+'" text-anchor="middle" font-size="'+f(7*u)+'" class="m-bul'+(c==="yellow"?" dark":"")+'">'+L+'</text>'; }).join(""); } } } }
   let detail=""; const inside=(x,y,m)=>x>x0+m&&x<x1-m&&y>y0+m&&y<y1-m, free=rect=>!(rect[0]<x0+2*u||rect[2]>x1-2*u||rect[1]<y0+2*u||rect[3]>y1-2*u||taken.some(t=>hit(t,rect)));
   if(w<300) for(const [name,lat,lon] of MAP_SPOTS){ const [x,y]=mapXY(lat,lon); if(!inside(x,y,4*u)) continue; const fl=10*u, tw=name.length*fl*0.54, d=3*u, dot=[x-d,y-d,x+d,y+d]; if(taken.some(t=>hit(t,dot))) continue;
     for(const [bx,anchor,tx] of [[x+6*u,"start",x+6*u],[x-6*u-tw,"end",x-6*u]]){ const rect=[bx,y-fl*0.6,bx+tw,y+fl*0.6]; if(!free(rect)) continue; taken.push(rect,dot);
@@ -1678,32 +1691,35 @@ function mapDraw(){
   const sc=$("mapScale"); if(sc){ const perMile=28.9/u, mi=[5,2,1,0.5,0.25,0.1].find(m=>m*perMile<=96)||0.1; sc.innerHTML='<span>'+mi+' mi · '+Math.round(mi*20)+' min walk</span><i style="width:'+Math.round(mi*perMile)+'px"></i>'; }
   const ring=state.pos&&w<330 ? (()=>{ const [x,y]=mapXY(state.pos.lat,state.pos.lon); return '<circle cx="'+f(x)+'" cy="'+f(y)+'" r="14.5" class="m-walk" stroke-width="'+f(1.2*u)+'" stroke-dasharray="'+f(4*u)+' '+f(4*u)+'"/>'; })() : "";
   const pins=pts.slice().sort((a,b)=>(a.id===state.mapSel)-(b.id===state.mapSel)).map(p=>{ const on=p.id===state.mapSel, r=(on?14:far?7:11)*u, rr=r+3.2*u, c=2*Math.PI*rr, part=p.n?p.done/p.n:0;
-    return '<g class="m-pin'+(p.fit?" fit":"")+(on?" on":"")+'" data-p="'+p.id+'" tabindex="0" role="button" aria-label="'+esc(PLACES[p.id].name)+', '+p.n+' ideas, '+p.done+' shot">'+
+    return '<g class="m-pin'+(p.fit?" fit":"")+(on?" on":"")+(p.empty?" empty":"")+'" data-p="'+p.id+'" tabindex="0" role="button" aria-label="'+esc(PLACES[p.id].name)+', '+p.n+' ideas, '+p.done+' shot">'+
       '<circle cx="'+f(p.x)+'" cy="'+f(p.y)+'" r="'+f(22*u)+'" class="m-hit"/>'+
       (on?'<circle cx="'+f(p.x)+'" cy="'+f(p.y)+'" r="'+f(r)+'" class="m-halo" stroke-width="'+f(2*u)+'"/>':'')+
       (part?'<circle cx="'+f(p.x)+'" cy="'+f(p.y)+'" r="'+f(rr)+'" class="m-prog" stroke-width="'+f(2.4*u)+'" stroke-dasharray="'+f(c*part)+' '+f(c)+'" transform="rotate(-90 '+f(p.x)+' '+f(p.y)+')"/>':'')+
       '<circle cx="'+f(p.x)+'" cy="'+f(p.y)+'" r="'+f(r)+'" stroke-width="'+f(2*u)+'" class="m-dot"/>'+
       (on||!far?'<text x="'+f(p.x)+'" y="'+f(p.y+(on?4.4:3.8)*u)+'" text-anchor="middle" font-size="'+f((on?12.5:10.5)*u)+'" class="m-num">'+p.fit+'</text>':'')+'</g>'; }).join("");
   let you=""; if(state.pos){ const [x,y]=mapXY(state.pos.lat,state.pos.lon); you='<circle cx="'+f(x)+'" cy="'+f(y)+'" r="'+f(13*u)+'" class="m-youhalo"/><circle cx="'+f(x)+'" cy="'+f(y)+'" r="'+f(6*u)+'" stroke-width="'+f(2.5*u)+'" class="m-you"/>'; }
-  $("mapDyn").innerHTML=detail+route+ring+flags+labels+evs+you+pins;
+  $("mapDyn").innerHTML=detail+route+ring+stations+flags+labels+evs+you+pins;
 }
 function mapPanel(){
   const key=lightAt(new Date()), pts=mapPts(), sel=state.mapSel&&pts.find(p=>p.id===state.mapSel), pl=sel&&PLACES[sel.id], d=sel?milesText(milesTo(pl)):"";
+  const order=placeOrder().filter(id=>typeof PLACES[id].lat==="number");
+  $("mapGo").innerHTML='<option value="">Go to a place…</option>'+order.map(id=>{ const dd=milesText(milesTo(PLACES[id])); return '<option value="'+id+'"'+(id===state.mapSel?" selected":"")+'>'+esc(PLACES[id].name)+(dd?' · '+dd:'')+'</option>'; }).join("");
+  $("mapIntent").innerHTML='<button type="button" class="chip" data-i="all" aria-pressed="'+(state.mapIntent==="all")+'">Any intent</button>'+Object.entries(INTENTS).map(([k,v])=>'<button type="button" class="chip" data-i="'+k+'" aria-pressed="'+(state.mapIntent===k)+'"><span class="dot" style="background:'+v.color+'"></span>'+v.name+'</button>').join("");
   $("mapZoom").innerHTML='<button type="button" class="chip evtoggle" data-toggle="ev" aria-pressed="'+!!state.mapShowEv+'"><span class="lg ev"></span>Events '+(state.mapShowEv?"on":"off")+'</button>'+MAP_PRESETS.concat(state.pos?[["me","Near me"]]:[]).map(z=>'<button type="button" class="chip" data-z="'+z[0]+'">'+z[1]+'</button>').join("");
   const evSel=state.mapShowEv&&state.mapEv&&mapEvents().find(e=>e.id===state.mapEv), hasEv=state.mapShowEv&&mapEvents().length;
-  const mine=sel?cityIdeas().filter(i=>i.p===sel.id).sort((a,b)=>b.w.includes(key)-a.w.includes(key)):[];
-  $("mapPanel").innerHTML='<p class="msg maplegend"><span><span class="lg fit"></span>Ideas for the light now ('+esc(WHEN[key].toLowerCase())+')</span><span><span class="lg"></span>Other places</span><span><span class="lg prog"></span>Share you have shot</span>'+(hasEv?'<span><span class="lg ev"></span>Events in the next 6 weeks</span>':'')+
+  const mine=sel?cityIdeas().filter(i=>i.p===sel.id&&(state.mapIntent==="all"||i.i===state.mapIntent)).sort((a,b)=>b.w.includes(key)-a.w.includes(key)):[];
+  $("mapPanel").innerHTML='<p class="msg maplegend"><span><span class="lg fit"></span>'+(state.mapIntent==="all"?"Ideas":INTENTS[state.mapIntent].name+" ideas")+' for the light now ('+esc(WHEN[key].toLowerCase())+')</span><span><span class="lg"></span>Other places</span><span><span class="lg prog"></span>Share you have shot</span><span><span class="lg stn"></span>Subway station</span>'+(hasEv?'<span><span class="lg ev"></span>Events in the next 6 weeks</span>':'')+
       (state.plan?'<span><span class="lg route"></span>Your plan</span>':'')+(state.pos?'<span><span class="lg you"></span>You</span><span><span class="lg walk"></span>10 min walk from you</span>':'')+'</p>'+
     (evSel ? '<section class="group mapsel"><div class="group-head"><b>'+esc(evSel.r.e.name)+'</b><span class="where">'+(EVENT_TYPES[evSel.r.e.type]?esc(EVENT_TYPES[evSel.r.e.type])+' · ':'')+esc(evSel.r.e.where||"")+'</span></div>'+
         '<p class="mapcount"><b>'+evSel.r.o[0].toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})+(evSel.r.o[1]?' to '+evSel.r.o[1].toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"}):'')+'</b>'+(evSel.r.confirmed?' <span class="pill">Confirmed</span>':' (expected)')+(evSel.r.e.time?'<br>'+esc(evSel.r.e.time):'')+'</p>'+
         (evSel.r.e.why?'<p class="mapcount">'+esc(evSel.r.e.why)+'</p>':'')+
         '<div class="callinks"><button type="button" class="chip" data-event="'+esc(evSel.id)+'">Open in Events</button>'+(evSel.r.e.map?'<a class="chip" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(evSel.r.e.map[1])+'" target="_blank" rel="noopener">Google Maps ↗</a>':'')+'</div></section>' :
     sel ? '<section class="group mapsel"><div class="group-head"><b>'+esc(pl.name)+(d?'<span class="dist">'+d+'</span>':'')+'</b>'+whereHtml(pl)+'</div>'+startHtml(sel.id).replace('class="start"','class="start mapstart"')+
-        '<p class="mapcount">'+sel.n+' ideas · '+sel.fit+' suit the light now · '+sel.done+' shot</p>'+
+        '<p class="mapcount">'+sel.n+(sel.n===1?' idea':' ideas')+(state.mapIntent==="all"?'':' for '+INTENTS[state.mapIntent].name.toLowerCase())+' · '+sel.fit+(sel.fit===1?' suits':' suit')+' the light now · '+sel.done+' shot</p>'+
         mine.map(x=>'<button type="button" class="row'+(state.done.has(x.id)?" done":"")+'" data-id="'+x.id+'"><span class="dot" style="background:'+INTENTS[x.i].color+'"></span>'+
           '<span class="t"><b>'+esc(x.t)+'</b><span>'+esc(INTENTS[x.i].name)+(x.w.includes(key)?' · suits the light now':'')+'</span></span><span class="go" aria-hidden="true">›</span></button>').join("")+
-        '<div class="callinks"><button type="button" class="chip" data-plan="'+sel.id+'">Plan an outing from here</button><button type="button" class="chip" data-go="'+sel.id+'">Open in Browse</button></div></section>'
-      : '<p class="lead">Tap a pin to see the place and its ideas. Drag to move the map, pinch or use + and − to zoom, double-tap to zoom in.</p>')+
+        '<div class="callinks">'+(START[sel.id]?'<a class="chip" href="https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(mapAddr(sel.id))+'&travelmode=transit" target="_blank" rel="noopener">Directions from where I am ↗</a>':'')+'<button type="button" class="chip" data-plan="'+sel.id+'">Plan an outing from here</button><button type="button" class="chip" data-go="'+sel.id+'">Open in Browse</button></div></section>'
+      : '<p class="lead">Tap a pin to see the place and its ideas, or pick one from the list above. Drag to move the map, pinch or use + and − to zoom, double-tap to zoom in. ⌂ shows the whole city and ◎ finds you.</p>')+
     '<p class="msg">Zoom in for neighbourhoods, streets, landmarks and upcoming events, and zoom in close for the starting point of each place. The number on a pin is how many of its ideas suit the light now. Streets, parks and landmarks are approximate, so use Start at on a place for real directions. On the subway has no pin because it is everywhere.</p>';
 }
 function mapSelectEv(id){ state.mapEv=id; state.mapSel=null; mapDraw(); mapPanel(); }
@@ -1817,6 +1833,12 @@ $("syncImport").addEventListener("click",()=>{ const r=syncImport($("syncCode").
   msg.textContent=(r.s+r.d+r.n) ? "Imported: "+r.s+" saved, "+r.d+" shot and "+r.n+" notes added." : "Nothing new: this device already has everything in that code.";
   $("syncCode").value=""; render(); });
 $("map").addEventListener("click",e=>{
+  const ic=e.target.closest("#mapIntent .chip"); if(ic){ state.mapIntent=ic.dataset.i; mapPanel(); mapDraw(); return; }
+  const ft=e.target.closest("[data-fit]"); if(ft){ mapFly(mapPreset("city")); return; }
+  const lc=e.target.closest("[data-locate]"); if(lc){ if(state.pos){ mapFly(mapPreset("me")); return; } const b=lc; b.textContent="…";
+    const done=()=>{ b.textContent="◎"; mapPanel(); if(state.pos) mapFly(mapPreset("me")); else { $("mapPanel").insertAdjacentHTML("afterbegin",'<p class="msg">Your location is not available here. In the installed app, allow location access for Shot List when asked.</p>'); } };
+    if(!navigator.geolocation){ done(); return; }
+    try{ navigator.geolocation.getCurrentPosition(p=>{ state.pos={lat:p.coords.latitude,lon:p.coords.longitude}; fillPlaces(); syncNear(); done(); }, done, {timeout:10000,maximumAge:120000}); }catch(err){ done(); } return; }
   const tg=e.target.closest("[data-toggle=ev]"); if(tg){ state.mapShowEv=!state.mapShowEv; store.set("mapShowEv",state.mapShowEv); if(!state.mapShowEv) state.mapEv=null; mapPanel(); mapDraw(); return; }
   const z=e.target.closest("#mapZoom .chip"); if(z){ state.mapZoom=z.dataset.z; store.set("mapZoom",state.mapZoom); mapFly(mapPreset(z.dataset.z)); return; }
   const b=e.target.closest("[data-zoom]"); if(b){ mapFly({cx:mapV.cx,cy:mapV.cy,w:mapV.w*parseFloat(b.dataset.zoom)}); return; }
@@ -1825,6 +1847,7 @@ $("map").addEventListener("click",e=>{
   const g=e.target.closest("[data-go]"); if(g){ state.place=g.dataset.go; store.set("place",state.place); fillPlaces(); $("place").value=state.place; state.view="browse"; refilter(); window.scrollTo({top:0}); return; }
   const q=e.target.closest("[data-plan]"); if(q){ state.view="plan"; render(); $("pStart").value=q.dataset.plan; window.scrollTo({top:0}); }
 });
+$("map").addEventListener("change",e=>{ if(e.target.id!=="mapGo"||!e.target.value) return; const id=e.target.value; state.mapSel=id; state.mapEv=null; const p=mapPts().find(q=>q.id===id); mapPanel(); mapDraw(); if(p) mapFly({cx:p.x,cy:p.y,w:Math.min(mapV.w,120)}); });
 $("map").addEventListener("keydown",e=>{ if(e.key!=="Enter"&&e.key!==" ") return; const p=e.target.closest(".m-pin"); const v=e.target.closest(".m-ev"); if(v){ e.preventDefault(); mapSelectEv(v.dataset.e); return; }
   if(p){ e.preventDefault(); mapSelect(p.dataset.p); const n=document.querySelector('.m-pin[data-p="'+p.dataset.p+'"]'); if(n) n.focus(); } });
 window.addEventListener("resize",()=>{ if(state.view==="map") mapDraw(); });
