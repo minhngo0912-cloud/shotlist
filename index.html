@@ -188,6 +188,11 @@ select{width:100%;min-height:44px;padding:0 10px;border:1.5px solid var(--line);
 .eideas b{font-size:16px}
 .eideas .set{font-family:var(--mono);font-size:13px;color:var(--muted)}
 .check{color:var(--fg);font-weight:600;font-size:15px}
+.syncbox{background:var(--panel);border:1px solid var(--line);border-radius:10px}
+.syncbox summary{cursor:pointer;padding:14px;font-weight:600;font-size:15px;min-height:44px}
+.syncbody{display:flex;flex-direction:column;gap:10px;padding:0 14px 14px}
+.syncbody textarea{width:100%;min-height:76px;font:13px/1.4 var(--mono);background:var(--bg);color:var(--fg);border:1.5px solid var(--line);border-radius:8px;padding:10px;word-break:break-all}
+.syncbody .btn{width:100%}
 .empty{color:var(--muted);padding:24px 0;margin:0;max-width:50ch}
 footer{font-size:13px;color:var(--muted);max-width:65ch}
 </style>
@@ -240,6 +245,18 @@ footer{font-size:13px;color:var(--muted);max-width:65ch}
     <div class="list" id="plan"></div>
   </main>
   <main id="viewEvents" hidden><div class="list" id="events"></div></main>
+
+  <details class="syncbox" id="syncbox">
+    <summary>Move saved ideas, shot marks and notes to another device</summary>
+    <div class="syncbody">
+      <p class="msg">On the device that has your marks, copy the code. Send it to your other device (for example with a message to yourself or the shared clipboard), paste it there and tap Import. Importing adds to what is already on the device; it never removes anything.</p>
+      <button type="button" class="btn" id="syncCopy">Copy code from this device</button>
+      <label class="label" for="syncCode">Code from another device</label>
+      <textarea id="syncCode" rows="3" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="Paste a code that starts with SL1."></textarea>
+      <button type="button" class="btn primary" id="syncImport">Import</button>
+      <p class="msg" id="syncMsg" role="status"></p>
+    </div>
+  </details>
 
   <footer>Subway photography is allowed by MTA rules without flash, tripods or lights. Diagrams are schematic. Place details were checked against published sources in October 2026; ideas and settings are starting points to test on the street. Saved and shot marks are kept on this device only. Weather data by Open-Meteo.com.</footer>
 </div>
@@ -1226,6 +1243,27 @@ syncTheme();
 $("pGo").addEventListener("click",()=>{ state.plan=makePlan(); renderPlan(); });
 $("plan").addEventListener("click",e=>{ const r=e.target.closest(".row"); if(!r) return; show(r.dataset.id); state.view="shoot"; render(); window.scrollTo({top:0}); });
 syncNear();
+// Move marks between devices with a copy-and-paste code. Import merges: it only ever adds.
+function syncEncode(){ const j=JSON.stringify({v:1,s:[...state.saved],d:[...state.done],n:state.notes});
+  return "SL1."+btoa(unescape(encodeURIComponent(j))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); }
+function syncDecode(code){ const m=/SL1\.([A-Za-z0-9_-]+)/.exec(String(code||"").replace(/\s+/g,"")); if(!m) return null;
+  try{ const b=m[1].replace(/-/g,"+").replace(/_/g,"/"); const j=JSON.parse(decodeURIComponent(escape(atob(b+"===".slice((b.length+3)%4)))));
+    return (j && j.v===1) ? j : null; }catch(e){ return null; } }
+function syncImport(code){ const j=syncDecode(code); if(!j) return null;
+  const known=new Set(IDEAS.map(x=>x.id)), ok=a=>(Array.isArray(a)?a:[]).filter(id=>typeof id==="string"&&known.has(id)); let s=0,d=0,n=0;
+  ok(j.s).forEach(id=>{ if(!state.saved.has(id)){ state.saved.add(id); s++; } });
+  ok(j.d).forEach(id=>{ if(!state.done.has(id)){ state.done.add(id); d++; } });
+  Object.entries(j.n&&typeof j.n==="object"?j.n:{}).forEach(([id,t])=>{ if(!known.has(id)||typeof t!=="string"||!t.trim()) return; t=t.slice(0,2000);
+    const cur=state.notes[id]; if(!cur){ state.notes[id]=t; n++; } else if(cur.trim()!==t.trim() && !cur.includes(t.trim())){ state.notes[id]=cur.trim()+"\n"+t.trim(); n++; } });
+  store.set("saved",[...state.saved]); store.set("done",[...state.done]); store.set("notes",state.notes);
+  return {s,d,n}; }
+$("syncCopy").addEventListener("click",()=>{ const code=syncEncode(), msg=$("syncMsg"), total=state.saved.size+state.done.size+Object.keys(state.notes).length;
+  const shown=()=>{ $("syncCode").value=code; $("syncCode").focus(); $("syncCode").select(); msg.textContent="Copying isn't available here. The code is in the box: select it and copy it."; };
+  try{ navigator.clipboard.writeText(code).then(()=>{ msg.textContent="Copied a code holding "+state.saved.size+" saved, "+state.done.size+" shot and "+Object.keys(state.notes).length+" notes."+(total?"":" There is nothing marked on this device yet."); }, shown); }catch(e){ shown(); } });
+$("syncImport").addEventListener("click",()=>{ const r=syncImport($("syncCode").value), msg=$("syncMsg");
+  if(!r){ msg.textContent="That doesn't look like a Shot List code. Copy the whole code, starting with SL1."; return; }
+  msg.textContent=(r.s+r.d+r.n) ? "Imported: "+r.s+" saved, "+r.d+" shot and "+r.n+" notes added." : "Nothing new: this device already has everything in that code.";
+  $("syncCode").value=""; render(); });
 $("views").addEventListener("click",e=>{const b=e.target.closest("button"); if(!b) return; state.view=b.dataset.v; render();});
 $("next").addEventListener("click",()=>{pick();render();cardToTop();});
 $("back").addEventListener("click",()=>{ const id=state.history.pop(); if(!id) return; state.current=id; state.tab="idea"; render(); cardToTop(); });
