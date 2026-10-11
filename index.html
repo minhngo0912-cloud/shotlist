@@ -231,6 +231,8 @@ footer{font-size:13px;color:var(--muted);max-width:65ch}
 .group-head{background:var(--sign);color:var(--sign-fg);border-bottom:0}
 .group .where,.group-head .dist{color:var(--sign-muted)}
 .cal small{color:var(--red)}
+.callinks{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.callinks .chip{text-decoration:none}
 .event .t .etag{display:block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:1px}
 @media (prefers-reduced-motion:no-preference){
   .sign.swap{animation:rise .24s ease-out}
@@ -1192,6 +1194,26 @@ function eventRows(today){
   }
   return rows.sort((a,b)=>(a.o?a.o[0]:Infinity)-(b.o?b.o[0]:Infinity));
 }
+// Save an event to a calendar. Events are all-day entries because start times are given as text and can change.
+const calYmd = d => d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0");
+function calInfo(e,o){
+  const end=new Date((o[1]||o[0]).getFullYear(),(o[1]||o[0]).getMonth(),(o[1]||o[0]).getDate()+1);   // calendar end dates are exclusive
+  const loc=e.map ? e.map[1] : (e.where ? e.where+", "+CITIES[e.city].name : CITIES[e.city].name);
+  const lines=[]; if(e.time) lines.push("Time: "+e.time); if(e.where) lines.push("Where: "+e.where); if(e.spot) lines.push("Where to be: "+e.spot);
+  if(e.ideas&&e.ideas.length) lines.push("Shots to look for: "+e.ideas.map(i=>i[1]).join("; "));
+  lines.push("From Shot List. Dates, times and routes can change, so confirm before you go.");
+  return {title:e.name+" (street photography)",start:calYmd(o[0]),end:calYmd(end),loc,desc:lines.join("\n")};
+}
+function calLinks(e,o){ if(!o) return "";
+  const c=calInfo(e,o), esc2=t=>String(t).replace(/\\/g,"\\\\").replace(/;/g,"\\;").replace(/,/g,"\\,").replace(/\n/g,"\\n");
+  const g="https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent(c.title)+"&dates="+c.start+"/"+c.end+"&details="+encodeURIComponent(c.desc)+"&location="+encodeURIComponent(c.loc);
+  const ics=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Shot List//EN","CALSCALE:GREGORIAN","METHOD:PUBLISH","BEGIN:VEVENT","UID:"+e.id+"-"+c.start+"@shotlist",
+    "DTSTAMP:"+new Date().toISOString().replace(/[-:]/g,"").replace(/\.\d+/,""),"DTSTART;VALUE=DATE:"+c.start,"DTEND;VALUE=DATE:"+c.end,"SUMMARY:"+esc2(c.title),"LOCATION:"+esc2(c.loc),"DESCRIPTION:"+esc2(c.desc),
+    "BEGIN:VALARM","ACTION:DISPLAY","DESCRIPTION:"+esc2(e.name+" is tomorrow"),"TRIGGER:-PT15H","END:VALARM","END:VEVENT","END:VCALENDAR"].join("\r\n");
+  return '<div class="part"><span class="label">Save to your calendar</span><div class="callinks">'+
+    '<a class="chip" href="'+esc(g)+'" target="_blank" rel="noopener">Google Calendar ↗</a>'+
+    (PHOTOS_INLINE ? '<a class="chip" href="data:text/calendar;charset=utf-8,'+encodeURIComponent(ics)+'">Apple Calendar</a>' : '')+'</div></div>';
+}
 function renderEvents(){
   const now=new Date(), today=new Date(now.getFullYear(),now.getMonth(),now.getDate()), cam=CAMERAS[state.camera], box=$("events");
   const fmt=(d,o)=>d.toLocaleDateString("en-US",o), dm={weekday:"short",month:"short",day:"numeric"};
@@ -1223,7 +1245,7 @@ function renderEvents(){
       (e.map?'<a class="check" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(e.map[1])+'" target="_blank" rel="noopener">'+(e.map[0]===""?"Open the viewing spot in Google Maps":e.map[0]==="area"?"Open the area in Google Maps":"Viewing spot: "+esc(e.map[0]))+' ↗</a>':'')+
       (e.ideas.length?'<div class="part"><span class="label">Shots to look for</span><ul class="eideas">'+e.ideas.map(i=>
         '<li><span class="tag"><span class="dot" style="background:'+INTENTS[i[0]].color+'"></span>'+INTENTS[i[0]].name+'</span><b>'+esc(i[1])+'</b><span>'+esc(i[2])+'</span><span class="set">'+esc(cam.recipes[i[3]][0])+'</span></li>').join("")+'</ul></div>':'')+
-      (src?'<a class="check" href="'+esc(src)+'" target="_blank" rel="noopener">Source for this date ↗</a>':'<a class="check" href="'+q+'" target="_blank" rel="noopener">Check this year\'s date and route ↗</a>')+'</div></details>';
+      calLinks(e,o)+(src?'<a class="check" href="'+esc(src)+'" target="_blank" rel="noopener">Source for this date ↗</a>':'<a class="check" href="'+q+'" target="_blank" rel="noopener">Check this year\'s date and route ↗</a>')+'</div></details>';
   }).join("");
 }
 /* Events file. A weekly task commits events.json to the repository; the app reads it on every open
