@@ -441,7 +441,7 @@ const WHEN = {am:"Morning", mid:"Midday sun", gold:"Late afternoon", night:"Nigh
 // Per recipe: [focus mode, focus area, metering, exposure compensation], in Leica Q3 menu terms.
 const SETUP = {
   // then [scene mode / exposure mode, aspect ratio, shutter type, white balance]
-  zone:["MF","Not used (focus ring pre-set)","Multi-Field","0, or −0.3 in hard sun","Off · M with Auto ISO","3:2","Hybrid","Auto"],
+  zone:["MF","Not used (focus ring pre-set)","Multi-Field","0 (in hard sun use 1/640 s instead; Auto ISO stops at 100)","Off · M with Auto ISO","3:2","Hybrid","Auto"],
   freeze:["AFc","Eye/Face/Body Detection","Multi-Field","0","Off · M with Auto ISO","3:2","Mechanical (no skew on fast movement)","Auto"],
   drag:["AFs","Field, on the still subject","Multi-Field","0","Off · S (shutter priority)","3:2","Mechanical","Auto"],
   deep:["AFs","Field, a third of the way into the scene","Multi-Field","0, or −0.3 to hold the sky","Off · A (aperture priority)","3:2, or 16:9 for a skyline","Hybrid","Auto, or Daylight to keep a set consistent"],
@@ -454,14 +454,14 @@ const SETUP = {
 const SETUP_LABELS = ["Focus mode","Focus area","Metering","Exposure comp.","Scene mode","Aspect ratio","Shutter type","White balance"];
 // Explanations shown when a setting is tapped. Index matches SETUP_LABELS; "exp" is the aperture/shutter/ISO line.
 const TIPS = {
-  exp:["Aperture · shutter · ISO","Aperture (f-number) sets how much of the scene is sharp front to back: f/2 blurs the background, f/8 keeps most of it sharp. Shutter speed sets how movement looks: 1/500 s freezes walkers, 1/15 s blurs them. ISO is the sensor's sensitivity; Auto ISO lets the camera raise it so your aperture and shutter stay where you put them."],
-  0:["Focus mode","How the camera focuses. AFs locks focus once when you half-press, which suits still subjects. AFc keeps refocusing while you hold, which suits people moving toward or away from you. MF means you set the distance yourself on the lens ring, so there is no delay when you press."],
-  1:["Focus area","Where in the frame the camera looks for focus. Field is one movable box you place on the subject. Spot is a smaller box for precise targets. Eye/Face/Body Detection finds a person and follows them. Multi-Field lets the camera choose, which is fast but can pick the wrong thing in a crowd."],
+  exp:["Aperture · shutter · ISO","Aperture (f-number) sets how much of the scene is sharp front to back: f/2 blurs the background, f/8 keeps most of it sharp. Shutter speed sets how movement looks: 1/500 s freezes walkers, 1/15 s blurs them. ISO is the sensor's sensitivity; Auto ISO lets the camera raise it so your aperture and shutter stay where you put them. For recipes in A mode, the shutter speed shown is the slowest to allow: set it as the Auto ISO shutter speed limit and the camera raises ISO rather than dropping below it."],
+  0:["Focus mode","How the camera focuses. AFs locks focus once when you half-press, which suits still subjects. AFc keeps refocusing while you hold, which suits people moving toward or away from you. MF means you set the distance yourself on the lens ring, so there is no delay when you press. iAF lets the camera switch between AFs and AFc on its own; it does not always pick right, so this card names one or the other."],
+  1:["Focus area","Where in the frame the camera looks for focus. Field is one movable box you place on the subject. Spot is a smaller box for precise targets. Eye/Face/Body Detection finds a person and follows them. Multi-Field lets the camera choose, which is fast but can pick the wrong thing in a crowd. Zone is a block of points for fast action, and Tracking follows whatever you place the box on."],
   2:["Metering","How the camera measures brightness to set exposure. Multi-Field averages the whole frame and is right most of the time. Center-Weighted favours the middle, useful when the subject is central and the edges are much brighter or darker. Spot reads one small point. Highlight-Weighted protects the brightest areas from blowing out."],
-  3:["Exposure compensation","Tells the camera to make the picture brighter (+) or darker (−) than its meter suggests. Use minus when bright lights or sky are being washed out, and plus when a backlit face comes out too dark. It only has an effect when the camera is choosing at least one of shutter, aperture or ISO."],
+  3:["Exposure compensation","Tells the camera to make the picture brighter (+) or darker (−) than its meter suggests. Use minus when bright lights or sky are being washed out, and plus when a backlit face comes out too dark. It only has an effect when the camera is choosing at least one of shutter, aperture or ISO. In M with Auto ISO it works by changing the ISO, and Auto ISO cannot go below 100, so in full sun minus compensation may do nothing."],
   4:["Scene mode","Scene modes are presets, such as Sport or Portrait, where the camera picks every exposure setting. They are off here so the settings on this card apply. The letter is the exposure mode to use instead: A means you set aperture and the camera sets shutter, S means you set shutter, M means you set both."],
   5:["Aspect ratio","The shape of the picture. 3:2 uses the whole sensor. 16:9 is wider and suits skylines; 1:1 is square and suits a single centred subject. Choosing another ratio shows crop lines while you frame."],
-  6:["Shutter type","Mechanical is a physical shutter: reliable under artificial light and with fast movement, up to 1/2000 s. Electronic is silent and much faster, but can bend fast-moving subjects and show dark bands under LED or fluorescent light. Hybrid uses mechanical normally and switches to electronic only when the light needs a faster speed."],
+  6:["Shutter type","Mechanical is a physical shutter: reliable under artificial light and with fast movement, up to 1/2000 s. Electronic is silent and reaches 1/16000 s, but can bend fast-moving subjects and show dark bands under LED or fluorescent light. Hybrid uses mechanical normally and switches to electronic only when the light needs a faster speed."],
   7:["White balance","Sets the overall colour cast so whites look white. Auto adjusts for each scene. Daylight is fixed, so warm light stays warm and neon keeps its colour, and every frame in a set matches. With DNG files you can change it afterwards without losing quality."]
 };
 let openTip = null;
@@ -476,7 +476,7 @@ const CAMERAS = {
   q343:{name:"Leica Q3 43", setup:"leica", recipes:{
     zone:["f/8 · 1/500 s · Auto ISO","Switch to manual focus and set the ring to about 3 m. Everything from roughly 2 m to 5 m is sharp, so you never wait for autofocus."],
     freeze:["f/4 · 1/1000 s · Auto ISO","Continuous AF with body and eye detection. Shoot short bursts through the peak of the action."],
-    drag:["f/11 · 1/15 s · ISO 100","Shutter priority, stabilization on, elbows in. In bright sun go to f/16 and ISO 50. Brace on a pole or railing."],
+    drag:["f/11 · 1/15 s · ISO 100","Shutter priority, stabilization on, elbows in, braced on a pole or railing. These settings suit shade, deep streets and dusk. In full sun 1/15 s is out of reach: f/16 and ISO 50 give 1/60 s, which blurs walkers only a little, so wait for shade or fit a 3-stop ND filter (49 mm) for 1/8 s."],
     deep:["f/8 · 1/250 s · Auto ISO","43 mm will not take in the whole scene, so step back or choose the part that says the most. Use the level to keep verticals straight."],
     shallow:["f/2 · 1/500 s · Auto ISO","Eye and face detection AF. At about 2 m, f/2 lifts one person clearly off the background."],
     night:["f/2 · 1/125 s · Auto ISO, max 6400","Expose for the lights: dial in −0.7 EV so neon and screens keep their colour."],
@@ -487,7 +487,7 @@ const CAMERAS = {
   q328:{name:"Leica Q3 (28 mm)", setup:"leica", recipes:{
     zone:["f/8 · 1/500 s · Auto ISO","Switch to manual focus and set the ring to about 3 m. Everything from roughly 1.5 m to the far distance is sharp. Work at 1.5 to 2 m from people or they will be small in the frame."],
     freeze:["f/4 · 1/1000 s · Auto ISO","Continuous AF with body and eye detection. Get closer than feels natural, then shoot short bursts through the peak."],
-    drag:["f/11 · 1/15 s · ISO 100","Shutter priority, stabilization on, elbows in. In bright sun go to f/16 and ISO 50. Blur shows less at 28 mm, so try 1/8 s as well."],
+    drag:["f/11 · 1/15 s · ISO 100","Shutter priority, stabilization on, elbows in. These settings suit shade, deep streets and dusk; in full sun f/16 and ISO 50 only get you to 1/60 s, so wait for shade or fit a 3-stop ND filter (49 mm). Blur shows less at 28 mm, so try 1/8 s as well."],
     deep:["f/8 · 1/250 s · Auto ISO","28 mm takes in the whole scene, so check the edges for clutter and put something in the foreground. Keep the camera level or buildings lean."],
     shallow:["f/1.7 · 1/500 s · Auto ISO","Eye and face detection AF. Background blur is modest at 28 mm: get within about 1 m, or keep the subject far from what is behind them."],
     night:["f/1.7 · 1/125 s · Auto ISO, max 6400","Expose for the lights: dial in −0.7 EV so neon and screens keep their colour."],
@@ -509,7 +509,7 @@ const CAMERAS = {
   other:{name:"Other camera", setup:"generic", recipes:{
     zone:["f/8 · 1/500 s · Auto ISO","Use a 35 to 50 mm lens, manual focus pre-set to about 3 m, and shoot without bringing the camera up slowly."],
     freeze:["f/4 · 1/1000 s · Auto ISO","Continuous AF and short bursts through the peak of the action."],
-    drag:["f/11 · 1/15 s · lowest ISO","Shutter priority. Brace on a pole or railing and keep one subject still in the frame."],
+    drag:["f/11 · 1/15 s · lowest ISO","Shutter priority. Brace on a pole or railing and keep one subject still in the frame. In full sun 1/15 s needs an ND filter; without one, shoot in shade."],
     deep:["f/8 · 1/250 s · Auto ISO","Any focal length from 24 to 50 mm. Keep the camera level so verticals stay straight."],
     shallow:["Widest aperture · 1/500 s · Auto ISO","A 50 mm or longer lens at f/2 or wider, focused on the nearest eye."],
     night:["Widest aperture · 1/125 s · Auto ISO","Underexpose by about two thirds of a stop so signs and screens keep their colour."],
@@ -1156,17 +1156,19 @@ function adjustFor(recipe,i,leica){
     if(wet) out.push("Wet ground doubles every light. Get low and include the reflections.");
     return out;
   }
-  if(i.phase==="dusk"){ out.push("The light is fading fast. Open up two stops (f/8 becomes f/4) and let Auto ISO climb to 3200."); if(recipe!=="drag") out.push("Keep the shutter at 1/250 s or faster for people."); }
+  if(i.phase==="dusk"){ if(recipe==="drag") out.push("Dusk is the easiest time for this: f/11 at 1/15 s and ISO 100 is about right, and the lights coming on add streaks."); else { out.push("The light is fading fast. Open up two stops (f/8 becomes f/4) and let Auto ISO climb to 3200."); out.push("Keep the shutter at 1/250 s or faster for people."); } }
   if(i.sky==="sun"){
     if(recipe==="silhouette") out.push("Hard sun is ideal for this shot. Keep the exposure compensation as shown.");
+    else if(recipe==="zone"||recipe==="freeze") out.push("Hard light: in M, Auto ISO is already at its floor of 100, so minus compensation does nothing. Protect highlights with one click faster on the shutter, and use the shadows as shapes.");
     else out.push("Hard light: set −0.3 EV to protect highlights, and use the shadows as shapes.");
+    if(recipe==="freeze") out.push("f/4 at 1/1000 s is a stop too bright in full sun at ISO 100: use f/5.6, or 1/2000 s.");
     if(recipe==="shallow") out.push("Wide open in sun needs speeds past 1/2000 s. Keep the shutter type on Hybrid.");
-    if(recipe==="drag") out.push("Too bright for a slow shutter at ISO 100. Stop down to f/16 and use ISO 50.");
+    if(recipe==="drag") out.push("Full sun: 1/15 s is out of reach. f/16 and ISO 50 give 1/60 s, enough for a little blur on fast walkers. For real streaks wait for shade or use a 3-stop ND filter.");
   }
   if(i.sky==="partly") out.push("The light will swing by about two stops as clouds pass. Auto ISO covers it; recheck exposure compensation when the sun comes out.");
   if(/cloud|rain|storm/.test(i.sky||"")){
     if(recipe==="silhouette") out.push("There is no hard light now, so silhouettes will be weak. Shoot against a bright doorway, window or screen instead.");
-    else if(recipe==="drag") out.push("Dim light makes slow shutters easy: 1/15 s at f/8 and ISO 100 will do.");
+    else if(recipe==="drag") out.push("Cloud helps here: f/16 at 1/15 s and ISO 100 is about right under heavy cloud. Under lighter cloud use ISO 50.");
     else out.push("Cloud costs about two to three stops. Open up one stop (f/8 becomes f/5.6) and expect ISO 400 to 1600.");
     out.push("The light is flat: set +0.3 EV and white balance to Cloudy for warmer skin.");
   }
