@@ -225,6 +225,7 @@ footer{font-size:13px;color:var(--muted);max-width:65ch}
 .group-head{background:var(--sign);color:var(--sign-fg);border-bottom:0}
 .group .where,.group-head .dist{color:var(--sign-muted)}
 .cal small{color:var(--red)}
+.event .t .etag{display:block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:1px}
 @media (prefers-reduced-motion:no-preference){
   .sign.swap{animation:rise .24s ease-out}
   @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
@@ -897,6 +898,14 @@ const EVENTS = [
  spot:"Inside the pens you cannot leave or carry a bag. The streets feeding the pens show the same crowd with freedom to move.",
  ideas:[["mood","The wait","Faces in the pens at hour six: cold, bored, hopeful.","night"],["energy","Confetti at midnight","Confetti filling the air between the screens.","night"],["odd","The morning after","Drifts of confetti and sanitation crews at dawn on 1 January.","deep"]]}
 ];
+// Event types. Built-in events are typed here; events added by the weekly task carry a "type" field,
+// and older ones without it are typed from their name.
+const EVENT_TYPES = {parade:"Parade",festival:"Street festival",cultural:"Cultural celebration",holiday:"Holiday",sports:"Sport",light:"Light",fireworks:"Fireworks",gathering:"Gathering",market:"Market"};
+const EVENT_TYPE_OF = {threekings:"parade",lunar:"cultural",stpat:"parade",easter:"parade",dance:"parade",henge:"light",prday:"parade",mermaid:"parade",pride:"parade",july4:"fireworks",westindian:"parade",sangennaro:"festival",columbus:"parade",dogparade:"parade",halloween:"parade",marathon:"sports",veterans:"parade",balloons:"holiday",thanksgiving:"parade",tree:"holiday",santacon:"gathering",dyker:"holiday",nye:"holiday"};
+EVENTS.forEach(e=>{ e.type=EVENT_TYPE_OF[e.id]; });
+function eventTypeFor(d){ if(d && EVENT_TYPES[d.type]) return d.type; const n=String((d&&d.name)||"").toLowerCase();
+  return /parade|march\b/.test(n)?"parade":/market|village|bazaar/.test(n)?"market":/firework/.test(n)?"fireworks":/marathon|race|run\b/.test(n)?"sports":
+    /diwali|day of the dead|lunar|eid|holi\b|festival of lights|d[ií]a de/.test(n)?"cultural":/festival|fair|feast|block party/.test(n)?"festival":/christmas|holiday|tree|new year/.test(n)?"holiday":"gathering"; }
 function eventNext(ev, today){
   for(const y of [today.getFullYear(), today.getFullYear()+1]){
     const occ=(ev.when(y)||[]).filter(o=>(o[1]||o[0])>=today).sort((a,b)=>a[0]-b[0]);
@@ -1023,7 +1032,7 @@ const store = {
 };
 const state = {
   city: store.get("city","nyc"), intent: store.get("intent","all"), place: store.get("place","all"), when: store.get("when","all"),
-  camera: store.get("camera","q343"), view:"shoot", tab:"idea", cond:"auto", notes: store.get("notes",{}) || {}, pos:null, plan:null,
+  camera: store.get("camera","q343"), view:"shoot", tab:"idea", cond:"auto", evType:"all", notes: store.get("notes",{}) || {}, pos:null, plan:null,
   saved: new Set(store.get("saved",[])), done: new Set(store.get("done",[])), current:null, history:[]
 };
 if(!CAMERAS[state.camera]) state.camera="q343";
@@ -1130,7 +1139,7 @@ function eventRows(today){
     if(id.charAt(0)==="_"||builtin.has(id)||!d||(d.city||"nyc")!==state.city||!d.name) continue;
     const s=eParse(d.start), en=eParse(d.end)||s; if(!s||en<today) continue;
     const ideas=(Array.isArray(d.ideas)?d.ideas:[]).filter(i=>i&&INTENTS[i.intent]&&SETUP[i.recipe]).map(i=>[i.intent,i.title||"",i.text||"",i.recipe]);
-    rows.push({e:{id,city:state.city,name:d.name,time:d.time||"",where:d.where||"",why:d.why||"",spot:d.spot||"",note:d.note,ideas},o:[s,eParse(d.end)||undefined],confirmed:true,added:true,source:d.source,cancelled:!!d.cancelled});
+    rows.push({e:{id,city:state.city,type:eventTypeFor(d),name:d.name,time:d.time||"",where:d.where||"",why:d.why||"",spot:d.spot||"",note:d.note,ideas},o:[s,eParse(d.end)||undefined],confirmed:true,added:true,source:d.source,cancelled:!!d.cancelled});
   }
   return rows.sort((a,b)=>(a.o?a.o[0]:Infinity)-(b.o?b.o[0]:Infinity));
 }
@@ -1138,12 +1147,16 @@ function renderEvents(){
   const now=new Date(), today=new Date(now.getFullYear(),now.getMonth(),now.getDate()), cam=CAMERAS[state.camera], box=$("events");
   const fmt=(d,o)=>d.toLocaleDateString("en-US",o), dm={weekday:"short",month:"short",day:"numeric"};
   const open=new Set([...box.querySelectorAll("details[open]")].map(d=>d.dataset.id)), first=!box.querySelector("details");
-  const list=eventRows(today);
+  const all=eventRows(today), kinds=Object.keys(EVENT_TYPES).filter(k=>all.some(r=>r.e.type===k));
+  if(state.evType!=="all" && !kinds.includes(state.evType)) state.evType="all";
+  const list=state.evType==="all"?all:all.filter(r=>r.e.type===state.evType);
+  const chips='<div class="intents" id="evTypes"><button type="button" class="chip" data-t="all" aria-pressed="'+(state.evType==="all")+'">All types</button>'+
+    kinds.map(k=>'<button type="button" class="chip" data-t="'+k+'" aria-pressed="'+(state.evType===k)+'">'+EVENT_TYPES[k]+' · '+all.filter(r=>r.e.type===k).length+'</button>').join("")+'</div>';
   if(!list.length){ box.innerHTML='<p class="empty">No events listed for this city yet.</p>'; return; }
   const st=EVENT_DOCS._status, chk=st&&eParse(st.checked);
   box.innerHTML='<p class="lead">Events with good street photography, soonest first. '+
     (chk?'Dates were last checked on '+fmt(chk,{month:"short",day:"numeric"})+' and the list is rechecked every week. ':'')+
-    'Events marked Confirmed were matched to a published listing. The rest follow each event\'s usual pattern, so confirm before you go.</p>'+list.map((r,n)=>{
+    'Events marked Confirmed were matched to a published listing. The rest follow each event\'s usual pattern, so confirm before you go.</p>'+chips+list.map((r,n)=>{
     const e=r.e, o=r.o, yr=o?o[0].getFullYear():today.getFullYear(), other=o&&yr!==today.getFullYear();
     const full=o ? fmt(o[0],dm)+(o[1]?" to "+fmt(o[1],dm):"")+(other?", "+yr:"") : "Date not announced";
     const soon=r.cancelled?"Cancelled":(o?eventSoon(o,today):"");
@@ -1151,7 +1164,7 @@ function renderEvents(){
     const src=typeof r.source==="string" && /^https:\/\//.test(r.source) ? r.source : null;
     return '<details class="event" data-id="'+esc(e.id)+'"'+((first?n===0:open.has(e.id))?" open":"")+'><summary>'+
       '<span class="cal">'+(o?'<small>'+fmt(o[0],{month:"short"})+'</small><b>'+o[0].getDate()+'</b>':'<small>TBA</small><b>·</b>')+'</span>'+
-      '<span class="t"><b>'+esc(e.name)+'</b><span>'+esc(e.where)+'</span></span>'+
+      '<span class="t">'+(EVENT_TYPES[e.type]?'<span class="etag">'+EVENT_TYPES[e.type]+'</span>':'')+'<b>'+esc(e.name)+'</b><span>'+esc(e.where)+'</span></span>'+
       '<span class="soon'+(/now|Today|Tomorrow|days|Cancelled/.test(soon)?" near":"")+'">'+soon+'</span></summary>'+
       '<div class="event-body"><p class="when">'+full+(e.approx?" (expected)":"")+
         (r.confirmed?' <span class="pill">Confirmed</span>':'')+(r.added?' <span class="pill">New</span>':'')+
@@ -1292,6 +1305,7 @@ function syncTheme(){ const d=isDark(); $("theme").textContent=d?"☼":"☾"; $(
 { const t=store.get("theme",null); if(t==="dark"||t==="light") rootEl.setAttribute("data-theme",t); }
 $("theme").addEventListener("click",()=>{ const next=isDark()?"light":"dark"; rootEl.setAttribute("data-theme",next); store.set("theme",next); syncTheme(); });
 syncTheme();
+$("events").addEventListener("click",e=>{ const c=e.target.closest("#evTypes .chip"); if(!c) return; state.evType=c.dataset.t; renderEvents(); });
 $("pGo").addEventListener("click",()=>{ state.plan=makePlan(); renderPlan(); });
 $("plan").addEventListener("click",e=>{ const r=e.target.closest(".row"); if(!r) return; show(r.dataset.id); state.view="shoot"; render(); window.scrollTo({top:0}); });
 syncNear();
