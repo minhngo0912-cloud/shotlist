@@ -252,6 +252,12 @@ footer{font-size:13px;color:var(--muted);max-width:65ch}
 .prepbody a{color:var(--fg);font-weight:600}
 .callinks{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
 .callinks .chip{text-decoration:none}
+.followbox{margin-top:16px}
+.follow{list-style:none;margin:0;padding:0}
+.follow li{padding:10px 0;border-top:1px solid var(--line)}
+.follow li a{color:inherit}
+.follow li>span{display:block;font-size:14px;color:var(--muted);margin-top:2px}
+.follow .tags{display:flex!important;flex-wrap:wrap;gap:4px 12px;margin-top:4px}
 .event .t .etag.ph{color:var(--text)}
 .event-body .when span.pill{display:inline-block;font-weight:700;font-size:11px}
 .event .t .etag{display:block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:1px}
@@ -1240,7 +1246,7 @@ function renderCard(){
     pane='<div class="part"><span class="label">Look for</span><p>'+esc(x.look)+'</p></div>'+
       '<div class="part"><span class="label">Your rule</span><p>'+esc(x.rule)+'</p></div>'+
       '<div class="part"><span class="label">Best light</span><div class="times">'+x.w.map(w=>'<span class="time">'+WHEN[w]+'</span>').join("")+'</div></div>'+
-      '<div class="part"><label class="label" for="note">Your notes</label><textarea id="note" rows="2" placeholder="What worked, what was different, what to try next time">'+esc(state.notes[x.id]||"")+'</textarea></div>'+
+      '<div class="part"><label class="label" for="note">Your notes</label><textarea id="note" rows="2" placeholder="What worked, what was different, what to try next time">'+esc(state.notes[x.id]||"")+'</textarea></div>'+followIdea(x.i)+
       '<div class="jumps">'+
       (st ? '<button type="button" class="jump" data-tab="work"><span><small>Work it</small>'+esc(st[1])+'</span><span class="go" aria-hidden="true">›</span></button>' : '')+
       (co ? '<button type="button" class="jump" data-tab="compose"><span><small>Compose</small>'+esc(TECH[co[0]][0])+'</span><span class="go" aria-hidden="true">›</span></button>' : '')+
@@ -1270,8 +1276,33 @@ function renderList(){
       '<span class="t"><b>'+esc(x.t)+'</b><span>'+esc(INTENTS[x.i].name)+(COMPOSE[x.id]?' · '+esc(TECH[COMPOSE[x.id][0]][0]):'')+'</span></span>'+
       '<span class="marks">'+(state.saved.has(x.id)?'<span class="pill">Saved</span>':'')+(state.done.has(x.id)?'<span class="pill">Shot</span>':'')+(state.notes[x.id]?'<span class="pill">Note</span>':'')+'</span>'+
       '<span class="go" aria-hidden="true">›</span></button>').join("")+'</section>';
-  }).join("");
+  }).join("")+(saved?"":followAll());
 }
+/* Accounts to follow for inspiration. Links only: the photos belong to the photographers, so the app sends you to them.
+   [name, link, what to look for, intents it helps with ("" = general)] */
+const IG = h => "https://www.instagram.com/"+h+"/";
+const FOLLOW = [
+ ["Daniel Arnold",IG("arnold_daniel"),"Close, funny, unposed Manhattan crowds.","moment odd"],
+ ["Andre D. Wagner",IG("photodre"),"Black-and-white Brooklyn and subway life. Watch the hands and gestures.","moment mood"],
+ ["Melissa O'Shaughnessy",IG("melissaoshaughnessy"),"Fifth Avenue and Midtown pavements in layered colour.","energy place"],
+ ["Joel Meyerowitz",IG("joel_meyerowitz"),"New York colour street since the 1960s, with his thinking in the captions.","place energy"],
+ ["Phil Penman",IG("philpenman"),"Black-and-white New York in snow, steam and rain, shot on Leica.","mood place"],
+ ["Joe Greer",IG("ioegreer"),"Colour, hard light and long shadows in Manhattan.","mood"],
+ ["Jeff Mermelstein",IG("jeffmermelstein"),"Odd details and small dramas on New York pavements.","odd"],
+ ["Alex Webb and Rebecca Norris Webb",IG("webb_norriswebb"),"The reference for complex, layered colour frames.","energy"],
+ ["Matt Stuart",IG("mattu1"),"London, not New York, but the best for timing and visual jokes.","odd moment"],
+ ["NYC Street Photography Collective",IG("nycspc"),"Work by local members, plus their shows and walks.",""],
+ ["Women Street Photographers",IG("womenstreetphotographers"),"Curated daily, with a yearly New York exhibition.",""],
+ ["Magnum Photos",IG("magnumphotos"),"Archive and current work, with the story behind each picture.",""],
+ ["Street Photography International",IG("streetphotographyinternational"),"Broad daily curation from around the world.",""],
+ ["Walkie Talkie by Paulie B (YouTube)","https://www.youtube.com/results?search_query=Paulie+B+Walkie+Talkie","He walks New York with a different street photographer each episode while they shoot.",""]
+];
+const followFor = i => FOLLOW.filter(f=>f[3].split(" ").includes(i));
+const followLink = f => '<a class="chip" href="'+esc(f[1])+'" target="_blank" rel="noopener">'+esc(f[0])+' ↗</a>';
+const followIdea = i => { const l=followFor(i); return l.length ? '<div class="part"><span class="label">See how others do it</span><div class="callinks">'+l.map(followLink).join("")+'</div></div>' : ""; };
+const followAll = () => '<details class="syncbox followbox"><summary>Photographers to follow</summary><div class="syncbody"><p class="hint">These open Instagram or YouTube. The photos stay with the photographers.</p><ul class="follow">'+
+  FOLLOW.map(f=>'<li><a href="'+esc(f[1])+'" target="_blank" rel="noopener"><b>'+esc(f[0])+' ↗</b></a><span>'+esc(f[2])+'</span>'+
+    (f[3]?'<span class="tags">'+f[3].split(" ").map(i=>'<span class="tag"><span class="dot" style="background:'+INTENTS[i].color+'"></span>'+INTENTS[i].name+'</span>').join("")+'</span>':'')+'</li>').join("")+'</ul></div></details>';
 /* Live event updates. A weekly scheduled task writes confirmed dates and newly found events to the
    artifact database (collection "events"); the page merges them over the built-in pattern dates.
    Doc id = built-in event id to confirm it, or a new slug to add an event. "_status" holds the last check. */
