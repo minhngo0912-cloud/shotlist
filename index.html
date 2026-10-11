@@ -145,6 +145,8 @@ select{width:100%;min-height:44px;padding:0 10px;border:1.5px solid var(--line);
 .d-ln{fill:none;stroke:var(--sign-muted);stroke-width:1.5}
 .d-dash{fill:none;stroke:var(--sign-muted);stroke-width:1;stroke-dasharray:3 3}
 .d-out{fill:none;stroke:var(--sign-fg);stroke-width:1.5;stroke-dasharray:3 2}
+.d-tx{fill:var(--sign-muted);font:600 7px var(--sans);letter-spacing:.02em}
+.d-feat{fill:none;stroke:var(--sign);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .d-rip{fill:none;stroke:var(--sign);stroke-width:1.8}
 .d-frame{fill:none;stroke:var(--sign-fg);stroke-width:2} .d-edge{fill:none;stroke:var(--sign-line);stroke-width:2}
 
@@ -699,6 +701,28 @@ const STANCE = {
   along:["Top view","Sit at their level and shoot along the table.",
     '<rect x="68" y="22" width="14" height="36" class="d-bg"/>'+dYou(75,94,-90,78)+dS(60,40)+dS(90,40)]
 };
+// Drawings made for one specific idea, used instead of the shared stance or technique drawing.
+const dTx = (x,y,t,anchor="start") => '<text x="'+x+'" y="'+y+'" text-anchor="'+anchor+'" class="d-tx">'+t+'</text>';
+const WORK_ART = {
+  "tsq-moment":["Top view","Stand between the subway stairs and the screens, facing the stairs. People look up at the screens behind you as they reach the street.",
+    '<rect x="40" y="6" width="40" height="28" class="d-bg"/><path d="M40 13 H80 M40 20 H80 M40 27 H80" class="d-dash"/>'+
+    '<circle cx="52" cy="16" r="3.5" class="d-mu"/><circle cx="69" cy="23" r="3.5" class="d-mu"/>'+
+    dYou(60,76,-90,64)+dArrow(60,36,60,44)+dS(60,51)+
+    '<rect x="8" y="90" width="34" height="6" class="d-fg"/><rect x="48" y="90" width="26" height="6" class="d-mu"/><rect x="80" y="90" width="30" height="6" class="d-fg"/><rect x="116" y="90" width="26" height="6" class="d-mu"/>'+
+    dTx(86,18,"subway stairs")+dTx(70,54,"looks up")+dTx(70,79,"you")+dTx(8,86,"screens behind you")]
+};
+const IDEA_ART = {
+  "tsq-moment":
+    '<circle cx="18" cy="22" r="13" class="d-bg"/><circle cx="128" cy="20" r="16" class="d-bg"/><circle cx="136" cy="68" r="11" class="d-bg"/><circle cx="14" cy="70" r="9" class="d-bg"/><circle cx="112" cy="52" r="6" class="d-bg"/>'+
+    '<path d="M1 33.3 H149" class="d-dash"/>'+
+    '<path d="M24 101 Q28 80 56 75 L62 62 H90 L95 75 Q122 80 126 101 Z" class="d-mu"/>'+
+    '<g transform="translate(0,-4) rotate(-9 76 42)"><ellipse cx="76" cy="42" rx="26" ry="31" class="d-fg"/>'+
+    '<path d="M50 40 Q48 8 78 9 Q106 10 102 40 Q96 22 76 23 Q58 24 50 40 Z" class="d-mu"/>'+
+    '<ellipse cx="65" cy="37" rx="4.4" ry="2.6" class="d-hole"/><ellipse cx="87" cy="37" rx="4.4" ry="2.6" class="d-hole"/>'+
+    '<path d="M59 31 Q65 27 71 30 M81 30 Q87 27 93 31 M77 40 L79 51 L73 52" class="d-feat"/>'+
+    '<ellipse cx="76" cy="61" rx="6.5" ry="3.6" class="d-hole"/></g>'+
+    dArrow(104,22,138,7)
+};
 const STANCE_OF = {};
 Object.entries({
   down:"chinatown-place wsp-place dumbo-place coney-place coney-mood soho-place jh-place ferry-place subway-place subway-mood",
@@ -804,9 +828,9 @@ function photoDemo(key,id){ const p=IDEA_PHOTO[id]||TECH_PHOTO[key]; if(!p) retu
     (PHOTOS_INLINE ? '<img src="'+esc(p.src)+'" alt="Example photograph showing '+esc(TECH[key][0].toLowerCase())+'" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><a class="reflink" href="'+esc(p.page)+'" target="_blank" rel="noopener" hidden>Open the reference photo ↗ (not available offline yet)</a>'
                    : '<a class="reflink" href="'+esc(p.page)+'" target="_blank" rel="noopener">Open the reference photo ↗</a>')+
     '<figcaption>'+esc(p.note)+'<span>'+credit+'</span></figcaption></figure>'; }
-const workDemo = id => { const s=STANCE[STANCE_OF[id]]; if(!s) return "";
+const workDemo = id => { const s=WORK_ART[id]||STANCE[STANCE_OF[id]]; if(!s) return "";
   return '<figure class="demo">'+dSvg(s[2],s[0]+": "+s[1],false)+'<figcaption>'+s[0]+'. '+s[1]+' Yellow is you and what the lens sees; white is the subject.</figcaption></figure>'; };
-const composeDemo = key => TECH_ART[key] ? '<figure class="demo">'+dSvg(TECH_ART[key],TECH[key][0]+" example frame",true)+'<figcaption>How the frame should look.</figcaption></figure>' : "";
+const composeDemo = (key,id) => { const art=IDEA_ART[id]||TECH_ART[key]; return art ? '<figure class="demo">'+dSvg(art,TECH[key][0]+" example frame",true)+'<figcaption>How the frame should look.</figcaption></figure>' : ""; };
 
 /* Events. Dates are computed from each event's usual pattern, so the list stays current every year.
    when(year) returns a list of [start, end?] occurrences. approx:true means the date is announced each year.
@@ -1103,7 +1127,7 @@ function renderCard(){
     pane='<div class="split"><div class="part"><span class="label">Where to stand</span><p>'+esc(x.work)+'</p></div>'+workDemo(x.id)+'</div>';
   } else if(state.tab==="compose" && co){
     pane='<div class="split"><div class="part"><div><button type="button" class="label tipbtn" data-tip="c" aria-expanded="'+(openTip==="c")+'">'+esc(TECH[co[0]][0])+'</button></div><p>'+esc(co[1])+'</p>'+
-      (openTip==="c" ? '<p class="tip"><b>'+esc(TECH[co[0]][0])+'</b>'+esc(TECH[co[0]][1])+'</p>' : '<p class="hint">Tap the technique name for an explanation.</p>')+'</div>'+composeDemo(co[0])+'</div>'+photoDemo(co[0],x.id);
+      (openTip==="c" ? '<p class="tip"><b>'+esc(TECH[co[0]][0])+'</b>'+esc(TECH[co[0]][1])+'</p>' : '<p class="hint">Tap the technique name for an explanation.</p>')+'</div>'+composeDemo(co[0],x.id)+'</div>'+photoDemo(co[0],x.id);
   } else if(state.tab==="settings"){
     pane='<div class="field"><label class="label" for="camera">Camera</label><select id="camera">'+
       Object.entries(CAMERAS).map(([k,v])=>'<option value="'+k+'"'+(k===state.camera?" selected":"")+'>'+esc(v.name)+'</option>').join("")+'</select></div>'+
