@@ -252,6 +252,8 @@ footer{font-size:13px;color:var(--muted);max-width:65ch}
 .prepbody a{color:var(--fg);font-weight:600}
 .callinks{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
 .callinks .chip{text-decoration:none}
+.event .t .etag.ph{color:var(--text)}
+.event-body .when span.pill{display:inline-block;font-weight:700;font-size:11px}
 .event .t .etag{display:block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:1px}
 @media (prefers-reduced-motion:no-preference){
   .sign.swap{animation:rise .24s ease-out}
@@ -963,16 +965,27 @@ const EVENTS = [
 {id:"nye",city:"nyc",name:"New Year's Eve in Times Square",when:y=>[[eD(y,12,31)]],time:"Pens fill from early afternoon. Ball drop at midnight",where:"Times Square",
  why:"A million people waiting for hours, then one minute of confetti.",
  spot:"Inside the pens you cannot leave or carry a bag. The streets feeding the pens show the same crowd with freedom to move.",
- ideas:[["mood","The wait","Faces in the pens at hour six: cold, bored, hopeful.","night"],["energy","Confetti at midnight","Confetti filling the air between the screens.","night"],["odd","The morning after","Drifts of confetti and sanitation crews at dawn on 1 January.","deep"]]}
+ ideas:[["mood","The wait","Faces in the pens at hour six: cold, bored, hopeful.","night"],["energy","Confetti at midnight","Confetti filling the air between the screens.","night"],["odd","The morning after","Drifts of confetti and sanitation crews at dawn on 1 January.","deep"]]},
+{id:"aipad",city:"nyc",type:"photoshow",approx:true,name:"The Photography Show (AIPAD)",when:y=>{const a=eNth(y,4,3,4); return [[a,eD(y,4,a.getDate()+4)]];},time:"Daytime, ticketed",where:"Park Avenue Armory, Park Av at 67 St",
+ why:"Dozens of photography dealers under one roof, with classic street photography prints you can study from a foot away.",
+ spot:"Go on a weekday afternoon when the booths are quiet enough to stand in front of a print.",map:["Park Avenue Armory","Park Avenue Armory, 643 Park Ave, New York, NY"],ideas:[]},
+{id:"bild",city:"nyc",type:"camera",name:"B&H Bild Expo",when:y=>y===2027?[[eD(2027,5,25),eD(2027,5,26)]]:[],time:"Two days. Free, registration opens in January 2027",where:"Javits Center, Eleventh Av at 35 St",
+ why:"B&H's free photo show: more than 300 brands with cameras to handle, over 150 talks and portfolio reviews, and photo walks around Manhattan.",
+ spot:"Register early and book the photo walks first, since they have limited places.",map:["Javits Center","Javits Center, 429 11th Ave, New York, NY"],ideas:[]},
+{id:"photoville",city:"nyc",type:"photoshow",approx:true,name:"Photoville Festival",when:y=>{const a=eNth(y,6,6,1); return [[a,eD(y,6,a.getDate()+15)]];},time:"Outdoors, open all day. Free",where:"Brooklyn Bridge Park, DUMBO, with exhibitions in all five boroughs",
+ why:"Free outdoor photography exhibitions under the Brooklyn Bridge, with artist talks and walks on the weekends.",
+ spot:"Opening weekend has the most talks and the biggest crowd. The exhibitions put you a few steps from the DUMBO ideas in this app.",map:["Emily Warren Roebling Plaza","Emily Warren Roebling Plaza, Brooklyn Bridge Park, Brooklyn, NY"],
+ ideas:[["moment","Reading the wall","One visitor stopped in front of a print, with the bridge filling the frame behind.","shallow"],["odd","Photo of a photo","A printed face on a banner next to a real passer-by in the same pose or colours.","zone"]]}
 ];
 // Event types. Built-in events are typed here; events added by the weekly task carry a "type" field,
 // and older ones without it are typed from their name.
-const EVENT_TYPES = {parade:"Parade",festival:"Street festival",cultural:"Cultural celebration",holiday:"Holiday",sports:"Sport",light:"Light",fireworks:"Fireworks",gathering:"Gathering",market:"Market"};
+const EVENT_TYPES = {parade:"Parade",festival:"Street festival",cultural:"Cultural celebration",holiday:"Holiday",sports:"Sport",light:"Light",fireworks:"Fireworks",gathering:"Gathering",market:"Market",photowalk:"Photo walk or workshop",photoshow:"Photo festival or show",camera:"Camera event"};
+const PHOTO_TYPES = new Set(["photowalk","photoshow","camera"]);
 const EVENT_TYPE_OF = {threekings:"parade",lunar:"cultural",stpat:"parade",easter:"parade",dance:"parade",henge:"light",prday:"parade",mermaid:"parade",pride:"parade",july4:"fireworks",westindian:"parade",sangennaro:"festival",columbus:"parade",dogparade:"parade",halloween:"parade",marathon:"sports",veterans:"parade",balloons:"holiday",thanksgiving:"parade",tree:"holiday",santacon:"gathering",dyker:"holiday",nye:"holiday"};
-EVENTS.forEach(e=>{ e.type=EVENT_TYPE_OF[e.id]; });
+EVENTS.forEach(e=>{ e.type=e.type||EVENT_TYPE_OF[e.id]; });
 // Suggested viewing spot per event: [label, Google Maps search text]. Events whose location changes each year have none.
 const EVENT_MAP = {"threekings": ["106 St at Lexington Av", "E 106th St & Lexington Ave, New York, NY"], "lunar": ["Mott St at Bayard St", "Mott St & Bayard St, New York, NY"], "stpat": ["Fifth Av at 72 St", "5th Ave & E 72nd St, New York, NY"], "easter": ["The steps of St. Patrick's Cathedral", "St. Patrick's Cathedral, 5th Ave, New York, NY"], "dance": ["St. Marks Pl at Second Av", "St Marks Pl & 2nd Ave, New York, NY"], "henge": ["34 St at Park Av, facing west", "E 34th St & Park Ave, New York, NY"], "prday": ["Fifth Av at 68 St", "5th Ave & E 68th St, New York, NY"], "mermaid": ["Surf Av at West 21 St", "Surf Ave & W 21st St, Brooklyn, NY"], "pride": ["Christopher St by the Stonewall Inn", "The Stonewall Inn, 53 Christopher St, New York, NY"], "westindian": ["Eastern Pkwy at the Brooklyn Museum", "Brooklyn Museum, 200 Eastern Pkwy, Brooklyn, NY"], "sangennaro": ["Mulberry St at Grand St", "Mulberry St & Grand St, New York, NY"], "columbus": ["Fifth Av at 65 St", "5th Ave & E 65th St, New York, NY"], "dogparade": ["Avenue B at 9 St", "Avenue B & E 9th St, New York, NY"], "halloween": ["Sixth Av at 12 St", "6th Ave & W 12th St, New York, NY"], "marathon": ["Fourth Av at 9 St, Brooklyn", "4th Ave & 9th St, Brooklyn, NY"], "veterans": ["Madison Square Park", "Madison Square Park, New York, NY"], "balloons": ["American Museum of Natural History", "American Museum of Natural History, New York, NY"], "thanksgiving": ["Central Park West at 72 St", "Central Park West & W 72nd St, New York, NY"], "tree": ["Channel Gardens, Rockefeller Center", "Channel Gardens, Rockefeller Center, New York, NY"], "dyker": ["84 St at 12 Av, Dyker Heights", "84th St & 12th Ave, Brooklyn, NY"], "nye": ["Times Square", "Times Square, New York, NY"]};
-EVENTS.forEach(e=>{ e.map=EVENT_MAP[e.id]||null; });
+EVENTS.forEach(e=>{ e.map=EVENT_MAP[e.id]||e.map||null; });
 const docMap = (d,fallback) => (d && typeof d.map==="string" && d.map.trim()) ? ["",d.map.trim().slice(0,200)] : fallback;
 function eventTypeFor(d){ if(d && EVENT_TYPES[d.type]) return d.type; const n=String((d&&d.name)||"").toLowerCase();
   return /parade|march\b/.test(n)?"parade":/market|village|bazaar/.test(n)?"market":/firework/.test(n)?"fireworks":/marathon|race|run\b/.test(n)?"sports":
@@ -1284,10 +1297,10 @@ const calYmd = d => d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+Strin
 function calInfo(e,o){
   const end=new Date((o[1]||o[0]).getFullYear(),(o[1]||o[0]).getMonth(),(o[1]||o[0]).getDate()+1);   // calendar end dates are exclusive
   const loc=e.map ? e.map[1] : (e.where ? e.where+", "+CITIES[e.city].name : CITIES[e.city].name);
-  const lines=[]; if(e.time) lines.push("Time: "+e.time); if(e.where) lines.push("Where: "+e.where); if(e.spot) lines.push("Where to be: "+e.spot);
+  const lines=[]; if(e.time) lines.push("Time: "+e.time); if(e.where) lines.push("Where: "+e.where); if(e.spot) lines.push((PHOTO_TYPES.has(e.type)?"Good to know: ":"Where to be: ")+e.spot);
   if(e.ideas&&e.ideas.length) lines.push("Shots to look for: "+e.ideas.map(i=>i[1]).join("; "));
   lines.push("From Shot List. Dates, times and routes can change, so confirm before you go.");
-  return {title:e.name+" (street photography)",start:calYmd(o[0]),end:calYmd(end),loc,desc:lines.join("\n")};
+  return {title:e.name+(PHOTO_TYPES.has(e.type)?"":" (street photography)"),start:calYmd(o[0]),end:calYmd(end),loc,desc:lines.join("\n")};
 }
 function calLinks(e,o){ if(!o) return "";
   const c=calInfo(e,o), esc2=t=>String(t).replace(/\\/g,"\\\\").replace(/;/g,"\\;").replace(/,/g,"\\,").replace(/\n/g,"\\n");
@@ -1310,7 +1323,7 @@ function renderEvents(){
     kinds.map(k=>'<button type="button" class="chip" data-t="'+k+'" aria-pressed="'+(state.evType===k)+'">'+EVENT_TYPES[k]+' · '+all.filter(r=>r.e.type===k).length+'</button>').join("")+'</div>';
   if(!list.length){ box.innerHTML='<p class="empty">No events listed for this city yet.</p>'; return; }
   const st=EVENT_DOCS._status, chk=st&&eParse(st.checked);
-  box.innerHTML='<p class="lead">Events with good street photography, soonest first. '+
+  box.innerHTML='<p class="lead">Events worth shooting, plus photo walks, shows and camera events for photographers, soonest first. '+
     (chk?'Dates were last checked on '+fmt(chk,{month:"short",day:"numeric"})+' and the list is rechecked every week. ':'')+
     'Events marked Confirmed were matched to a published listing. The rest follow each event\'s usual pattern, so confirm before you go.</p>'+chips+list.map((r,n)=>{
     const e=r.e, o=r.o, yr=o?o[0].getFullYear():today.getFullYear(), other=o&&yr!==today.getFullYear();
@@ -1320,14 +1333,14 @@ function renderEvents(){
     const src=typeof r.source==="string" && /^https:\/\//.test(r.source) ? r.source : null;
     return '<details class="event" data-id="'+esc(e.id)+'"'+((first?n===0:open.has(e.id))?" open":"")+'><summary>'+
       '<span class="cal">'+(o?'<small>'+fmt(o[0],{month:"short"})+'</small><b>'+o[0].getDate()+'</b>':'<small>TBA</small><b>·</b>')+'</span>'+
-      '<span class="t">'+(EVENT_TYPES[e.type]?'<span class="etag">'+EVENT_TYPES[e.type]+'</span>':'')+'<b>'+esc(e.name)+'</b><span>'+esc(e.where)+'</span></span>'+
+      '<span class="t">'+(EVENT_TYPES[e.type]?'<span class="etag'+(PHOTO_TYPES.has(e.type)?" ph":"")+'">'+EVENT_TYPES[e.type]+'</span>':'')+'<b>'+esc(e.name)+'</b><span>'+esc(e.where)+'</span></span>'+
       '<span class="soon'+(/now|Today|Tomorrow|days|Cancelled/.test(soon)?" near":"")+'">'+soon+'</span></summary>'+
       '<div class="event-body"><p class="when">'+full+(e.approx?" (expected)":"")+
         (r.confirmed?' <span class="pill">Confirmed</span>':'')+(r.added?' <span class="pill">New</span>':'')+
         '<span>'+esc(e.time)+(e.approx?". This date is announced each year and may differ.":"")+(e.note?" "+esc(e.note):"")+'</span></p>'+
       (e.why?'<p>'+esc(e.why)+'</p>':'')+
-      (e.spot?'<div class="part"><span class="label">Where to be</span><p>'+esc(e.spot)+'</p></div>':'')+
-      (e.map?'<a class="check" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(e.map[1])+'" target="_blank" rel="noopener">'+(e.map[0]===""?"Open the viewing spot in Google Maps":e.map[0]==="area"?"Open the area in Google Maps":"Viewing spot: "+esc(e.map[0]))+' ↗</a>':'')+
+      (e.spot?'<div class="part"><span class="label">'+(PHOTO_TYPES.has(e.type)?"Good to know":"Where to be")+'</span><p>'+esc(e.spot)+'</p></div>':'')+
+      (e.map?'<a class="check" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(e.map[1])+'" target="_blank" rel="noopener">'+(e.map[0]===""?(PHOTO_TYPES.has(e.type)?"Open the venue in Google Maps":"Open the viewing spot in Google Maps"):e.map[0]==="area"?"Open the area in Google Maps":(PHOTO_TYPES.has(e.type)?"Venue: ":"Viewing spot: ")+esc(e.map[0]))+' ↗</a>':'')+
       (e.ideas.length?'<div class="part"><span class="label">Shots to look for</span><ul class="eideas">'+e.ideas.map(i=>
         '<li><span class="tag"><span class="dot" style="background:'+INTENTS[i[0]].color+'"></span>'+INTENTS[i[0]].name+'</span><b>'+esc(i[1])+'</b><span>'+esc(i[2])+'</span><span class="set">'+esc(cam.recipes[i[3]][0])+'</span></li>').join("")+'</ul></div>':'')+
       calLinks(e,o)+(src?'<a class="check" href="'+esc(src)+'" target="_blank" rel="noopener">Source for this date ↗</a>':'<a class="check" href="'+q+'" target="_blank" rel="noopener">Check this year\'s date and route ↗</a>')+'</div></details>';

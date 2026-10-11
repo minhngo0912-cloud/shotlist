@@ -3,6 +3,21 @@
   "checked": "2026-10-11",
   "summary": "Re-checked existing dates with no changes and added the Disability Pride NYC Parade (Oct 18) and Bronx Halloween Parade (Oct 24)."
  },
+ "aperture-loves-new-york": {
+  "checked": "2026-10-11",
+  "city": "nyc",
+  "end": "2026-11-01",
+  "ideas": [],
+  "map": "Aperture, 380 Columbus Ave, New York, NY",
+  "name": "Aperture Loves New York",
+  "source": "https://aperture.org/exhibitions/",
+  "spot": "The bookshop is in the same space. Central Park is two blocks east for shooting afterwards.",
+  "start": "2026-09-18",
+  "time": "Wed to Sat 11 am to 6 pm, Sun noon to 5 pm. Closed Mon and Tue",
+  "type": "photoshow",
+  "where": "Aperture, 380 Columbus Av at 78 St, Upper West Side",
+  "why": "A gallery installation at Aperture's space and bookshop on the Upper West Side."
+ },
  "bronx-halloween-parade": {
   "checked": "2026-10-11",
   "city": "nyc",
@@ -141,6 +156,40 @@
   "start": "2026-10-17",
   "time": "Steps off at 11 am; festival block 10 am to 4 pm",
   "where": "Avenue B, 11 St to 7 St; festival block on 6 St between Avenues B and C"
+ },
+ "fujikina-nyc-2026": {
+  "checked": "2026-10-11",
+  "city": "nyc",
+  "end": "2026-10-18",
+  "ideas": [
+   {
+    "intent": "moment",
+    "recipe": "zone",
+    "text": "Festival-goers comparing cameras or reading a map on Ludlow or Essex St, with tenement fire escapes behind.",
+    "title": "Between venues"
+   },
+   {
+    "intent": "odd",
+    "recipe": "deep",
+    "text": "A line of photographers all aiming at the same ordinary doorway or sign.",
+    "title": "Everyone has a camera"
+   },
+   {
+    "intent": "mood",
+    "recipe": "night",
+    "text": "A lit exhibition seen from the pavement, with one viewer inside and the street reflected in the glass.",
+    "title": "Gallery window at dusk"
+   }
+  ],
+  "map": "International Center of Photography, 84 Ludlow St, New York, NY",
+  "name": "FUJIKINA NYC",
+  "source": "https://www.icp.org/events/fujikina-nyc-2026",
+  "spot": "Book photo walks and workshops ahead, since they have limited places. Gear demos and loans are Fujifilm cameras only. ICP members get in free.",
+  "start": "2026-10-16",
+  "time": "Three days. $10 pass covers all venues; photo walks and workshops are booked separately",
+  "type": "photoshow",
+  "where": "International Center of Photography, 84 Ludlow St, and seven other Lower East Side venues",
+  "why": "A three-day photography festival spread over eight venues within a short walk of each other, with exhibitions, talks, photo walks and portfolio reviews. The World Press Photo exhibition is at 105 Eldridge St."
  },
  "halloween": {
   "checked": "2026-10-11",
