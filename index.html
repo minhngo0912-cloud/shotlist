@@ -145,6 +145,7 @@ select{width:100%;min-height:44px;padding:0 10px;border:1.5px solid var(--line);
 .d-ln{fill:none;stroke:var(--sign-muted);stroke-width:1.5}
 .d-dash{fill:none;stroke:var(--sign-muted);stroke-width:1;stroke-dasharray:3 3}
 .d-out{fill:none;stroke:var(--sign-fg);stroke-width:1.5;stroke-dasharray:3 2}
+.d-rip{fill:none;stroke:var(--sign);stroke-width:1.8}
 .d-frame{fill:none;stroke:var(--sign-fg);stroke-width:2} .d-edge{fill:none;stroke:var(--sign-line);stroke-width:2}
 
 .bar{position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px))}
@@ -667,6 +668,15 @@ const TECH_ART = {
     '<g opacity=".45"><rect x="24" y="32" width="22" height="46" class="d-fg"/><rect x="64" y="32" width="30" height="60" class="d-fg"/><rect x="110" y="32" width="18" height="38" class="d-fg"/></g><path d="M1 30 H149" class="d-ln"/>',
   light: '<rect x="1" y="1" width="148" height="98" class="d-bg"/><path d="M44 88 L68 28 H112 L106 88 Z" class="d-fg"/>'+dP(80,80,28,"d-hole")
 };
+// Reflection: a street scene along the top, its mirror image filling the lower two thirds, broken by ripples.
+TECH_ART.reflect = (()=>{
+  const scene = '<rect x="14" y="7" width="36" height="24" class="d-fg"/><rect x="102" y="12" width="30" height="19" class="d-mu"/><rect x="56" y="20" width="6" height="11" class="d-mu"/>'+
+    dP(80,31,17)+'<path d="M67 15 a13 9 0 0 1 26 0 Z" class="d-fg"/>';
+  return scene+
+    '<g transform="translate(0,96.1) scale(1,-2.1)" opacity=".5">'+scene+'</g>'+
+    '<path d="M1 31 H149" class="d-ln"/>'+
+    '<path d="M8 44 H58 M70 44 H120 M20 55 H96 M108 55 H142 M6 67 H44 M58 67 H130 M24 80 H70 M84 80 H138 M10 91 H52 M66 91 H112" class="d-rip"/>';
+})();
 const STANCE = {
   down:["Top view","Stand in the middle and shoot along the length.",
     '<rect x="20" y="5" width="18" height="90" class="d-bg"/><rect x="112" y="5" width="18" height="90" class="d-bg"/>'+dYou(75,90,-90,72)+dS(75,24)],
