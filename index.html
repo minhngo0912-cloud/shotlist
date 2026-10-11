@@ -235,6 +235,18 @@ footer{font-size:13px;color:var(--muted);max-width:65ch}
 .now-ico{grid-row:1/4}
 .now.glow{border-color:var(--yellow);box-shadow:inset 0 0 0 1px var(--yellow)}
 .now.glow .lightline{font-weight:700}
+.alert{background:var(--sign);color:var(--sign-fg);border:1.5px solid var(--yellow);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.alert-head{display:flex;gap:10px;align-items:flex-start}
+.alert .now-ico{color:var(--yellow);margin:0;flex:none}
+.alert-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.alert-text b{font-size:17px}
+.alert-text span{font-size:14px;color:var(--sign-muted)}
+.alert-x{flex:none;width:36px;height:36px;border:0;background:none;color:var(--sign-muted);font-size:24px;line-height:1;cursor:pointer;border-radius:18px}
+.alert-ideas{display:flex;flex-direction:column;border-top:1px solid var(--sign-line)}
+.arow{display:flex;align-items:center;gap:12px;min-height:50px;padding:7px 0;border:0;border-bottom:1px solid var(--sign-line);background:none;color:var(--sign-fg);font-size:16px;text-align:left;cursor:pointer;width:100%}
+.arow .t{flex:1;min-width:0} .arow .t b{display:block} .arow .t span{font-size:13px;color:var(--sign-muted)} .arow .go{color:var(--sign-muted);font-size:20px}
+.alert-all{align-self:flex-start;min-height:36px;border:0;background:none;color:var(--sign-fg);font-weight:600;font-size:14px;text-decoration:underline;text-underline-offset:3px;padding:0;cursor:pointer}
+.alert :focus-visible{outline-color:var(--sign-fg)}
 .callinks{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
 .callinks .chip{text-decoration:none}
 .event .t .etag{display:block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:1px}
@@ -263,6 +275,8 @@ footer{font-size:13px;color:var(--muted);max-width:65ch}
     <button type="button" role="tab" data-v="events" id="vEvents">Events</button>
   </nav>
   </div>
+
+  <section class="alert" id="rainAlert" aria-live="polite" hidden></section>
 
   <section class="now" id="now" aria-label="Conditions now">
     <span class="now-ico" id="nowIco" aria-hidden="true"></span>
@@ -1100,6 +1114,24 @@ const WX_ICON = {
   dusk:'<path d="M3 17h18M6.5 21h11"/><path d="M7.5 17a4.5 4.5 0 0 1 9 0"/><path d="M12 6.5v2.6M5 10l1.8 1.8M19 10l-1.8 1.8"/>',
   night:'<path d="M20 14.6A8.2 8.2 0 1 1 9.4 4a6.6 6.6 0 0 0 10.6 10.6z"/>'
 };
+// In-app alert for rainy evenings: shown from three hours before sunset until the end of blue hour while it is wet.
+function rainAlert(i){
+  const box=$("rainAlert"), c=CITIES[state.city], t=i.t, today=t.toDateString();
+  const hide=()=>{ box.hidden=true; box.innerHTML=""; };
+  if(state.view==="events"||state.view==="plan"||typeof c.lat!=="number") return hide();
+  if(store.get("rainAlertOff","")===today) return hide();
+  const wetNow=/rain|storm/.test(i.sky||""), likely=i.w && typeof i.w.precip_chance_today==="number" && i.w.precip_chance_today>=70 && /cloud|fog/.test(i.sky||"");
+  const st=sunAlt(t,c.lat,c.lon,-0.833), bl=sunAlt(t,c.lat,c.lon,-6); if(!st||!bl||!(wetNow||likely)) return hide();
+  const dusk=st[1], end=bl[1]; if(t<dusk-3*36e5 || t>end) return hide();
+  const tf=d=>d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}).toLowerCase(), on=t>=dusk;
+  const order=placeOrder(), refl=x=>(COMPOSE[x.id]&&COMPOSE[x.id][0]==="reflect")?0:1, picks=cityIdeas().filter(x=>x.w.includes("rain")&&x.w.includes("night")&&x.w.length<=3).sort((a,b)=>refl(a)-refl(b)||order.indexOf(a.p)-order.indexOf(b.p)).slice(0,3);
+  box.innerHTML='<div class="alert-head"><span class="now-ico"><svg viewBox="0 0 24 24">'+WX_ICON.rain+'</svg></span>'+
+    '<div class="alert-text"><b>'+(on?"Rain at dusk now":wetNow?"Rain at dusk tonight":"Rain likely at dusk tonight")+'</b><span>'+(on?"Until "+tf(end)+".":tf(dusk)+" to "+tf(end)+".")+' Wet streets mirror signs and headlights, so this is the time for reflections.</span></div>'+
+    '<button type="button" class="alert-x" aria-label="Hide this alert for today">×</button></div>'+
+    (picks.length?'<div class="alert-ideas">'+picks.map(x=>'<button type="button" class="arow" data-id="'+x.id+'"><span class="dot" style="background:'+INTENTS[x.i].color+'"></span><span class="t"><b>'+esc(x.t)+'</b><span>'+esc(PLACES[x.p].name)+(milesTo(PLACES[x.p])!==null?' · '+milesText(milesTo(PLACES[x.p])):'')+'</span></span><span class="go" aria-hidden="true">›</span></button>').join("")+'</div>':'')+
+    '<button type="button" class="alert-all" id="rainIdeas">Show all rain ideas</button>';
+  box.hidden=false;
+}
 function renderNow(){
   const i=nowInfo(), tf=d=>d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}).toLowerCase();
   let head, sub=[];
@@ -1113,7 +1145,8 @@ function renderNow(){
   $("nowHead").textContent=head; $("nowSub").textContent=sub.join(" · ");
   const k=lightKey(i); $("useLight").dataset.k=k;
   $("useLight").textContent = state.when===k ? "Showing ideas for "+WHEN[k].toLowerCase()+" ✓ Tap to show all" : "Show ideas for "+WHEN[k].toLowerCase();
-  const ll=lightLine(i); $("lightLine").textContent=ll.text; $("lightLine").hidden=!ll.text; $("now").classList.toggle("glow",ll.on);
+  rainAlert(i);
+  const ll=lightLine(i); if(!$("rainAlert").hidden){ ll.text=""; ll.on=false; }   // the alert already says it $("lightLine").textContent=ll.text; $("lightLine").hidden=!ll.text; $("now").classList.toggle("glow",ll.on);
   const ik = i.phase==="night" ? "night" : (i.sky || (i.phase==="dusk"||i.phase==="gold" ? "dusk" : "sun"));
   $("nowIco").innerHTML='<svg viewBox="0 0 24 24">'+(WX_ICON[ik]||WX_ICON.sun)+'</svg>';
   $("useLight").setAttribute("aria-pressed", state.when===k);
@@ -1405,6 +1438,11 @@ fillPlaces(); fill($("when"),"Any light",WHEN,state.when);
 $("city").addEventListener("change",e=>{state.city=e.target.value;state.place="all";state.history=[];store.set("city",state.city);store.set("place","all");fillPlaces();refilter();});
 $("place").addEventListener("change",e=>{state.place=e.target.value;store.set("place",state.place);refilter();});
 $("when").addEventListener("change",e=>{state.when=e.target.value;store.set("when",state.when);refilter();});
+$("rainAlert").addEventListener("click",e=>{
+  if(e.target.closest(".alert-x")){ store.set("rainAlertOff",new Date().toDateString()); renderNow(); return; }
+  if(e.target.closest("#rainIdeas")){ state.when="rain"; store.set("when","rain"); $("when").value="rain"; state.view="browse"; refilter(); return; }
+  const r=e.target.closest(".arow"); if(r){ show(r.dataset.id); state.view="shoot"; render(); cardToTop(); }
+});
 $("near").addEventListener("click",()=>{
   const msg=$("nearMsg"); msg.hidden=true;
   if(state.pos){ state.pos=null; if(state.place==="near") state.place="all"; fillPlaces(); syncNear(); refilter(); return; }
