@@ -132,6 +132,9 @@ select{width:100%;min-height:44px;padding:0 10px;border:1.5px solid var(--line);
 .refphoto figcaption span{display:block;margin-top:4px;font-size:12px;color:var(--sign-muted)}
 .refphoto a{color:var(--sign-fg)}
 .reflink{font-weight:600;font-size:15px}
+.start{align-self:flex-start;display:inline-flex;flex-wrap:wrap;gap:0 6px;align-items:baseline;min-height:32px;color:var(--sign-fg);font-size:15px;font-weight:600;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--sign-muted)}
+.start small{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--sign-muted)}
+.maplink{color:var(--sign-fg);font-size:13px;font-weight:700;white-space:nowrap;text-underline-offset:3px;padding:6px 0}
 .hint{font-size:12px;color:var(--sign-muted);margin:0}
 
 .demo{margin:0;display:flex;flex-direction:column;gap:5px}
@@ -1063,6 +1066,11 @@ function bullets(lines, cityId){
   return [...(lines||"")].map(l=>{const c=map[l]||"gray"; const bg=c.charAt(0)==="#"?c:"var(--"+c+")";
     return '<span class="bullet" style="background:'+bg+';'+(c==="yellow"?'color:var(--on-yellow)':'')+'">'+esc(l)+'</span>';}).join("");
 }
+// Suggested starting point per place: [label, Google Maps search text]. Adding a city means adding its places here.
+const START = {"chinatown": ["Doyers St at Pell St", "Doyers St & Pell St, New York, NY"], "gct": ["Main Concourse, Grand Central Terminal", "Grand Central Terminal Main Concourse, New York, NY"], "tsq": ["The red steps at Duffy Square", "TKTS red steps, Father Duffy Square, Times Square, New York, NY"], "wsp": ["Washington Square Arch", "Washington Square Arch, New York, NY"], "dumbo": ["Washington St at Water St", "Washington St & Water St, Brooklyn, NY"], "coney": ["The boardwalk by the Wonder Wheel", "Deno's Wonder Wheel Amusement Park, Brooklyn, NY"], "soho": ["Prince St at Greene St", "Prince St & Greene St, New York, NY"], "jh": ["Roosevelt Av at 74 St", "74th St & Roosevelt Ave, Jackson Heights, NY"], "ferry": ["Whitehall Terminal", "Staten Island Ferry Whitehall Terminal, New York, NY"], "harlem": ["Apollo Theater, 125 St", "Apollo Theater, 253 W 125th St, New York, NY"], "les": ["Essex Market, Essex St at Delancey St", "Essex Market, 88 Essex St, New York, NY"], "flushing": ["Main St at Roosevelt Av", "Main St & Roosevelt Ave, Flushing, NY"], "wburg": ["Bedford Av at North 7 St", "Bedford Ave & N 7th St, Brooklyn, NY"], "midtown": ["Paley Park, East 53 St", "Paley Park, 3 E 53rd St, New York, NY"], "cpark": ["Bethesda Terrace", "Bethesda Terrace, Central Park, New York, NY"], "rockaway": ["The boardwalk at Beach 90 St", "Beach 90th St & Shore Front Pkwy, Rockaway Beach, NY"], "arthur": ["Arthur Av at East 187 St", "Arthur Ave & E 187th St, Bronx, NY"]};
+const mapUrl = pid => START[pid] ? "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(START[pid][1]) : "";
+const startHtml = pid => START[pid] ? '<a class="start" href="'+mapUrl(pid)+'" target="_blank" rel="noopener"><small>Start at</small> '+esc(START[pid][0])+' <span aria-hidden="true">↗</span></a>' : '';
+const startLink = pid => START[pid] ? '<a class="maplink" href="'+mapUrl(pid)+'" target="_blank" rel="noopener" aria-label="Open the starting point for '+esc(PLACES[pid].name)+' in Google Maps">Map ↗</a>' : '';
 const whereHtml = pl => '<span class="where">'+esc(pl.stop||"")+' '+bullets(pl.lines, pl.city)+'</span>';
 
 function renderCard(){
@@ -1100,7 +1108,7 @@ function renderCard(){
   card.innerHTML =
     '<div class="band" style="background:'+it.color+'"></div>'+
     '<div class="sign-head"><div class="sign-top"><span class="intent-tag"><span class="dot" style="background:'+it.color+'"></span>'+esc(it.name)+'</span>'+
-    '<span class="where">'+esc(pl.name)+' · '+esc(pl.stop||"")+' '+bullets(pl.lines, pl.city)+'</span></div><h2>'+esc(x.t)+'</h2></div>'+
+    '<span class="where">'+esc(pl.name)+' · '+esc(pl.stop||"")+' '+bullets(pl.lines, pl.city)+'</span></div><h2>'+esc(x.t)+'</h2>'+startHtml(x.p)+'</div>'+
     '<div class="tabs" role="tablist">'+tabs.map(t=>'<button type="button" role="tab" data-tab="'+t[0]+'" aria-selected="'+(state.tab===t[0])+'">'+t[1]+'</button>').join("")+'</div>'+
     '<div class="pane">'+pane+'</div>';
   const s=state.saved.has(x.id), d=state.done.has(x.id);
@@ -1115,7 +1123,7 @@ function renderList(){
     (noted.length?'<button type="button" class="chip" id="copyNotes">Copy my notes ('+noted.length+')</button>':'')+'</div>'+
   placeOrder().map(pid=>{ const p=PLACES[pid];
     const rows=m.filter(x=>x.p===pid); if(!rows.length) return "";
-    return '<section class="group"><div class="group-head"><b>'+esc(p.name)+(milesTo(p)!==null?'<span class="dist">'+milesText(milesTo(p))+'</span>':'')+'</b>'+whereHtml(PLACES[pid])+'</div>'+rows.map(x=>
+    return '<section class="group"><div class="group-head"><b>'+esc(p.name)+(milesTo(p)!==null?'<span class="dist">'+milesText(milesTo(p))+'</span>':'')+'</b>'+whereHtml(PLACES[pid])+startLink(pid)+'</div>'+rows.map(x=>
       '<button type="button" class="row'+(state.done.has(x.id)?" done":"")+'" data-id="'+x.id+'">'+
       '<span class="dot" style="background:'+INTENTS[x.i].color+'"></span>'+
       '<span class="t"><b>'+esc(x.t)+'</b><span>'+esc(INTENTS[x.i].name)+(COMPOSE[x.id]?' · '+esc(TECH[COMPOSE[x.id][0]][0]):'')+'</span></span>'+
@@ -1243,7 +1251,7 @@ function renderPlan(){
   const mins=Math.round((p.end-p.start)/6e4), n=p.stops.reduce((a,s)=>a+s.ideas.length,0);
   box.innerHTML='<p class="lead">'+tf(p.start)+' to about '+tf(p.end)+' · '+p.stops.length+' place'+(p.stops.length===1?'':'s')+' · '+n+' ideas. Tap an idea to open it.</p>'+
     p.stops.map(s=>{ const pl=PLACES[s.place];
-      return '<section class="group"><div class="group-head"><b>'+tf(s.at)+' · '+esc(pl.name)+'</b><span class="where">'+esc(WHEN[s.key])+' · '+esc(pl.stop||"")+' '+bullets(pl.lines,pl.city)+'</span></div>'+
+      return '<section class="group"><div class="group-head"><b>'+tf(s.at)+' · '+esc(pl.name)+'</b><span class="where">'+esc(WHEN[s.key])+' · '+esc(pl.stop||"")+' '+bullets(pl.lines,pl.city)+'</span>'+startLink(s.place)+'</div>'+
         s.ideas.map(x=>'<button type="button" class="row'+(state.done.has(x.id)?" done":"")+'" data-id="'+x.id+'"><span class="dot" style="background:'+INTENTS[x.i].color+'"></span>'+
           '<span class="t"><b>'+esc(x.t)+'</b><span>'+esc(INTENTS[x.i].name)+(COMPOSE[x.id]?' · '+esc(TECH[COMPOSE[x.id][0]][0]):'')+'</span></span><span class="go" aria-hidden="true">›</span></button>').join("")+'</section>'+
         (s.leg?'<p class="leg">↓ About '+s.leg.mins+' min '+(s.leg.mode==="walk"?"walk":s.leg.mode)+' to '+esc(PLACES[s.leg.to].name)+'</p>':'');
