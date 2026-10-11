@@ -1305,7 +1305,7 @@ const FOLLOW = [
 const followFor = i => FOLLOW.filter(f=>f[3].split(" ").includes(i));
 const followLink = f => '<a class="chip" href="'+esc(f[1])+'" target="_blank" rel="noopener">'+esc(f[0])+' ↗</a>';
 const followIdea = i => { const l=followFor(i).slice(0,3); return l.length ? '<div class="part"><span class="label">See how others do it</span><div class="callinks">'+l.map(followLink).join("")+'</div></div>' : ""; };
-const followAll = () => '<details class="syncbox followbox"><summary>Photographers to follow</summary><div class="syncbody"><p class="hint">These open Instagram, YouTube or the photographer's own site. The photos stay with the photographers.</p><ul class="follow">'+
+const followAll = () => '<details class="syncbox followbox"><summary>Photographers to follow</summary><div class="syncbody"><p class="hint">These open Instagram, YouTube or their own site. The photos stay with the photographers.</p><ul class="follow">'+
   FOLLOW.map(f=>'<li><a href="'+esc(f[1])+'" target="_blank" rel="noopener"><b>'+esc(f[0])+' ↗</b></a><span>'+esc(f[2])+'</span>'+
     (f[3]?'<span class="tags">'+f[3].split(" ").map(i=>'<span class="tag"><span class="dot" style="background:'+INTENTS[i].color+'"></span>'+INTENTS[i].name+'</span>').join("")+'</span>':'')+'</li>').join("")+'</ul></div></details>';
 /* Live event updates. A weekly scheduled task writes confirmed dates and newly found events to the
