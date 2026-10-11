@@ -1,0 +1,27 @@
+{
+ "dogparade": {
+  "city": "nyc",
+  "start": "2026-10-17",
+  "time": "Listed as 1 pm to 4 pm. The start time may change",
+  "source": "https://www.nycforfree.co/events/tompkins-square-halloween-dog-parade-2026",
+  "checked": "2026-10-11"
+ },
+ "halloween": {
+  "city": "nyc",
+  "start": "2026-10-31",
+  "time": "Starts at 7 pm",
+  "where": "Sixth Av, Canal St to 15 St",
+  "source": "https://www.nycforfree.co/events/nyc-village-halloween-parade-2026",
+  "checked": "2026-10-11"
+ },
+ "tree": {
+  "city": "nyc",
+  "start": "2026-12-02",
+  "source": "https://www.timeout.com/newyork/news/the-2026-rockefeller-center-christmas-tree-lighting-has-officially-been-announced-and-its-happening-earlier-than-you-think-092926",
+  "checked": "2026-10-11"
+ },
+ "_status": {
+  "checked": "2026-10-11",
+  "summary": "Initial file: dog parade, Halloween parade and tree lighting confirmed."
+ }
+}
