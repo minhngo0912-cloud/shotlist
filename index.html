@@ -253,6 +253,7 @@ footer{font-size:13px;color:var(--muted);max-width:65ch}
 .callinks{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
 .callinks .chip{text-decoration:none}
 .followbox{margin-top:16px}
+.igh{margin:6px 0 0;font-size:13px;color:var(--sign-muted)}
 .time.season{border-color:var(--orange);color:var(--orange)}
 .areahead{margin:18px 0 6px;scroll-margin-top:140px} .areajump .chip{text-decoration:none;min-height:36px;font-size:14px;padding:0 12px}
 .leg a{color:inherit;font-weight:600;text-underline-offset:3px}
@@ -1372,7 +1373,7 @@ function renderCard(){
     pane='<div class="part"><span class="label">Look for</span><p>'+esc(x.look)+'</p></div>'+
       '<div class="part"><span class="label">Your rule</span><p>'+esc(x.rule)+'</p></div>'+
       '<div class="part"><span class="label">Best light</span><div class="times">'+x.w.map(w=>'<span class="time">'+WHEN[w]+'</span>').join("")+(x.m?'<span class="time season">'+seasonText(x)+'</span>':'')+'</div></div>'+
-      '<div class="part"><label class="label" for="note">Your notes</label><textarea id="note" rows="2" placeholder="What worked, what was different, what to try next time">'+esc(state.notes[x.id]||"")+'</textarea></div>'+followIdea(x.i)+
+      '<div class="part"><label class="label" for="note">Your notes</label><textarea id="note" rows="2" placeholder="What worked, what was different, what to try next time">'+esc(state.notes[x.id]||"")+'</textarea></div>'+followIdea(x.i)+igRow(x)+
       '<div class="jumps">'+
       (st ? '<button type="button" class="jump" data-tab="work"><span><small>Work it</small>'+esc(st[1])+'</span><span class="go" aria-hidden="true">›</span></button>' : '')+
       (co ? '<button type="button" class="jump" data-tab="compose"><span><small>Compose</small>'+esc(TECH[co[0]][0])+'</span><span class="go" aria-hidden="true">›</span></button>' : '')+
@@ -1438,6 +1439,10 @@ const FOLLOW = [
  ["Street Photography International",IG("streetphotographyinternational"),"Broad daily curation from around the world.",""],
  ["Walkie Talkie by Paulie B (YouTube)","https://www.youtube.com/@PaulieB","He walks New York with a different street photographer each episode while they shoot.",""]
 ];
+/* Instagram hashtag links: the place (or a narrower tag for one idea) and a street-photography tag for the intent. */
+const IG_PLACE = {"chinatown":"chinatownnyc","gct":"grandcentralterminal","tsq":"timessquare","wsp":"washingtonsquarepark","dumbo":"dumbobrooklyn","coney":"coneyisland","soho":"sohonyc","jh":"jacksonheights","ferry":"statenislandferry","harlem":"harlemnyc","les":"lowereastside","flushing":"flushingqueens","wburg":"williamsburgbrooklyn","midtown":"midtownmanhattan","cpark":"centralpark","rockaway":"rockawaybeach","arthur":"arthuravenue","union":"unionsquare","fidi":"wallstreet","ktown":"koreatownnyc","bushwick":"bushwickcollective","chelsea":"highlinenyc","brighton":"brightonbeach","subway":"nycsubway"}, IG_IDEA = {"chinatown-place":"doyersstreet","union-place":"unionsquaregreenmarket","fidi-energy":"oculus","fidi-moment":"stonestreet","chelsea-mood":"littleisland","chelsea-odd":"vesselnyc","chelsea-energy":"chelseamarket","ktown-moment":"heraldsquare","ktown-energy":"heraldsquare","cpark-mood":"bowbridge","coney-mood":"wonderwheel","dumbo-place":"manhattanbridge","harlem-place":"apollotheater"}, IG_INTENT = {"place":"streetsofnewyork","moment":"nycstreetphotography","energy":"nycstreets","mood":"streetphotographynyc","odd":"streetphotographynyc"};
+const igTags = x => [IG_IDEA[x.id.replace(/-s$/,"")]&&!x.m?IG_IDEA[x.id]:IG_PLACE[x.p], x.m?"nycfoliage":IG_INTENT[x.i]].filter(Boolean);
+const igRow = x => { const t=igTags(x); return t.length ? '<div class="part"><span class="label">See it on Instagram</span><div class="callinks">'+t.map(h=>'<a class="chip" href="https://www.instagram.com/explore/tags/'+h+'/" target="_blank" rel="noopener">#'+h+' ↗</a>').join("")+'</div><p class="hint igh">Hashtags show everyone\u2019s posts, so expect tourists alongside street work.</p></div>' : ""; };
 const followFor = i => FOLLOW.filter(f=>f[3].split(" ").includes(i));
 const followLink = f => '<a class="chip" href="'+esc(f[1])+'" target="_blank" rel="noopener">'+esc(f[0])+' ↗</a>';
 const followIdea = i => { const l=followFor(i).slice(0,3); return l.length ? '<div class="part"><span class="label">See how others do it</span><div class="callinks">'+l.map(followLink).join("")+'</div></div>' : ""; };
