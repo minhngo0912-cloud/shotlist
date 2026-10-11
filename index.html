@@ -253,6 +253,7 @@ footer{font-size:13px;color:var(--muted);max-width:65ch}
 .callinks{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
 .callinks .chip{text-decoration:none}
 .followbox{margin-top:16px}
+.followhead{margin:18px 0 6px}
 .follow{list-style:none;margin:0;padding:0}
 .follow li{padding:10px 0;border-top:1px solid var(--line)}
 .follow li a{color:inherit}
@@ -1297,6 +1298,14 @@ const FOLLOW = [
  ["Pau Buscató",IG("paubuscato"),"Visual puns and coincidences.","odd"],
  ["Shin Noguchi",IG("shinnoguchiphotos"),"Quiet, funny everyday moments in Tokyo.","moment odd"],
  ["Alan Schaller",IG("alan_schaller"),"High-contrast graphic black-and-white on Leica, strong on geometry and scale.","place"],
+ ["Subway Hands",IG("subwayhands"),"Nothing but riders' hands on the subway. Shows how small a subject can be.","daily"],
+ ["Mathias Wasik",IG("mathiaswasik"),"Colourful, crowded New York pavements and the ordinary people on them.","daily"],
+ ["Lanna Apisukh",IG("apisukh"),"Neighbourhood life in Chinatown and Queens: shopkeepers, elders, skaters.","daily"],
+ ["An Rong Xu",IG("anrizzy"),"Chinatown and Asian American daily life, warm and cinematic.","daily"],
+ ["Janice Chung",IG("janicekaramchung"),"Korean community life in Flushing and Koreatown.","daily"],
+ ["New York Nico",IG("newyorknico"),"The city's regulars, shop owners and characters.","daily"],
+ ["Sam Youkilis",IG("samyoukilis"),"Short videos of small daily rituals: coffee, markets, gestures.","daily"],
+ ["Everyday Africa",IG("everydayafrica"),"Daily life by local photographers. Its sister account Everyday Everywhere collects the same from other regions.","daily"],
  ["NYC Street Photography Collective",IG("nycspc"),"Work by local members, plus their shows and walks.",""],
  ["Women Street Photographers",IG("womenstreetphotographers"),"Curated daily, with a yearly New York exhibition.",""],
  ["Street Photography International",IG("streetphotographyinternational"),"Broad daily curation from around the world.",""],
@@ -1305,9 +1314,11 @@ const FOLLOW = [
 const followFor = i => FOLLOW.filter(f=>f[3].split(" ").includes(i));
 const followLink = f => '<a class="chip" href="'+esc(f[1])+'" target="_blank" rel="noopener">'+esc(f[0])+' ↗</a>';
 const followIdea = i => { const l=followFor(i).slice(0,3); return l.length ? '<div class="part"><span class="label">See how others do it</span><div class="callinks">'+l.map(followLink).join("")+'</div></div>' : ""; };
-const followAll = () => '<details class="syncbox followbox"><summary>Photographers to follow</summary><div class="syncbody"><p class="hint">These open Instagram, YouTube or their own site. The photos stay with the photographers.</p><ul class="follow">'+
-  FOLLOW.map(f=>'<li><a href="'+esc(f[1])+'" target="_blank" rel="noopener"><b>'+esc(f[0])+' ↗</b></a><span>'+esc(f[2])+'</span>'+
-    (f[3]?'<span class="tags">'+f[3].split(" ").map(i=>'<span class="tag"><span class="dot" style="background:'+INTENTS[i].color+'"></span>'+INTENTS[i].name+'</span>').join("")+'</span>':'')+'</li>').join("")+'</ul></div></details>';
+const followItem = f => '<li><a href="'+esc(f[1])+'" target="_blank" rel="noopener"><b>'+esc(f[0])+' ↗</b></a><span>'+esc(f[2])+'</span>'+
+    (f[3]&&f[3]!=="daily"?'<span class="tags">'+f[3].split(" ").map(i=>'<span class="tag"><span class="dot" style="background:'+INTENTS[i].color+'"></span>'+INTENTS[i].name+'</span>').join("")+'</span>':'')+'</li>';
+const followGroup = (title,list) => '<h3 class="label followhead">'+title+'</h3><ul class="follow">'+list.map(followItem).join("")+'</ul>';
+const followAll = () => '<details class="syncbox followbox"><summary>Photographers to follow</summary><div class="syncbody"><p class="hint">These open Instagram, YouTube or their own site. The photos stay with the photographers.</p>'+
+  followGroup("Street photography",FOLLOW.filter(f=>f[3]&&f[3]!=="daily"))+followGroup("Daily life",FOLLOW.filter(f=>f[3]==="daily"))+followGroup("Feeds and video",FOLLOW.filter(f=>!f[3]))+'</div></details>';
 /* Live event updates. A weekly scheduled task writes confirmed dates and newly found events to the
    artifact database (collection "events"); the page merges them over the built-in pattern dates.
    Doc id = built-in event id to confirm it, or a new slug to add an event. "_status" holds the last check. */
