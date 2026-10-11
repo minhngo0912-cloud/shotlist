@@ -1012,6 +1012,14 @@ function lightLine(i){
   const t=i.t, ws=lightWindows(t), tf=d=>d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}).toLowerCase();
   const cur=ws.find(w=>w.s<=t&&t<w.e), next=ws.find(w=>w.k==="gold"&&w.s>t); if(!cur&&!next) return {text:"",on:false};
   const dull=/rain|cloud|fog|snow|storm/.test(i.sky||""), clear=/sun|partly/.test(i.sky||"");
+  // In rain or under cloud there is no golden light; the evening window that matters is dusk, when lights reflect.
+  const wet=/rain|storm|snow/.test(i.sky||""), eve=w=>!!w&&w.s.getHours()>=12, c0=CITIES[state.city];
+  if(dull && (cur ? eve(cur) : (eve(next) && next.s-t<6*36e5))){
+    const g=(cur&&cur.k==="gold")?cur:next, st=sunAlt(g?g.s:t,c0.lat,c0.lon,-0.833), dusk=st?st[1]:null, blueW=ws.find(w=>w.k==="blue"&&eve(w)&&w.e>t);
+    if(cur&&cur.k==="blue") return {on:wet,text:wet?"Dusk in the rain now, until "+tf(cur.e)+". This is the best time for reflections on wet streets.":"Blue hour now, until "+tf(cur.e)+"."};
+    if(dusk&&blueW&&wet) return {on:false,text:"No golden light in the rain. The window that matters today is dusk, "+tf(dusk)+" to "+tf(blueW.e)+", when signs and headlights reflect on wet streets."};
+    if(dusk&&g) return {on:false,text:"Overcast, so golden hour ("+tf(g.s)+" to "+tf(g.e)+") will be muted. Dusk from "+tf(dusk)+" still works for lit windows and signs."};
+  }
   if(cur){ const after=cur.k==="gold" ? ws.find(w=>w.k==="blue"&&w.s>=cur.e&&w.s-cur.e<6e5) : null;
     return {on:true,text:cur.name+" now, until "+tf(cur.e)+"."+(after?" Blue hour follows until "+tf(after.e)+".":"")+(dull&&cur.k==="gold"?" Cloud is flattening it, so use the overcast ideas.":"")}; }
   const mins=Math.round((next.s-t)/6e4), sameDay=next.s.toDateString()===t.toDateString();
