@@ -273,6 +273,8 @@ footer{font-size:13px;color:var(--muted);max-width:65ch}
 .m-evlab{fill:#ffb3ae;font-family:var(--sans);font-weight:700;paint-order:stroke;stroke:#14161a;stroke-width:.3em;stroke-linejoin:round;pointer-events:none}
 .m-start{fill:var(--yellow);stroke:#14161a;stroke-linejoin:round;pointer-events:none} .m-startline{fill:none;stroke:var(--yellow);opacity:.7;pointer-events:none}
 .m-startlab{fill:var(--yellow);font-family:var(--sans);font-weight:700;paint-order:stroke;stroke:#14161a;stroke-width:.3em;stroke-linejoin:round;pointer-events:none}
+.evtoggle .lg{display:inline-block;width:16px;height:12px;border-radius:3px;background:var(--red);border:2px solid #fff;box-shadow:0 0 0 1px var(--line)}
+.evtoggle[aria-pressed="false"] .lg{background:transparent;border-color:var(--muted);box-shadow:none}
 .maplegend .lg.ev{border-radius:3px;background:var(--red);border-color:#fff;box-shadow:0 0 0 1px var(--line);width:16px}
 .mapsel .mapstart{display:block;margin:10px 14px 0;color:var(--fg)}
 .m-bridge{fill:none;stroke:#7b7f88;stroke-width:.7;stroke-linecap:round}
@@ -1232,7 +1234,7 @@ const store = {
 };
 const state = {
   city: store.get("city","nyc"), intent: store.get("intent","all"), place: store.get("place","all"), when: store.get("when","all"),
-  camera: store.get("camera","q343"), view:"shoot", tab:"idea", cond:"auto", evType:"all", mapZoom:store.get("mapZoom","city"), mapSel:null, mapEv:null, notes: store.get("notes",{}) || {}, pos:null, plan:null,
+  camera: store.get("camera","q343"), view:"shoot", tab:"idea", cond:"auto", evType:"all", mapZoom:store.get("mapZoom","city"), mapSel:null, mapEv:null, mapShowEv:store.get("mapShowEv",true)!==false, notes: store.get("notes",{}) || {}, pos:null, plan:null,
   saved: new Set(store.get("saved",[])), done: new Set(store.get("done",[])), current:null, history:[]
 };
 if(!CAMERAS[state.camera]) state.camera="q343";
@@ -1650,7 +1652,7 @@ function mapDraw(){
       const rect=[bx,by,bx+tw,by+fs*1.2]; if(rect[0]<x0+2*u||rect[2]>x1-2*u||rect[1]<y0+2*u||rect[3]>y1-2*u||taken.some(t=>hit(t,rect))) continue;
       taken.push(rect); return '<text x="'+f(tx)+'" y="'+f(ty)+'" text-anchor="'+anchor+'" font-size="'+f(fs)+'" class="m-lab'+(p.id===state.mapSel?" on":"")+'">'+esc(name)+'</text>'; }
     return ""; }).join("");
-  let evs="", flags=""; const evList=mapEvents().filter(e=>e.x>x0+8*u&&e.x<x1-8*u&&e.y>y0+8*u&&e.y<y1-8*u);
+  let evs="", flags=""; const evList=(state.mapShowEv?mapEvents():[]).filter(e=>e.x>x0+8*u&&e.x<x1-8*u&&e.y>y0+8*u&&e.y<y1-8*u);
   if(w<520) for(const e of evList.sort((a,b)=>(b.id===state.mapEv)-(a.id===state.mapEv)||a.r.o[0]-b.r.o[0])){ const on=e.id===state.mapEv, hw=(e.day.length*3.1+5)*u, hh=7*u, box=[e.x-hw,e.y-hh,e.x+hw,e.y+hh];
     if(!on && taken.some(t=>hit(t,box))) continue; taken.push(box);
     let lab=""; if(w<300||on){ const nm=e.r.e.name.length>26?e.r.e.name.slice(0,25)+"…":e.r.e.name, fl=10*u, tw=nm.length*fl*0.56;
@@ -1685,8 +1687,8 @@ function mapDraw(){
 }
 function mapPanel(){
   const key=lightAt(new Date()), pts=mapPts(), sel=state.mapSel&&pts.find(p=>p.id===state.mapSel), pl=sel&&PLACES[sel.id], d=sel?milesText(milesTo(pl)):"";
-  $("mapZoom").innerHTML=MAP_PRESETS.concat(state.pos?[["me","Near me"]]:[]).map(z=>'<button type="button" class="chip" data-z="'+z[0]+'">'+z[1]+'</button>').join("");
-  const evSel=state.mapEv&&mapEvents().find(e=>e.id===state.mapEv), hasEv=mapEvents().length;
+  $("mapZoom").innerHTML='<button type="button" class="chip evtoggle" data-toggle="ev" aria-pressed="'+!!state.mapShowEv+'"><span class="lg ev"></span>Events '+(state.mapShowEv?"on":"off")+'</button>'+MAP_PRESETS.concat(state.pos?[["me","Near me"]]:[]).map(z=>'<button type="button" class="chip" data-z="'+z[0]+'">'+z[1]+'</button>').join("");
+  const evSel=state.mapShowEv&&state.mapEv&&mapEvents().find(e=>e.id===state.mapEv), hasEv=state.mapShowEv&&mapEvents().length;
   const mine=sel?cityIdeas().filter(i=>i.p===sel.id).sort((a,b)=>b.w.includes(key)-a.w.includes(key)):[];
   $("mapPanel").innerHTML='<p class="msg maplegend"><span><span class="lg fit"></span>Ideas for the light now ('+esc(WHEN[key].toLowerCase())+')</span><span><span class="lg"></span>Other places</span><span><span class="lg prog"></span>Share you have shot</span>'+(hasEv?'<span><span class="lg ev"></span>Events in the next 6 weeks</span>':'')+
       (state.plan?'<span><span class="lg route"></span>Your plan</span>':'')+(state.pos?'<span><span class="lg you"></span>You</span><span><span class="lg walk"></span>10 min walk from you</span>':'')+'</p>'+
@@ -1813,6 +1815,7 @@ $("syncImport").addEventListener("click",()=>{ const r=syncImport($("syncCode").
   msg.textContent=(r.s+r.d+r.n) ? "Imported: "+r.s+" saved, "+r.d+" shot and "+r.n+" notes added." : "Nothing new: this device already has everything in that code.";
   $("syncCode").value=""; render(); });
 $("map").addEventListener("click",e=>{
+  const tg=e.target.closest("[data-toggle=ev]"); if(tg){ state.mapShowEv=!state.mapShowEv; store.set("mapShowEv",state.mapShowEv); if(!state.mapShowEv) state.mapEv=null; mapPanel(); mapDraw(); return; }
   const z=e.target.closest("#mapZoom .chip"); if(z){ state.mapZoom=z.dataset.z; store.set("mapZoom",state.mapZoom); mapFly(mapPreset(z.dataset.z)); return; }
   const b=e.target.closest("[data-zoom]"); if(b){ mapFly({cx:mapV.cx,cy:mapV.cy,w:mapV.w*parseFloat(b.dataset.zoom)}); return; }
   const ev=e.target.closest("[data-event]"); if(ev){ state.view="events"; render(); const d=document.querySelector('#events details[data-id="'+ev.dataset.event+'"]'); if(d){ d.open=true; d.scrollIntoView({block:"start"}); } return; }
