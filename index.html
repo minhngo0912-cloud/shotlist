@@ -268,6 +268,13 @@ footer{font-size:13px;color:var(--muted);max-width:65ch}
 .maplegend .lg.walk{border:2px dashed #5b8fe6;background:none}
 .mapscale{position:absolute;left:10px;bottom:10px;padding:5px 8px 6px;border-radius:8px;background:rgba(20,22,26,.78);color:#fff;font-size:11px;font-weight:600;line-height:1;white-space:nowrap;pointer-events:none}
 .mapscale span{display:block;margin-bottom:4px} .mapscale i{display:block;height:5px;border:2px solid #fff;border-top:0;box-sizing:border-box}
+.m-ev{cursor:pointer;outline:none} .m-evbox{fill:var(--red);stroke:#fff} .m-ev.on .m-evbox{fill:#fff;stroke:var(--red)} .m-ev.on .m-evday{fill:var(--red)}
+.m-evday{fill:#fff;font-family:var(--sans);font-weight:800;pointer-events:none}
+.m-evlab{fill:#ffb3ae;font-family:var(--sans);font-weight:700;paint-order:stroke;stroke:#14161a;stroke-width:.3em;stroke-linejoin:round;pointer-events:none}
+.m-start{fill:var(--yellow);stroke:#14161a;stroke-linejoin:round;pointer-events:none} .m-startline{fill:none;stroke:var(--yellow);opacity:.7;pointer-events:none}
+.m-startlab{fill:var(--yellow);font-family:var(--sans);font-weight:700;paint-order:stroke;stroke:#14161a;stroke-width:.3em;stroke-linejoin:round;pointer-events:none}
+.maplegend .lg.ev{border-radius:3px;background:var(--red);border-color:#fff;box-shadow:0 0 0 1px var(--line);width:16px}
+.mapsel .mapstart{display:block;margin:10px 14px 0;color:var(--fg)}
 .m-bridge{fill:none;stroke:#7b7f88;stroke-width:.7;stroke-linecap:round}
 .m-boro{fill:#fff;opacity:.1;font-family:var(--sans);font-weight:800;letter-spacing:.14em;pointer-events:none}
 .m-water{fill:#7fa3d6;opacity:.6;font-family:var(--sans);font-style:italic;pointer-events:none}
@@ -1225,7 +1232,7 @@ const store = {
 };
 const state = {
   city: store.get("city","nyc"), intent: store.get("intent","all"), place: store.get("place","all"), when: store.get("when","all"),
-  camera: store.get("camera","q343"), view:"shoot", tab:"idea", cond:"auto", evType:"all", mapZoom:store.get("mapZoom","city"), mapSel:null, notes: store.get("notes",{}) || {}, pos:null, plan:null,
+  camera: store.get("camera","q343"), view:"shoot", tab:"idea", cond:"auto", evType:"all", mapZoom:store.get("mapZoom","city"), mapSel:null, mapEv:null, notes: store.get("notes",{}) || {}, pos:null, plan:null,
   saved: new Set(store.get("saved",[])), done: new Set(store.get("done",[])), current:null, history:[]
 };
 if(!CAMERAS[state.camera]) state.camera="q343";
@@ -1591,6 +1598,14 @@ const MAP_PARKS = [[[40.6728,-73.9700],[40.6645,-73.9790],[40.6510,-73.9720],[40
   [[40.9080,-73.9000],[40.8880,-73.8980],[40.8880,-73.8780],[40.9050,-73.8760]],
   [[40.8700,-73.8850],[40.8450,-73.8820],[40.8420,-73.8700],[40.8680,-73.8720]],
   [[40.6590,-73.9990],[40.6470,-73.9950],[40.6480,-73.9830],[40.6590,-73.9870]]];
+MAP_STREETS.push(...[["1 Av",0,[[40.7238,-73.9897],[40.8023,-73.9332]]],["3 Av",0,[[40.7299,-73.9906],[40.8058,-73.9359]]],["Park Av",0,[[40.7367,-73.9892],[40.8095,-73.9368]]],["Lexington Av",0,[[40.7387,-73.986],[40.8083,-73.9359]]],["6 Av",0,[[40.7245,-74.0053],[40.7656,-73.9757]]],["7 Av",0,[[40.7364,-74.0005],[40.7668,-73.9786]]],["8 Av",0,[[40.7389,-74.0025],[40.768,-73.9815]]],["Central Park West",0,[[40.768,-73.9815],[40.8003,-73.9583]]],["10 Av",0,[[40.7419,-74.0078],[40.7704,-73.9873]]],["Amsterdam Av",0,[[40.7704,-73.9873],[40.8533,-73.9277]]],["2 Av",0,[[40.7246,-73.9917],[40.805,-73.9339]]],["Madison Av",0,[[40.7411,-73.9878],[40.8138,-73.9354]]],["Lenox Av",0,[[40.7979,-73.9525],[40.8213,-73.9356]]],["Frederick Douglass Blvd",0,[[40.8003,-73.9583],[40.8288,-73.9378]]],["72 St",0,[[40.7791,-73.9825],[40.7683,-73.9564]]],["96 St",0,[[40.7941,-73.971],[40.7837,-73.946]]],["145 St",0,[[40.8268,-73.9529],[40.8182,-73.932]]],["Delancey St",0,[[40.7244,-73.9982],[40.7201,-73.9878]]],["Chambers St",0,[[40.7238,-74.0175],[40.7199,-74.0082]]],["Bedford Av",2,[[40.724,-73.9515],[40.7172,-73.9567],[40.7065,-73.9655],[40.6777,-73.9535],[40.632,-73.9545],[40.586,-73.944]]],["Eastern Pkwy",0,[[40.6745,-73.97],[40.669,-73.931],[40.6685,-73.9225]]],["4 Av",0,[[40.684,-73.9785],[40.6165,-74.0305]]],["Surf Av",0,[[40.5745,-74.002],[40.576,-73.968]]],["Northern Blvd",1,[[40.751,-73.94],[40.753,-73.906],[40.757,-73.87],[40.764,-73.83]]],["Fordham Rd",0,[[40.863,-73.912],[40.862,-73.896],[40.859,-73.88]]]]);
+MAP_SPOTS.push(...[["Grand Army Plaza",40.6743,-73.9701],["Chrysler Building",40.7516,-73.9755],["MoMA",40.7614,-73.9776],["Whitney Museum",40.7396,-74.0089],["Penn Station",40.7505,-73.9934],["Hudson Yards",40.7538,-74.0022],["Columbus Circle",40.7681,-73.9819],["Guggenheim",40.783,-73.959],["Columbia University",40.8075,-73.9626],["The Cloisters",40.8649,-73.9319],["Little Island",40.742,-74.0103],["South Street Seaport",40.7063,-74.0036],["Wall St",40.7069,-74.0113],["City Hall",40.7128,-74.006],["Tompkins Square Park",40.7265,-73.9818],["McCarren Park",40.7205,-73.9515],["Brooklyn Botanic Garden",40.6694,-73.9624],["Gantry Plaza",40.7455,-73.9585],["MoMA PS1",40.7455,-73.947],["Astoria Park",40.779,-73.922],["New York Botanical Garden",40.8623,-73.88],["Roosevelt Island Tram",40.7613,-73.9642],["Madison Square Park",40.742,-73.9875],["Stonewall Inn",40.7338,-74.0021],["Luna Park",40.5743,-73.977]]);
+/* Hand-placed points for each place's starting spot and each event's viewing spot. Events added by the weekly task carry their own lat and lon. */
+const START_GEO = {"chinatown":[40.7146,-73.998],"gct":[40.7527,-73.9772],"tsq":[40.759,-73.9849],"wsp":[40.7312,-73.9971],"dumbo":[40.7033,-73.9895],"coney":[40.5738,-73.979],"soho":[40.7256,-73.9992],"jh":[40.7467,-73.8915],"ferry":[40.7013,-74.0131],"harlem":[40.8101,-73.95],"les":[40.7183,-73.9881],"flushing":[40.7596,-73.83],"wburg":[40.7172,-73.9567],"midtown":[40.7603,-73.9751],"cpark":[40.774,-73.9708],"rockaway":[40.5843,-73.8125],"arthur":[40.8553,-73.8877]};
+const EVENT_GEO = {"threekings":[40.7916,-73.9447],"lunar":[40.7155,-73.9983],"stpat":[40.7722,-73.9672],"easter":[40.7585,-73.976],"dance":[40.7284,-73.9872],"henge":[40.747,-73.9808],"prday":[40.7697,-73.969],"mermaid":[40.5757,-73.99],"pride":[40.7338,-74.0021],"westindian":[40.6712,-73.9636],"sangennaro":[40.7193,-73.9975],"columbus":[40.7678,-73.9705],"dogparade":[40.727,-73.9795],"halloween":[40.7357,-73.998],"marathon":[40.6706,-73.9886],"veterans":[40.742,-73.9875],"balloons":[40.7813,-73.974],"thanksgiving":[40.7765,-73.9761],"tree":[40.7587,-73.978],"dyker":[40.6155,-74.0125],"nye":[40.758,-73.9855],"aipad":[40.7676,-73.966],"bild":[40.7578,-74.0026],"photoville":[40.7038,-73.9941],"fujikina-nyc-2026":[40.718,-73.9886],"aperture-loves-new-york":[40.7811,-73.976],"bronx-halloween-parade":[40.8205,-73.891],"bryant-park-winter-village":[40.7536,-73.9832],"disability-pride-parade":[40.742,-73.9875],"diwali-times-square":[40.759,-73.985],"jackson-heights-halloween-parade":[40.7497,-73.884],"mano-a-mano-day-of-the-dead":[40.7302,-73.987]};
+function mapEvents(){ const now=new Date(), today=new Date(now.getFullYear(),now.getMonth(),now.getDate()), lim=new Date(today.getFullYear(),today.getMonth(),today.getDate()+42);
+  return eventRows(today).filter(r=>r.o&&!r.cancelled&&r.o[0]<=lim).map(r=>{ const d=EVENT_DOCS[r.e.id], g=(d&&typeof d.lat==="number"&&typeof d.lon==="number"&&d.lat>40.4&&d.lat<41&&d.lon>-74.3&&d.lon<-73.6)?[d.lat,d.lon]:EVENT_GEO[r.e.id];
+    if(!g) return null; const [x,y]=mapXY(g[0],g[1]); return {r,id:r.e.id,x,y,day:r.o[0]<=today?"Now":r.o[0].toLocaleDateString("en-US",{month:"short",day:"numeric"})}; }).filter(Boolean); }
 const MAP_ASPECT = 1.35, MAP_LIM = {x:[250,880], y:[70,860], w:[34,560]};
 const mapPreset = k => { if(k==="me"&&state.pos){ const [x,y]=mapXY(state.pos.lat,state.pos.lon); return {cx:x,cy:y,w:110}; }
   return k==="man" ? {cx:486,cy:386,w:196} : k==="bk" ? {cx:520,cy:500,w:250} : {cx:576,cy:462,w:492}; };
@@ -1635,6 +1650,17 @@ function mapDraw(){
       const rect=[bx,by,bx+tw,by+fs*1.2]; if(rect[0]<x0+2*u||rect[2]>x1-2*u||rect[1]<y0+2*u||rect[3]>y1-2*u||taken.some(t=>hit(t,rect))) continue;
       taken.push(rect); return '<text x="'+f(tx)+'" y="'+f(ty)+'" text-anchor="'+anchor+'" font-size="'+f(fs)+'" class="m-lab'+(p.id===state.mapSel?" on":"")+'">'+esc(name)+'</text>'; }
     return ""; }).join("");
+  let evs="", flags=""; const evList=mapEvents().filter(e=>e.x>x0+8*u&&e.x<x1-8*u&&e.y>y0+8*u&&e.y<y1-8*u);
+  if(w<520) for(const e of evList.sort((a,b)=>(b.id===state.mapEv)-(a.id===state.mapEv)||a.r.o[0]-b.r.o[0])){ const on=e.id===state.mapEv, hw=(e.day.length*3.1+5)*u, hh=7*u, box=[e.x-hw,e.y-hh,e.x+hw,e.y+hh];
+    if(!on && taken.some(t=>hit(t,box))) continue; taken.push(box);
+    let lab=""; if(w<300||on){ const nm=e.r.e.name.length>26?e.r.e.name.slice(0,25)+"…":e.r.e.name, fl=10*u, tw=nm.length*fl*0.56;
+      for(const [bx,anchor,tx] of [[e.x+hw+3*u,"start",e.x+hw+3*u],[e.x-hw-3*u-tw,"end",e.x-hw-3*u]]){ const rect=[bx,e.y-fl*0.6,bx+tw,e.y+fl*0.6]; if(rect[0]<x0+2*u||rect[2]>x1-2*u||(!on&&taken.some(t=>hit(t,rect)))) continue; taken.push(rect);
+        lab='<text x="'+f(tx)+'" y="'+f(e.y+fl*0.36)+'" text-anchor="'+anchor+'" font-size="'+f(fl)+'" class="m-evlab">'+esc(nm)+'</text>'; break; } }
+    evs+='<g class="m-ev'+(on?" on":"")+'" data-e="'+esc(e.id)+'" tabindex="0" role="button" aria-label="'+esc(e.r.e.name+", "+e.day)+'"><rect x="'+f(e.x-hw-6*u)+'" y="'+f(e.y-hh-6*u)+'" width="'+f(2*hw+12*u)+'" height="'+f(2*hh+12*u)+'" class="m-hit"/>'+
+      '<rect x="'+f(e.x-hw)+'" y="'+f(e.y-hh)+'" width="'+f(2*hw)+'" height="'+f(2*hh)+'" rx="'+f(3*u)+'" stroke-width="'+f(1.5*u)+'" class="m-evbox"/><text x="'+f(e.x)+'" y="'+f(e.y+3.2*u)+'" text-anchor="middle" font-size="'+f(9*u)+'" class="m-evday">'+esc(e.day)+'</text>'+lab+'</g>'; }
+  if(w<130) for(const p of pts){ const g=START_GEO[p.id]; if(!g||!START[p.id]) continue; const [x,y]=mapXY(g[0],g[1]); if(Math.hypot(x-p.x,y-p.y)<R+5*u) continue; const name="Start: "+START[p.id][0], fl=10*u, tw=name.length*fl*0.54, dot=[x-5*u,y-5*u,x+5*u,y+5*u]; if(taken.some(t=>hit(t,dot))) continue;
+    for(const [bx,anchor,tx] of [[x+8*u,"start",x+8*u],[x-8*u-tw,"end",x-8*u]]){ const rect=[bx,y-fl*0.6,bx+tw,y+fl*0.6]; if(rect[0]<x0+2*u||rect[2]>x1-2*u||taken.some(t=>hit(t,rect))) continue; taken.push(rect,dot);
+      flags+='<path d="M'+f(p.x)+' '+f(p.y)+'L'+f(x)+' '+f(y)+'" class="m-startline" stroke-width="'+f(1.2*u)+'" stroke-dasharray="'+f(3*u)+' '+f(3*u)+'"/><path d="M'+f(x)+' '+f(y-6*u)+'L'+f(x+5.5*u)+' '+f(y+4*u)+'H'+f(x-5.5*u)+'Z" class="m-start" stroke-width="'+f(1.2*u)+'"/><text x="'+f(tx)+'" y="'+f(y+fl*0.36)+'" text-anchor="'+anchor+'" font-size="'+f(fl)+'" class="m-startlab">'+esc(name)+'</text>'; break; } }
   let detail=""; const inside=(x,y,m)=>x>x0+m&&x<x1-m&&y>y0+m&&y<y1-m, free=rect=>!(rect[0]<x0+2*u||rect[2]>x1-2*u||rect[1]<y0+2*u||rect[3]>y1-2*u||taken.some(t=>hit(t,rect)));
   if(w<300) for(const [name,lat,lon] of MAP_SPOTS){ const [x,y]=mapXY(lat,lon); if(!inside(x,y,4*u)) continue; const fl=10*u, tw=name.length*fl*0.54, d=3*u, dot=[x-d,y-d,x+d,y+d]; if(taken.some(t=>hit(t,dot))) continue;
     for(const [bx,anchor,tx] of [[x+6*u,"start",x+6*u],[x-6*u-tw,"end",x-6*u]]){ const rect=[bx,y-fl*0.6,bx+tw,y+fl*0.6]; if(!free(rect)) continue; taken.push(rect,dot);
@@ -1655,31 +1681,37 @@ function mapDraw(){
       '<circle cx="'+f(p.x)+'" cy="'+f(p.y)+'" r="'+f(r)+'" stroke-width="'+f(2*u)+'" class="m-dot"/>'+
       (on||!far?'<text x="'+f(p.x)+'" y="'+f(p.y+(on?4.4:3.8)*u)+'" text-anchor="middle" font-size="'+f((on?12.5:10.5)*u)+'" class="m-num">'+p.fit+'</text>':'')+'</g>'; }).join("");
   let you=""; if(state.pos){ const [x,y]=mapXY(state.pos.lat,state.pos.lon); you='<circle cx="'+f(x)+'" cy="'+f(y)+'" r="'+f(13*u)+'" class="m-youhalo"/><circle cx="'+f(x)+'" cy="'+f(y)+'" r="'+f(6*u)+'" stroke-width="'+f(2.5*u)+'" class="m-you"/>'; }
-  $("mapDyn").innerHTML=detail+route+ring+labels+you+pins;
+  $("mapDyn").innerHTML=detail+route+ring+flags+labels+evs+you+pins;
 }
 function mapPanel(){
   const key=lightAt(new Date()), pts=mapPts(), sel=state.mapSel&&pts.find(p=>p.id===state.mapSel), pl=sel&&PLACES[sel.id], d=sel?milesText(milesTo(pl)):"";
   $("mapZoom").innerHTML=MAP_PRESETS.concat(state.pos?[["me","Near me"]]:[]).map(z=>'<button type="button" class="chip" data-z="'+z[0]+'">'+z[1]+'</button>').join("");
+  const evSel=state.mapEv&&mapEvents().find(e=>e.id===state.mapEv), hasEv=mapEvents().length;
   const mine=sel?cityIdeas().filter(i=>i.p===sel.id).sort((a,b)=>b.w.includes(key)-a.w.includes(key)):[];
-  $("mapPanel").innerHTML='<p class="msg maplegend"><span><span class="lg fit"></span>Ideas for the light now ('+esc(WHEN[key].toLowerCase())+')</span><span><span class="lg"></span>Other places</span><span><span class="lg prog"></span>Share you have shot</span>'+
+  $("mapPanel").innerHTML='<p class="msg maplegend"><span><span class="lg fit"></span>Ideas for the light now ('+esc(WHEN[key].toLowerCase())+')</span><span><span class="lg"></span>Other places</span><span><span class="lg prog"></span>Share you have shot</span>'+(hasEv?'<span><span class="lg ev"></span>Events in the next 6 weeks</span>':'')+
       (state.plan?'<span><span class="lg route"></span>Your plan</span>':'')+(state.pos?'<span><span class="lg you"></span>You</span><span><span class="lg walk"></span>10 min walk from you</span>':'')+'</p>'+
-    (sel ? '<section class="group mapsel"><div class="group-head"><b>'+esc(pl.name)+(d?'<span class="dist">'+d+'</span>':'')+'</b>'+whereHtml(pl)+startLink(sel.id)+'</div>'+
+    (evSel ? '<section class="group mapsel"><div class="group-head"><b>'+esc(evSel.r.e.name)+'</b><span class="where">'+(EVENT_TYPES[evSel.r.e.type]?esc(EVENT_TYPES[evSel.r.e.type])+' · ':'')+esc(evSel.r.e.where||"")+'</span></div>'+
+        '<p class="mapcount"><b>'+evSel.r.o[0].toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})+(evSel.r.o[1]?' to '+evSel.r.o[1].toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"}):'')+'</b>'+(evSel.r.confirmed?' <span class="pill">Confirmed</span>':' (expected)')+(evSel.r.e.time?'<br>'+esc(evSel.r.e.time):'')+'</p>'+
+        (evSel.r.e.why?'<p class="mapcount">'+esc(evSel.r.e.why)+'</p>':'')+
+        '<div class="callinks"><button type="button" class="chip" data-event="'+esc(evSel.id)+'">Open in Events</button>'+(evSel.r.e.map?'<a class="chip" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(evSel.r.e.map[1])+'" target="_blank" rel="noopener">Google Maps ↗</a>':'')+'</div></section>' :
+    sel ? '<section class="group mapsel"><div class="group-head"><b>'+esc(pl.name)+(d?'<span class="dist">'+d+'</span>':'')+'</b>'+whereHtml(pl)+'</div>'+startHtml(sel.id).replace('class="start"','class="start mapstart"')+
         '<p class="mapcount">'+sel.n+' ideas · '+sel.fit+' suit the light now · '+sel.done+' shot</p>'+
         mine.map(x=>'<button type="button" class="row'+(state.done.has(x.id)?" done":"")+'" data-id="'+x.id+'"><span class="dot" style="background:'+INTENTS[x.i].color+'"></span>'+
           '<span class="t"><b>'+esc(x.t)+'</b><span>'+esc(INTENTS[x.i].name)+(x.w.includes(key)?' · suits the light now':'')+'</span></span><span class="go" aria-hidden="true">›</span></button>').join("")+
         '<div class="callinks"><button type="button" class="chip" data-plan="'+sel.id+'">Plan an outing from here</button><button type="button" class="chip" data-go="'+sel.id+'">Open in Browse</button></div></section>'
       : '<p class="lead">Tap a pin to see the place and its ideas. Drag to move the map, pinch or use + and − to zoom, double-tap to zoom in.</p>')+
-    '<p class="msg">Zoom in for neighbourhoods, main streets and landmarks. When you zoom in, the number on a pin is how many of its ideas suit the light now. Streets and parks are approximate. This is a simplified drawing with no streets, so use the Map link on a place for directions. On the subway has no pin because it is everywhere.</p>';
+    '<p class="msg">Zoom in for neighbourhoods, streets, landmarks and upcoming events, and zoom in close for the starting point of each place. The number on a pin is how many of its ideas suit the light now. Streets, parks and landmarks are approximate, so use Start at on a place for real directions. On the subway has no pin because it is everywhere.</p>';
 }
-function mapSelect(id){ state.mapSel=id; mapDraw(); mapPanel(); if(id){ const p=mapPts().find(q=>q.id===id), h=mapV.w*MAP_ASPECT;
+function mapSelectEv(id){ state.mapEv=id; state.mapSel=null; mapDraw(); mapPanel(); }
+function mapSelect(id){ state.mapSel=id; state.mapEv=null; mapDraw(); mapPanel(); if(id){ const p=mapPts().find(q=>q.id===id), h=mapV.w*MAP_ASPECT;
   if(p && (Math.abs(p.x-mapV.cx)>mapV.w*0.38 || Math.abs(p.y-mapV.cy)>h*0.38)) mapFly({cx:p.x,cy:p.y,w:mapV.w}); } }
 function mapGestures(svg){
   const ptr=new Map(); let g=null, lastTap=0, raf=0;
   const redraw=()=>{ if(!raf) raf=requestAnimationFrame(()=>{ raf=0; mapDraw(); }); };
   const at=(e,v)=>{ const r=svg.getBoundingClientRect(), k=v.w/r.width; return [v.cx-v.w/2+(e.clientX-r.left)*k, v.cy-v.w*MAP_ASPECT/2+(e.clientY-r.top)*k, k]; };
   const zoomAt=(e,factor,fly)=>{ const [mx,my]=at(e,mapV), w=Math.min(MAP_LIM.w[1],Math.max(MAP_LIM.w[0],mapV.w*factor)), k=w/mapV.w, to={cx:mx+(mapV.cx-mx)*k, cy:my+(mapV.cy-my)*k, w}; if(fly) mapFly(to); else { mapV=mapClamp(to); redraw(); } };
-  const start=()=>{ const p=[...ptr.values()]; g={v:Object.assign({},mapV), moved:g?g.moved:false, pin:g?g.pin:null, p0:p.map(q=>({x:q.clientX,y:q.clientY}))}; };
-  svg.addEventListener("pointerdown",e=>{ cancelAnimationFrame(mapAnim); const pin=e.target.closest&&e.target.closest(".m-pin"); ptr.set(e.pointerId,e); if(ptr.size===1) g={moved:false,pin:pin?pin.dataset.p:null}; start(); try{ svg.setPointerCapture(e.pointerId); }catch(err){} });
+  const start=()=>{ const p=[...ptr.values()]; g={v:Object.assign({},mapV), moved:g?g.moved:false, pin:g?g.pin:null, ev:g?g.ev:null, p0:p.map(q=>({x:q.clientX,y:q.clientY}))}; };
+  svg.addEventListener("pointerdown",e=>{ cancelAnimationFrame(mapAnim); const pin=e.target.closest&&e.target.closest(".m-pin"), ev=e.target.closest&&e.target.closest(".m-ev"); ptr.set(e.pointerId,e); if(ptr.size===1) g={moved:false,pin:pin?pin.dataset.p:null,ev:ev?ev.dataset.e:null}; start(); try{ svg.setPointerCapture(e.pointerId); }catch(err){} });
   svg.addEventListener("pointermove",e=>{ if(!ptr.has(e.pointerId)||!g) return; ptr.set(e.pointerId,e); const p=[...ptr.values()], r=svg.getBoundingClientRect(), k=g.v.w/r.width;
     if(p.length===1){ const dx=p[0].clientX-g.p0[0].x, dy=p[0].clientY-g.p0[0].y; if(!g.moved && Math.hypot(dx,dy)<7) return; g.moved=true; mapV=mapClamp({cx:g.v.cx-dx*k, cy:g.v.cy-dy*k, w:g.v.w}); }
     else if(p.length>=2 && g.p0.length>=2){ g.moved=true; const d0=Math.hypot(g.p0[0].x-g.p0[1].x,g.p0[0].y-g.p0[1].y)||1, d1=Math.hypot(p[0].clientX-p[1].clientX,p[0].clientY-p[1].clientY)||1;
@@ -1687,8 +1719,8 @@ function mapGestures(svg){
       const w=Math.min(MAP_LIM.w[1],Math.max(MAP_LIM.w[0],g.v.w*d0/d1)), k2=w/r.width; mapV=mapClamp({cx:ax-(m1x-r.left)*k2+w/2, cy:ay-(m1y-r.top)*k2+w*MAP_ASPECT/2, w}); }
     redraw(); });
   const end=e=>{ if(!ptr.has(e.pointerId)) return; ptr.delete(e.pointerId); if(ptr.size){ start(); return; } const was=g; g=null; if(!was||was.moved||e.type==="pointercancel") return;
-    const now=Date.now(); if(was.pin){ lastTap=0; mapSelect(was.pin); return; }
-    if(now-lastTap<320){ lastTap=0; zoomAt(e,0.5,true); return; } lastTap=now; if(state.mapSel) mapSelect(null); };
+    const now=Date.now(); if(was.pin){ lastTap=0; mapSelect(was.pin); return; } if(was.ev){ lastTap=0; mapSelectEv(was.ev); return; }
+    if(now-lastTap<320){ lastTap=0; zoomAt(e,0.5,true); return; } lastTap=now; if(state.mapSel||state.mapEv) mapSelect(null); };
   svg.addEventListener("pointerup",end); svg.addEventListener("pointercancel",end);
   svg.addEventListener("wheel",e=>{ e.preventDefault(); zoomAt(e,Math.exp(Math.max(-60,Math.min(60,e.deltaY))*0.004),false); },{passive:false});
 }
@@ -1783,11 +1815,13 @@ $("syncImport").addEventListener("click",()=>{ const r=syncImport($("syncCode").
 $("map").addEventListener("click",e=>{
   const z=e.target.closest("#mapZoom .chip"); if(z){ state.mapZoom=z.dataset.z; store.set("mapZoom",state.mapZoom); mapFly(mapPreset(z.dataset.z)); return; }
   const b=e.target.closest("[data-zoom]"); if(b){ mapFly({cx:mapV.cx,cy:mapV.cy,w:mapV.w*parseFloat(b.dataset.zoom)}); return; }
+  const ev=e.target.closest("[data-event]"); if(ev){ state.view="events"; render(); const d=document.querySelector('#events details[data-id="'+ev.dataset.event+'"]'); if(d){ d.open=true; d.scrollIntoView({block:"start"}); } return; }
   const r=e.target.closest(".row"); if(r){ show(r.dataset.id); state.view="shoot"; render(); window.scrollTo({top:0}); return; }
   const g=e.target.closest("[data-go]"); if(g){ state.place=g.dataset.go; store.set("place",state.place); fillPlaces(); $("place").value=state.place; state.view="browse"; refilter(); window.scrollTo({top:0}); return; }
   const q=e.target.closest("[data-plan]"); if(q){ state.view="plan"; render(); $("pStart").value=q.dataset.plan; window.scrollTo({top:0}); }
 });
-$("map").addEventListener("keydown",e=>{ if(e.key!=="Enter"&&e.key!==" ") return; const p=e.target.closest(".m-pin"); if(p){ e.preventDefault(); mapSelect(p.dataset.p); const n=document.querySelector('.m-pin[data-p="'+p.dataset.p+'"]'); if(n) n.focus(); } });
+$("map").addEventListener("keydown",e=>{ if(e.key!=="Enter"&&e.key!==" ") return; const p=e.target.closest(".m-pin"); const v=e.target.closest(".m-ev"); if(v){ e.preventDefault(); mapSelectEv(v.dataset.e); return; }
+  if(p){ e.preventDefault(); mapSelect(p.dataset.p); const n=document.querySelector('.m-pin[data-p="'+p.dataset.p+'"]'); if(n) n.focus(); } });
 window.addEventListener("resize",()=>{ if(state.view==="map") mapDraw(); });
 $("views").addEventListener("click",e=>{const b=e.target.closest("button"); if(!b) return; state.view=b.dataset.v; render();});
 $("next").addEventListener("click",()=>{pick();render();cardToTop();});
