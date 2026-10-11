@@ -1,7 +1,38 @@
 {
  "_status": {
   "checked": "2026-10-11",
-  "summary": "Confirmed Columbus Day, marathon, Veterans Day and Thanksgiving parades, updated dog parade time and route, added 4 new events."
+  "summary": "Re-checked existing dates with no changes and added the Disability Pride NYC Parade (Oct 18) and Bronx Halloween Parade (Oct 24)."
+ },
+ "bronx-halloween-parade": {
+  "checked": "2026-10-11",
+  "city": "nyc",
+  "ideas": [
+   {
+    "intent": "place",
+    "recipe": "deep",
+    "text": "Shoot down the avenue so the marchers fill the street with the steel of the elevated line overhead.",
+    "title": "Costumes under the el"
+   },
+   {
+    "intent": "odd",
+    "recipe": "zone",
+    "text": "Frame a performer on stilts against the sky or the tracks with the heads of the crowd along the bottom edge.",
+    "title": "Stilt walker above the crowd"
+   },
+   {
+    "intent": "moment",
+    "recipe": "freeze",
+    "text": "Use a fast shutter on children reaching as candy is tossed from the parade.",
+    "title": "Candy thrown"
+   }
+  ],
+  "name": "Bronx Halloween Parade",
+  "source": "https://www.nycforfree.co/events/41st-annual-bronx-halloween-parade",
+  "spot": "Stand near Southern Blvd and Westchester Av before noon to catch groups lining up under the elevated tracks. Follow the parade to Bill Rainey Park for the performances after.",
+  "start": "2026-10-24",
+  "time": "12 pm to 3 pm",
+  "where": "Southern Blvd and Westchester Av, the Bronx, ending at Bill Rainey Park",
+  "why": "Stilt walkers, dancers, bands and costumed families parade under the elevated train in daylight, a week before the Village parade and with far smaller crowds."
  },
  "bryant-park-winter-village": {
   "checked": "2026-10-11",
@@ -41,6 +72,37 @@
   "source": "https://www.carnifest.com/columbus-day-parade-in-nyc-2026/",
   "start": "2026-10-12",
   "where": "Fifth Av, 44 St to 72 St"
+ },
+ "disability-pride-parade": {
+  "checked": "2026-10-11",
+  "city": "nyc",
+  "ideas": [
+   {
+    "intent": "moment",
+    "recipe": "zone",
+    "text": "Watch for two people holding a sign-language conversation across the gap between marchers and the kerb.",
+    "title": "Signing across the street"
+   },
+   {
+    "intent": "energy",
+    "recipe": "drag",
+    "text": "Pan with a wheelchair group at a slow shutter so the spokes and banners blur and the faces stay sharp.",
+    "title": "Wheels rolling"
+   },
+   {
+    "intent": "detail",
+    "recipe": "detail",
+    "text": "Close in on stickers, flags and hand-lettered signs fixed to wheelchairs, walkers and canes.",
+    "title": "Decorated chairs and signs"
+   }
+  ],
+  "name": "Disability Pride NYC Parade and Block Party",
+  "source": "https://www.nycforfree.co/events/disability-pride-nyc-parade-block-party",
+  "spot": "Start at Madison Square Park at 11 am while groups assemble, then walk with the parade to Union Square for the block party.",
+  "start": "2026-10-18",
+  "time": "11 am to 3 pm",
+  "where": "Madison Square Park to Union Square",
+  "why": "Marchers on wheels, with canes, guide dogs and hand-painted signs move slowly down a short route, which gives time to work close and talk to people."
  },
  "diwali-times-square": {
   "checked": "2026-10-11",
