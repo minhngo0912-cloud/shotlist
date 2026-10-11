@@ -1,27 +1,184 @@
 {
- "dogparade": {
-  "city": "nyc",
-  "start": "2026-10-17",
-  "time": "Listed as 1 pm to 4 pm. The start time may change",
-  "source": "https://www.nycforfree.co/events/tompkins-square-halloween-dog-parade-2026",
-  "checked": "2026-10-11"
- },
- "halloween": {
-  "city": "nyc",
-  "start": "2026-10-31",
-  "time": "Starts at 7 pm",
-  "where": "Sixth Av, Canal St to 15 St",
-  "source": "https://www.nycforfree.co/events/nyc-village-halloween-parade-2026",
-  "checked": "2026-10-11"
- },
- "tree": {
-  "city": "nyc",
-  "start": "2026-12-02",
-  "source": "https://www.timeout.com/newyork/news/the-2026-rockefeller-center-christmas-tree-lighting-has-officially-been-announced-and-its-happening-earlier-than-you-think-092926",
-  "checked": "2026-10-11"
- },
  "_status": {
   "checked": "2026-10-11",
-  "summary": "Initial file: dog parade, Halloween parade and tree lighting confirmed."
+  "summary": "Confirmed Columbus Day, marathon, Veterans Day and Thanksgiving parades, updated dog parade time and route, added 4 new events."
+ },
+ "bryant-park-winter-village": {
+  "checked": "2026-10-11",
+  "city": "nyc",
+  "end": "2027-01-03",
+  "ideas": [
+   {
+    "intent": "energy",
+    "recipe": "drag",
+    "text": "From the rink edge, pan with one skater at a slow shutter so the crowd and lights streak behind.",
+    "title": "Skaters in a blur"
+   },
+   {
+    "intent": "place",
+    "recipe": "deep",
+    "text": "From the upper terrace, show the full rink with the skyline closing in on all sides.",
+    "title": "Rink among the towers"
+   },
+   {
+    "intent": "mood",
+    "recipe": "night",
+    "text": "Shoot through the glass of a market stall at a vendor or shopper lit by the warm lamps inside.",
+    "title": "Faces in the stall windows"
+   }
+  ],
+  "name": "Bryant Park Winter Village opening",
+  "source": "https://bryantpark.org/activities/holiday-shops",
+  "spot": "The raised terrace on the library side looks down on the whole rink. Come on a weekday just after dark, when the stalls glow and the crowd is thinner.",
+  "start": "2026-10-28",
+  "time": "Opens at noon on October 28",
+  "where": "Bryant Park, 40 St to 42 St between Fifth and Sixth Av",
+  "why": "The rink and glass market stalls put skaters, shoppers and office workers in one small lit space surrounded by towers."
+ },
+ "columbus": {
+  "checked": "2026-10-11",
+  "city": "nyc",
+  "source": "https://www.carnifest.com/columbus-day-parade-in-nyc-2026/",
+  "start": "2026-10-12",
+  "where": "Fifth Av, 44 St to 72 St"
+ },
+ "diwali-times-square": {
+  "checked": "2026-10-11",
+  "city": "nyc",
+  "ideas": [
+   {
+    "intent": "place",
+    "recipe": "deep",
+    "text": "Frame a group in traditional dress small in the lower third with the full wall of screens above them.",
+    "title": "Saris under the billboards"
+   },
+   {
+    "intent": "moment",
+    "recipe": "zone",
+    "text": "Watch the dancers beside the stage for a last fix of a costume or a nervous glance before their turn.",
+    "title": "Waiting to go on"
+   },
+   {
+    "intent": "mood",
+    "recipe": "night",
+    "text": "After sunset, isolate one face lit by the colour of the billboards with the crowd soft behind.",
+    "title": "Screen light at dusk"
+   }
+  ],
+  "name": "Diwali at Times Square",
+  "source": "https://www.diwalitimessquare.com/",
+  "spot": "Stand at the side of the stage on the Broadway plaza rather than in front, where performers wait and adjust costumes. Stay until dusk, when the screens start to light faces.",
+  "start": "2026-10-24",
+  "where": "Broadway, 46 St to 48 St, Times Square",
+  "why": "Dancers and families in bright traditional dress fill the plazas against the Times Square billboards."
+ },
+ "dogparade": {
+  "checked": "2026-10-11",
+  "city": "nyc",
+  "source": "https://www.nydogparade.org/",
+  "start": "2026-10-17",
+  "time": "Steps off at 11 am; festival block 10 am to 4 pm",
+  "where": "Avenue B, 11 St to 7 St; festival block on 6 St between Avenues B and C"
+ },
+ "halloween": {
+  "checked": "2026-10-11",
+  "city": "nyc",
+  "source": "https://www.nycforfree.co/events/nyc-village-halloween-parade-2026",
+  "start": "2026-10-31",
+  "time": "Starts at 7 pm",
+  "where": "Sixth Av, Canal St to 15 St"
+ },
+ "jackson-heights-halloween-parade": {
+  "checked": "2026-10-11",
+  "city": "nyc",
+  "ideas": [
+   {
+    "intent": "moment",
+    "recipe": "zone",
+    "text": "Catch a small child in full costume looking up at a parent, or being carried when the walk gets long.",
+    "title": "Costume and parent"
+   },
+   {
+    "intent": "odd",
+    "recipe": "shallow",
+    "text": "Look for a costumed adult doing something ordinary, such as buying a coffee or checking a phone.",
+    "title": "Monster at the bodega"
+   },
+   {
+    "intent": "place",
+    "recipe": "deep",
+    "text": "Shoot down the avenue so the line of costumes runs between the shop signs and awnings.",
+    "title": "Parade on 37 Av"
+   }
+  ],
+  "name": "Jackson Heights Halloween Parade",
+  "source": "https://www.newyorklatinculture.com/things-to-do-in-nyc-in-october/",
+  "spot": "Stand on the north side of 37 Av near the start at 89 St so the low sun lights the marchers from the front. Arrive before noon to see the groups line up.",
+  "start": "2026-10-31",
+  "time": "12 pm to 5 pm",
+  "where": "37 Av, 89 St to 76 St, Jackson Heights, Queens",
+  "why": "A daytime neighbourhood parade of children and families in costume, with good light and far more room than the Village parade."
+ },
+ "mano-a-mano-day-of-the-dead": {
+  "checked": "2026-10-11",
+  "city": "nyc",
+  "end": "2026-11-01",
+  "ideas": [
+   {
+    "intent": "detail",
+    "recipe": "detail",
+    "text": "Fill the frame with marigolds, candles, sugar skulls and the framed photos people have left.",
+    "title": "Offerings on the altar"
+   },
+   {
+    "intent": "moment",
+    "recipe": "shallow",
+    "text": "Wait at the altar for someone setting down an offering and pausing for a second after.",
+    "title": "Placing a photo"
+   },
+   {
+    "intent": "mood",
+    "recipe": "shallow",
+    "text": "Isolate one person in skull face paint against the dark stone of the church.",
+    "title": "Painted face"
+   }
+  ],
+  "name": "Mano a Mano Day of the Dead",
+  "source": "https://eldiariony.com/2026/10/07/dia-de-muertos-en-nueva-york/",
+  "spot": "Go early on the first day while the altar is still being built and people are placing offerings. Work close to the altar and ask before photographing anyone leaving a photo of a relative.",
+  "start": "2026-10-31",
+  "time": "12 pm to 5 pm",
+  "where": "St. Mark's Church-in-the-Bowery, 131 E 10 St, East Village",
+  "why": "A large community altar with marigolds, candles and sugar skulls draws people who come to leave offerings, with live music and a Mexican market around it."
+ },
+ "marathon": {
+  "checked": "2026-10-11",
+  "city": "nyc",
+  "source": "https://www.esimpass.com/en/events/nyc-marathon",
+  "start": "2026-11-01",
+  "time": "Wheelchair start around 8 am, runners in waves through late morning",
+  "where": "Staten Island to Central Park through all five boroughs"
+ },
+ "thanksgiving": {
+  "checked": "2026-10-11",
+  "city": "nyc",
+  "source": "https://thesybarite.co/experiences/macys-thanksgiving-day-parade-2026",
+  "start": "2026-11-26",
+  "time": "Starts at 8:30 am",
+  "where": "Central Park West at 77 St, south to Columbus Circle, then Sixth Av to Herald Square"
+ },
+ "tree": {
+  "checked": "2026-10-11",
+  "city": "nyc",
+  "source": "https://www.timeout.com/newyork/news/the-2026-rockefeller-center-christmas-tree-lighting-has-officially-been-announced-and-its-happening-earlier-than-you-think-092926",
+  "start": "2026-12-02"
+ },
+ "veterans": {
+  "checked": "2026-10-11",
+  "city": "nyc",
+  "source": "https://www.uclahealth.org/programs/operationmend/events/operation-mend-2026-veterans-day-parade-nyc",
+  "start": "2026-11-11",
+  "time": "12:30 pm to about 3:30 pm",
+  "where": "Fifth Av, 26 St north to about 50 St"
  }
 }
