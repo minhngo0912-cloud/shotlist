@@ -195,9 +195,44 @@ select{width:100%;min-height:44px;padding:0 10px;border:1.5px solid var(--line);
 .syncbody .btn{width:100%}
 .empty{color:var(--muted);padding:24px 0;margin:0;max-width:50ch}
 footer{font-size:13px;color:var(--muted);max-width:65ch}
+
+/* Visual pass: station-sign masthead, compact conditions with a weather glyph, quieter filters, sign-style place headers. */
+.app{gap:12px}
+.mast{background:var(--sign);color:var(--sign-fg);border:1px solid var(--sign-line);border-radius:10px;padding:0 14px;display:flex;flex-direction:column;gap:4px}
+.mast::before{content:"";height:3px;background:var(--sign-fg);margin-top:10px}
+.mast .top{padding-top:6px}
+.mast h1{font-size:27px}
+.mast .citysel{color:var(--sign-muted)}
+.mast .prog{color:var(--sign-muted)} .mast .track{background:var(--sign-line)} .mast .track i{background:var(--sign-fg)}
+.mast .themebtn{background:transparent;border-color:var(--sign-line);color:var(--sign-fg);width:40px;height:40px}
+.mast .views{background:transparent;padding:0;border-radius:0;gap:0;margin-inline:-8px}
+.mast .views button{color:var(--sign-muted);border-radius:0;border-bottom:3px solid transparent;min-height:44px}
+.mast .views button[aria-selected="true"]{background:transparent;color:var(--sign-fg);border-bottom-color:var(--yellow)}
+.mast :focus-visible{outline-color:var(--sign-fg)}
+.now{grid-template-columns:auto 1fr auto;padding:10px 12px;gap:2px 10px}
+.now-ico{width:34px;height:34px;display:grid;place-items:center;color:var(--fg);grid-row:1/3;align-self:start;margin-top:2px}
+.now-ico svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.now-main b{font-size:16px}
+.now select{min-width:0;width:auto;max-width:112px;min-height:40px;font-size:15px}
+.now-main{grid-column:2/-1}
+.now select{grid-row:2;grid-column:3;align-self:center}
+@media (max-width:480px){.mast .prog{display:none}}
+.now .chip{grid-column:2;grid-row:2;align-self:center;justify-content:flex-start;min-height:34px;border:0;background:none;padding:0;border-radius:4px;font-size:14px;font-weight:600;text-decoration:underline;text-underline-offset:3px;color:var(--fg);white-space:normal;text-align:left}
+.now .chip[aria-pressed="true"]{background:none;color:var(--fg)}
+.selects .field .label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.btn.primary{background:var(--yellow);color:var(--on-yellow);border-color:var(--yellow)}
+.sign-head{padding:18px 20px 16px}
+.group-head{background:var(--sign);color:var(--sign-fg);border-bottom:0}
+.group .where,.group-head .dist{color:var(--sign-muted)}
+.cal small{color:var(--red)}
+@media (prefers-reduced-motion:no-preference){
+  .sign.swap{animation:rise .24s ease-out}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+}
 </style>
 
 <div class="app">
+  <div class="mast">
   <header class="top">
     <div class="brand">
       <h1>Shot List</h1>
@@ -214,8 +249,10 @@ footer{font-size:13px;color:var(--muted);max-width:65ch}
     <button type="button" role="tab" data-v="plan" id="vPlan">Plan</button>
     <button type="button" role="tab" data-v="events" id="vEvents">Events</button>
   </nav>
+  </div>
 
   <section class="now" id="now" aria-label="Conditions now">
+    <span class="now-ico" id="nowIco" aria-hidden="true"></span>
     <div class="now-main"><b id="nowHead"></b><span id="nowSub"></span></div>
     <select id="cond" aria-label="Conditions">
       <option value="auto">Auto</option><option value="sun">Bright sun</option><option value="cloud">Overcast</option><option value="rain">Rain</option><option value="fog">Fog</option><option value="snow">Snow</option><option value="dusk">Dusk</option><option value="night">Night</option>
@@ -952,6 +989,17 @@ function adjustFor(recipe,i,leica){
   if(i.w && typeof i.w.temp_c==="number" && i.w.temp_c<=0) out.push("It is below freezing. Batteries drain quickly, so keep a spare in an inside pocket.");
   return out;
 }
+const WX_ICON = {
+  sun:'<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M18.7 5.3L17 7M7 17l-1.7 1.7"/>',
+  partly:'<circle cx="8" cy="8" r="3"/><path d="M8 2.2v1.6M2.2 8h1.6M3.9 3.9L5 5M12.1 3.9L11 5"/><path d="M8.5 19.5h9a3.6 3.6 0 0 0 .4-7.2 5.3 5.3 0 0 0-10 1.3 3 3 0 0 0 .6 5.9z"/>',
+  cloud:'<path d="M7 18.5h10a4.2 4.2 0 0 0 .5-8.4 6.2 6.2 0 0 0-11.7 1.6A3.5 3.5 0 0 0 7 18.5z"/>',
+  rain:'<path d="M7 15h10a4.2 4.2 0 0 0 .5-8.4A6.2 6.2 0 0 0 5.8 8.2 3.5 3.5 0 0 0 7 15z"/><path d="M8.5 17.5l-1 3M12.5 17.5l-1 3M16.5 17.5l-1 3"/>',
+  storm:'<path d="M7 14.5h10a4.2 4.2 0 0 0 .5-8.4A6.2 6.2 0 0 0 5.8 7.7 3.5 3.5 0 0 0 7 14.5z"/><path d="M12.5 13l-2.5 4h3l-2 4.5"/>',
+  snow:'<path d="M7 14.5h10a4.2 4.2 0 0 0 .5-8.4A6.2 6.2 0 0 0 5.8 7.7 3.5 3.5 0 0 0 7 14.5z"/><path d="M8 18h.01M12 18h.01M16 18h.01M10 21h.01M14 21h.01" stroke-width="2.4"/>',
+  fog:'<path d="M4 8h16M3 12h13M6 16h15M4 20h11"/>',
+  dusk:'<path d="M3 17h18M6.5 21h11"/><path d="M7.5 17a4.5 4.5 0 0 1 9 0"/><path d="M12 6.5v2.6M5 10l1.8 1.8M19 10l-1.8 1.8"/>',
+  night:'<path d="M20 14.6A8.2 8.2 0 1 1 9.4 4a6.6 6.6 0 0 0 10.6 10.6z"/>'
+};
 function renderNow(){
   const i=nowInfo(), tf=d=>d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}).toLowerCase();
   let head, sub=[];
@@ -963,7 +1011,10 @@ function renderNow(){
   if(i.w && typeof i.w.precip_chance_today==="number") sub.push("rain chance today "+Math.round(i.w.precip_chance_today)+"%");
   if(!i.manual){ if(i.w) sub.push("reading from "+(i.age<1?Math.max(1,Math.round(i.age*60))+" min":Math.round(i.age)+" h")+" ago"); else sub.push(i.age!==null?"weather reading is out of date":"weather not loaded"); }
   $("nowHead").textContent=head; $("nowSub").textContent=sub.join(" · ");
-  const k=lightKey(i); $("useLight").textContent="Show ideas for "+WHEN[k].toLowerCase(); $("useLight").dataset.k=k;
+  const k=lightKey(i); $("useLight").dataset.k=k;
+  $("useLight").textContent = state.when===k ? "Showing ideas for "+WHEN[k].toLowerCase()+" ✓ Tap to show all" : "Show ideas for "+WHEN[k].toLowerCase();
+  const ik = i.phase==="night" ? "night" : (i.sky || (i.phase==="dusk"||i.phase==="gold" ? "dusk" : "sun"));
+  $("nowIco").innerHTML='<svg viewBox="0 0 24 24">'+(WX_ICON[ik]||WX_ICON.sun)+'</svg>';
   $("useLight").setAttribute("aria-pressed", state.when===k);
 }
 const store = {
@@ -989,6 +1040,7 @@ function matches(savedOnly){
 function show(id){
   if(state.current && state.current!==id){ state.history.push(state.current); if(state.history.length>40) state.history.shift(); }
   state.current=id; state.tab="idea";
+  const c=document.getElementById("card"); if(c){ c.classList.remove("swap"); void c.offsetWidth; c.classList.add("swap"); }
 }
 function pick(){
   const m = matches(false); if(!m.length){ state.current=null; return; }
