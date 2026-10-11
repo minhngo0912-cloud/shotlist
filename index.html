@@ -1285,22 +1285,27 @@ const FOLLOW = [
  ["Daniel Arnold",IG("arnold_daniel"),"Close, funny, unposed Manhattan crowds.","moment odd"],
  ["Andre D. Wagner",IG("photodre"),"Black-and-white Brooklyn and subway life. Watch the hands and gestures.","moment mood"],
  ["Melissa O'Shaughnessy",IG("melissaoshaughnessy"),"Fifth Avenue and Midtown pavements in layered colour.","energy place"],
- ["Joel Meyerowitz",IG("joel_meyerowitz"),"New York colour street since the 1960s, with his thinking in the captions.","place energy"],
  ["Phil Penman",IG("philpenman"),"Black-and-white New York in snow, steam and rain, shot on Leica.","mood place"],
- ["Joe Greer",IG("ioegreer"),"Colour, hard light and long shadows in Manhattan.","mood"],
- ["Jeff Mermelstein",IG("jeffmermelstein"),"Odd details and small dramas on New York pavements.","odd"],
- ["Alex Webb and Rebecca Norris Webb",IG("webb_norriswebb"),"The reference for complex, layered colour frames.","energy"],
- ["Matt Stuart",IG("mattu1"),"London, not New York, but the best for timing and visual jokes.","odd moment"],
+ ["Joe Greer",IG("ioegreer"),"Saturated colour, hard light and deep shadow in Manhattan.","mood place"],
+ ["Jonathan Higbee","https://www.jonathanhigbee.com","His Coincidences series lines passers-by up with billboards and murals in Manhattan.","odd place"],
+ ["Dina Litovsky",IG("dina_litovsky"),"New York social life in colour and flash.","energy"],
+ ["Nina Welch-Kling",IG("ninakling"),"Graphic shadows and bold blocks of colour in Manhattan.","odd mood"],
+ ["Aaron Berger",IG("aaronbergerfoto"),"Tight, close colour frames on New York pavements.","moment energy"],
+ ["Paulie B",IG("paulie.b"),"Everyday New York at close range, by the maker of Walkie Talkie.","moment energy"],
+ ["Faizal Westcott",IG("westcott"),"Cinematic colour in New York. He explains his process on YouTube.","place mood"],
+ ["Craig Whitehead",IG("sixstreetunder"),"Colour and layers, shot through glass, gaps and reflections.","mood"],
+ ["Pau Buscató",IG("paubuscato"),"Visual puns and coincidences.","odd"],
+ ["Shin Noguchi",IG("shinnoguchiphotos"),"Quiet, funny everyday moments in Tokyo.","moment odd"],
+ ["Alan Schaller",IG("alan_schaller"),"High-contrast graphic black-and-white on Leica, strong on geometry and scale.","place"],
  ["NYC Street Photography Collective",IG("nycspc"),"Work by local members, plus their shows and walks.",""],
  ["Women Street Photographers",IG("womenstreetphotographers"),"Curated daily, with a yearly New York exhibition.",""],
- ["Magnum Photos",IG("magnumphotos"),"Archive and current work, with the story behind each picture.",""],
  ["Street Photography International",IG("streetphotographyinternational"),"Broad daily curation from around the world.",""],
- ["Walkie Talkie by Paulie B (YouTube)","https://www.youtube.com/results?search_query=Paulie+B+Walkie+Talkie","He walks New York with a different street photographer each episode while they shoot.",""]
+ ["Walkie Talkie by Paulie B (YouTube)","https://www.youtube.com/@PaulieB","He walks New York with a different street photographer each episode while they shoot.",""]
 ];
 const followFor = i => FOLLOW.filter(f=>f[3].split(" ").includes(i));
 const followLink = f => '<a class="chip" href="'+esc(f[1])+'" target="_blank" rel="noopener">'+esc(f[0])+' ↗</a>';
-const followIdea = i => { const l=followFor(i); return l.length ? '<div class="part"><span class="label">See how others do it</span><div class="callinks">'+l.map(followLink).join("")+'</div></div>' : ""; };
-const followAll = () => '<details class="syncbox followbox"><summary>Photographers to follow</summary><div class="syncbody"><p class="hint">These open Instagram or YouTube. The photos stay with the photographers.</p><ul class="follow">'+
+const followIdea = i => { const l=followFor(i).slice(0,3); return l.length ? '<div class="part"><span class="label">See how others do it</span><div class="callinks">'+l.map(followLink).join("")+'</div></div>' : ""; };
+const followAll = () => '<details class="syncbox followbox"><summary>Photographers to follow</summary><div class="syncbody"><p class="hint">These open Instagram, YouTube or the photographer's own site. The photos stay with the photographers.</p><ul class="follow">'+
   FOLLOW.map(f=>'<li><a href="'+esc(f[1])+'" target="_blank" rel="noopener"><b>'+esc(f[0])+' ↗</b></a><span>'+esc(f[2])+'</span>'+
     (f[3]?'<span class="tags">'+f[3].split(" ").map(i=>'<span class="tag"><span class="dot" style="background:'+INTENTS[i].color+'"></span>'+INTENTS[i].name+'</span>').join("")+'</span>':'')+'</li>').join("")+'</ul></div></details>';
 /* Live event updates. A weekly scheduled task writes confirmed dates and newly found events to the
