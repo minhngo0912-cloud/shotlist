@@ -231,6 +231,10 @@ footer{font-size:13px;color:var(--muted);max-width:65ch}
 .group-head{background:var(--sign);color:var(--sign-fg);border-bottom:0}
 .group .where,.group-head .dist{color:var(--sign-muted)}
 .cal small{color:var(--red)}
+.lightline{grid-column:2/-1;grid-row:3;margin:2px 0 0;font-size:14px;color:var(--fg);max-width:60ch}
+.now-ico{grid-row:1/4}
+.now.glow{border-color:var(--yellow);box-shadow:inset 0 0 0 1px var(--yellow)}
+.now.glow .lightline{font-weight:700}
 .callinks{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
 .callinks .chip{text-decoration:none}
 .event .t .etag{display:block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:1px}
@@ -267,6 +271,7 @@ footer{font-size:13px;color:var(--muted);max-width:65ch}
       <option value="auto">Auto</option><option value="sun">Bright sun</option><option value="cloud">Overcast</option><option value="rain">Rain</option><option value="fog">Fog</option><option value="snow">Snow</option><option value="dusk">Dusk</option><option value="night">Night</option>
     </select>
     <button type="button" class="chip" id="useLight" aria-pressed="false"></button>
+    <p class="lightline" id="lightLine" hidden></p>
   </section>
 
   <section class="filters" id="filters" aria-label="Filters">
@@ -981,6 +986,38 @@ function sunTimes(date,lat,lon){
   const fromJ=j=>new Date((j+0.5-J1970)*dayMs);
   return [fromJ(Jrise),fromJ(Jset)];
 }
+// Times when the sun crosses a given altitude (degrees) on the day around `date`: [morning, evening].
+function sunAlt(date,lat,lon,alt){
+  const rad=Math.PI/180, dayMs=864e5, J1970=2440588, J2000=2451545;
+  const lw=-lon*rad, phi=lat*rad, d=date/dayMs-0.5+J1970-J2000;
+  const n=Math.round(d-0.0009-lw/(2*Math.PI)), ds=0.0009+lw/(2*Math.PI)+n;
+  const M=rad*(357.5291+0.98560028*ds), C=rad*(1.9148*Math.sin(M)+0.02*Math.sin(2*M)+0.0003*Math.sin(3*M));
+  const L=M+C+rad*102.9372+Math.PI, dec=Math.asin(Math.sin(L)*Math.sin(rad*23.4397));
+  const Jnoon=J2000+ds+0.0053*Math.sin(M)-0.0069*Math.sin(2*L);
+  const x=(Math.sin(alt*rad)-Math.sin(phi)*Math.sin(dec))/(Math.cos(phi)*Math.cos(dec)); if(x<-1||x>1) return null;
+  const w=Math.acos(x), Jset=J2000+0.0009+(w+lw)/(2*Math.PI)+n+0.0053*Math.sin(M)-0.0069*Math.sin(2*L), Jrise=Jnoon-(Jset-Jnoon);
+  const fromJ=j=>new Date((j+0.5-J1970)*dayMs);
+  return [fromJ(Jrise),fromJ(Jset)];
+}
+// Good-light windows: golden hour is the sun between 6° above and 4° below the horizon, blue hour between 4° and 6° below.
+function lightWindows(t){
+  const c=CITIES[state.city]; if(typeof c.lat!=="number") return [];
+  const out=[]; for(const day of [t, new Date(+t+864e5)]){
+    const hi=sunAlt(day,c.lat,c.lon,6), lo=sunAlt(day,c.lat,c.lon,-4), bl=sunAlt(day,c.lat,c.lon,-6); if(!hi||!lo||!bl) continue;
+    out.push({k:"blue",name:"Blue hour",s:bl[0],e:lo[0]},{k:"gold",name:"Golden hour",s:lo[0],e:hi[0]},{k:"gold",name:"Golden hour",s:hi[1],e:lo[1]},{k:"blue",name:"Blue hour",s:lo[1],e:bl[1]});
+  }
+  return out.sort((a,b)=>a.s-b.s);
+}
+function lightLine(i){
+  const t=i.t, ws=lightWindows(t), tf=d=>d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}).toLowerCase();
+  const cur=ws.find(w=>w.s<=t&&t<w.e), next=ws.find(w=>w.k==="gold"&&w.s>t); if(!cur&&!next) return {text:"",on:false};
+  const dull=/rain|cloud|fog|snow|storm/.test(i.sky||""), clear=/sun|partly/.test(i.sky||"");
+  if(cur){ const after=cur.k==="gold" ? ws.find(w=>w.k==="blue"&&w.s>=cur.e&&w.s-cur.e<6e5) : null;
+    return {on:true,text:cur.name+" now, until "+tf(cur.e)+"."+(after?" Blue hour follows until "+tf(after.e)+".":"")+(dull&&cur.k==="gold"?" Cloud is flattening it, so use the overcast ideas.":"")}; }
+  const mins=Math.round((next.s-t)/6e4), sameDay=next.s.toDateString()===t.toDateString();
+  const when = mins<60 ? "starts in "+mins+" min" : mins<360 ? "starts in "+Math.floor(mins/60)+" h "+(mins%60?(mins%60)+" min":"") : "";
+  return {on:false,text:"Golden hour "+(sameDay?"today ":"tomorrow ")+tf(next.s)+" to "+tf(next.e)+(when?", "+when.trim():"")+"."+
+    (mins<180 ? (dull?" Cloud is likely to flatten it.":clear?" The sky looks clear enough to be worth it.":"") : "")}; }
 function skyOf(w){
   const s=(String(w.condition||"")+" "+String(w.condition_text||"")).toLowerCase();
   if(/thunder|storm/.test(s)) return "storm";
@@ -1068,6 +1105,7 @@ function renderNow(){
   $("nowHead").textContent=head; $("nowSub").textContent=sub.join(" · ");
   const k=lightKey(i); $("useLight").dataset.k=k;
   $("useLight").textContent = state.when===k ? "Showing ideas for "+WHEN[k].toLowerCase()+" ✓ Tap to show all" : "Show ideas for "+WHEN[k].toLowerCase();
+  const ll=lightLine(i); $("lightLine").textContent=ll.text; $("lightLine").hidden=!ll.text; $("now").classList.toggle("glow",ll.on);
   const ik = i.phase==="night" ? "night" : (i.sky || (i.phase==="dusk"||i.phase==="gold" ? "dusk" : "sun"));
   $("nowIco").innerHTML='<svg viewBox="0 0 24 24">'+(WX_ICON[ik]||WX_ICON.sun)+'</svg>';
   $("useLight").setAttribute("aria-pressed", state.when===k);
