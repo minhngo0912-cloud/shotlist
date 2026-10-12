@@ -1402,7 +1402,7 @@ Object.assign(START_GEO, {"union": [40.7351, -73.9906], "fidi": [40.7071, -74.01
 function mapEvents(){ const now=new Date(), today=new Date(now.getFullYear(),now.getMonth(),now.getDate()), lim=new Date(today.getFullYear(),today.getMonth(),today.getDate()+42);
   return eventRows(today).filter(r=>r.o&&!r.cancelled&&r.o[0]<=lim).map(r=>{ const d=EVENT_DOCS[r.e.id], g=(d&&typeof d.lat==="number"&&typeof d.lon==="number"&&d.lat>40.4&&d.lat<41&&d.lon>-74.3&&d.lon<-73.6)?[d.lat,d.lon]:EVENT_GEO[r.e.id];
     if(!g) return null; const [x,y]=mapXY(g[0],g[1]); return {r,id:r.e.id,x,y,day:r.o[0]<=today?"Now":r.o[0].toLocaleDateString("en-US",{month:"short",day:"numeric"})}; }).filter(Boolean); }
-const MAP_ASPECT = 1.35, MAP_LIM = {x:[250,880], y:[70,860], w:[34,560]};
+let MAP_ASPECT = 1.35; const MAP_LIM = {x:[250,880], y:[70,860], w:[34,560]};
 const mapPreset = k => { if(k==="me"&&state.pos){ const [x,y]=mapXY(state.pos.lat,state.pos.lon); return {cx:x,cy:y,w:110}; }
   return k==="man" ? {cx:486,cy:386,w:196} : k==="bk" ? {cx:520,cy:500,w:250} : {cx:576,cy:462,w:492}; };
 const MAP_PRESETS = [["city","Whole city"],["man","Manhattan"],["bk","Downtown and Brooklyn"]];
@@ -1426,7 +1426,7 @@ function mapShell(box){
     mapTxt(40.787,-73.957,"MANHATTAN","m-boro",15,-61)+mapTxt(40.648,-73.95,"BROOKLYN","m-boro",22)+mapTxt(40.705,-73.825,"QUEENS","m-boro",22)+mapTxt(40.845,-73.86,"THE BRONX","m-boro",18)+mapTxt(40.585,-74.14,"STATEN ISLAND","m-boro",16)+mapTxt(40.765,-74.085,"NEW JERSEY","m-boro",15)+
     mapTxt(40.772,-74.004,"Hudson River","m-water",7,-62)+mapTxt(40.672,-74.045,"Upper Bay","m-water",8)+mapTxt(40.612,-73.845,"Jamaica Bay","m-water",8)+mapTxt(40.558,-73.905,"Atlantic Ocean","m-water",9)+mapTxt(40.7385,-73.9665,"East River","m-water",5,-68)+
     '<g id="mapDyn"></g></svg>'+
-    '<div class="mapscale" id="mapScale"></div><div class="mapbtns"><button type="button" data-zoom="0.6" aria-label="Zoom in">+</button><button type="button" data-zoom="1.6" aria-label="Zoom out">−</button><button type="button" data-fit="1" aria-label="Show the whole city" title="Whole city">⌂</button><button type="button" data-locate="1" aria-label="Find me on the map" title="Find me">◎</button></div></div>'+
+    '<div class="mapscale" id="mapScale"></div><div class="mapbtns"><button type="button" data-full="1" aria-label="Full screen map" title="Full screen"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="ico-open" d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/><path class="ico-close" d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5"/></svg></button><button type="button" data-zoom="0.6" aria-label="Zoom in">+</button><button type="button" data-zoom="1.6" aria-label="Zoom out">−</button><button type="button" data-fit="1" aria-label="Show the whole city" title="Whole city">⌂</button><button type="button" data-locate="1" aria-label="Find me on the map" title="Find me">◎</button></div></div>'+
     '<div id="mapPanel"></div>';
   mapGestures($("mapSvg"));
 }
@@ -1482,7 +1482,7 @@ function mapPts(){ const key=lightAt(mapNow()), ideas=cityIdeas().filter(i=>stat
   return Object.keys(CITIES[state.city].places).filter(id=>typeof PLACES[id].lat==="number").map(id=>{ const [x,y]=mapXY(PLACES[id].lat,PLACES[id].lon), mine=ideas.filter(i=>i.p===id);
     return {id,x,y,n:mine.length,fit:mine.filter(i=>i.w.includes(key)).length,done:mine.filter(i=>state.done.has(i.id)).length,empty:!mine.length}; }); }
 function mapDraw(){
-  const svg=$("mapSvg"); if(!svg||!mapV) return; const v=mapV, w=v.w, h=w*MAP_ASPECT, x0=v.cx-w/2, y0=v.cy-h/2, x1=x0+w, y1=y0+h, u=w/(svg.clientWidth||360), f=n=>n.toFixed(1);
+  const svg=$("mapSvg"); if(!svg||!mapV) return; const ar=svg.clientHeight/svg.clientWidth; if(ar>0.3&&ar<4) MAP_ASPECT=ar; const v=mapV, w=v.w, h=w*MAP_ASPECT, x0=v.cx-w/2, y0=v.cy-h/2, x1=x0+w, y1=y0+h, u=w/(svg.clientWidth||360), f=n=>n.toFixed(1);
   svg.setAttribute("viewBox",f(x0)+" "+f(y0)+" "+f(w)+" "+f(h));
   const pts=mapPts().filter(p=>p.x>x0-20*u&&p.x<x1+20*u&&p.y>y0-20*u&&p.y<y1+20*u), far=w>330, R=(far?7:11)*u, fs=(far?11:12)*u;
   // route of the current plan
@@ -1558,13 +1558,14 @@ function mapPanel(){
   $("mapZoom").innerHTML='<button type="button" class="chip evtoggle" data-toggle="ev" aria-pressed="'+!!state.mapShowEv+'"><span class="lg ev"></span>Events '+(state.mapShowEv?"on":"off")+'</button>'+MAP_PRESETS.concat(state.pos?[["me","Near me"]]:[]).map(z=>'<button type="button" class="chip" data-z="'+z[0]+'">'+z[1]+'</button>').join("");
   const evSel=state.mapShowEv&&state.mapEv&&mapEvents().find(e=>e.id===state.mapEv), hasEv=state.mapShowEv&&mapEvents().length;
   const mine=sel?cityIdeas().filter(i=>i.p===sel.id&&(state.mapIntent==="all"||i.i===state.mapIntent)).sort((a,b)=>b.w.includes(key)-a.w.includes(key)):[];
+  $("mapPanel").classList.toggle("hassel",!!(sel||evSel));
   $("mapPanel").innerHTML='<p class="msg maplegend"><span><span class="lg fit"></span>'+(state.mapIntent==="all"?"Ideas":INTENTS[state.mapIntent].name+" ideas")+' for the light now ('+esc(WHEN[key].toLowerCase())+')</span><span><span class="lg"></span>Other places</span><span><span class="lg prog"></span>Share you have shot</span><span><span class="lg stn"></span>Subway station</span><span><span class="lg sunny"></span>Sunny side of the street</span>'+(hasEv?'<span><span class="lg ev"></span>Events in the next 6 weeks</span>':'')+
       (state.plan?'<span><span class="lg route"></span>Your plan</span>':'')+(state.pos?'<span><span class="lg you"></span>You</span><span><span class="lg walk"></span>10 min walk from you</span>':'')+'</p>'+
-    (evSel ? '<section class="group mapsel"><div class="group-head"><b>'+esc(evSel.r.e.name)+'</b><span class="where">'+(EVENT_TYPES[evSel.r.e.type]?esc(EVENT_TYPES[evSel.r.e.type])+' · ':'')+esc(evSel.r.e.where||"")+'</span></div>'+
+    (evSel ? '<section class="group mapsel"><button type="button" class="mapselx" data-unsel="1" aria-label="Close">×</button><div class="group-head"><b>'+esc(evSel.r.e.name)+'</b><span class="where">'+(EVENT_TYPES[evSel.r.e.type]?esc(EVENT_TYPES[evSel.r.e.type])+' · ':'')+esc(evSel.r.e.where||"")+'</span></div>'+
         '<p class="mapcount"><b>'+evSel.r.o[0].toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})+(evSel.r.o[1]?' to '+evSel.r.o[1].toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"}):'')+'</b>'+(evSel.r.confirmed?' <span class="pill">Confirmed</span>':' (expected)')+(evSel.r.e.time?'<br>'+esc(evSel.r.e.time):'')+'</p>'+
         (evSel.r.e.why?'<p class="mapcount">'+esc(evSel.r.e.why)+'</p>':'')+
         '<div class="callinks"><button type="button" class="chip" data-event="'+esc(evSel.id)+'">Open in Events</button>'+(evSel.r.e.map?'<a class="chip" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(evSel.r.e.map[1])+'" target="_blank" rel="noopener">Google Maps ↗</a>':'')+'</div></section>' :
-    sel ? '<section class="group mapsel"><div class="group-head"><b>'+esc(pl.name)+(d?'<span class="dist">'+d+'</span>':'')+'</b>'+whereHtml(pl)+'</div>'+startHtml(sel.id).replace('class="start"','class="start mapstart"')+
+    sel ? '<section class="group mapsel"><button type="button" class="mapselx" data-unsel="1" aria-label="Close">×</button><div class="group-head"><b>'+esc(pl.name)+(d?'<span class="dist">'+d+'</span>':'')+'</b>'+whereHtml(pl)+'</div>'+startHtml(sel.id).replace('class="start"','class="start mapstart"')+
         '<p class="mapcount">'+sel.n+(sel.n===1?' idea':' ideas')+(state.mapIntent==="all"?'':' for '+INTENTS[state.mapIntent].name.toLowerCase())+' · '+sel.fit+(sel.fit===1?' suits':' suit')+' the light now · '+sel.done+' shot</p>'+
         mine.map(x=>'<button type="button" class="row'+(state.done.has(x.id)?" done":"")+'" data-id="'+x.id+'"><span class="dot" style="background:'+INTENTS[x.i].color+'"></span>'+
           '<span class="t"><b>'+esc(x.t)+'</b><span>'+esc(INTENTS[x.i].name)+(x.w.includes(key)?' · suits the light now':'')+'</span></span><span class="go" aria-hidden="true">›</span></button>').join("")+
@@ -1572,9 +1573,16 @@ function mapPanel(){
       : '<p class="lead">Tap a pin to see the place and its ideas, or pick one from the list above. Drag to move the map, pinch or use + and − to zoom, double-tap to zoom in. ⌂ shows the whole city and ◎ finds you.</p>')+
     '<p class="msg">Zoom in for neighbourhoods, streets, landmarks and upcoming events, and zoom in close for the starting point of each place. The number on a pin is how many of its ideas suit the light now. Streets, parks and landmarks are approximate, so use Start at on a place for real directions. On the subway has no pin because it is everywhere.</p>';
 }
-function mapSelectEv(id){ state.mapEv=id; state.mapSel=null; mapDraw(); mapPanel(); }
-function mapSelect(id){ state.mapSel=id; state.mapEv=null; mapDraw(); mapPanel(); if(id){ const p=mapPts().find(q=>q.id===id), h=mapV.w*MAP_ASPECT;
-  if(p && (Math.abs(p.x-mapV.cx)>mapV.w*0.38 || Math.abs(p.y-mapV.cy)>h*0.38)) mapFly({cx:p.x,cy:p.y,w:mapV.w}); } }
+function mapFull(on){ state.mapFull=on; const m=$("map"); m.classList.toggle("full",on); document.body.classList.toggle("mapfull",on);
+  const b=m.querySelector("[data-full]"); if(b){ b.setAttribute("aria-label",on?"Leave full screen":"Full screen map"); b.title=on?"Leave full screen":"Full screen"; }
+  try{ if(on&&document.fullscreenEnabled&&!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{}); else if(!on&&document.fullscreenElement) document.exitFullscreen().catch(()=>{}); }catch(e){}
+  requestAnimationFrame(()=>{ mapDraw(); }); }
+document.addEventListener("fullscreenchange",()=>{ if(!document.fullscreenElement&&state.mapFull) mapFull(false); });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&state.mapFull) mapFull(false); });
+function mapSelectEv(id){ state.mapEv=id; state.mapSel=null; mapDraw(); mapPanel(); if(state.mapFull) requestAnimationFrame(mapDraw); }
+function mapSelect(id){ state.mapSel=id; state.mapEv=null; mapDraw(); mapPanel(); if(id){ const fly=()=>{ const p=mapPts().find(q=>q.id===id), h=mapV.w*MAP_ASPECT;
+  if(p && (Math.abs(p.x-mapV.cx)>mapV.w*0.38 || Math.abs(p.y-mapV.cy)>h*0.38)) mapFly({cx:p.x,cy:p.y,w:mapV.w}); };
+  if(state.mapFull) requestAnimationFrame(()=>{ mapDraw(); fly(); }); else fly(); } else if(state.mapFull) requestAnimationFrame(mapDraw); }
 function mapGestures(svg){
   const ptr=new Map(); let g=null, lastTap=0, raf=0;
   const redraw=()=>{ if(!raf) raf=requestAnimationFrame(()=>{ raf=0; mapDraw(); }); };
@@ -1742,6 +1750,8 @@ $("syncImport").addEventListener("click",()=>{ const r=syncImport($("syncCode").
   msg.textContent=(r.s+r.d+r.n) ? "Imported: "+r.s+" saved, "+r.d+" shot and "+r.n+" notes added." : "Nothing new: this device already has everything in that code.";
   $("syncCode").value=""; render(); });
 $("map").addEventListener("click",e=>{
+  if(e.target.closest("[data-full]")){ mapFull(!state.mapFull); return; }
+  if(e.target.closest("[data-unsel]")){ mapSelect(null); return; }
   const ap=e.target.closest("[data-addplan]"); if(ap){ planAdd(ap.dataset.addplan); mapPanel(); mapDraw(); return; }
   const rp=e.target.closest("[data-rmplan]"); if(rp){ planRemove(rp.dataset.rmplan); mapPanel(); mapDraw(); return; }
   const sc=e.target.closest("[data-stop]"); if(sc){ mapGoStop(+sc.dataset.stop); return; }

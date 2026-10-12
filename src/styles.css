@@ -360,3 +360,22 @@ footer{font-size:13px;color:var(--muted);max-width:65ch}
   .sign.swap{animation:rise .24s ease-out}
   @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 }
+
+/* Full-screen map: the map fills the screen with the place search on top and the time slider below; a tapped place opens as a sheet over the map */
+.mapbtns button[data-full] svg{width:22px;height:22px;display:block;margin:auto;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.mapbtns button[data-full] .ico-close{display:none} #map.full .mapbtns button[data-full] .ico-open{display:none} #map.full .mapbtns button[data-full] .ico-close{display:inline}
+.mapselx{display:none}
+body.mapfull{overflow:hidden}
+#map.full{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;gap:6px;background:var(--bg);padding:max(8px,env(safe-area-inset-top,0px)) max(8px,env(safe-area-inset-right,0px)) max(8px,env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px));overscroll-behavior:contain}
+#map.full .mapgo{margin:0;order:1}
+#map.full #mapIntent,#map.full #mapZoom,#map.full #mapPlan{display:none}
+#map.full .mapwrap{order:2;flex:1;min-height:0;margin:0;border-radius:12px}
+#map.full .mapsvg{aspect-ratio:auto;height:100%}
+#map.full .sunbar{order:4;margin:0;padding:6px 10px}
+#map.full .wxlegend,#map.full .wxsum{display:none}
+#map.full .sunline{margin:4px 0 0;max-height:1.4em;overflow:hidden;font-size:13px}
+#map.full #mapPanel{display:none}
+#map.full #mapPanel.hassel{display:block;order:3;flex:0 1 auto;max-height:44%;overflow:auto;border-radius:14px;border:1px solid var(--line);background:var(--bg)}
+#map.full #mapPanel.hassel>.msg,#map.full #mapPanel.hassel>.lead{display:none}
+#map.full #mapPanel .mapsel{margin:0;position:relative}
+#map.full .mapselx{display:block;position:absolute;right:6px;top:6px;z-index:1;width:36px;height:36px;border:0;border-radius:18px;background:rgba(255,255,255,.16);color:var(--sign-fg);font-size:22px;line-height:1;cursor:pointer}

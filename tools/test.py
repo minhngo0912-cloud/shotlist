@@ -115,6 +115,18 @@ def run(path, name):
         else:
             check("Explains where the hourly forecast is", "installed app" in pg.evaluate("document.getElementById('wxBar').textContent"))
         no_overflow("Map"); shot("map")
+        # Full screen
+        pg.evaluate("mapSelect(null)"); pg.click("[data-full]"); pg.wait_for_timeout(300)
+        shot("map-full-empty")
+        fs=pg.evaluate("(()=>{const r=document.getElementById('mapSvg').getBoundingClientRect(); return [document.getElementById('map').classList.contains('full'), Math.round(r.width), Math.round(r.height)]})()")
+        check("Full screen map fills the screen", fs[0] and fs[1]>=370 and fs[2]>=600, fs)
+        pg.evaluate("mapSelect('union')"); pg.wait_for_timeout(200)
+        check("Full screen shows a tapped place as a sheet", pg.evaluate("getComputedStyle(document.getElementById('mapPanel')).display")=="block")
+        shot("map-full")
+        pg.click("[data-unsel]"); pg.wait_for_timeout(100)
+        check("Sheet closes", pg.evaluate("getComputedStyle(document.getElementById('mapPanel')).display")=="none")
+        pg.click("[data-full]"); pg.wait_for_timeout(300)
+        check("Leaving full screen restores the map", pg.evaluate("!document.getElementById('map').classList.contains('full') && Math.abs(MAP_ASPECT-1.35)<0.02"), pg.evaluate("MAP_ASPECT"))
         # Learn
         pg.click("#vLearn"); pg.wait_for_timeout(150)
         pg.evaluate("document.querySelectorAll('details.lesson').forEach(d=>d.open=true)"); pg.wait_for_timeout(100)
