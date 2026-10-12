@@ -148,6 +148,9 @@ select{width:100%;min-height:44px;padding:0 10px;border:1.5px solid var(--line);
 .d-tx{fill:var(--sign-muted);font:600 7px var(--sans);letter-spacing:.02em}
 .d-feat{fill:none;stroke:var(--sign);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .d-rip{fill:none;stroke:var(--sign);stroke-width:1.8}
+.d-guide{fill:none;stroke:var(--yellow);stroke-width:1.1;stroke-dasharray:3 2;stroke-linecap:round} .d-guide.solid{stroke-dasharray:none;stroke-width:1.4}
+.d-gdot{fill:var(--yellow)} .d-gtx{fill:var(--yellow);font:700 6.5px var(--sans);letter-spacing:.02em;paint-order:stroke;stroke:var(--sign);stroke-width:2px}
+.d-edgeline{fill:none;stroke:#c9a400;stroke-width:1.6}
 .d-frame{fill:none;stroke:var(--sign-fg);stroke-width:2} .d-edge{fill:none;stroke:var(--sign-line);stroke-width:2}
 
 .bar{position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px))}
@@ -872,6 +875,131 @@ const STANCE = {
 };
 // Drawings made for one specific idea, used instead of the shared stance or technique drawing.
 const dTx = (x,y,t,anchor="start") => '<text x="'+x+'" y="'+y+'" text-anchor="'+anchor+'" class="d-tx">'+t+'</text>';
+/* Composition illustrations: small street scenes in greys, the subject in white, and a yellow guide layer that shows the technique. viewBox 0 0 150 100. */
+const n1 = v => (+v).toFixed(1);
+// A walking figure standing on (x,y), h tall; f=-1 faces left
+const dW = (x,y,h,c="d-fg",f=1) => { const p=(a,b)=>n1(x+a*h*f)+" "+n1(y+b*h);
+  return '<g class="'+c+'"><circle cx="'+n1(x+0.02*h*f)+'" cy="'+n1(y-0.895*h)+'" r="'+n1(0.088*h)+'"/>'+
+    '<path d="M'+p(-0.1,-0.79)+'L'+p(0.09,-0.79)+'L'+p(0.12,-0.6)+'L'+p(0.2,-0.47)+'L'+p(0.16,-0.44)+'L'+p(0.11,-0.5)+'L'+p(0.12,-0.43)+'L'+p(0.21,0)+'L'+p(0.12,0)+'L'+p(0.01,-0.3)+'L'+p(-0.1,0)+'L'+p(-0.2,0)+'L'+p(-0.1,-0.43)+'L'+p(-0.12,-0.62)+'L'+p(-0.19,-0.47)+'L'+p(-0.23,-0.5)+'L'+p(-0.14,-0.72)+'Z"/></g>'; };
+const gL = d => '<path d="'+d+'" class="d-guide"/>';
+const gT = (x,y,t,a="start") => '<text x="'+x+'" y="'+y+'" text-anchor="'+a+'" class="d-gtx">'+t+'</text>';
+const gDot = (x,y,r=1.8) => '<circle cx="'+x+'" cy="'+y+'" r="'+r+'" class="d-gdot"/>';
+const gArrow = (x1,y1,x2,y2) => { const a=Math.atan2(y2-y1,x2-x1), q=(d,l)=>n1(x2+l*Math.cos(a+d))+" "+n1(y2+l*Math.sin(a+d));
+  return '<path d="M'+x1+' '+y1+' L'+x2+' '+y2+'" class="d-guide solid"/><path d="M'+x2+' '+y2+' L'+q(2.6,5)+' L'+q(-2.6,5)+' Z" class="d-gdot"/>'; };
+
+const NEW_TECH_ART = {};
+
+// Leading lines: a street receding to a vanishing point with the subject on it
+(()=>{ const V=[98,47]; let s='<rect width="150" height="100" class="d-hole"/>';
+  s+='<path d="M0 0 H86 V50 L0 90 Z" class="d-bg"/><path d="M150 0 H108 V49 L150 80 Z" class="d-bg"/>';
+  s+='<path d="M86 0 H108 V44 H86 Z" class="d-mu" opacity=".22"/>';
+  s+='<path d="M0 90 L86 50 L108 49 L150 80 V100 H0 Z" class="d-mu" opacity=".16"/>';
+  for(const y0 of [12,26,40,54,68]){ const y1=y0+(V[1]-y0)*86/98; s+='<path d="M0 '+y0+' L86 '+n1(y1)+'" class="d-feat" style="stroke-width:.8"/>'; }
+  for(const y0 of [14,28,42,56,70]){ const y1=y0+(V[1]-y0)*42/52; s+='<path d="M150 '+y0+' L108 '+n1(y1)+'" class="d-feat" style="stroke-width:.8"/>'; }
+  for(const x of [22,44,62,76]) s+='<path d="M'+x+' 0 V'+n1(90-40*x/86)+'" class="d-feat" style="stroke-width:.6"/>';
+  for(const x of [140,128,118]) s+='<path d="M'+x+' 0 V'+n1(80-31*(150-x)/42)+'" class="d-feat" style="stroke-width:.6"/>';
+  s+=dW(98,51,11);
+  s+=gL("M3 99 L93 52 M147 99 L103 52 M48 99 L95 53 M122 99 L101 53")+gDot(98,45,2.4)+gT(92,40,"vanishing point","end");
+  NEW_TECH_ART.lines=s; })();
+
+// Frame within a frame: a dark arch opening onto a bright street
+(()=>{ let s='<rect width="150" height="100" class="d-bg"/>';
+  for(let y=8;y<100;y+=8){ s+='<path d="M0 '+y+' H150" class="d-feat" style="stroke-width:.5"/>'; for(let x=(y/8)%2?0:10;x<150;x+=20) s+='<path d="M'+x+' '+(y-8)+' V'+y+'" class="d-feat" style="stroke-width:.5"/>'; }
+  s+='<path d="M44 100 V46 A31 31 0 0 1 106 46 V100 Z" class="d-mu"/>';
+  s+='<path d="M48 100 V66 H58 V50 H70 V62 H84 V44 H96 V58 H102 V100 Z" class="d-bg" opacity=".55"/>';
+  s+='<path d="M44 86 H106" class="d-feat" style="stroke-width:.8"/>';
+  s+=dW(78,94,30,"d-hole");
+  s+=gL("M39 100 V46 A36 36 0 0 1 111 46 V100")+gT(75,7,"the frame","middle");
+  NEW_TECH_ART.frame=s; })();
+
+// Layers: near, middle and far, all overlapping
+(()=>{ let s='<rect width="150" height="100" class="d-hole"/>';
+  s+='<path d="M0 50 V22 H18 V12 H40 V30 H62 V18 H86 V34 H112 V8 H134 V26 H150 V50 Z" class="d-bg"/>';
+  s+='<path d="M0 50 H150 V100 H0 Z" class="d-mu" opacity=".14"/>';
+  s+=dW(122,62,13,"d-mu");
+  s+=dW(80,86,34);
+  s+=dW(10,150,110,"d-mu");
+  s+=gT(16,96,"near","middle")+gT(80,96,"middle","middle")+gT(122,70,"far","middle");
+  s+=gL("M2 6 H148")+gT(4,5,"","");
+  NEW_TECH_ART.layers=s.replace(gL("M2 6 H148"),""); })();
+
+// Negative space: a big plain wall and a small figure walking into it
+(()=>{ let s='<rect width="150" height="100" class="d-hole"/><rect width="150" height="74" class="d-bg"/>';
+  s+='<path d="M0 74 H150" class="d-ln"/>';
+  s+='<path d="M120 90 L82 98 L124 92 Z" class="d-bg" opacity=".8"/>';
+  s+=dW(124,90,17,"d-fg",-1);
+  s+=gL("M8 8 H104 V66 H8 Z")+gT(56,40,"space to walk into","middle")+gArrow(112,80,96,80);
+  NEW_TECH_ART.space=s; })();
+
+// Symmetry: a subway platform, columns receding in pairs, the figure on the axis
+(()=>{ let s='<rect width="150" height="100" class="d-hole"/>';
+  s+='<path d="M0 0 H150 L88 38 H62 Z" class="d-bg" opacity=".7"/><path d="M0 100 H150 L88 54 H62 Z" class="d-mu" opacity=".16"/>';
+  s+='<path d="M20 100 L64 54 M130 100 L86 54" class="d-guide solid" style="stroke-width:1.6;stroke-dasharray:none"/>';
+  for(const t of [0,0.32,0.54,0.7,0.81,0.88]){ const k=1-t, w=8*k, xl=75-62*k, top=46-44*k, bot=46+50*k;
+    s+='<rect x="'+n1(xl-w/2)+'" y="'+n1(top)+'" width="'+n1(w)+'" height="'+n1(bot-top)+'" class="d-mu"/><rect x="'+n1(150-xl-w/2)+'" y="'+n1(top)+'" width="'+n1(w)+'" height="'+n1(bot-top)+'" class="d-mu"/>'; }
+  s+=dW(75,74,22);
+  s+=gL("M75 2 V98")+gT(78,8,"centre line");
+  NEW_TECH_ART.sym=s.replace('class="d-guide solid" style="stroke-width:1.6;stroke-dasharray:none"','class="d-edgeline"'); })();
+
+// Fill the frame: a face and hat so close the edges cut them
+(()=>{ let s='<rect width="150" height="100" class="d-bg"/>';
+  s+='<path d="M8 104 Q14 76 50 70 L58 60 H96 L102 70 Q138 76 144 104 Z" class="d-mu"/>';
+  s+='<ellipse cx="77" cy="44" rx="28" ry="32" class="d-fg"/>';
+  s+='<path d="M30 22 Q77 8 124 22 L118 28 Q77 18 36 28 Z" class="d-hole"/><path d="M48 23 Q50 -4 77 -4 Q104 -4 106 23 Z" class="d-hole"/>';
+  s+='<ellipse cx="66" cy="44" rx="4.2" ry="2.4" class="d-hole"/><ellipse cx="88" cy="44" rx="4.2" ry="2.4" class="d-hole"/>';
+  s+='<path d="M60 37 Q66 34 72 36 M82 36 Q88 34 94 37 M78 47 L80 57 L74 58 M68 65 Q77 69 86 65" class="d-feat"/>';
+  s+=gL("M3 14 V3 H14 M136 3 H147 V14 M147 86 V97 H136 M14 97 H3 V86")+gT(75,96,"crop at the edges","middle");
+  NEW_TECH_ART.fill=s; })();
+
+// Rule of thirds: subject on a third line, looking into the open two thirds
+(()=>{ let s='<rect width="150" height="100" class="d-hole"/>';
+  s+='<path d="M0 66.6 V30 H22 V40 H40 V20 H70 V36 H96 V14 H124 V32 H150 V66.6 Z" class="d-bg"/>';
+  for(const [x,y] of [[26,46],[46,30],[54,30],[46,40],[76,44],[84,44],[104,22],[112,22],[104,32],[112,32],[130,40],[138,40]]) s+='<rect x="'+x+'" y="'+y+'" width="4" height="5" class="d-mu" opacity=".5"/>';
+  s+='<path d="M0 66.6 H150 V100 H0 Z" class="d-mu" opacity=".14"/>';
+  s+=dW(50,90,34);
+  s+=gL("M50 0 V100 M100 0 V100 M0 33.3 H150 M0 66.6 H150")+gDot(50,33.3)+gDot(100,33.3)+gDot(50,66.6)+gDot(100,66.6)+gArrow(60,56,90,56);
+  NEW_TECH_ART.thirds=s; })();
+
+// Juxtaposition: a billboard hand pointing at a real passer-by
+(()=>{ let s='<rect width="150" height="100" class="d-hole"/><rect x="0" y="0" width="150" height="74" class="d-bg"/>';
+  s+='<rect x="10" y="6" width="96" height="52" rx="2" class="d-mu"/><path d="M58 58 V74 M62 58 V74" class="d-ln"/>';
+  s+='<path d="M22 22 Q20 12 32 12 H52 Q60 12 60 20 V24 H82 Q90 24 90 30 Q90 36 82 36 H64 L92 50 Q96 54 92 57 Q89 59 85 56 L56 42 Q42 46 32 42 Q22 38 22 22 Z" class="d-hole"/>';
+  s+='<path d="M0 74 H150" class="d-ln"/>';
+  s+=dW(118,92,28,"d-fg",-1);
+  s+=gL("M94 56 Q110 60 116 64")+gDot(116,64,2)+gT(146,14,"the echo","end");
+  NEW_TECH_ART.juxta=s; })();
+
+// Diagonals: a stair running corner to corner with climbers
+(()=>{ let s='<rect width="150" height="100" class="d-hole"/>';
+  let st='M0 100 V92'; let x=0,y=92; while(x<150){ x+=10; st+=' H'+x; y-=6; st+=' V'+y; } st+=' V100 Z';
+  s+='<path d="'+st+'" class="d-bg"/>';
+  s+='<path d="M0 72 L150 -18" class="d-ln"/><path d="M0 76 V92 M40 52 V68 M80 28 V44 M120 4 V20" class="d-ln" style="stroke-width:1"/>';
+  s+=dW(30,74,26)+dW(72,49,20,"d-mu")+dW(108,27,15,"d-mu");
+  s+=gL("M4 97 L146 12")+gT(146,95,"corner to corner","end");
+  NEW_TECH_ART.diag=s; })();
+
+// Reflection: lit buildings repeated in a puddle, the figure standing on the line
+(()=>{ const top='<rect x="8" y="12" width="22" height="40" class="d-bg"/><rect x="34" y="4" width="26" height="48" class="d-bg"/><rect x="100" y="8" width="20" height="44" class="d-bg"/><rect x="124" y="20" width="22" height="32" class="d-bg"/>'+
+    [[12,18],[20,18],[12,28],[20,36],[38,10],[48,10],[38,22],[48,30],[38,40],[104,14],[112,24],[104,34],[128,26],[136,36]].map(([x,y])=>'<rect x="'+x+'" y="'+y+'" width="5" height="5" class="d-mu"/>').join("")+
+    dW(80,52,26)+'<path d="M66 22 Q80 10 94 22 Z" class="d-fg"/><path d="M80 22 V30" class="d-ln"/>';
+  let s='<rect width="150" height="100" class="d-hole"/>'+top;
+  s+='<g transform="translate(0,104) scale(1,-1)" opacity=".42">'+top+'</g>';
+  s+='<path d="M0 52 H150 V100 H0 Z" class="d-mu" opacity=".08"/>';
+  for(const [x,y,w] of [[10,62,30],[50,70,22],[96,66,34],[20,82,26],[70,88,40],[110,80,24]]) s+='<path d="M'+x+' '+y+' h'+w+'" class="d-rip" style="stroke:var(--sign);stroke-width:1.4"/>';
+  s+=gL("M0 52 H150")+gT(4,49,"the waterline");
+  NEW_TECH_ART.reflect=s; })();
+
+// Light as subject: a shaft of light between towers, one figure inside it
+(()=>{ let s='<rect width="150" height="100" class="d-hole"/>';
+  s+='<path d="M0 0 H54 V70 L0 92 Z" class="d-bg"/><path d="M150 0 H92 V64 L150 84 Z" class="d-bg"/>';
+  s+='<path d="M54 0 H92 L120 82 H70 Z" class="d-fg" opacity=".1"/>';
+  s+='<path d="M60 82 H128 L118 96 H52 Z" class="d-fg"/>';
+  s+='<path d="M92 92 L60 99 L96 93 Z" class="d-hole"/>';
+  s+=dW(92,92,26,"d-hole");
+  s+=gL("M48 78 H134 V100 H48 Z")+gT(45,88,"expose","end")+gT(45,95,"for this","end");
+  NEW_TECH_ART.light=s; })();
+
+Object.assign(TECH_ART, NEW_TECH_ART);
 const WORK_ART = {
   "tsq-moment":["Top view","Stand between the subway stairs and the screens, facing the stairs. People look up at the screens behind you as they reach the street.",
     '<rect x="40" y="6" width="40" height="28" class="d-bg"/><path d="M40 13 H80 M40 20 H80 M40 27 H80" class="d-dash"/>'+
