@@ -331,6 +331,15 @@ footer{font-size:13px;color:var(--muted);max-width:65ch}
 .mapbtns{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.4)}
 .mapbtns button{width:44px;height:44px;border:0;background:rgba(20,22,26,.88);color:#fff;font-size:24px;font-weight:600;line-height:1;cursor:pointer}
 .mapbtns button+button{border-top:1px solid #3a3c42}
+.m-sunny{fill:none;stroke:var(--yellow);opacity:.55;stroke-linecap:round;pointer-events:none}
+.maplegend .lg.sunny{width:16px;height:0;border:0;border-top:3px solid var(--yellow);border-radius:0;background:none}
+.m-stop rect{fill:var(--yellow);stroke:#14161a} .m-stop text{fill:#14161a;font-family:var(--sans);font-weight:800} .m-stop.next rect{fill:#fff}
+.planbar{margin-top:10px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+.planbar-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-bottom:8px} .planbar-head span{color:var(--muted);font-size:14px;flex:1}
+.planbar-head .chip{min-height:36px} .planstops{margin-inline:0;padding-inline:0}
+.stopchip{min-height:38px;font-size:14px} .stopn{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:5px;background:var(--yellow);color:var(--on-yellow);font-size:12px;font-weight:800}
+.stopchip.next{border-color:var(--fg)} .planhint{margin:10px 0 0} .instop{align-self:center}
+.chip.primary{background:var(--yellow);border-color:var(--yellow);color:var(--on-yellow)}
 .sunbar{margin-top:10px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
 .sunrow{display:flex;gap:10px;align-items:center} .sunrow input{flex:1;accent-color:var(--yellow);height:30px} .sunrow .chip{min-height:36px}
 .sunline{margin:6px 0 0;font-size:14px;line-height:1.45} .sunrs{color:var(--muted)}
@@ -1872,7 +1881,7 @@ function mapShell(box){
   const streets=MAP_STREETS.map(st=>'M'+st[2].map(c=>mapXY(c[0],c[1]).map(n=>n.toFixed(1)).join(" ")).join("L")).join("");
   const bridges=[[[40.7085,-73.9998],[40.7042,-73.9938]],[[40.7102,-73.9928],[40.7050,-73.9883]],[[40.7150,-73.9762],[40.7120,-73.9678]],[[40.7586,-73.9588],[40.7549,-73.9488]],[[40.8517,-73.9640],[40.8517,-73.9465]],[[40.6035,-74.0560],[40.6095,-74.0330]]].map(l=>mapLine(l[0],l[1])).join("");
   box.innerHTML='<div class="mapgo"><select id="mapGo" aria-label="Go to a place"></select></div><div class="intents" id="mapIntent"></div><div class="intents" id="mapZoom"></div>'+
-    '<div class="sunbar"><div class="sunrow"><input type="range" id="mapTime" min="0" max="1425" step="15" aria-label="Time of day on the map"><button type="button" class="chip" id="mapTimeNow">Now</button></div><p id="sunLine" class="sunline"></p></div>'+
+    '<div id="mapPlan"></div><div class="sunbar"><div class="sunrow"><input type="range" id="mapTime" min="0" max="1435" step="5" aria-label="Time of day on the map"><button type="button" class="chip" id="mapTimeNow">Now</button></div><p id="sunLine" class="sunline"></p></div>'+
     '<div class="mapwrap"><svg class="mapsvg" id="mapSvg" role="group" aria-label="Map of shooting places. Drag to move, pinch to zoom."><rect x="-500" y="-500" width="2500" height="2500" class="m-sea"/>'+
     '<path d="'+MAP_NJ+MAP_NY+'" class="m-ctx"/><path d="'+MAP_LAND+'" class="m-land"/><path d="'+park+'" class="m-park"/><path d="'+streets+'" class="m-street"/><path d="'+bridges+'" class="m-bridge"/>'+
     mapTxt(40.787,-73.957,"MANHATTAN","m-boro",15,-61)+mapTxt(40.648,-73.95,"BROOKLYN","m-boro",22)+mapTxt(40.705,-73.825,"QUEENS","m-boro",22)+mapTxt(40.845,-73.86,"THE BRONX","m-boro",18)+mapTxt(40.585,-74.14,"STATEN ISLAND","m-boro",16)+mapTxt(40.765,-74.085,"NEW JERSEY","m-boro",15)+
@@ -1893,13 +1902,42 @@ const compass = a => COMPASS[Math.round(((a%360)+360)%360/22.5)%16];
 const mapNow = () => { if(state.mapT===null) return new Date(); const d=new Date(); d.setHours(0,0,0,0); return new Date(+d+state.mapT*6e4); };
 function sunPhase(alt){ return alt>6?"day":alt>-4?"gold":alt>-6?"blue":"night"; }
 const SUN_PHASE = {day:"Daylight",gold:"Golden hour",blue:"Blue hour",night:"Night"};
+const cc_isNYC = () => state.city==="nyc";
 function sunLine(){ const c=CITIES[state.city], t=mapNow(), sp=sunPos(t,c.lat,c.lon), ph=sunPhase(sp.alt), tf=d=>d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}).toLowerCase();
   const [rise,set]=sunTimes(t,c.lat,c.lon); let out='<b>'+tf(t)+(state.mapT===null?' (now)':'')+' · '+SUN_PHASE[ph]+'</b><br>';
   if(sp.alt>-0.8){ out+='Sun '+Math.max(0,Math.round(sp.alt))+'° up in the '+compass(sp.az)+'. Shadows fall to the '+compass(sp.az+180)+'.';
     const d=(a,b)=>{ const x=Math.abs(((a-b)%360+540)%360-180); return Math.min(x,180-x); };
+    if(cc_isNYC()){ const lit=(face)=>Math.cos((sp.az-face)*Math.PI/180)>0.12, ave=lit(299)?"east side of the avenues":lit(119)?"west side of the avenues":"", st=lit(209)?"north side of the cross streets":lit(29)?"south side of the cross streets":"";
+      if(ave||st) out+=' Sunny side: '+[ave,st].filter(Boolean).join(" and ")+(sp.alt<20?', on the upper floors more than the pavement while the sun is this low':'')+'.'; }
     if(sp.alt<25){ if(d(sp.az,119)<9) out+=' The sun is lined up with Manhattan\u2019s cross streets: light runs straight down them.'; else if(d(sp.az,29)<9) out+=' The sun is lined up with the Manhattan avenues: light runs straight down them.'; } }
   else out+='Sun is down, '+Math.round(-sp.alt)+'° below the horizon.';
   return out+'<br><span class="sunrs">Sunrise '+tf(rise)+' · Sunset '+tf(set)+'</span>'; }
+/* Today's outing: kept on the device so it survives closing the app; editable from the map. */
+function savePlan(){ const p=state.plan; store.set("plan", p ? {start:+p.start,end:+p.end,stops:p.stops.map(s=>({place:s.place,at:+s.at,key:s.key,ideas:s.ideas.map(x=>x.id),leg:s.leg||null}))} : null); }
+function loadPlan(){ const p=store.get("plan",null); if(!p||!p.stops||!p.stops.length||p.end<Date.now()-12*36e5) return null;
+  return {start:new Date(p.start),end:new Date(p.end),stops:p.stops.filter(s=>PLACES[s.place]).map(s=>({place:s.place,at:new Date(s.at),key:s.key,ideas:s.ideas.map(id=>IDEAS.find(x=>x.id===id)).filter(Boolean),leg:s.leg}))}; }
+function pickIdeas(pid,key,n){ const here=cityIdeas().filter(x=>x.p===pid); let pool=here.filter(x=>x.w.includes(key)); if(pool.length<n) pool=here;
+  const out=[]; for(const x of pool.slice().sort((a,b)=>state.done.has(a.id)-state.done.has(b.id))) if(out.length<n&&!out.some(o=>o.i===x.i)) out.push(x); return out; }
+function legBetween(a,b){ const km=kmBetween(PLACES[a],PLACES[b]), walk=Math.round(km*1.3/0.08); return walk<=30?{to:b,mins:Math.max(3,walk),mode:"walk"}:{to:b,mins:Math.round(15+km*3),mode:"by subway"}; }
+function retimePlan(p){ let t=new Date(p.stops[0].at); p.stops.forEach((s,n)=>{ s.at=new Date(t); const k=lightAt(s.at); if(k!==s.key||!s.ideas.length){ s.key=k; s.ideas=pickIdeas(s.place,k,Math.max(2,s.ideas.length)); }
+    t=new Date(+t+Math.max(1,s.ideas.length)*25*6e4); if(n<p.stops.length-1){ s.leg=legBetween(s.place,p.stops[n+1].place); t=new Date(+t+s.leg.mins*6e4); } else delete s.leg; });
+  p.start=new Date(p.stops[0].at); p.end=t; return p; }
+function planAdd(pid){ if(!state.plan){ const now=new Date(), k=lightAt(now); state.plan={start:now,end:now,stops:[{place:pid,at:now,key:k,ideas:pickIdeas(pid,k,2)}]}; }
+  else state.plan.stops.push({place:pid,at:new Date(),key:"",ideas:[]});
+  retimePlan(state.plan); savePlan(); }
+function planRemove(pid){ if(!state.plan) return; state.plan.stops=state.plan.stops.filter(s=>s.place!==pid); if(!state.plan.stops.length) state.plan=null; else retimePlan(state.plan); savePlan(); }
+const planIndex = pid => state.plan ? state.plan.stops.findIndex(s=>s.place===pid) : -1;
+function nextStopIndex(){ const p=state.plan; if(!p) return -1; const now=Date.now(); const i=p.stops.findIndex(s=>+s.at+Math.max(1,s.ideas.length)*25*6e4>now); return i<0?p.stops.length-1:i; }
+function mapGoStop(i){ const p=state.plan, s=p&&p.stops[i]; if(!s) return; const today=new Date(); today.setHours(0,0,0,0);
+  const sameDay=s.at>=today && s.at<new Date(+today+864e5), live=Math.abs(s.at-Date.now())<15*6e4 || (i===nextStopIndex() && s.at<=Date.now());
+  state.mapT = live||!sameDay ? null : s.at.getHours()*60+Math.round(s.at.getMinutes()/5)*5;
+  const tm=$("mapTime"), n=new Date(); if(tm) tm.value=state.mapT===null? n.getHours()*60+n.getMinutes() : state.mapT;
+  state.mapSel=s.place; state.mapEv=null; const [x,y]=mapXY(PLACES[s.place].lat,PLACES[s.place].lon); mapPanel(); mapFly({cx:x,cy:y,w:Math.min(mapV.w,140)}); }
+function mapPlanBar(){ const p=state.plan, tf=d=>d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}).toLowerCase();
+  if(!p) return '<p class="hint planhint">Tap a pin and choose Add to today to build an outing on the map, or make one in Plan.</p>';
+  const nx=nextStopIndex();
+  return '<div class="planbar"><div class="planbar-head"><b>Today\u2019s outing</b><span>'+tf(p.start)+' to about '+tf(p.end)+'</span><button type="button" class="chip primary" data-nextstop="1">Next stop ›</button><button type="button" class="chip" data-clearplan="1">Clear</button></div>'+
+    '<div class="intents planstops">'+p.stops.map((s,n)=>'<button type="button" class="chip stopchip'+(n===nx?" next":"")+'" data-stop="'+n+'"><span class="stopn">'+(n+1)+'</span>'+esc(PLACES[s.place].name)+' · '+tf(s.at)+'</button>').join("")+'</div></div>'; }
 function mapPts(){ const key=lightAt(mapNow()), ideas=cityIdeas().filter(i=>state.mapIntent==="all"||i.i===state.mapIntent);
   return Object.keys(CITIES[state.city].places).filter(id=>typeof PLACES[id].lat==="number").map(id=>{ const [x,y]=mapXY(PLACES[id].lat,PLACES[id].lon), mine=ideas.filter(i=>i.p===id);
     return {id,x,y,n:mine.length,fit:mine.filter(i=>i.w.includes(key)).length,done:mine.filter(i=>state.done.has(i.id)).length,empty:!mine.length}; }); }
@@ -1933,6 +1971,11 @@ function mapDraw(){
       stations+='<circle cx="'+f(x)+'" cy="'+f(y)+'" r="'+f(r)+'" stroke-width="'+f(1.3*u)+'" class="m-stn"/><text x="'+f(x)+'" y="'+f(y+2.2*u)+'" text-anchor="middle" font-size="'+f(5.6*u)+'" class="m-stnm">M</text>';
       if(w<150){ const col=CITIES[state.city].lines||{}, ls=ln.split("").slice(0,5), bw=9*u, bx0=x+r+2*u; const rect=[bx0,y-bw/2,bx0+ls.length*(bw+1.2*u),y+bw/2]; if(!taken.some(t=>hit(t,rect))){ taken.push(rect);
         stations+=ls.map((L,n)=>{ const cx=bx0+n*(bw+1.2*u)+bw/2, c=col[L]||"gray"; return '<circle cx="'+f(cx)+'" cy="'+f(y)+'" r="'+f(bw/2)+'" fill="var(--'+c+')"/><text x="'+f(cx)+'" y="'+f(y+2.6*u)+'" text-anchor="middle" font-size="'+f(7*u)+'" class="m-bul'+(c==="yellow"?" dark":"")+'">'+L+'</text>'; }).join(""); } } } }
+  let sunny=""; { const cs=CITIES[state.city], spp=sunPos(mapNow(),cs.lat,cs.lon); if(spp.alt>0 && w<300){ const r=spp.az*Math.PI/180, SX=Math.sin(r), SY=-Math.cos(r), off=1.6*u;
+    for(const [,,line] of MAP_STREETS) for(let i=0;i<line.length-1;i++){ const a=mapXY(line[i][0],line[i][1]), b=mapXY(line[i+1][0],line[i+1][1]), L=Math.hypot(b[0]-a[0],b[1]-a[1]); if(!L) continue;
+      const tx=(b[0]-a[0])/L, ty=(b[1]-a[1])/L; let nx=-ty, ny=tx; const face=-(nx*SX+ny*SY); if(Math.abs(face)<0.12) continue; if(face<0){ nx=-nx; ny=-ny; }
+      if(Math.max(a[0],b[0])<x0||Math.min(a[0],b[0])>x1||Math.max(a[1],b[1])<y0||Math.min(a[1],b[1])>y1) continue;
+      sunny+='<path d="M'+f(a[0]+nx*off)+' '+f(a[1]+ny*off)+' L'+f(b[0]+nx*off)+' '+f(b[1]+ny*off)+'" class="m-sunny" stroke-width="'+f(1.4*u)+'"/>'; } } }
   let detail=""; const inside=(x,y,m)=>x>x0+m&&x<x1-m&&y>y0+m&&y<y1-m, free=rect=>!(rect[0]<x0+2*u||rect[2]>x1-2*u||rect[1]<y0+2*u||rect[3]>y1-2*u||taken.some(t=>hit(t,rect)));
   if(w<300) for(const [name,lat,lon] of MAP_SPOTS){ const [x,y]=mapXY(lat,lon); if(!inside(x,y,4*u)) continue; const fl=10*u, tw=name.length*fl*0.54, d=3*u, dot=[x-d,y-d,x+d,y+d]; if(taken.some(t=>hit(t,dot))) continue;
     for(const [bx,anchor,tx] of [[x+6*u,"start",x+6*u],[x-6*u-tw,"end",x-6*u]]){ const rect=[bx,y-fl*0.6,bx+tw,y+fl*0.6]; if(!free(rect)) continue; taken.push(rect,dot);
@@ -1945,6 +1988,8 @@ function mapDraw(){
   // scale bar, with the walking time it stands for
   const sc=$("mapScale"); if(sc){ const perMile=28.9/u, mi=[5,2,1,0.5,0.25,0.1].find(m=>m*perMile<=96)||0.1; sc.innerHTML='<span>'+mi+' mi · '+Math.round(mi*20)+' min walk</span><i style="width:'+Math.round(mi*perMile)+'px"></i>'; }
   const ring=state.pos&&w<330 ? (()=>{ const [x,y]=mapXY(state.pos.lat,state.pos.lon); return '<circle cx="'+f(x)+'" cy="'+f(y)+'" r="14.5" class="m-walk" stroke-width="'+f(1.2*u)+'" stroke-dasharray="'+f(4*u)+' '+f(4*u)+'"/>'; })() : "";
+  const badges=state.plan?state.plan.stops.map((st,n)=>{ const p=pts.find(q=>q.id===st.place); if(!p) return ""; const bx=p.x-(far?7:11)*u-4*u, by=p.y-(far?7:11)*u-3*u, bw=12*u;
+    return '<g class="m-stop'+(n===nextStopIndex()?" next":"")+'"><rect x="'+f(bx-bw/2)+'" y="'+f(by-bw/2)+'" width="'+f(bw)+'" height="'+f(bw)+'" rx="'+f(2*u)+'" stroke-width="'+f(1.2*u)+'"/><text x="'+f(bx)+'" y="'+f(by+3.4*u)+'" text-anchor="middle" font-size="'+f(9.5*u)+'">'+(n+1)+'</text></g>'; }).join(""):"";
   const pins=pts.slice().sort((a,b)=>(a.id===state.mapSel)-(b.id===state.mapSel)).map(p=>{ const on=p.id===state.mapSel, r=(on?14:far?7:11)*u, rr=r+3.2*u, c=2*Math.PI*rr, part=p.n?p.done/p.n:0;
     return '<g class="m-pin'+(p.fit?" fit":"")+(on?" on":"")+(p.empty?" empty":"")+'" data-p="'+p.id+'" tabindex="0" role="button" aria-label="'+esc(PLACES[p.id].name)+', '+p.n+' ideas, '+p.done+' shot">'+
       '<circle cx="'+f(p.x)+'" cy="'+f(p.y)+'" r="'+f(22*u)+'" class="m-hit"/>'+
@@ -1960,18 +2005,19 @@ function mapDraw(){
     const R=(sp.alt>0?8:6)*u; sun+='<g class="m-sun'+(sp.alt>0?'':' low')+'"><circle cx="'+f(sx)+'" cy="'+f(sy)+'" r="'+f(R*1.9)+'" class="m-sunglow"/>'+
       [0,45,90,135,180,225,270,315].map(a=>{ const q=a*Math.PI/180; return '<path d="M'+f(sx+Math.cos(q)*R*1.3)+' '+f(sy+Math.sin(q)*R*1.3)+' L'+f(sx+Math.cos(q)*R*1.8)+' '+f(sy+Math.sin(q)*R*1.8)+'" stroke-width="'+f(1.6*u)+'"/>'; }).join("")+
       '<circle cx="'+f(sx)+'" cy="'+f(sy)+'" r="'+f(R)+'" class="m-sundisc"/></g>'; }
-  $("mapDyn").innerHTML=tint+sun+detail+route+ring+stations+flags+labels+evs+you+pins;
+  $("mapDyn").innerHTML=tint+sun+sunny+detail+route+ring+stations+flags+labels+evs+you+pins+badges;
   const sl=$("sunLine"); if(sl) sl.innerHTML=sunLine();
 }
 function mapPanel(){
   const key=lightAt(mapNow()), pts=mapPts(), sel=state.mapSel&&pts.find(p=>p.id===state.mapSel), pl=sel&&PLACES[sel.id], d=sel?milesText(milesTo(pl)):"";
+  if($("mapPlan")) $("mapPlan").innerHTML=mapPlanBar();
   const order=placeOrder().filter(id=>typeof PLACES[id].lat==="number");
   $("mapGo").innerHTML='<option value="">Go to a place…</option>'+groupOptions(order, id=>{ const dd=milesText(milesTo(PLACES[id])); return '<option value="'+id+'"'+(id===state.mapSel?" selected":"")+'>'+esc(PLACES[id].name)+(dd?' · '+dd:'')+'</option>'; });
   $("mapIntent").innerHTML='<button type="button" class="chip" data-i="all" aria-pressed="'+(state.mapIntent==="all")+'">Any intent</button>'+Object.entries(INTENTS).map(([k,v])=>'<button type="button" class="chip" data-i="'+k+'" aria-pressed="'+(state.mapIntent===k)+'"><span class="dot" style="background:'+v.color+'"></span>'+v.name+'</button>').join("");
   $("mapZoom").innerHTML='<button type="button" class="chip evtoggle" data-toggle="ev" aria-pressed="'+!!state.mapShowEv+'"><span class="lg ev"></span>Events '+(state.mapShowEv?"on":"off")+'</button>'+MAP_PRESETS.concat(state.pos?[["me","Near me"]]:[]).map(z=>'<button type="button" class="chip" data-z="'+z[0]+'">'+z[1]+'</button>').join("");
   const evSel=state.mapShowEv&&state.mapEv&&mapEvents().find(e=>e.id===state.mapEv), hasEv=state.mapShowEv&&mapEvents().length;
   const mine=sel?cityIdeas().filter(i=>i.p===sel.id&&(state.mapIntent==="all"||i.i===state.mapIntent)).sort((a,b)=>b.w.includes(key)-a.w.includes(key)):[];
-  $("mapPanel").innerHTML='<p class="msg maplegend"><span><span class="lg fit"></span>'+(state.mapIntent==="all"?"Ideas":INTENTS[state.mapIntent].name+" ideas")+' for the light now ('+esc(WHEN[key].toLowerCase())+')</span><span><span class="lg"></span>Other places</span><span><span class="lg prog"></span>Share you have shot</span><span><span class="lg stn"></span>Subway station</span>'+(hasEv?'<span><span class="lg ev"></span>Events in the next 6 weeks</span>':'')+
+  $("mapPanel").innerHTML='<p class="msg maplegend"><span><span class="lg fit"></span>'+(state.mapIntent==="all"?"Ideas":INTENTS[state.mapIntent].name+" ideas")+' for the light now ('+esc(WHEN[key].toLowerCase())+')</span><span><span class="lg"></span>Other places</span><span><span class="lg prog"></span>Share you have shot</span><span><span class="lg stn"></span>Subway station</span><span><span class="lg sunny"></span>Sunny side of the street</span>'+(hasEv?'<span><span class="lg ev"></span>Events in the next 6 weeks</span>':'')+
       (state.plan?'<span><span class="lg route"></span>Your plan</span>':'')+(state.pos?'<span><span class="lg you"></span>You</span><span><span class="lg walk"></span>10 min walk from you</span>':'')+'</p>'+
     (evSel ? '<section class="group mapsel"><div class="group-head"><b>'+esc(evSel.r.e.name)+'</b><span class="where">'+(EVENT_TYPES[evSel.r.e.type]?esc(EVENT_TYPES[evSel.r.e.type])+' · ':'')+esc(evSel.r.e.where||"")+'</span></div>'+
         '<p class="mapcount"><b>'+evSel.r.o[0].toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})+(evSel.r.o[1]?' to '+evSel.r.o[1].toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"}):'')+'</b>'+(evSel.r.confirmed?' <span class="pill">Confirmed</span>':' (expected)')+(evSel.r.e.time?'<br>'+esc(evSel.r.e.time):'')+'</p>'+
@@ -1981,7 +2027,7 @@ function mapPanel(){
         '<p class="mapcount">'+sel.n+(sel.n===1?' idea':' ideas')+(state.mapIntent==="all"?'':' for '+INTENTS[state.mapIntent].name.toLowerCase())+' · '+sel.fit+(sel.fit===1?' suits':' suit')+' the light now · '+sel.done+' shot</p>'+
         mine.map(x=>'<button type="button" class="row'+(state.done.has(x.id)?" done":"")+'" data-id="'+x.id+'"><span class="dot" style="background:'+INTENTS[x.i].color+'"></span>'+
           '<span class="t"><b>'+esc(x.t)+'</b><span>'+esc(INTENTS[x.i].name)+(x.w.includes(key)?' · suits the light now':'')+'</span></span><span class="go" aria-hidden="true">›</span></button>').join("")+
-        '<div class="callinks">'+(START[sel.id]?'<a class="chip" href="https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(mapAddr(sel.id))+'&travelmode=transit" target="_blank" rel="noopener">Directions from where I am ↗</a>':'')+'<button type="button" class="chip" data-plan="'+sel.id+'">Plan an outing from here</button><button type="button" class="chip" data-go="'+sel.id+'">Open in Browse</button></div></section>'
+        '<div class="callinks">'+(planIndex(sel.id)<0?'<button type="button" class="chip primary" data-addplan="'+sel.id+'">+ Add to today</button>':'<span class="pill instop">Stop '+(planIndex(sel.id)+1)+' · '+state.plan.stops[planIndex(sel.id)].at.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}).toLowerCase()+'</span><button type="button" class="chip" data-rmplan="'+sel.id+'">Remove from today</button>')+(START[sel.id]?'<a class="chip" href="https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(mapAddr(sel.id))+'&travelmode=transit" target="_blank" rel="noopener">Directions from where I am ↗</a>':'')+'<button type="button" class="chip" data-plan="'+sel.id+'">Plan an outing from here</button><button type="button" class="chip" data-go="'+sel.id+'">Open in Browse</button></div></section>'
       : '<p class="lead">Tap a pin to see the place and its ideas, or pick one from the list above. Drag to move the map, pinch or use + and − to zoom, double-tap to zoom in. ⌂ shows the whole city and ◎ finds you.</p>')+
     '<p class="msg">Zoom in for neighbourhoods, streets, landmarks and upcoming events, and zoom in close for the starting point of each place. The number on a pin is how many of its ideas suit the light now. Streets, parks and landmarks are approximate, so use Start at on a place for real directions. On the subway has no pin because it is everywhere.</p>';
 }
@@ -2129,8 +2175,9 @@ function syncTheme(){ const d=isDark(); $("theme").textContent=d?"☼":"☾"; $(
 $("theme").addEventListener("click",()=>{ const next=isDark()?"light":"dark"; rootEl.setAttribute("data-theme",next); store.set("theme",next); syncTheme(); });
 syncTheme();
 $("events").addEventListener("click",e=>{ const c=e.target.closest("#evTypes .chip"); if(!c) return; state.evType=c.dataset.t; renderEvents(); });
-$("pGo").addEventListener("click",()=>{ state.plan=makePlan(); renderPlan(); });
+$("pGo").addEventListener("click",()=>{ state.plan=makePlan(); savePlan(); renderPlan(); });
 $("plan").addEventListener("click",e=>{ const r=e.target.closest(".row"); if(!r) return; show(r.dataset.id); state.view="shoot"; render(); window.scrollTo({top:0}); });
+state.plan=loadPlan();
 syncNear();
 // Move marks between devices with a copy-and-paste code. Import merges: it only ever adds.
 function syncEncode(){ const j=JSON.stringify({v:1,s:[...state.saved],d:[...state.done],n:state.notes});
@@ -2154,6 +2201,11 @@ $("syncImport").addEventListener("click",()=>{ const r=syncImport($("syncCode").
   msg.textContent=(r.s+r.d+r.n) ? "Imported: "+r.s+" saved, "+r.d+" shot and "+r.n+" notes added." : "Nothing new: this device already has everything in that code.";
   $("syncCode").value=""; render(); });
 $("map").addEventListener("click",e=>{
+  const ap=e.target.closest("[data-addplan]"); if(ap){ planAdd(ap.dataset.addplan); mapPanel(); mapDraw(); return; }
+  const rp=e.target.closest("[data-rmplan]"); if(rp){ planRemove(rp.dataset.rmplan); mapPanel(); mapDraw(); return; }
+  const sc=e.target.closest("[data-stop]"); if(sc){ mapGoStop(+sc.dataset.stop); return; }
+  if(e.target.closest("[data-nextstop]")){ mapGoStop(nextStopIndex()); return; }
+  if(e.target.closest("[data-clearplan]")){ state.plan=null; savePlan(); mapPanel(); mapDraw(); return; }
   if(e.target.closest("#mapTimeNow")){ state.mapT=null; const n=new Date(); $("mapTime").value=n.getHours()*60+n.getMinutes(); mapDraw(); mapPanel(); return; }
   const ic=e.target.closest("#mapIntent .chip"); if(ic){ state.mapIntent=ic.dataset.i; mapPanel(); mapDraw(); return; }
   const ft=e.target.closest("[data-fit]"); if(ft){ mapFly(mapPreset("city")); return; }
