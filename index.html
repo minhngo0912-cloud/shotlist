@@ -2118,6 +2118,9 @@ $("near").addEventListener("click",()=>{
 $("cond").addEventListener("change",e=>{state.cond=e.target.value;render();});
 $("useLight").addEventListener("click",e=>{const k=e.currentTarget.dataset.k; state.when=state.when===k?"all":k; store.set("when",state.when); $("when").value=state.when; refilter();});
 setInterval(()=>{ try{ renderNow(); }catch(e){} }, 300000);
+// While the map is open on Now, keep the slider, the tint and the sun moving with the clock.
+setInterval(()=>{ try{ if(state.view!=="map"||state.mapT!==null||document.hidden) return; const tm=$("mapTime"), n=new Date(); if(tm) tm.value=n.getHours()*60+n.getMinutes(); mapDraw(); mapPanel(); }catch(e){} }, 60000);
+document.addEventListener("visibilitychange",()=>{ try{ if(!document.hidden&&state.view==="map"&&state.mapT===null){ const tm=$("mapTime"), n=new Date(); if(tm) tm.value=n.getHours()*60+n.getMinutes(); mapDraw(); mapPanel(); } }catch(e){} });
 // Day and night view. With no saved choice the page follows the device setting.
 const rootEl=document.documentElement;
 const isDark=()=>{ const a=rootEl.getAttribute("data-theme"); return a ? a==="dark" : !!(window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches); };
