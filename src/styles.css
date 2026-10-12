@@ -404,3 +404,12 @@ body.mapfull{overflow:hidden}
 .lk{display:inline-block;width:12px;height:12px;border-radius:3px} .lk.gold{background:#f2ad3a} .lk.blue{background:#3e63d8} .lk.rise,.lk.set{background:#f4e7b4;border:2px solid #14161a;width:8px;height:8px;border-radius:50%}
 .planlinks{margin-top:8px;flex-wrap:wrap} .maplinkhint{flex-basis:100%;margin:2px 0 0;font-size:12px}
 #map.full .lmarks{margin-top:4px}
+
+/* Landmarks: small badges with a symbol for the kind of place; tap for a tip */
+.m-lm{cursor:pointer;outline:none}
+.m-lmdot{fill:#14161a;stroke:#e9d79a}
+.m-lmg{fill:none;stroke:#e9d79a;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.m-lm.on .m-lmdot{fill:#e9d79a;stroke:#fff} .m-lm.on .m-lmg{stroke:#14161a}
+.m-spot.on{fill:#fff;font-style:normal;font-weight:800}
+.maplegend .lg.lmk,.lmtoggle .lg{display:inline-block;width:12px;height:12px;border-radius:50%;background:#14161a;border:2px solid #e9d79a;box-shadow:0 0 0 1px var(--line)}
+.lmtoggle[aria-pressed="false"] .lg{background:transparent;border-color:var(--muted);box-shadow:none}
