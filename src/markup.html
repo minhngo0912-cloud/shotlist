@@ -12,9 +12,9 @@
   </header>
 
   <nav class="views" id="views" role="tablist" aria-label="View">
+    <button type="button" role="tab" data-v="today" id="vToday">Today</button>
     <button type="button" role="tab" data-v="shoot" id="vShoot">Shoot</button>
     <button type="button" role="tab" data-v="browse" id="vBrowse">Browse</button>
-    <button type="button" role="tab" data-v="saved" id="vSaved">Saved</button>
     <button type="button" role="tab" data-v="plan" id="vPlan">Plan</button>
     <button type="button" role="tab" data-v="events" id="vEvents">Events</button>
     <button type="button" role="tab" data-v="map" id="vMap">Map</button>
@@ -44,6 +44,7 @@
     <p class="msg" id="nearMsg" hidden></p>
   </section>
 
+  <main id="viewToday" hidden><div id="today"></div></main>
   <main id="viewShoot"><article class="sign" id="card" aria-live="polite"></article></main>
   <main id="viewList" hidden><div class="list" id="list"></div></main>
   <main id="viewPlan" hidden>

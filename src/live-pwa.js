@@ -19,7 +19,7 @@ async function loadWeather(){
       store.set("weather",WEATHER);
     }
   }catch(e){} finally{ weatherBusy=false; }
-  renderNow(); if(state.view==="map"&&$("mapSvg")){ mapDraw(); mapPanel(); } if(state.view==="shoot"&&state.tab==="settings"&&openTip===null&&document.activeElement.id!=="camera") renderCard();
+  renderNow(); if(state.view==="today") renderToday(); if(state.view==="map"&&$("mapSvg")){ mapDraw(); mapPanel(); } if(state.view==="shoot"&&state.tab==="settings"&&openTip===null&&document.activeElement.id!=="camera") renderCard();
 }
 loadWeather(); setInterval(loadWeather, 15*60*1000);
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ const w=WEATHER[state.city]; if(!w||Date.now()-new Date(w.updated)>10*60*1000) loadWeather(); } });

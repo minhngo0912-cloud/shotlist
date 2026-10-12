@@ -80,6 +80,18 @@ def run(path, name):
             w = pg.evaluate("document.documentElement.scrollWidth")
             check(label + ": no sideways scrolling", w <= 390, w)
 
+        # Today: opens first, with the light, places to go and an outing
+        check("App opens on Today", pg.evaluate("state.view")=="today" and pg.evaluate("!document.getElementById('viewToday').hidden"))
+        check("Today gives the light and places to go", pg.evaluate("[!!document.querySelector('.tverdict').textContent, document.querySelectorAll('.twin').length>=4, document.querySelectorAll('.tpick').length]")==[True,True,3])
+        if pg.evaluate("document.querySelectorAll('[data-tat]').length")>1:
+            pg.click("[data-tat]:not([data-tat=now])"); pg.wait_for_timeout(100)
+            check("Choosing a later light changes the picks", pg.evaluate("state.todayAt")!=None and pg.evaluate("document.querySelector('[data-tat][aria-pressed=true]').dataset.tat")!="now")
+        no_overflow("Today"); shot("today")
+        pg.click("[data-planday]"); pg.wait_for_timeout(500)
+        check("Plan an outing builds it and opens the map", pg.evaluate("state.view")=="map" and pg.evaluate("!!(state.plan&&state.plan.stops.length)"))
+        pg.evaluate("state.plan=null; savePlan(); state.view='today'; render()"); pg.wait_for_timeout(100)
+        pg.click(".tpick .row"); pg.wait_for_timeout(100)
+        check("A pick opens its idea in Shoot", pg.evaluate("state.view")=="shoot")
         # Shoot: every tab of a card
         for tab in ["idea", "work", "compose", "settings"]:
             pg.evaluate("t=>{state.view='shoot';state.tab=t;render()}", tab); pg.wait_for_timeout(80)
@@ -88,7 +100,8 @@ def run(path, name):
         # Browse and Saved
         pg.click("#vBrowse"); pg.wait_for_timeout(150); no_overflow("Browse"); shot("browse")
         check("Browse lists ideas", pg.evaluate("document.querySelectorAll('#list .row').length") > 100)
-        pg.click("#vSaved"); pg.wait_for_timeout(100)
+        pg.click("[data-listv=saved]"); pg.wait_for_timeout(100)
+        check("Saved ideas are a switch in Browse", pg.evaluate("state.view")=="saved" and pg.evaluate("document.getElementById('vBrowse').getAttribute('aria-selected')")=="true")
         # Plan
         pg.click("#vPlan"); pg.click("#pGo"); pg.wait_for_timeout(150)
         check("Plan makes an outing", pg.evaluate("!!(state.plan&&state.plan.stops.length)")); no_overflow("Plan"); shot("plan")
