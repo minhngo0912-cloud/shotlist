@@ -379,3 +379,14 @@ body.mapfull{overflow:hidden}
 #map.full #mapPanel.hassel>.msg,#map.full #mapPanel.hassel>.lead{display:none}
 #map.full #mapPanel .mapsel{margin:0;position:relative}
 #map.full .mapselx{display:block;position:absolute;right:6px;top:6px;z-index:1;width:36px;height:36px;border:0;border-radius:18px;background:rgba(255,255,255,.16);color:var(--sign-fg);font-size:22px;line-height:1;cursor:pointer}
+
+/* Events on the map: on now (green, glowing), later today, and over */
+.m-ev.live .m-evbox{fill:#1e9e48;stroke:#fff} .m-ev.live.on .m-evbox{fill:#fff;stroke:#1e9e48} .m-ev.live.on .m-evday{fill:#1e9e48}
+.m-evglow{fill:none;stroke:#3ddc6f;pointer-events:none;animation:evglow 1.6s ease-in-out infinite}
+@keyframes evglow{0%,100%{stroke-opacity:.95}50%{stroke-opacity:.15}}
+@media (prefers-reduced-motion:reduce){.m-evglow{animation:none;stroke-opacity:.7}}
+.m-ev.over{opacity:.6} .m-ev.over .m-evbox{fill:#5d6169}
+.maplegend .lg.evlive{border-radius:3px;background:#1e9e48;border-color:#fff;box-shadow:0 0 0 2px #3ddc6f;width:16px}
+.evnow{margin:10px 14px 0;font-weight:700;font-size:15px} .evnow span{display:block;margin-top:2px;font-weight:400;font-size:13px;color:var(--muted)}
+.evnow.live{color:#1e9e48} .evnow.live:before{content:"";display:inline-block;width:9px;height:9px;margin-right:7px;border-radius:50%;background:#1e9e48;box-shadow:0 0 0 3px rgba(61,220,111,.35);vertical-align:1px}
+.evnow.over{color:var(--muted)}

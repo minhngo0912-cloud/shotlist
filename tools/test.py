@@ -115,6 +115,23 @@ def run(path, name):
         else:
             check("Explains where the hourly forecast is", "installed app" in pg.evaluate("document.getElementById('wxBar').textContent"))
         no_overflow("Map"); shot("map")
+        # Events on the map: on now, later today, over
+        win=pg.evaluate("""()=>{ const d=new Date(2026,9,11), W=t=>evWindow({time:t},d); return [W("12 pm to 5 pm"),W("Starts at 7 pm"),W("Steps off at 11 am; festival block 10 am to 4 pm"),W("Wed to Sat 11 am to 6 pm, Sun noon to 5 pm"),W("Late morning"),W("Best in the first two hours and the last two hours of daylight")]; }""")
+        check("Event times are read", win==[[720,1020],[1140,1320],[600,960],[660,1080],[630,720],None], win)
+        pg.evaluate("""()=>{ EVENT_DOCS.testlive={name:"Test street fair",type:"festival",start:"2026-10-11",time:"12 pm to 5 pm",lat:40.6944,lon:-73.9213,ideas:[]}; state.mapShowEv=true; mapSelect(null); mapFly(mapPreset('city')); }""")
+        def evk(t):
+            pg.evaluate("t=>{state.mapT=t; mapDraw(); mapPanel()}", t); pg.wait_for_timeout(50)
+            return pg.evaluate("(()=>{const g=document.querySelector('.m-ev[data-e=testlive]'); return g?g.getAttribute('class')+'|'+g.querySelector('.m-evday').textContent:''})()")
+        pg.wait_for_timeout(600)
+        check("Event on now is labelled and shown when zoomed out", evk(14*60)=="m-ev live|On now", evk(14*60))
+        check("Toggle counts events on now", "1 on now" in pg.evaluate("document.querySelector('.evtoggle').textContent"))
+        check("Event later today shows its start", evk(10*60)=="m-ev today|Today 12 pm", evk(10*60))
+        pg.evaluate("mapSelectEv('testlive')"); pg.evaluate("state.mapT=14*60; mapDraw(); mapPanel()")
+        check("Event panel says it is on now", "On now, until about 5 pm" in pg.evaluate("document.querySelector('.evnow').textContent"))
+        shot("map-event-live")
+        pg.evaluate("mapSelectEv(null)")
+        check("Event that has finished is marked over", evk(18*60).startswith("m-ev over"), evk(18*60))
+        pg.evaluate("()=>{ delete EVENT_DOCS.testlive; state.mapT=null; mapDraw(); mapPanel(); }")
         # Full screen
         pg.evaluate("mapSelect(null)"); pg.click("[data-full]"); pg.wait_for_timeout(300)
         shot("map-full-empty")

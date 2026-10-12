@@ -397,6 +397,17 @@ body.mapfull{overflow:hidden}
 #map.full #mapPanel.hassel>.msg,#map.full #mapPanel.hassel>.lead{display:none}
 #map.full #mapPanel .mapsel{margin:0;position:relative}
 #map.full .mapselx{display:block;position:absolute;right:6px;top:6px;z-index:1;width:36px;height:36px;border:0;border-radius:18px;background:rgba(255,255,255,.16);color:var(--sign-fg);font-size:22px;line-height:1;cursor:pointer}
+
+/* Events on the map: on now (green, glowing), later today, and over */
+.m-ev.live .m-evbox{fill:#1e9e48;stroke:#fff} .m-ev.live.on .m-evbox{fill:#fff;stroke:#1e9e48} .m-ev.live.on .m-evday{fill:#1e9e48}
+.m-evglow{fill:none;stroke:#3ddc6f;pointer-events:none;animation:evglow 1.6s ease-in-out infinite}
+@keyframes evglow{0%,100%{stroke-opacity:.95}50%{stroke-opacity:.15}}
+@media (prefers-reduced-motion:reduce){.m-evglow{animation:none;stroke-opacity:.7}}
+.m-ev.over{opacity:.6} .m-ev.over .m-evbox{fill:#5d6169}
+.maplegend .lg.evlive{border-radius:3px;background:#1e9e48;border-color:#fff;box-shadow:0 0 0 2px #3ddc6f;width:16px}
+.evnow{margin:10px 14px 0;font-weight:700;font-size:15px} .evnow span{display:block;margin-top:2px;font-weight:400;font-size:13px;color:var(--muted)}
+.evnow.live{color:#1e9e48} .evnow.live:before{content:"";display:inline-block;width:9px;height:9px;margin-right:7px;border-radius:50%;background:#1e9e48;box-shadow:0 0 0 3px rgba(61,220,111,.35);vertical-align:1px}
+.evnow.over{color:var(--muted)}
 </style>
 
 <div class="app">
@@ -1912,9 +1923,34 @@ Object.assign(STATION_GEO, {"union": [[40.7349, -73.99, "456LNQRW"]], "fidi": [[
 const START_GEO = {"chinatown":[40.7146,-73.998],"gct":[40.7527,-73.9772],"tsq":[40.759,-73.9849],"wsp":[40.7312,-73.9971],"dumbo":[40.7033,-73.9895],"coney":[40.5738,-73.979],"soho":[40.7256,-73.9992],"jh":[40.7467,-73.8915],"ferry":[40.7013,-74.0131],"harlem":[40.8101,-73.95],"les":[40.7183,-73.9881],"flushing":[40.7596,-73.83],"wburg":[40.7172,-73.9567],"midtown":[40.7603,-73.9751],"cpark":[40.774,-73.9708],"rockaway":[40.5843,-73.8125],"arthur":[40.8553,-73.8877]};
 const EVENT_GEO = {"foliage":[40.7725,-73.9718],"threekings":[40.7916,-73.9447],"lunar":[40.7155,-73.9983],"stpat":[40.7722,-73.9672],"easter":[40.7585,-73.976],"dance":[40.7284,-73.9872],"henge":[40.747,-73.9808],"prday":[40.7697,-73.969],"mermaid":[40.5757,-73.99],"pride":[40.7338,-74.0021],"westindian":[40.6712,-73.9636],"sangennaro":[40.7193,-73.9975],"columbus":[40.7678,-73.9705],"dogparade":[40.727,-73.9795],"halloween":[40.7357,-73.998],"marathon":[40.6706,-73.9886],"veterans":[40.742,-73.9875],"balloons":[40.7813,-73.974],"thanksgiving":[40.7765,-73.9761],"tree":[40.7587,-73.978],"dyker":[40.6155,-74.0125],"nye":[40.758,-73.9855],"aipad":[40.7676,-73.966],"bild":[40.7578,-74.0026],"photoville":[40.7038,-73.9941],"fujikina-nyc-2026":[40.718,-73.9886],"aperture-loves-new-york":[40.7811,-73.976],"bronx-halloween-parade":[40.8205,-73.891],"bryant-park-winter-village":[40.7536,-73.9832],"disability-pride-parade":[40.742,-73.9875],"diwali-times-square":[40.759,-73.985],"jackson-heights-halloween-parade":[40.7497,-73.884],"mano-a-mano-day-of-the-dead":[40.7302,-73.987]};
 Object.assign(START_GEO, {"union": [40.7351, -73.9906], "fidi": [40.7071, -74.0102], "ktown": [40.7478, -73.9876], "bushwick": [40.7055, -73.9236], "chelsea": [40.7393, -74.0081], "brighton": [40.5776, -73.9616]});
+/* Is an event on at a given time? Reads the event's time text: "11 am to 4 pm", "Starts at 7 pm", "noon", "Dusk to about 9 pm", "Late morning". */
+const EV_WORDS = [["early morning",420,540],["late morning",630,720],["morning",540,720],["midday",720,840],["early afternoon",780,900],["late afternoon",960,1080],["afternoon",780,1020],["early evening",1080,1200],["evening",1080,1260],["daytime",600,1080],["all day",480,1200]];
+function evWindow(e,day){ const s=String(e.time||"").toLowerCase().replace(/\bnoon\b/g,"12 pm").replace(/\bmidnight\b/g,"11:59 pm"), toks=[];
+  s.replace(/(\d{1,2})(?::(\d\d))?\s*(am|pm)\b/g,(m,h,mi,ap,idx)=>{ toks.push({min:(+h%12+(ap==="pm"?12:0))*60+(+mi||0),idx}); return m; });
+  const c=CITIES[state.city], dusk=()=>{ const t=sunTimes(day,c.lat,c.lon)[1]; return t.getHours()*60+t.getMinutes()-20; };
+  const words=[]; let rest=s; for(const [w,a,b] of EV_WORDS){ const i=rest.indexOf(w); if(i>=0){ words.push({i,a,b}); rest=rest.slice(0,i)+" ".repeat(w.length)+rest.slice(i+w.length); } }
+  if(/\b(dusk|sunset)\b/.test(s)){ const d=dusk(); words.push({i:s.search(/\b(dusk|sunset)\b/),a:d,b:d+60}); } words.sort((x,y)=>x.i-y.i);
+  if(toks.length>=2){ const ms=toks.map(t=>t.min); return [Math.min(...ms),Math.max(...ms)]; }
+  if(toks.length===1){ const t=toks[0], before=words.filter(w=>w.i<t.idx);
+    if(before.length) return [before[0].a,t.min];                                   // "Dusk to about 9 pm", "from early afternoon ... midnight"
+    if(/\b(to|until|till) (about )?$/.test(s.slice(0,t.idx))) return null;          // an end time with no start
+    return [t.min,Math.min(t.min+180,1439)]; }                                       // a start time: assume about three hours
+  if(words.length) return [words[0].a,words[words.length-1].b];
+  return null; }
+const evDay = d => new Date(d.getFullYear(),d.getMonth(),d.getDate());
+const hmText = m => { const h=Math.floor(m/60)%24, mm=m%60; return ((h%12)||12)+(mm?":"+String(mm).padStart(2,"0"):"")+(h<12?" am":" pm"); };
+const shortDate = d => d.toLocaleDateString("en-US",{month:"short",day:"numeric"});
+function evStatus(r,t){ const day=evDay(t), s=evDay(r.o[0]), en=evDay(r.o[1]||r.o[0]), multi=+en!==+s;
+  if(day<s) return {k:"date",chip:shortDate(s),line:"Starts "+r.o[0].toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"})};
+  if(day>en) return {k:"over",chip:"Over",line:"This event has ended"};
+  const w=evWindow(r.e,day), m=t.getHours()*60+t.getMinutes(), thru=multi?", through "+shortDate(en):"";
+  if(!w) return multi?{k:"live",chip:"On now",line:"On now"+thru}:{k:"today",chip:"Today",line:"Today"+(r.e.time?". "+r.e.time:"")};
+  if(m<w[0]) return {k:"today",chip:"Today "+hmText(w[0]),line:"Today from about "+hmText(w[0])+thru};
+  if(m<=w[1]) return {k:"live",chip:"On now",line:"On now, until about "+hmText(w[1])+thru};
+  return +day<+en?{k:"over",chip:"Done today",line:"Done for today, back tomorrow"+thru}:{k:"over",chip:"Over",line:"Over for today"}; }
 function mapEvents(){ const now=new Date(), today=new Date(now.getFullYear(),now.getMonth(),now.getDate()), lim=new Date(today.getFullYear(),today.getMonth(),today.getDate()+42);
   return eventRows(today).filter(r=>r.o&&!r.cancelled&&r.o[0]<=lim).map(r=>{ const d=EVENT_DOCS[r.e.id], g=(d&&typeof d.lat==="number"&&typeof d.lon==="number"&&d.lat>40.4&&d.lat<41&&d.lon>-74.3&&d.lon<-73.6)?[d.lat,d.lon]:EVENT_GEO[r.e.id];
-    if(!g) return null; const [x,y]=mapXY(g[0],g[1]); return {r,id:r.e.id,x,y,day:r.o[0]<=today?"Now":r.o[0].toLocaleDateString("en-US",{month:"short",day:"numeric"})}; }).filter(Boolean); }
+    if(!g) return null; const [x,y]=mapXY(g[0],g[1]); const st=evStatus(r,mapNow()); return {r,id:r.e.id,x,y,st,day:st.chip}; }).filter(Boolean); }
 let MAP_ASPECT = 1.35; const MAP_LIM = {x:[250,880], y:[70,860], w:[34,560]};
 const mapPreset = k => { if(k==="me"&&state.pos){ const [x,y]=mapXY(state.pos.lat,state.pos.lon); return {cx:x,cy:y,w:110}; }
   return k==="man" ? {cx:486,cy:386,w:196} : k==="bk" ? {cx:520,cy:500,w:250} : {cx:576,cy:462,w:492}; };
@@ -2010,12 +2046,13 @@ function mapDraw(){
     return ""; }).join("");
   if(state.pos){ const [yx,yy]=mapXY(state.pos.lat,state.pos.lon); taken.push([yx-9*u,yy-9*u,yx+9*u,yy+9*u]); }
   let evs="", flags=""; const evList=(state.mapShowEv?mapEvents():[]).filter(e=>e.x>x0+8*u&&e.x<x1-8*u&&e.y>y0+8*u&&e.y<y1-8*u);
-  if(w<520) for(const e of evList.sort((a,b)=>(b.id===state.mapEv)-(a.id===state.mapEv)||a.r.o[0]-b.r.o[0])){ const on=e.id===state.mapEv, hw=(e.day.length*3.1+5)*u, hh=7*u, box=[e.x-hw,e.y-hh,e.x+hw,e.y+hh];
-    if(!on && taken.some(t=>hit(t,box))) continue; taken.push(box);
-    let lab=""; if(w<300||on){ const nm=e.r.e.name.length>26?e.r.e.name.slice(0,25)+"…":e.r.e.name, fl=10*u, tw=nm.length*fl*0.56;
+  for(const e of evList.sort((a,b)=>(b.id===state.mapEv)-(a.id===state.mapEv)||(b.st.k==="live")-(a.st.k==="live")||a.r.o[0]-b.r.o[0])){ if(w>=520&&e.st.k!=="live"&&e.id!==state.mapEv) continue; const on=e.id===state.mapEv, hw=(e.day.length*3.1+5)*u, hh=7*u, box=[e.x-hw,e.y-hh,e.x+hw,e.y+hh];
+    const live=e.st.k==="live", soon=live||e.st.k==="today"; if(!on && !soon && taken.some(t=>hit(t,box))) continue; taken.push(box);
+    let lab=""; if(w<300||on||live){ const nm=e.r.e.name.length>26?e.r.e.name.slice(0,25)+"…":e.r.e.name, fl=10*u, tw=nm.length*fl*0.56;
       for(const [bx,anchor,tx] of [[e.x+hw+3*u,"start",e.x+hw+3*u],[e.x-hw-3*u-tw,"end",e.x-hw-3*u]]){ const rect=[bx,e.y-fl*0.6,bx+tw,e.y+fl*0.6]; if(rect[0]<x0+2*u||rect[2]>x1-2*u||(!on&&taken.some(t=>hit(t,rect)))) continue; taken.push(rect);
         lab='<text x="'+f(tx)+'" y="'+f(e.y+fl*0.36)+'" text-anchor="'+anchor+'" font-size="'+f(fl)+'" class="m-evlab">'+esc(nm)+'</text>'; break; } }
-    evs+='<g class="m-ev'+(on?" on":"")+'" data-e="'+esc(e.id)+'" tabindex="0" role="button" aria-label="'+esc(e.r.e.name+", "+e.day)+'"><rect x="'+f(e.x-hw-6*u)+'" y="'+f(e.y-hh-6*u)+'" width="'+f(2*hw+12*u)+'" height="'+f(2*hh+12*u)+'" class="m-hit"/>'+
+    evs+='<g class="m-ev '+e.st.k+(on?" on":"")+'" data-e="'+esc(e.id)+'" tabindex="0" role="button" aria-label="'+esc(e.r.e.name+", "+e.st.line)+'"><rect x="'+f(e.x-hw-6*u)+'" y="'+f(e.y-hh-6*u)+'" width="'+f(2*hw+12*u)+'" height="'+f(2*hh+12*u)+'" class="m-hit"/>'+
+      (e.st.k==="live"?'<rect x="'+f(e.x-hw-3*u)+'" y="'+f(e.y-hh-3*u)+'" width="'+f(2*hw+6*u)+'" height="'+f(2*hh+6*u)+'" rx="'+f(5*u)+'" stroke-width="'+f(2.5*u)+'" class="m-evglow"/>':'')+
       '<rect x="'+f(e.x-hw)+'" y="'+f(e.y-hh)+'" width="'+f(2*hw)+'" height="'+f(2*hh)+'" rx="'+f(3*u)+'" stroke-width="'+f(1.5*u)+'" class="m-evbox"/><text x="'+f(e.x)+'" y="'+f(e.y+3.2*u)+'" text-anchor="middle" font-size="'+f(9*u)+'" class="m-evday">'+esc(e.day)+'</text>'+lab+'</g>'; }
   if(w<130) for(const p of pts){ const g=START_GEO[p.id]; if(!g||!START[p.id]) continue; const [x,y]=mapXY(g[0],g[1]); if(Math.hypot(x-p.x,y-p.y)<R+5*u) continue; const name="Start: "+START[p.id][0], fl=10*u, tw=name.length*fl*0.54, dot=[x-5*u,y-5*u,x+5*u,y+5*u]; if(taken.some(t=>hit(t,dot))) continue;
     for(const [bx,anchor,tx] of [[x+8*u,"start",x+8*u],[x-8*u-tw,"end",x-8*u]]){ const rect=[bx,y-fl*0.6,bx+tw,y+fl*0.6]; if(rect[0]<x0+2*u||rect[2]>x1-2*u||taken.some(t=>hit(t,rect))) continue; taken.push(rect,dot);
@@ -2068,13 +2105,15 @@ function mapPanel(){
   const order=placeOrder().filter(id=>typeof PLACES[id].lat==="number");
   $("mapGo").innerHTML='<option value="">Go to a place…</option>'+groupOptions(order, id=>{ const dd=milesText(milesTo(PLACES[id])); return '<option value="'+id+'"'+(id===state.mapSel?" selected":"")+'>'+esc(PLACES[id].name)+(dd?' · '+dd:'')+'</option>'; });
   $("mapIntent").innerHTML='<button type="button" class="chip" data-i="all" aria-pressed="'+(state.mapIntent==="all")+'">Any intent</button>'+Object.entries(INTENTS).map(([k,v])=>'<button type="button" class="chip" data-i="'+k+'" aria-pressed="'+(state.mapIntent===k)+'"><span class="dot" style="background:'+v.color+'"></span>'+v.name+'</button>').join("");
-  $("mapZoom").innerHTML='<button type="button" class="chip evtoggle" data-toggle="ev" aria-pressed="'+!!state.mapShowEv+'"><span class="lg ev"></span>Events '+(state.mapShowEv?"on":"off")+'</button>'+MAP_PRESETS.concat(state.pos?[["me","Near me"]]:[]).map(z=>'<button type="button" class="chip" data-z="'+z[0]+'">'+z[1]+'</button>').join("");
+  const nLive=state.mapShowEv?mapEvents().filter(e=>e.st.k==="live").length:0;
+  $("mapZoom").innerHTML='<button type="button" class="chip evtoggle" data-toggle="ev" aria-pressed="'+!!state.mapShowEv+'"><span class="lg ev"></span>Events '+(state.mapShowEv?"on":"off")+(state.mapShowEv&&nLive?' · '+nLive+' on now':'')+'</button>'+MAP_PRESETS.concat(state.pos?[["me","Near me"]]:[]).map(z=>'<button type="button" class="chip" data-z="'+z[0]+'">'+z[1]+'</button>').join("");
   const evSel=state.mapShowEv&&state.mapEv&&mapEvents().find(e=>e.id===state.mapEv), hasEv=state.mapShowEv&&mapEvents().length;
   const mine=sel?cityIdeas().filter(i=>i.p===sel.id&&(state.mapIntent==="all"||i.i===state.mapIntent)).sort((a,b)=>b.w.includes(key)-a.w.includes(key)):[];
   $("mapPanel").classList.toggle("hassel",!!(sel||evSel));
-  $("mapPanel").innerHTML='<p class="msg maplegend"><span><span class="lg fit"></span>'+(state.mapIntent==="all"?"Ideas":INTENTS[state.mapIntent].name+" ideas")+' for the light now ('+esc(WHEN[key].toLowerCase())+')</span><span><span class="lg"></span>Other places</span><span><span class="lg prog"></span>Share you have shot</span><span><span class="lg stn"></span>Subway station</span><span><span class="lg sunny"></span>Sunny side of the street</span>'+(hasEv?'<span><span class="lg ev"></span>Events in the next 6 weeks</span>':'')+
+  $("mapPanel").innerHTML='<p class="msg maplegend"><span><span class="lg fit"></span>'+(state.mapIntent==="all"?"Ideas":INTENTS[state.mapIntent].name+" ideas")+' for the light now ('+esc(WHEN[key].toLowerCase())+')</span><span><span class="lg"></span>Other places</span><span><span class="lg prog"></span>Share you have shot</span><span><span class="lg stn"></span>Subway station</span><span><span class="lg sunny"></span>Sunny side of the street</span>'+(hasEv?'<span><span class="lg ev"></span>Events in the next 6 weeks</span>'+(nLive?'<span><span class="lg evlive"></span>Event on now</span>':''):'')+
       (state.plan?'<span><span class="lg route"></span>Your plan</span>':'')+(state.pos?'<span><span class="lg you"></span>You</span><span><span class="lg walk"></span>10 min walk from you</span>':'')+'</p>'+
     (evSel ? '<section class="group mapsel"><button type="button" class="mapselx" data-unsel="1" aria-label="Close">×</button><div class="group-head"><b>'+esc(evSel.r.e.name)+'</b><span class="where">'+(EVENT_TYPES[evSel.r.e.type]?esc(EVENT_TYPES[evSel.r.e.type])+' · ':'')+esc(evSel.r.e.where||"")+'</span></div>'+
+        '<p class="evnow '+evSel.st.k+'">'+esc(evSel.st.k==="today"&&!/from about/.test(evSel.st.line)?"Today":evSel.st.line)+'</p>'+
         '<p class="mapcount"><b>'+evSel.r.o[0].toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})+(evSel.r.o[1]?' to '+evSel.r.o[1].toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"}):'')+'</b>'+(evSel.r.confirmed?' <span class="pill">Confirmed</span>':' (expected)')+(evSel.r.e.time?'<br>'+esc(evSel.r.e.time):'')+'</p>'+
         (evSel.r.e.why?'<p class="mapcount">'+esc(evSel.r.e.why)+'</p>':'')+
         '<div class="callinks"><button type="button" class="chip" data-event="'+esc(evSel.id)+'">Open in Events</button>'+(evSel.r.e.map?'<a class="chip" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(evSel.r.e.map[1])+'" target="_blank" rel="noopener">Google Maps ↗</a>':'')+'</div></section>' :
