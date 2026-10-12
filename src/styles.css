@@ -273,8 +273,6 @@ footer{font-size:13px;color:var(--muted);max-width:65ch}
 .time.season{border-color:var(--orange);color:var(--orange)}
 .areahead{margin:18px 0 6px;scroll-margin-top:140px} .areajump .chip{text-decoration:none;min-height:36px;font-size:14px;padding:0 12px}
 .leg a{color:inherit;font-weight:600;text-underline-offset:3px}
-.m-sea{fill:#0e1a2b} .m-ctx{fill:#1d2026} .m-land{fill:#33363d;stroke:#4a4e57;stroke-width:.5;stroke-linejoin:round} .m-park{fill:#2f5a3d}
-.m-park{stroke:#2f5a3d;stroke-width:1.5;stroke-linejoin:round}
 .m-hood{fill:#c9ccd3;opacity:.62;font-family:var(--sans);font-weight:700;letter-spacing:.08em;pointer-events:none}
 .m-spot{fill:#e9d79a;font-family:var(--sans);font-weight:600;font-style:italic;paint-order:stroke;stroke:#14161a;stroke-width:.28em;stroke-linejoin:round;pointer-events:none}
 .m-spotdot{fill:#e9d79a;pointer-events:none}
@@ -492,3 +490,44 @@ body.mapfull{overflow:hidden}
 #map.full .mapbtns{top:calc(max(10px,env(safe-area-inset-top,0px)) + 112px)}
 
 .mbody .mapsel .group-head{padding-right:52px}
+
+/* ===== Map palette: follows the time on the slider (day, golden hour, blue hour, night) ===== */
+#map{--mSea:#0e1a2b;--mLand:#2e3138;--mCoast:#474b55;--mCtx:#1d2026;--mPark:#27442f;--mCem:#2b3830;--mAir:#33363e;--mLocal:#454952;--mAve:#5d626d;--mHwy:#7a6f55;--mFoot:#3d4a40;
+  --mTxt:#ffffff;--mHalo:#14161a;--mHood:#c9ccd3;--mBoro:#ffffff;--mWater:#7fa3d6;--mStreet:#9da2ad;--mLm:#e9d79a;--mEv:#ffb3ae;--mStart:var(--yellow);--mStn:#d9dce2;--mSub:.85}
+#map[data-sky="day"]{--mSea:#a8cbe6;--mLand:#f3f1ec;--mCoast:#cfc9bd;--mCtx:#e7e4dd;--mPark:#c6e3bb;--mCem:#d6e5cf;--mAir:#e5e2ea;--mLocal:#ffffff;--mAve:#ffffff;--mHwy:#f6d07c;--mFoot:#a9c99f;
+  --mTxt:#24282f;--mHalo:rgba(255,255,255,.92);--mHood:#7d828c;--mBoro:#1d2026;--mWater:#4d7aa8;--mStreet:#6a6f78;--mLm:#7a5a10;--mEv:#b8322a;--mStart:#8a5a00;--mStn:#3c4049;--mSub:.95}
+#map[data-sky="gold"]{--mSea:#9eb3c9;--mLand:#f4e5d0;--mCoast:#d7c3a4;--mCtx:#e9d9c2;--mPark:#c7d8a6;--mCem:#d4dab9;--mAir:#e8dacb;--mLocal:#fff7ea;--mAve:#fff1db;--mHwy:#efbb6c;--mFoot:#b8c492;
+  --mTxt:#33281d;--mHalo:rgba(255,247,234,.92);--mHood:#937b5c;--mBoro:#3a2810;--mWater:#5f7592;--mStreet:#7d6b56;--mLm:#7a4c06;--mEv:#a72d22;--mStart:#7a4c06;--mStn:#43372a;--mSub:.95}
+#map[data-sky="blue"]{--mSea:#1c2a4d;--mLand:#363d57;--mCoast:#4b5474;--mCtx:#2b3150;--mPark:#2e4a4a;--mCem:#33454a;--mAir:#393e5a;--mLocal:#4f5778;--mAve:#666f92;--mHwy:#8b7b69;--mFoot:#3f5661;
+  --mTxt:#f2f4ff;--mHalo:#151a30;--mHood:#b7bfdc;--mBoro:#ffffff;--mWater:#8ea8e0;--mStreet:#aab2d0;--mLm:#efd99a;--mEv:#ffb3ae;--mStart:var(--yellow);--mStn:#dfe3f5;--mSub:.9}
+#map,.mapsvg{background:var(--mSea);transition:background .6s}
+.m-sea{fill:var(--mSea)} .m-ctx{fill:var(--mCtx)} .m-land{fill:var(--mLand);stroke:var(--mCoast);stroke-width:.8;vector-effect:non-scaling-stroke;stroke-linejoin:round}
+.m-park{fill:var(--mPark)} .m-cem{fill:var(--mCem)} .m-air{fill:var(--mAir)}
+.m-base path{fill-rule:evenodd}
+.m-sea,.m-ctx,.m-land,.m-park,.m-cem,.m-air,.m-rd,.m-lab,.m-hood,.m-st,.m-boro,.m-water,.m-spot,.m-evlab,.m-stnlab,.m-startlab{transition:fill .6s,stroke .6s}
+.m-rd.local{stroke:var(--mLocal)} .m-rd.ave{stroke:var(--mAve)} .m-rd.hwy{stroke:var(--mHwy)} .m-rd.foot{stroke:var(--mFoot)}
+.zfar .m-rd.ave{stroke:var(--mAve);opacity:.6}
+.m-subway path{opacity:var(--mSub)}
+.m-lab{fill:var(--mTxt);stroke:var(--mHalo)} .m-lab.on{fill:var(--yellow);stroke:#14161a}
+#map[data-sky="day"] .m-lab.on,#map[data-sky="gold"] .m-lab.on{fill:#14161a;stroke:var(--yellow)}
+.m-hood{fill:var(--mHood)} .m-st{fill:var(--mStreet);stroke:var(--mHalo)} .m-boro{fill:var(--mBoro)} .m-water{fill:var(--mWater)}
+.m-spot{fill:var(--mLm);stroke:var(--mHalo)} .m-evlab{fill:var(--mEv);stroke:var(--mHalo)} .m-startlab{fill:var(--mStart);stroke:var(--mHalo)}
+.m-stnlab{fill:var(--mStn);stroke:var(--mHalo)}
+.m-tint.day{fill:transparent} .m-tint.gold{fill:rgba(255,140,30,.07)} .m-tint.blue{fill:rgba(40,70,190,.08)} .m-tint.night{fill:transparent}
+#map[data-sky="day"] .m-sunny,#map[data-sky="gold"] .m-sunny{stroke:#f2a900;opacity:.55}
+#map[data-sky="day"] .m-beam{opacity:.06;stroke:#f5c400}
+/* Pins: photo (or count) in a ring of ideas */
+.m-face{fill:#1b1e24;stroke:#fff} .m-pin.big.fit .m-face{fill:#1b1e24} .m-pin.big .m-num{fill:#fff}
+#mapPhotos image{pointer-events:none}
+.m-arc{fill:none;stroke-linecap:round;pointer-events:none} .m-arc.off{stroke:rgba(120,125,135,.55)}
+#map[data-sky="day"] .m-arc.off,#map[data-sky="gold"] .m-arc.off{stroke:rgba(80,80,90,.28)}
+.m-badge circle{fill:var(--yellow);stroke:#14161a} .m-badge text{fill:#14161a;font-family:var(--sans);font-weight:800;pointer-events:none} .m-badge{pointer-events:none}
+.m-badge.zero circle{fill:#d9dbe0}
+.m-done{pointer-events:none} .m-done circle{fill:#1e9e48;stroke:#fff} .m-done path{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round}
+.m-pin.big .m-halo{stroke:var(--yellow);opacity:1}
+.m-pin.on .m-face{stroke:var(--yellow)}
+.maplegend .lg.arc{border:3px solid transparent;border-top-color:#e8423a;border-right-color:#2f6fe0;border-bottom-color:#f2a900;border-left-color:rgba(120,125,135,.6);background:#1b1e24}
+.maplegend .lg.badge{background:var(--yellow);border-color:#14161a}
+.maplegend .lg.done{background:#1e9e48;border-color:#fff;box-shadow:0 0 0 1px var(--line)}
+.mapselfig{margin:0;position:relative} .mapselfig img{display:block;width:100%;height:150px;object-fit:cover}
+.mapselfig figcaption{position:absolute;left:0;right:0;bottom:0;padding:14px 10px 5px;font-size:11px;background:linear-gradient(transparent,rgba(0,0,0,.65))} .mapselfig a{color:#fff;text-decoration:none}

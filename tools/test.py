@@ -53,6 +53,9 @@ def run(path, name):
         fake={"current":{"temperature_2m":14,"weather_code":3,"is_day":1},"daily":{"precipitation_probability_max":[80,10]},
               "hourly":{"time":times,"weather_code":code,"precipitation_probability":[80 if c==61 else 10 for c in code],"precipitation":[1.2 if c==61 else 0 for c in code],"cloud_cover":[100 if c in (3,61) else 20 for c in code]}}
         import json as _j
+        import base64 as _b
+        png=_b.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==")
+        pg.route("**/upload.wikimedia.org/**", lambda r: r.fulfill(status=200, content_type="image/png", body=png))   # stand-in for the place photos
         pg.route("**/api.open-meteo.com/**", lambda r: r.fulfill(status=200, content_type="application/json", body=_j.dumps(fake)))
         pg.goto("file://" + path); pg.wait_for_timeout(700)
 
@@ -119,6 +122,16 @@ def run(path, name):
         pg.evaluate("setSheet('full')"); pg.wait_for_timeout(300)
         pg.click("#lightMarks .lmark:has(.lk.blue)"); pg.wait_for_timeout(200)
         check("Blue hour mark moves the map to blue hour", "Blue hour" in pg.evaluate("document.getElementById('sunLine').textContent"), pg.evaluate("document.getElementById('sunLine').textContent")[:60])
+        check("Real shoreline, land around the city, parks, cemeteries and airports", pg.evaluate("[MAPD_LAND.length>20000, MAPD_CTX.length>3000, MAPD_PARK.length>3000, MAPD_CEM.length>200, MAPD_AIR.length>200, document.querySelectorAll('.m-base path').length]")==[True,True,True,True,True,5])
+        pg.evaluate("state.mapT=13*60; mapDraw()"); sky_day=pg.evaluate("document.getElementById('map').dataset.sky")
+        pg.evaluate("state.mapT=21*60; mapDraw()"); sky_night=pg.evaluate("document.getElementById('map').dataset.sky")
+        check("Map palette follows the time: light by day, dark at night", [sky_day,sky_night]==["day","night"] and pg.evaluate("getComputedStyle(document.querySelector('.m-land')).fill")!="", [sky_day,sky_night])
+        pg.evaluate("cancelAnimationFrame(mapAnim); mapV=mapPreset('man'); mapDraw()")
+        nph=pg.evaluate("[...document.querySelectorAll('#mapPhotos image')].filter(i=>i.style.display!=='none').length")
+        check("Pins have idea rings and badges", pg.evaluate("document.querySelectorAll('.m-pin.big .m-arc').length")>40 and pg.evaluate("document.querySelectorAll('#mapOver .m-badge').length")>5)
+        if name=="Installed app": check("Pins show place photos in the installed app", nph>=10 and pg.evaluate("Object.keys(PLACE_PHOTO).length")==23, nph)
+        else: check("No outside photos in the Claude version", pg.evaluate("document.querySelectorAll('#mapPhotos image').length")==0)
+        pg.evaluate("mapV={cx:mapXY(40.7355,-73.995)[0],cy:mapXY(40.7355,-73.995)[1],w:100}; mapDraw()")
         pg.evaluate("state.mapT=21*60; mapDraw(); mapPanel()")
         check("Night tint at 9 pm", "night" in pg.evaluate("document.querySelector('.m-tint').getAttribute('class')"))
         pg.evaluate("state.mapT=16*60; mapDraw(); mapPanel()")
