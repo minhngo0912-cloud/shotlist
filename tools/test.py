@@ -138,6 +138,20 @@ def run(path, name):
         pg.evaluate("mapSelectEv(null)")
         check("Event that has finished is marked over", evk(18*60).startswith("m-ev over"), evk(18*60))
         pg.evaluate("()=>{ delete EVENT_DOCS.testlive; state.mapT=null; mapDraw(); mapPanel(); }")
+        # Light compass, where to stand, moon
+        pg.evaluate("state.mapT=16*60; mapSelect('union'); mapV={cx:mapXY(40.7359,-73.9906)[0],cy:mapXY(40.7359,-73.9906)[1],w:100}; mapDraw(); mapPanel()")
+        check("Light compass round the selected place", pg.evaluate("document.querySelectorAll('.m-comp').length")==4 and "for backlight" in pg.evaluate("document.querySelector('.maplight').textContent"))
+        check("Place lists where to stand", pg.evaluate("document.querySelectorAll('#mapPanel [data-spot]').length")>=2)
+        pg.click("#mapPanel [data-spot]"); pg.wait_for_timeout(900)
+        check("Spot shows its lens wedge and panel", pg.evaluate("[!!document.querySelector('.m-spotg.on .m-cone'), !!document.querySelector('#mapPanel .spotfov'), !!document.querySelector('#mapPanel .row[data-id]')]")==[True,True,True])
+        shot("map-spot")
+        bad=pg.evaluate("""Object.entries(SPOTS).flatMap(([pid,l])=>l.length<2||!PLACES[pid]?[pid]:l.filter(S=>!IDEAS.find(x=>x.id===S[5])||kmBetween({lat:S[0],lon:S[1]},PLACES[pid])>(pid==='ferry'?4:1.6)||!(S[2]>=0&&S[2]<360)||!S[4]).map(S=>pid+':'+S[3]))""")
+        missing=pg.evaluate("Object.keys(PLACES).filter(id=>typeof PLACES[id].lat==='number'&&!SPOTS[id])")
+        check("Every place has spots near it, each with a valid idea", not bad and not missing, [bad,missing])
+        mo=pg.evaluate("(()=>{ const m=moonPos(new Date(2026,9,24,20,30),40.7128,-74.006), t=moonTimes(new Date(2026,9,24,12),40.7128,-74.006); return [Math.round(m.frac*100),m.alt,m.az,t.rise,moonName(m)]; })()")
+        # Reference from the PyEphem library: 98% lit, 37.9 deg up, azimuth 113.4, rises 4:59 pm
+        check("Moon matches an ephemeris", abs(mo[0]-98)<=2 and abs(mo[1]-37.9)<2.5 and abs(mo[2]-113.4)<3 and abs(mo[3]-(16*60+59))<=15 and mo[4]=="Full moon", mo)
+        pg.evaluate("mapSelect(null)")
         # Landmarks
         pg.evaluate("mapSelect(null); mapFly(mapPreset('city'))"); pg.wait_for_timeout(600)
         n_city=pg.evaluate("document.querySelectorAll('.m-lm').length")

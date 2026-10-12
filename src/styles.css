@@ -413,3 +413,25 @@ body.mapfull{overflow:hidden}
 .m-spot.on{fill:#fff;font-style:normal;font-weight:800}
 .maplegend .lg.lmk,.lmtoggle .lg{display:inline-block;width:12px;height:12px;border-radius:50%;background:#14161a;border:2px solid #e9d79a;box-shadow:0 0 0 1px var(--line)}
 .lmtoggle[aria-pressed="false"] .lg{background:transparent;border-color:var(--muted);box-shadow:none}
+
+/* Light compass round the selected place */
+.m-comp{pointer-events:none;stroke:rgba(0,0,0,.35);stroke-width:.4}
+.m-comp.back{fill:rgba(242,138,40,.55)} .m-comp.side{fill:rgba(252,204,10,.38)} .m-comp.front{fill:rgba(255,248,220,.42)}
+.m-comptx{fill:#fff;font-family:var(--sans);font-weight:800;paint-order:stroke;stroke:#14161a;stroke-width:.3em;stroke-linejoin:round;pointer-events:none}
+/* Where to stand: spots and the lens wedge */
+.m-spotg{cursor:pointer;outline:none}
+.m-cone{stroke:#fff;stroke-width:.5;stroke-opacity:.8} .m-cone.back{fill:rgba(242,138,40,.55)} .m-cone.side{fill:rgba(252,204,10,.45)} .m-cone.front{fill:rgba(255,248,220,.5)} .m-cone.dark{fill:rgba(130,150,255,.4)}
+.m-spotg.on .m-cone{stroke-width:1;stroke-opacity:1}
+.m-spotpt{fill:#fff;stroke:#14161a} .m-spotg.on .m-spotpt{fill:var(--yellow)}
+.m-spottx{fill:#fff;font-family:var(--sans);font-weight:700;paint-order:stroke;stroke:#14161a;stroke-width:.3em;stroke-linejoin:round;pointer-events:none}
+/* Moon */
+.m-moon{pointer-events:none} .m-moonglow{fill:rgba(220,230,255,.18)} .m-moondark{fill:#3a3f4d;stroke:#cfd6e6;stroke-width:.6} .m-moonlit{fill:#f2f2e6}
+/* Panels */
+.maplight{margin:8px 14px 0;font-size:14px;line-height:1.45}
+.spothead{margin:12px 14px 2px;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.srow{display:flex;align-items:center;gap:10px;width:100%;padding:9px 14px;border:0;border-top:1px solid var(--line);background:none;color:var(--fg);text-align:left;font:inherit;cursor:pointer}
+.srow .t{flex:1;min-width:0;display:flex;flex-direction:column} .srow .t span{font-size:13px;color:var(--muted)} .srow .go{color:var(--muted);font-size:20px}
+.sdot{display:inline-block;flex:none;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px;border:1px solid rgba(0,0,0,.25)}
+.srow .sdot{margin-right:0} .sdot.back{background:#f28a28} .sdot.side{background:#fccc0a} .sdot.front{background:#fff3c4} .sdot.dark{background:#8296ff}
+.spotfov{margin:6px 14px 0;color:var(--muted)}
+.lk.moon{background:#f2f2e6;border:2px solid #3a3f4d;width:8px;height:8px;border-radius:50%}
