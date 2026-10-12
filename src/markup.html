@@ -1,0 +1,83 @@
+
+
+<div class="app">
+  <div class="mast">
+  <header class="top">
+    <div class="brand">
+      <h1>Shot List</h1>
+      <label class="label" for="city" hidden>City</label><select id="city" class="citysel" aria-label="City"></select>
+    </div>
+    <div class="prog"><span id="progress"></span><span class="track"><i id="fill"></i></span></div>
+    <button type="button" class="themebtn" id="theme"></button>
+  </header>
+
+  <nav class="views" id="views" role="tablist" aria-label="View">
+    <button type="button" role="tab" data-v="shoot" id="vShoot">Shoot</button>
+    <button type="button" role="tab" data-v="browse" id="vBrowse">Browse</button>
+    <button type="button" role="tab" data-v="saved" id="vSaved">Saved</button>
+    <button type="button" role="tab" data-v="plan" id="vPlan">Plan</button>
+    <button type="button" role="tab" data-v="events" id="vEvents">Events</button>
+    <button type="button" role="tab" data-v="map" id="vMap">Map</button>
+    <button type="button" role="tab" data-v="learn" id="vLearn">Learn</button>
+  </nav>
+  </div>
+
+  <section class="alert" id="rainAlert" aria-live="polite" hidden></section>
+
+  <section class="now" id="now" aria-label="Conditions now">
+    <span class="now-ico" id="nowIco" aria-hidden="true"></span>
+    <div class="now-main"><b id="nowHead"></b><span id="nowSub"></span></div>
+    <select id="cond" aria-label="Conditions">
+      <option value="auto">Auto</option><option value="sun">Bright sun</option><option value="cloud">Overcast</option><option value="rain">Rain</option><option value="fog">Fog</option><option value="snow">Snow</option><option value="dusk">Dusk</option><option value="night">Night</option>
+    </select>
+    <button type="button" class="chip" id="useLight" aria-pressed="false"></button>
+    <p class="lightline" id="lightLine" hidden></p>
+  </section>
+
+  <section class="filters" id="filters" aria-label="Filters">
+    <div class="intents" id="intents"></div>
+    <div class="selects">
+      <div class="field"><label class="label" for="place">Place</label><select id="place"></select></div>
+      <div class="field"><label class="label" for="when">Light</label><select id="when"></select></div>
+      <button type="button" class="chip" id="near" aria-pressed="false">Near me</button>
+    </div>
+    <p class="msg" id="nearMsg" hidden></p>
+  </section>
+
+  <main id="viewShoot"><article class="sign" id="card" aria-live="polite"></article></main>
+  <main id="viewList" hidden><div class="list" id="list"></div></main>
+  <main id="viewPlan" hidden>
+    <div class="planctl">
+      <div class="field"><label class="label" for="pStart">Start at</label><select id="pStart"></select></div>
+      <div class="field"><label class="label" for="pTime">Leaving</label><select id="pTime"></select></div>
+      <div class="field"><label class="label" for="pLen">For</label><select id="pLen"><option value="90">1½ hours</option><option value="150" selected>2½ hours</option><option value="240">4 hours</option></select></div>
+    </div>
+    <button type="button" class="btn primary" id="pGo">Make a plan</button>
+    <div class="list" id="plan"></div>
+  </main>
+  <main id="viewLearn" hidden><div class="list" id="learn"></div></main>
+  <main id="viewMap" hidden><div id="map"></div></main>
+  <main id="viewEvents" hidden><div class="list" id="events"></div></main>
+
+  <details class="syncbox" id="syncbox">
+    <summary>Move saved ideas, shot marks and notes to another device</summary>
+    <div class="syncbody">
+      <p class="msg">On the device that has your marks, copy the code. Send it to your other device (for example with a message to yourself or the shared clipboard), paste it there and tap Import. Importing adds to what is already on the device; it never removes anything.</p>
+      <button type="button" class="btn" id="syncCopy">Copy code from this device</button>
+      <label class="label" for="syncCode">Code from another device</label>
+      <textarea id="syncCode" rows="3" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="Paste a code that starts with SL1."></textarea>
+      <button type="button" class="btn primary" id="syncImport">Import</button>
+      <p class="msg" id="syncMsg" role="status"></p>
+    </div>
+  </details>
+
+  <footer>Subway photography is allowed by MTA rules without flash, tripods or lights. Diagrams are schematic. Place details were checked against published sources in October 2026; ideas and settings are starting points to test on the street. Saved and shot marks are kept in this browser on this device only.</footer>
+</div>
+
+<div class="bar" id="bar"><div class="bar-in">
+  <button class="btn" id="back" type="button" aria-label="Previous idea">‹</button>
+  <button class="btn primary" id="next" type="button">Another idea</button>
+  <button class="btn" id="save" type="button" aria-pressed="false">Save</button>
+  <button class="btn" id="done" type="button" aria-pressed="false">Shot it</button>
+</div></div>
+

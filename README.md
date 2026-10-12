@@ -1,7 +1,7 @@
 # Shot List
 
 Street photography ideas by place and intent, with camera settings, composition demos, events and live weather.
-An installable web app: no build step, just static files.
+An installable web app made of static files. The files in the repository root are what GitHub Pages serves; they are built from `src/`.
 
 ## Publish on GitHub Pages
 1. Create a new public repository on GitHub, for example `shotlist`.
@@ -12,5 +12,11 @@ An installable web app: no build step, just static files.
 ## Install on iPhone or iPad
 Open that address in Safari, tap Share, then "Add to Home Screen". Open it once while online so it can store itself for offline use.
 
+## Developing
+1. Edit the source in `src/` (`app.js` holds the data and logic, `styles.css` the look, `live-pwa.js` the events and weather loading for this app, `live-claude.js` the same for the Claude version).
+2. Run `python3 tools/build.py`. It writes `index.html` and `sw.js` here, and `build/claude.html` for the Claude version (not committed).
+3. Run `python3 tools/test.py` (needs Playwright with Chromium). It checks the data and opens every view in a phone-sized browser, for both versions. Add `--shots DIR` for screenshots.
+4. Commit and push. `events.json` is updated weekly by a scheduled task and is not part of the build.
+
 ## Updating
-Replace the files in the repository with the new versions. The app picks them up the next time it is opened online; close and reopen it once more to see the change.
+Push the rebuilt files. The app picks them up the next time it is opened online; close and reopen it once more to see the change.
