@@ -1,3 +1,4 @@
+[hidden]{display:none!important}
 
 /* Layout: header and view switch, one row of filters, a tabbed subway-sign card, and a fixed action bar within thumb reach. */
 :root{
@@ -272,11 +273,7 @@ footer{font-size:13px;color:var(--muted);max-width:65ch}
 .time.season{border-color:var(--orange);color:var(--orange)}
 .areahead{margin:18px 0 6px;scroll-margin-top:140px} .areajump .chip{text-decoration:none;min-height:36px;font-size:14px;padding:0 12px}
 .leg a{color:inherit;font-weight:600;text-underline-offset:3px}
-.mapwrap{position:relative;margin:10px 0 8px;border-radius:14px;overflow:hidden;box-shadow:0 1px 0 var(--line),0 8px 24px rgba(0,0,0,.18)}
-.mapsvg{display:block;width:100%;aspect-ratio:1/1.35;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;background:var(--sign)}
-.mapsvg:active{cursor:grabbing}
 .m-sea{fill:#0e1a2b} .m-ctx{fill:#1d2026} .m-land{fill:#33363d;stroke:#4a4e57;stroke-width:.5;stroke-linejoin:round} .m-park{fill:#2f5a3d}
-.m-street{fill:none;stroke:#565a64;stroke-width:.55;stroke-linecap:round;stroke-linejoin:round;opacity:.9}
 .m-park{stroke:#2f5a3d;stroke-width:1.5;stroke-linejoin:round}
 .m-hood{fill:#c9ccd3;opacity:.62;font-family:var(--sans);font-weight:700;letter-spacing:.08em;pointer-events:none}
 .m-spot{fill:#e9d79a;font-family:var(--sans);font-weight:600;font-style:italic;paint-order:stroke;stroke:#14161a;stroke-width:.28em;stroke-linejoin:round;pointer-events:none}
@@ -284,7 +281,6 @@ footer{font-size:13px;color:var(--muted);max-width:65ch}
 .m-st{fill:#9da2ad;font-family:var(--sans);font-weight:600;paint-order:stroke;stroke:#33363d;stroke-width:.3em;pointer-events:none}
 .m-walk{fill:none;stroke:#7fb0ff;opacity:.8;pointer-events:none}
 .maplegend .lg.walk{border:2px dashed #5b8fe6;background:none}
-.mapscale{position:absolute;left:10px;bottom:10px;padding:5px 8px 6px;border-radius:8px;background:rgba(20,22,26,.78);color:#fff;font-size:11px;font-weight:600;line-height:1;white-space:nowrap;pointer-events:none}
 .mapscale span{display:block;margin-bottom:4px} .mapscale i{display:block;height:5px;border:2px solid #fff;border-top:0;box-sizing:border-box}
 .m-ev{cursor:pointer;outline:none} .m-evbox{fill:var(--red);stroke:#fff} .m-ev.on .m-evbox{fill:#fff;stroke:var(--red)} .m-ev.on .m-evday{fill:var(--red)}
 .m-evday{fill:#fff;font-family:var(--sans);font-weight:800;pointer-events:none}
@@ -295,7 +291,6 @@ footer{font-size:13px;color:var(--muted);max-width:65ch}
 .evtoggle[aria-pressed="false"] .lg{background:transparent;border-color:var(--muted);box-shadow:none}
 .maplegend .lg.ev{border-radius:3px;background:var(--red);border-color:#fff;box-shadow:0 0 0 1px var(--line);width:16px}
 .mapsel .mapstart{display:block;margin:10px 14px 0;color:var(--fg)}
-.m-bridge{fill:none;stroke:#7b7f88;stroke-width:.7;stroke-linecap:round}
 .m-boro{fill:#fff;opacity:.1;font-family:var(--sans);font-weight:800;letter-spacing:.14em;pointer-events:none}
 .m-water{fill:#7fa3d6;opacity:.6;font-family:var(--sans);font-style:italic;pointer-events:none}
 .m-route{fill:none;stroke:var(--yellow);stroke-linecap:round;stroke-linejoin:round;opacity:.9;pointer-events:none}
@@ -310,10 +305,9 @@ footer{font-size:13px;color:var(--muted);max-width:65ch}
 .m-you{fill:var(--blue);stroke:#fff} .m-youhalo{fill:var(--blue);opacity:.25}
 @media (prefers-reduced-motion:no-preference){ .m-halo{animation:mpulse 1.6s ease-out infinite} }
 @keyframes mpulse{0%{opacity:.8;transform:scale(1)}100%{opacity:0;transform:scale(2.1)}}
-.mapbtns{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.4)}
 .mapbtns button{width:44px;height:44px;border:0;background:rgba(20,22,26,.88);color:#fff;font-size:24px;font-weight:600;line-height:1;cursor:pointer}
 .mapbtns button+button{border-top:1px solid #3a3c42}
-.m-sunny{fill:none;stroke:var(--yellow);opacity:.55;stroke-linecap:round;pointer-events:none}
+.m-sunny{fill:none;stroke:#ffd75e;opacity:.42;stroke-linecap:round;pointer-events:none}
 .maplegend .lg.sunny{width:16px;height:0;border:0;border-top:3px solid var(--yellow);border-radius:0;background:none}
 .m-stop rect{fill:var(--yellow);stroke:#14161a} .m-stop text{fill:#14161a;font-family:var(--sans);font-weight:800} .m-stop.next rect{fill:#fff}
 .planbar{margin-top:10px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
@@ -322,7 +316,6 @@ footer{font-size:13px;color:var(--muted);max-width:65ch}
 .stopchip{min-height:38px;font-size:14px} .stopn{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:5px;background:var(--yellow);color:var(--on-yellow);font-size:12px;font-weight:800}
 .stopchip.next{border-color:var(--fg)} .planhint{margin:10px 0 0} .instop{align-self:center}
 .chip.primary{background:var(--yellow);border-color:var(--yellow);color:var(--on-yellow)}
-.sunbar{margin-top:10px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
 .sunrow{display:flex;gap:10px;align-items:center} .sunrow input{flex:1;accent-color:var(--yellow);height:30px} .sunrow .chip{min-height:36px}
 .sunline{margin:6px 0 0;font-size:14px;line-height:1.45}
 .wxbar{height:8px;border-radius:4px;margin:4px 6px 0;border:1px solid var(--line)}
@@ -330,11 +323,10 @@ footer{font-size:13px;color:var(--muted);max-width:65ch}
 .wxk{display:inline-block;width:12px;height:8px;border-radius:2px} .wxk.sun{background:rgba(252,204,10,.35)} .wxk.cloud{background:rgba(140,145,155,.7)} .wxk.rain{background:rgba(70,120,230,.85)}
 .wxsum{margin:4px 0 0;font-size:13px;color:var(--muted)} .sunrs{color:var(--muted)}
 .m-tint{pointer-events:none;fill:transparent;transition:fill .3s} .m-tint.gold{fill:rgba(255,150,40,.13)} .m-tint.blue{fill:rgba(40,70,190,.28)} .m-tint.night{fill:rgba(0,4,28,.5)}
-.m-beam{stroke:var(--yellow);opacity:.07;stroke-linecap:round;fill:none;pointer-events:none}
+.m-beam{stroke:var(--yellow);opacity:.035;stroke-linecap:round;fill:none;pointer-events:none}
 .m-sun{pointer-events:none;stroke:var(--yellow)} .m-sundisc{fill:var(--yellow);stroke:none} .m-sunglow{fill:var(--yellow);opacity:.18;stroke:none}
 .m-sun.low .m-sundisc{fill:#ff8a3d} .m-sun.low{stroke:#ff8a3d}
 .mapbtns button[data-fit],.mapbtns button[data-locate]{font-size:20px}
-.mapgo{margin-top:4px} .mapgo select{width:100%;min-height:44px;padding:0 12px;border:1.5px solid var(--line);border-radius:12px;background:var(--panel);color:var(--fg);font-size:16px;font-weight:600}
 #mapIntent{margin-top:8px} #mapZoom{margin-top:8px}
 .m-stn{fill:#fff;stroke:#14161a;pointer-events:none} .m-stnm{fill:#14161a;font-family:var(--sans);font-weight:800;pointer-events:none}
 .m-bul{fill:#fff;font-family:var(--sans);font-weight:800;pointer-events:none} .m-bul.dark{fill:#14161a}
@@ -361,24 +353,8 @@ footer{font-size:13px;color:var(--muted);max-width:65ch}
   @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 }
 
-/* Full-screen map: the map fills the screen with the place search on top and the time slider below; a tapped place opens as a sheet over the map */
 .mapbtns button[data-full] svg{width:22px;height:22px;display:block;margin:auto;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .mapbtns button[data-full] .ico-close{display:none} #map.full .mapbtns button[data-full] .ico-open{display:none} #map.full .mapbtns button[data-full] .ico-close{display:inline}
-.mapselx{display:none}
-body.mapfull{overflow:hidden}
-#map.full{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;gap:6px;background:var(--bg);padding:max(8px,env(safe-area-inset-top,0px)) max(8px,env(safe-area-inset-right,0px)) max(8px,env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px));overscroll-behavior:contain}
-#map.full .mapgo{margin:0;order:1}
-#map.full #mapIntent,#map.full #mapZoom,#map.full #mapPlan{display:none}
-#map.full .mapwrap{order:2;flex:1;min-height:0;margin:0;border-radius:12px}
-#map.full .mapsvg{aspect-ratio:auto;height:100%}
-#map.full .sunbar{order:4;margin:0;padding:6px 10px}
-#map.full .wxlegend,#map.full .wxsum{display:none}
-#map.full .sunline{margin:4px 0 0;max-height:1.4em;overflow:hidden;font-size:13px}
-#map.full #mapPanel{display:none}
-#map.full #mapPanel.hassel{display:block;order:3;flex:0 1 auto;max-height:44%;overflow:auto;border-radius:14px;border:1px solid var(--line);background:var(--bg)}
-#map.full #mapPanel.hassel>.msg,#map.full #mapPanel.hassel>.lead{display:none}
-#map.full #mapPanel .mapsel{margin:0;position:relative}
-#map.full .mapselx{display:block;position:absolute;right:6px;top:6px;z-index:1;width:36px;height:36px;border:0;border-radius:18px;background:rgba(255,255,255,.16);color:var(--sign-fg);font-size:22px;line-height:1;cursor:pointer}
 
 /* Events on the map: on now (green, glowing), later today, and over */
 .m-ev.live .m-evbox{fill:#1e9e48;stroke:#fff} .m-ev.live.on .m-evbox{fill:#fff;stroke:#1e9e48} .m-ev.live.on .m-evday{fill:#1e9e48}
@@ -403,7 +379,6 @@ body.mapfull{overflow:hidden}
 .lmarks{margin:8px 0 0;padding:0;flex-wrap:wrap;overflow:visible;gap:6px} .lmark{min-height:32px;padding:0 10px;font-size:13px;gap:6px} .lmark.past{opacity:.55} .lmark.on{border-color:var(--fg);font-weight:800}
 .lk{display:inline-block;width:12px;height:12px;border-radius:3px} .lk.gold{background:#f2ad3a} .lk.blue{background:#3e63d8} .lk.rise,.lk.set{background:#f4e7b4;border:2px solid #14161a;width:8px;height:8px;border-radius:50%}
 .planlinks{margin-top:8px;flex-wrap:wrap} .maplinkhint{flex-basis:100%;margin:2px 0 0;font-size:12px}
-#map.full .lmarks{margin-top:4px}
 
 /* Landmarks: small badges with a symbol for the kind of place; tap for a tip */
 .m-lm{cursor:pointer;outline:none}
@@ -435,3 +410,85 @@ body.mapfull{overflow:hidden}
 .srow .sdot{margin-right:0} .sdot.back{background:#f28a28} .sdot.side{background:#fccc0a} .sdot.front{background:#fff3c4} .sdot.dark{background:#8296ff}
 .spotfov{margin:6px 14px 0;color:var(--muted)}
 .lk.moon{background:#f2f2e6;border:2px solid #3a3f4d;width:8px;height:8px;border-radius:50%}
+
+/* ===== Map-first layout: the map fills the screen, controls float over it, details live in a sheet ===== */
+body.mapview .app{padding-bottom:8px}
+#map{position:relative;overflow:hidden;border-radius:14px;height:calc(100dvh - 150px);min-height:440px;--sheetH:110px;background:#0e1a2b;box-shadow:0 1px 0 var(--line),0 8px 24px rgba(0,0,0,.18);touch-action:none}
+.mapwrap{position:absolute;inset:0}
+.mapsvg{display:block;width:100%;height:100%;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;background:#0e1a2b}
+.mapsvg:active{cursor:grabbing}
+.mtop{position:absolute;top:10px;left:10px;right:10px;z-index:3;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.mtop>*{pointer-events:auto}
+.mrow{display:flex;gap:8px}
+.mapgo{flex:1;min-width:0}
+.mapgo select{width:100%;min-height:46px;padding:0 14px;border:0;border-radius:23px;background:var(--bg);color:var(--fg);font-size:16px;font-weight:600;box-shadow:0 2px 10px rgba(0,0,0,.35);-webkit-appearance:none;appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 20px) 50%,calc(100% - 14px) 50%;background-size:6px 6px;background-repeat:no-repeat}
+.mlayersbtn{position:relative;display:inline-flex;align-items:center;gap:6px;min-height:46px;padding:0 14px;border:0;border-radius:23px;background:var(--bg);color:var(--fg);font:inherit;font-weight:700;font-size:15px;box-shadow:0 2px 10px rgba(0,0,0,.35);cursor:pointer}
+.mlayersbtn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round}
+.mlayersbtn[aria-expanded="true"]{background:var(--fg);color:var(--bg)}
+.mlayersbtn i{position:absolute;top:6px;right:8px;width:9px;height:9px;border-radius:50%;background:#1e9e48;box-shadow:0 0 0 2px var(--bg)}
+.mchips{margin:0;padding:0 0 2px;gap:6px}
+.mchips .chip{min-height:34px;padding:0 12px;font-size:14px;background:var(--bg);border-color:transparent;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.mchips .chip[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+.mlayers{position:absolute;top:64px;right:10px;z-index:6;width:min(330px,calc(100% - 20px));max-height:calc(100% - 80px);overflow:auto;padding:6px 0 12px;border-radius:16px;background:var(--bg);color:var(--fg);box-shadow:0 12px 34px rgba(0,0,0,.45)}
+.mlayers-head{display:flex;align-items:center;justify-content:space-between;padding:6px 8px 6px 16px}
+.mlayers-head b{font-size:17px}
+.mlayers .mapselx{position:static}
+.mlayer{display:flex;align-items:center;gap:12px;width:100%;padding:10px 16px;border:0;background:none;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.mlayer .t{flex:1;min-width:0;display:flex;flex-direction:column} .mlayer .t span{font-size:13px;color:var(--muted)}
+.mlayer .sw{flex:none;width:40px;height:24px;border-radius:12px;background:var(--line);position:relative;transition:background .15s}
+.mlayer .sw:after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.35);transition:transform .15s}
+.mlayer[aria-pressed="true"] .sw{background:#1e9e48} .mlayer[aria-pressed="true"] .sw:after{transform:translateX(16px)}
+.mlayer .lg{flex:none;display:inline-block;width:14px;height:14px;border-radius:50%;border:2px solid var(--fg);background:var(--panel)}
+.mlayer .lg.ev{border-radius:3px;background:var(--red);border-color:#fff;box-shadow:0 0 0 1px var(--line);width:18px}
+.mlayer .lg.lmk{background:#14161a;border-color:#e9d79a}
+.mlayer .lg.sub{border:0;border-radius:2px;width:18px;height:6px;background:linear-gradient(90deg,#ee352e 33%,#00933c 33% 66%,#0062cf 66%)}
+.mlayer .lg.stn{background:#fff;border-color:#14161a}
+.mlayer .lg.sunny{width:18px;height:0;border:0;border-top:3px solid var(--yellow);border-radius:0;background:none}
+.mlayer .lg.spot{border:0;border-radius:0;width:16px;height:16px;background:conic-gradient(from -22deg at 50% 100%,rgba(242,138,40,.85) 0 45deg,transparent 0)}
+.mlayer .lg.names{border:0;width:auto;height:auto;background:none;font-size:12px;font-weight:800;letter-spacing:.06em}
+.mlayer .lg.names:before{content:"Aa"}
+.mlayers-sub{margin:10px 16px 6px;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.mlayers #mapZoom{margin:0;padding:0 16px;flex-wrap:wrap}
+.mapbtns{position:absolute;right:10px;top:122px;z-index:2;display:flex;flex-direction:column;border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.4)}
+.mapscale{position:absolute;left:10px;bottom:calc(var(--sheetH) + 10px);z-index:2;padding:5px 8px 6px;border-radius:8px;background:rgba(20,22,26,.78);color:#fff;font-size:11px;font-weight:600;line-height:1;white-space:nowrap;pointer-events:none;transition:bottom .25s ease}
+/* The sheet */
+.msheet{position:absolute;left:0;right:0;bottom:0;z-index:4;height:var(--sheetH);display:flex;flex-direction:column;background:var(--bg);color:var(--fg);border-radius:18px 18px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.35);transition:height .25s ease}
+.msheet.nomove,.msheet.nomove~*{transition:none}
+.mgrab{flex:none;height:20px;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none}
+.mgrab i{width:40px;height:5px;border-radius:3px;background:var(--line)}
+.msheet .sunbar{flex:none;margin:0;padding:0 12px 6px;border:0;background:none}
+.mstatus{margin:2px 2px 0;font-size:14px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;touch-action:none;cursor:grab}
+.mstatus b{color:var(--fg)} .mslive{color:#1e9e48;font-weight:700}
+.mbody{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:4px 12px calc(16px + env(safe-area-inset-bottom,0px));touch-action:pan-y}
+.msec{margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+.mbody .planbar{margin-top:10px}
+.mlead{margin:8px 2px 0;font-size:15px;color:var(--muted)}
+.mbody .mapsel{margin:6px 0 0;position:relative}
+.mapselx{display:block;position:absolute;right:6px;top:6px;z-index:1;width:36px;height:36px;border:0;border-radius:18px;background:rgba(255,255,255,.16);color:var(--sign-fg);font-size:22px;line-height:1;cursor:pointer}
+.mlayers .mapselx{background:var(--line);color:var(--fg)}
+.msec .lmarks{margin-top:0}
+/* Full screen: the map covers the whole screen, including the app header */
+body.mapfull{overflow:hidden}
+#map.full{position:fixed;inset:0;z-index:1000;height:auto!important;min-height:0;border-radius:0}
+#map.full .mtop{top:max(10px,env(safe-area-inset-top,0px));left:max(10px,env(safe-area-inset-left,0px));right:max(10px,env(safe-area-inset-right,0px))}
+#map.full .mapbtns{top:calc(max(10px,env(safe-area-inset-top,0px)) + 98px)}
+/* Base map: real streets and subway, styled by zoom */
+.m-rd{fill:none;vector-effect:non-scaling-stroke;stroke-linecap:round;stroke-linejoin:round}
+.m-rd.local{stroke:#454952;stroke-width:.6}
+.m-rd.foot{stroke:#3d4a40;stroke-width:.5;stroke-dasharray:2 2}
+.m-rd.ave{stroke:#5d626d;stroke-width:1}
+.m-rd.hwy{stroke:#7a6f55;stroke-width:1.6}
+.zfar .m-rd.local,.zfar .m-rd.foot,.zmid .m-rd.foot{display:none}
+.zfar .m-rd.ave{stroke-width:.5;stroke:#4c5059}
+.zmid .m-rd.local{stroke-width:.45}
+.znear .m-rd.local{stroke-width:1.1} .znear .m-rd.ave{stroke-width:2} .znear .m-rd.hwy{stroke-width:2.6}
+.zclose .m-rd.local{stroke-width:2.2} .zclose .m-rd.ave{stroke-width:3.4} .zclose .m-rd.hwy{stroke-width:4} .zclose .m-rd.foot{stroke-width:1}
+.m-subway path{fill:none;vector-effect:non-scaling-stroke;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round;opacity:.85}
+.zfar .m-subway path{stroke-width:.9;opacity:.6} .znear .m-subway path{stroke-width:2.2} .zclose .m-subway path{stroke-width:3}
+.nosub .m-subway{display:none}
+.m-stn2{fill:#fff;stroke:#14161a} .m-stnlab{fill:#d9dce2;font-family:var(--sans);font-weight:600;paint-order:stroke;stroke:#14161a;stroke-width:.3em;stroke-linejoin:round;pointer-events:none}
+
+.mapbtns button{width:42px;height:42px;font-size:22px}
+#map.full .mapbtns{top:calc(max(10px,env(safe-area-inset-top,0px)) + 112px)}
+
+.mbody .mapsel .group-head{padding-right:52px}

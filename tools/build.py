@@ -26,7 +26,7 @@ def replace_once(text, old, new, label):
     return text.replace(old, new)
 
 def page(live):
-    app = replace_once(read("app.js"), "/*@LIVE@*/", live, "app.js")
+    app = read("mapdata.js") + replace_once(read("app.js"), "/*@LIVE@*/", live, "app.js")
     return read("head.html") + "<style>" + read("styles.css") + "</style>" + read("markup.html") + "<script>" + app + "</script>" + read("tail.html")
 
 def build():
