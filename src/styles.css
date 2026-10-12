@@ -390,3 +390,17 @@ body.mapfull{overflow:hidden}
 .evnow{margin:10px 14px 0;font-weight:700;font-size:15px} .evnow span{display:block;margin-top:2px;font-weight:400;font-size:13px;color:var(--muted)}
 .evnow.live{color:#1e9e48} .evnow.live:before{content:"";display:inline-block;width:9px;height:9px;margin-right:7px;border-radius:50%;background:#1e9e48;box-shadow:0 0 0 3px rgba(61,220,111,.35);vertical-align:1px}
 .evnow.over{color:var(--muted)}
+
+/* Time slider: the track shows the day's light (night, blue hour, golden hour, daylight); the weather strip lines up under it */
+.slidecol{flex:1;min-width:0;position:relative}
+.sunrow input#mapTime{-webkit-appearance:none;appearance:none;display:block;width:100%;height:30px;margin:0;background:transparent;accent-color:auto}
+#mapTime::-webkit-slider-runnable-track{height:12px;border-radius:6px;background:var(--band,var(--line));border:1px solid var(--line)}
+#mapTime::-moz-range-track{height:12px;border-radius:6px;background:var(--band,var(--line));border:1px solid var(--line)}
+#mapTime::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;margin-top:-8px;border-radius:50%;background:#fff;border:3px solid #14161a;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+#mapTime::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#fff;border:3px solid #14161a;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.lticks{position:relative;height:0} .lticks i{position:absolute;top:-24px;width:2px;height:18px;margin-left:-1px;background:#fff;border-radius:1px;box-shadow:0 0 0 1px rgba(0,0,0,.35);pointer-events:none}
+.slidecol .wxbar{margin:4px 13px 0}
+.lmarks{margin:8px 0 0;padding:0;flex-wrap:wrap;overflow:visible;gap:6px} .lmark{min-height:32px;padding:0 10px;font-size:13px;gap:6px} .lmark.past{opacity:.55} .lmark.on{border-color:var(--fg);font-weight:800}
+.lk{display:inline-block;width:12px;height:12px;border-radius:3px} .lk.gold{background:#f2ad3a} .lk.blue{background:#3e63d8} .lk.rise,.lk.set{background:#f4e7b4;border:2px solid #14161a;width:8px;height:8px;border-radius:50%}
+.planlinks{margin-top:8px;flex-wrap:wrap} .maplinkhint{flex-basis:100%;margin:2px 0 0;font-size:12px}
+#map.full .lmarks{margin-top:4px}

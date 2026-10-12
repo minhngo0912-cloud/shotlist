@@ -408,6 +408,20 @@ body.mapfull{overflow:hidden}
 .evnow{margin:10px 14px 0;font-weight:700;font-size:15px} .evnow span{display:block;margin-top:2px;font-weight:400;font-size:13px;color:var(--muted)}
 .evnow.live{color:#1e9e48} .evnow.live:before{content:"";display:inline-block;width:9px;height:9px;margin-right:7px;border-radius:50%;background:#1e9e48;box-shadow:0 0 0 3px rgba(61,220,111,.35);vertical-align:1px}
 .evnow.over{color:var(--muted)}
+
+/* Time slider: the track shows the day's light (night, blue hour, golden hour, daylight); the weather strip lines up under it */
+.slidecol{flex:1;min-width:0;position:relative}
+.sunrow input#mapTime{-webkit-appearance:none;appearance:none;display:block;width:100%;height:30px;margin:0;background:transparent;accent-color:auto}
+#mapTime::-webkit-slider-runnable-track{height:12px;border-radius:6px;background:var(--band,var(--line));border:1px solid var(--line)}
+#mapTime::-moz-range-track{height:12px;border-radius:6px;background:var(--band,var(--line));border:1px solid var(--line)}
+#mapTime::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;margin-top:-8px;border-radius:50%;background:#fff;border:3px solid #14161a;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+#mapTime::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#fff;border:3px solid #14161a;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.lticks{position:relative;height:0} .lticks i{position:absolute;top:-24px;width:2px;height:18px;margin-left:-1px;background:#fff;border-radius:1px;box-shadow:0 0 0 1px rgba(0,0,0,.35);pointer-events:none}
+.slidecol .wxbar{margin:4px 13px 0}
+.lmarks{margin:8px 0 0;padding:0;flex-wrap:wrap;overflow:visible;gap:6px} .lmark{min-height:32px;padding:0 10px;font-size:13px;gap:6px} .lmark.past{opacity:.55} .lmark.on{border-color:var(--fg);font-weight:800}
+.lk{display:inline-block;width:12px;height:12px;border-radius:3px} .lk.gold{background:#f2ad3a} .lk.blue{background:#3e63d8} .lk.rise,.lk.set{background:#f4e7b4;border:2px solid #14161a;width:8px;height:8px;border-radius:50%}
+.planlinks{margin-top:8px;flex-wrap:wrap} .maplinkhint{flex-basis:100%;margin:2px 0 0;font-size:12px}
+#map.full .lmarks{margin-top:4px}
 </style>
 
 <div class="app">
@@ -1786,6 +1800,7 @@ function lightAt(t){ const ph=phaseAt(t); if(ph==="night") return "night";
   return (Math.abs(t-Date.now())<3*36e5 && /rain|cloud|fog|snow|storm/.test(i.sky||"")) ? "rain" : ph; }
 const WX_WORD = {rain:"Rain likely", snow:"Snow", fog:"Fog", cloud:"Overcast"};
 function wxBar(){ const w=WEATHER[state.city];
+  if((!w||!w.hourly)&&$("wxStrip")) $("wxStrip").innerHTML="";
   if(!w||!w.hourly) return '<p class="wxsum">'+(typeof loadWeather==="function" ? "The hourly rain and cloud forecast appears here once the app is online." : "The hourly rain and cloud forecast shows here in the installed app on your phone. This version only knows today\u2019s overall weather.")+'</p>'; const d=new Date(); d.setHours(0,0,0,0);
   const seg=[], runs=[]; let cur=null;
   for(let h=0;h<24;h++){ const t=new Date(+d+h*36e5), s=skyAt(t); if(s===undefined){ seg.push("transparent"); cur=null; continue; }
@@ -1794,7 +1809,8 @@ function wxBar(){ const w=WEATHER[state.city];
   const g='linear-gradient(to right,'+seg.map((c,h)=>c+' '+(h/24*100).toFixed(2)+'%,'+c+' '+((h+1)/24*100).toFixed(2)+'%').join(",")+')';
   const hf=h=>((h%12)||12)+(h<12||h===24?" am":" pm");
   const txt=runs.length?runs.map(r=>WX_WORD[r.k]+" "+hf(r.s)+" to "+hf(r.e)).join(" · "):"No rain expected today";
-  return '<div class="wxbar" style="background:'+g+'"></div><div class="wxlegend"><span><i class="wxk sun"></i>Clear or some cloud</span><span><i class="wxk cloud"></i>Overcast</span><span><i class="wxk rain"></i>Rain</span></div><p class="wxsum">'+txt+'. Forecast by Open-Meteo.</p>'; }
+  if($("wxStrip")) $("wxStrip").innerHTML='<div class="wxbar" style="background:'+g+'"></div>';
+  return '<div class="wxlegend"><span><i class="wxk sun"></i>Clear or some cloud</span><span><i class="wxk cloud"></i>Overcast</span><span><i class="wxk rain"></i>Rain</span></div><p class="wxsum">'+txt+'. Forecast by Open-Meteo.</p>'; }
 function kmBetween(a,b){ const r=Math.PI/180, h=Math.sin((a.lat-b.lat)*r/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin((a.lon-b.lon)*r/2)**2; return 6371*2*Math.asin(Math.sqrt(h)); }
 function makePlan(){
   const withPos=Object.keys(CITIES[state.city].places).filter(id=>typeof PLACES[id].lat==="number"); if(!withPos.length) return null;
@@ -1969,7 +1985,7 @@ function mapShell(box){
   const streets=MAP_STREETS.map(st=>'M'+st[2].map(c=>mapXY(c[0],c[1]).map(n=>n.toFixed(1)).join(" ")).join("L")).join("");
   const bridges=[[[40.7085,-73.9998],[40.7042,-73.9938]],[[40.7102,-73.9928],[40.7050,-73.9883]],[[40.7150,-73.9762],[40.7120,-73.9678]],[[40.7586,-73.9588],[40.7549,-73.9488]],[[40.8517,-73.9640],[40.8517,-73.9465]],[[40.6035,-74.0560],[40.6095,-74.0330]]].map(l=>mapLine(l[0],l[1])).join("");
   box.innerHTML='<div class="mapgo"><select id="mapGo" aria-label="Go to a place"></select></div><div class="intents" id="mapIntent"></div><div class="intents" id="mapZoom"></div>'+
-    '<div id="mapPlan"></div><div class="sunbar"><div class="sunrow"><input type="range" id="mapTime" min="0" max="1435" step="5" aria-label="Time of day on the map"><button type="button" class="chip" id="mapTimeNow">Now</button></div><div id="wxBar"></div><p id="sunLine" class="sunline"></p></div>'+
+    '<div id="mapPlan"></div><div class="sunbar"><div class="sunrow"><div class="slidecol"><input type="range" id="mapTime" min="0" max="1435" step="5" aria-label="Time of day on the map"><div id="lightTicks" class="lticks"></div><div id="wxStrip"></div></div><button type="button" class="chip" id="mapTimeNow">Now</button></div><div id="lightMarks" class="intents lmarks"></div><div id="wxBar"></div><p id="sunLine" class="sunline"></p></div>'+
     '<div class="mapwrap"><svg class="mapsvg" id="mapSvg" role="group" aria-label="Map of shooting places. Drag to move, pinch to zoom."><rect x="-500" y="-500" width="2500" height="2500" class="m-sea"/>'+
     '<path d="'+MAP_NJ+MAP_NY+'" class="m-ctx"/><path d="'+MAP_LAND+'" class="m-land"/><path d="'+park+'" class="m-park"/><path d="'+streets+'" class="m-street"/><path d="'+bridges+'" class="m-bridge"/>'+
     mapTxt(40.787,-73.957,"MANHATTAN","m-boro",15,-61)+mapTxt(40.648,-73.95,"BROOKLYN","m-boro",22)+mapTxt(40.705,-73.825,"QUEENS","m-boro",22)+mapTxt(40.845,-73.86,"THE BRONX","m-boro",18)+mapTxt(40.585,-74.14,"STATEN ISLAND","m-boro",16)+mapTxt(40.765,-74.085,"NEW JERSEY","m-boro",15)+
@@ -2001,6 +2017,28 @@ function sunLine(){ const c=CITIES[state.city], t=mapNow(), sp=sunPos(t,c.lat,c.
   else out+='Sun is down, '+Math.round(-sp.alt)+'° below the horizon.';
   const f=hourlyAt(t), sk=skyAt(t); if(f) out+='<br>Forecast for this hour: '+(sk?WX_WORD[sk]:"no rain, "+(f.cc>=50?"some cloud":"mostly clear"))+(f.pop!=null?' ('+f.pop+'% chance of rain)':'')+'.'+(sk==="rain"&&ph!=="night"?' Pins show rain ideas for this hour.':'');
   return out+'<br><span class="sunrs">Sunrise '+tf(rise)+' · Sunset '+tf(set)+'</span>'; }
+/* The day's light, minute by minute: night, blue hour, golden hour, daylight. Drawn as the slider track, with marks to jump to. */
+let LIGHT_DAY = null;
+function lightDay(){ const c=CITIES[state.city], d=new Date(); d.setHours(0,0,0,0); const key=state.city+":"+(+d);
+  if(LIGHT_DAY&&LIGHT_DAY.key===key) return LIGHT_DAY;
+  const runs=[]; let cur=null;
+  for(let m=0;m<1440;m++){ const ph=sunPhase(sunPos(new Date(+d+m*6e4),c.lat,c.lon).alt); if(cur&&cur.ph===ph) cur.e=m+1; else { cur={ph,s:m,e:m+1}; runs.push(cur); } }
+  const [rise,set]=sunTimes(new Date(+d+12*36e5),c.lat,c.lon), mm=t=>t.getHours()*60+t.getMinutes();
+  return LIGHT_DAY={key,runs,rise:mm(rise),set:mm(set)}; }
+const LIGHT_COL = {night:"#1c2340",blue:"#3e63d8",gold:"#f2ad3a",day:"#f4e7b4"};
+function lightBand(){ const L=lightDay(), at=m=>'calc(13px + (100% - 26px) * '+(m/1435).toFixed(4)+')';
+  return 'linear-gradient(to right,'+L.runs.map(r=>LIGHT_COL[r.ph]+' '+at(r.s)+','+LIGHT_COL[r.ph]+' '+at(Math.min(r.e,1435))).join(",")+')'; }
+function lightMarks(){ const L=lightDay(), tf=hmText, out=[], pos=m=>'calc(13px + (100% - 26px) * '+(m/1435).toFixed(4)+')';
+  const gold=L.runs.filter(r=>r.ph==="gold"), blue=L.runs.filter(r=>r.ph==="blue");
+  if(gold[0]&&gold[0].s<720) out.push(["gold",gold[0].s,"Morning gold "+tf(gold[0].s)]);
+  out.push(["rise",L.rise,"Sunrise "+tf(L.rise)]);
+  const eg=gold.find(r=>r.s>=720); if(eg) out.push(["gold",eg.s,"Golden hour "+tf(eg.s)]);
+  out.push(["set",L.set,"Sunset "+tf(L.set)]);
+  const eb=blue.find(r=>r.s>=720); if(eb) out.push(["blue",eb.s,"Blue hour "+tf(eb.s)]);
+  const cur=state.mapT===null?(()=>{ const n=new Date(); return n.getHours()*60+n.getMinutes(); })():state.mapT;
+  $("lightTicks").innerHTML=[L.rise,L.set].map(m=>'<i style="left:'+pos(m)+'"></i>').join("");
+  const upcoming=x=>state.mapT!==null||x[1]+(x[0]==="gold"?60:x[0]==="blue"?25:10)>cur;
+  return out.filter(upcoming).concat(out.filter(x=>!upcoming(x))).map(([k,m,t])=>'<button type="button" class="chip lmark'+(cur>=m&&cur<m+(k==="gold"?60:k==="blue"?25:10)?' on':'')+(m<cur&&state.mapT===null?' past':'')+'" data-jump="'+m+'"><span class="lk '+k+'"></span>'+t+'</button>').join(""); }
 /* Today's outing: kept on the device so it survives closing the app; editable from the map. */
 function savePlan(){ const p=state.plan; store.set("plan", p ? {start:+p.start,end:+p.end,stops:p.stops.map(s=>({place:s.place,at:+s.at,key:s.key,ideas:s.ideas.map(x=>x.id),leg:s.leg||null}))} : null); }
 function loadPlan(){ const p=store.get("plan",null); if(!p||!p.stops||!p.stops.length||p.end<Date.now()-12*36e5) return null;
@@ -2022,11 +2060,25 @@ function mapGoStop(i){ const p=state.plan, s=p&&p.stops[i]; if(!s) return; const
   state.mapT = live||!sameDay ? null : s.at.getHours()*60+Math.round(s.at.getMinutes()/5)*5;
   const tm=$("mapTime"), n=new Date(); if(tm) tm.value=state.mapT===null? n.getHours()*60+n.getMinutes() : state.mapT;
   state.mapSel=s.place; state.mapEv=null; const [x,y]=mapXY(PLACES[s.place].lat,PLACES[s.place].lon); mapPanel(); mapFly({cx:x,cy:y,w:Math.min(mapV.w,140)}); }
+/* Google Maps directions: the next stop (walking or transit), and the rest of the outing as one multi-stop route.
+   Google Maps allows 3 stops between start and end in a phone browser, 9 in the app; transit cannot do multi-stop routes. */
+const stopGeo = id => { const g=START_GEO[id]||[PLACES[id].lat,PLACES[id].lon]; return g[0].toFixed(5)+","+g[1].toFixed(5); };
+function planLinks(){ const p=state.plan; if(!p) return ""; const nx=Math.max(0,nextStopIndex()), rest=p.stops.slice(nx), next=rest[0]; if(!next) return "";
+  const prevLeg=nx>0?p.stops[nx-1].leg:null, km=state.pos?kmBetween(state.pos,PLACES[next.place]):null;
+  const mode=prevLeg&&prevLeg.mode==="by subway" ? "transit" : km!==null ? (km<=1.8?"walking":"transit") : (prevLeg?"walking":"transit");
+  const base="https://www.google.com/maps/dir/?api=1";
+  const one=base+"&destination="+stopGeo(next.place)+"&travelmode="+mode;
+  let whole="";
+  if(rest.length>1){ const pts=rest.map(s=>stopGeo(s.place)), allWalk=rest.slice(0,-1).every(s=>!s.leg||s.leg.mode==="walk");
+    const origin=pts.length>4?pts.shift():null;   // keep within 3 stops in between, so it also works in a phone browser
+    whole=base+(origin?"&origin="+origin:"")+"&destination="+pts.pop()+(pts.length?"&waypoints="+encodeURIComponent(pts.join("|")):"")+"&travelmode=walking";
+    whole='<a class="chip" href="'+whole+'" target="_blank" rel="noopener">Whole outing on foot ↗</a>'+(allWalk?'':'<span class="hint maplinkhint">Google Maps cannot do multi-stop routes by subway, so this shows the walk. Use the stop link for the subway legs.</span>'); }
+  return '<div class="callinks planlinks"><a class="chip primary" href="'+one+'" target="_blank" rel="noopener">Directions to stop '+(nx+1)+' '+(mode==="transit"?"by subway":"on foot")+' ↗</a>'+whole+'</div>'; }
 function mapPlanBar(){ const p=state.plan, tf=d=>d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}).toLowerCase();
   if(!p) return '<p class="hint planhint">Tap a pin and choose Add to today to build an outing on the map, or make one in Plan.</p>';
   const nx=nextStopIndex();
   return '<div class="planbar"><div class="planbar-head"><b>Today\u2019s outing</b><span>'+tf(p.start)+' to about '+tf(p.end)+'</span><button type="button" class="chip primary" data-nextstop="1">Next stop ›</button><button type="button" class="chip" data-clearplan="1">Clear</button></div>'+
-    '<div class="intents planstops">'+p.stops.map((s,n)=>'<button type="button" class="chip stopchip'+(n===nx?" next":"")+'" data-stop="'+n+'"><span class="stopn">'+(n+1)+'</span>'+esc(PLACES[s.place].name)+' · '+tf(s.at)+'</button>').join("")+'</div></div>'; }
+    '<div class="intents planstops">'+p.stops.map((s,n)=>'<button type="button" class="chip stopchip'+(n===nx?" next":"")+'" data-stop="'+n+'"><span class="stopn">'+(n+1)+'</span>'+esc(PLACES[s.place].name)+' · '+tf(s.at)+'</button>').join("")+'</div>'+planLinks()+'</div>'; }
 function mapPts(){ const key=lightAt(mapNow()), ideas=cityIdeas().filter(i=>state.mapIntent==="all"||i.i===state.mapIntent);
   return Object.keys(CITIES[state.city].places).filter(id=>typeof PLACES[id].lat==="number").map(id=>{ const [x,y]=mapXY(PLACES[id].lat,PLACES[id].lon), mine=ideas.filter(i=>i.p===id);
     return {id,x,y,n:mine.length,fit:mine.filter(i=>i.w.includes(key)).length,done:mine.filter(i=>state.done.has(i.id)).length,empty:!mine.length}; }); }
@@ -2102,6 +2154,7 @@ function mapPanel(){
   const key=lightAt(mapNow()), pts=mapPts(), sel=state.mapSel&&pts.find(p=>p.id===state.mapSel), pl=sel&&PLACES[sel.id], d=sel?milesText(milesTo(pl)):"";
   if($("mapPlan")) $("mapPlan").innerHTML=mapPlanBar();
   if($("wxBar")) $("wxBar").innerHTML=wxBar();
+  if($("lightMarks")){ $("lightMarks").innerHTML=lightMarks(); $("mapTime").style.setProperty("--band",lightBand()); }
   const order=placeOrder().filter(id=>typeof PLACES[id].lat==="number");
   $("mapGo").innerHTML='<option value="">Go to a place…</option>'+groupOptions(order, id=>{ const dd=milesText(milesTo(PLACES[id])); return '<option value="'+id+'"'+(id===state.mapSel?" selected":"")+'>'+esc(PLACES[id].name)+(dd?' · '+dd:'')+'</option>'; });
   $("mapIntent").innerHTML='<button type="button" class="chip" data-i="all" aria-pressed="'+(state.mapIntent==="all")+'">Any intent</button>'+Object.entries(INTENTS).map(([k,v])=>'<button type="button" class="chip" data-i="'+k+'" aria-pressed="'+(state.mapIntent===k)+'"><span class="dot" style="background:'+v.color+'"></span>'+v.name+'</button>').join("");
@@ -2309,6 +2362,7 @@ $("map").addEventListener("click",e=>{
   const sc=e.target.closest("[data-stop]"); if(sc){ mapGoStop(+sc.dataset.stop); return; }
   if(e.target.closest("[data-nextstop]")){ mapGoStop(nextStopIndex()); return; }
   if(e.target.closest("[data-clearplan]")){ state.plan=null; savePlan(); mapPanel(); mapDraw(); return; }
+  const jm=e.target.closest("[data-jump]"); if(jm){ state.mapT=Math.round(+jm.dataset.jump/5)*5; $("mapTime").value=state.mapT; mapDraw(); mapPanel(); return; }
   if(e.target.closest("#mapTimeNow")){ state.mapT=null; const n=new Date(); $("mapTime").value=n.getHours()*60+n.getMinutes(); mapDraw(); mapPanel(); return; }
   const ic=e.target.closest("#mapIntent .chip"); if(ic){ state.mapIntent=ic.dataset.i; mapPanel(); mapDraw(); return; }
   const ft=e.target.closest("[data-fit]"); if(ft){ mapFly(mapPreset("city")); return; }
