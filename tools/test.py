@@ -113,7 +113,7 @@ def run(path, name):
             pg.evaluate("state.mapT=19*60; mapDraw(); mapPanel()")
             check("Dry evening is golden light again", pg.evaluate("lightAt(mapNow())")!="rain")
         else:
-            check("No forecast bar without a forecast", pg.evaluate("document.getElementById('wxBar').textContent")=="")
+            check("Explains where the hourly forecast is", "installed app" in pg.evaluate("document.getElementById('wxBar').textContent"))
         no_overflow("Map"); shot("map")
         # Learn
         pg.click("#vLearn"); pg.wait_for_timeout(150)

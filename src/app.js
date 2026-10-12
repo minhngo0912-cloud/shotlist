@@ -1261,7 +1261,8 @@ function lightAt(t){ const ph=phaseAt(t); if(ph==="night") return "night";
   const i=nowInfo();
   return (Math.abs(t-Date.now())<3*36e5 && /rain|cloud|fog|snow|storm/.test(i.sky||"")) ? "rain" : ph; }
 const WX_WORD = {rain:"Rain likely", snow:"Snow", fog:"Fog", cloud:"Overcast"};
-function wxBar(){ const w=WEATHER[state.city]; if(!w||!w.hourly) return ""; const d=new Date(); d.setHours(0,0,0,0);
+function wxBar(){ const w=WEATHER[state.city];
+  if(!w||!w.hourly) return '<p class="wxsum">'+(typeof loadWeather==="function" ? "The hourly rain and cloud forecast appears here once the app is online." : "The hourly rain and cloud forecast shows here in the installed app on your phone. This version only knows today\u2019s overall weather.")+'</p>'; const d=new Date(); d.setHours(0,0,0,0);
   const seg=[], runs=[]; let cur=null;
   for(let h=0;h<24;h++){ const t=new Date(+d+h*36e5), s=skyAt(t); if(s===undefined){ seg.push("transparent"); cur=null; continue; }
     seg.push(s==="rain"||s==="snow"?"rgba(70,120,230,.85)":s==="cloud"||s==="fog"?"rgba(140,145,155,.7)":"rgba(252,204,10,.35)");

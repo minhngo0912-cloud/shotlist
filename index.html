@@ -1731,7 +1731,12 @@ async function loadWeather(){
 loadWeather(); setInterval(loadWeather, 15*60*1000);
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ const w=WEATHER[state.city]; if(!w||Date.now()-new Date(w.updated)>10*60*1000) loadWeather(); } });
 $("city").addEventListener("change",loadWeather);
-if("serviceWorker" in navigator) window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+if("serviceWorker" in navigator){
+  const hadSw=!!navigator.serviceWorker.controller; let reloaded=false;
+  // When a new version takes over, reload once so it shows now rather than on the next launch
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{ if(hadSw&&!reloaded){ reloaded=true; location.reload(); } });
+  window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+}
 // Plan an outing: a few stops ordered as a walk, with ideas that suit the light at each stop's time.
 function phaseAt(t){ const c=CITIES[state.city]; if(typeof c.lat!=="number") return "mid"; const [rise,set]=sunTimes(t,c.lat,c.lon), m=6e4;
   return (t<rise-30*m||t>+set+30*m) ? "night" : t>set-120*m ? "gold" : t<+rise+180*m ? "am" : "mid"; }
@@ -1750,7 +1755,8 @@ function lightAt(t){ const ph=phaseAt(t); if(ph==="night") return "night";
   const i=nowInfo();
   return (Math.abs(t-Date.now())<3*36e5 && /rain|cloud|fog|snow|storm/.test(i.sky||"")) ? "rain" : ph; }
 const WX_WORD = {rain:"Rain likely", snow:"Snow", fog:"Fog", cloud:"Overcast"};
-function wxBar(){ const w=WEATHER[state.city]; if(!w||!w.hourly) return ""; const d=new Date(); d.setHours(0,0,0,0);
+function wxBar(){ const w=WEATHER[state.city];
+  if(!w||!w.hourly) return '<p class="wxsum">'+(typeof loadWeather==="function" ? "The hourly rain and cloud forecast appears here once the app is online." : "The hourly rain and cloud forecast shows here in the installed app on your phone. This version only knows today\u2019s overall weather.")+'</p>'; const d=new Date(); d.setHours(0,0,0,0);
   const seg=[], runs=[]; let cur=null;
   for(let h=0;h<24;h++){ const t=new Date(+d+h*36e5), s=skyAt(t); if(s===undefined){ seg.push("transparent"); cur=null; continue; }
     seg.push(s==="rain"||s==="snow"?"rgba(70,120,230,.85)":s==="cloud"||s==="fog"?"rgba(140,145,155,.7)":"rgba(252,204,10,.35)");

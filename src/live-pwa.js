@@ -24,4 +24,9 @@ async function loadWeather(){
 loadWeather(); setInterval(loadWeather, 15*60*1000);
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ const w=WEATHER[state.city]; if(!w||Date.now()-new Date(w.updated)>10*60*1000) loadWeather(); } });
 $("city").addEventListener("change",loadWeather);
-if("serviceWorker" in navigator) window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+if("serviceWorker" in navigator){
+  const hadSw=!!navigator.serviceWorker.controller; let reloaded=false;
+  // When a new version takes over, reload once so it shows now rather than on the next launch
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{ if(hadSw&&!reloaded){ reloaded=true; location.reload(); } });
+  window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+}
