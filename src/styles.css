@@ -321,7 +321,7 @@ footer{font-size:13px;color:var(--muted);max-width:65ch}
 .wxk{display:inline-block;width:12px;height:8px;border-radius:2px} .wxk.sun{background:rgba(252,204,10,.35)} .wxk.cloud{background:rgba(140,145,155,.7)} .wxk.rain{background:rgba(70,120,230,.85)}
 .wxsum{margin:4px 0 0;font-size:13px;color:var(--muted)} .sunrs{color:var(--muted)}
 .m-tint{pointer-events:none;fill:transparent;transition:fill .3s} .m-tint.gold{fill:rgba(255,150,40,.13)} .m-tint.blue{fill:rgba(40,70,190,.28)} .m-tint.night{fill:rgba(0,4,28,.5)}
-.m-beam{stroke:var(--yellow);opacity:.035;stroke-linecap:round;fill:none;pointer-events:none}
+.m-beam{stroke:none;pointer-events:none}
 .m-sun{pointer-events:none;stroke:var(--yellow)} .m-sundisc{fill:var(--yellow);stroke:none} .m-sunglow{fill:var(--yellow);opacity:.18;stroke:none}
 .m-sun.low .m-sundisc{fill:#ff8a3d} .m-sun.low{stroke:#ff8a3d}
 .mapbtns button[data-fit],.mapbtns button[data-locate]{font-size:20px}
@@ -515,7 +515,7 @@ body.mapfull{overflow:hidden}
 .m-stnlab{fill:var(--mStn);stroke:var(--mHalo)}
 .m-tint.day{fill:transparent} .m-tint.gold{fill:rgba(255,140,30,.07)} .m-tint.blue{fill:rgba(40,70,190,.08)} .m-tint.night{fill:transparent}
 #map[data-sky="day"] .m-sunny,#map[data-sky="gold"] .m-sunny{stroke:#f2a900;opacity:.55}
-#map[data-sky="day"] .m-beam{opacity:.06;stroke:#f5c400}
+
 /* Pins: photo (or count) in a ring of ideas */
 .m-face{fill:#1b1e24;stroke:#fff} .m-pin.big.fit .m-face{fill:#1b1e24} .m-pin.big .m-num{fill:#fff}
 #mapPhotos image{pointer-events:none}
@@ -598,3 +598,9 @@ body.tipopen{overflow:hidden}
 .m-compass.ring .m-comp{opacity:.55}
 
 .maplight .sunjump{margin-top:8px}
+
+/* Sun rays: a warm wash from the sun's side of the map, stronger on the light daytime map */
+#map{--mBeam:#ffd75e;--mBeamO:.2}
+#map[data-sky="day"]{--mBeam:#ffae00;--mBeamO:.34}
+#map[data-sky="gold"]{--mBeam:#ff8a1a;--mBeamO:.4}
+.bm0{stop-color:var(--mBeam);stop-opacity:var(--mBeamO)} .bm5{stop-color:var(--mBeam);stop-opacity:calc(var(--mBeamO) * .4)} .bm1{stop-color:var(--mBeam);stop-opacity:0}

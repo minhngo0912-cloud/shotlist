@@ -339,7 +339,7 @@ footer{font-size:13px;color:var(--muted);max-width:65ch}
 .wxk{display:inline-block;width:12px;height:8px;border-radius:2px} .wxk.sun{background:rgba(252,204,10,.35)} .wxk.cloud{background:rgba(140,145,155,.7)} .wxk.rain{background:rgba(70,120,230,.85)}
 .wxsum{margin:4px 0 0;font-size:13px;color:var(--muted)} .sunrs{color:var(--muted)}
 .m-tint{pointer-events:none;fill:transparent;transition:fill .3s} .m-tint.gold{fill:rgba(255,150,40,.13)} .m-tint.blue{fill:rgba(40,70,190,.28)} .m-tint.night{fill:rgba(0,4,28,.5)}
-.m-beam{stroke:var(--yellow);opacity:.035;stroke-linecap:round;fill:none;pointer-events:none}
+.m-beam{stroke:none;pointer-events:none}
 .m-sun{pointer-events:none;stroke:var(--yellow)} .m-sundisc{fill:var(--yellow);stroke:none} .m-sunglow{fill:var(--yellow);opacity:.18;stroke:none}
 .m-sun.low .m-sundisc{fill:#ff8a3d} .m-sun.low{stroke:#ff8a3d}
 .mapbtns button[data-fit],.mapbtns button[data-locate]{font-size:20px}
@@ -533,7 +533,7 @@ body.mapfull{overflow:hidden}
 .m-stnlab{fill:var(--mStn);stroke:var(--mHalo)}
 .m-tint.day{fill:transparent} .m-tint.gold{fill:rgba(255,140,30,.07)} .m-tint.blue{fill:rgba(40,70,190,.08)} .m-tint.night{fill:transparent}
 #map[data-sky="day"] .m-sunny,#map[data-sky="gold"] .m-sunny{stroke:#f2a900;opacity:.55}
-#map[data-sky="day"] .m-beam{opacity:.06;stroke:#f5c400}
+
 /* Pins: photo (or count) in a ring of ideas */
 .m-face{fill:#1b1e24;stroke:#fff} .m-pin.big.fit .m-face{fill:#1b1e24} .m-pin.big .m-num{fill:#fff}
 #mapPhotos image{pointer-events:none}
@@ -616,6 +616,12 @@ body.tipopen{overflow:hidden}
 .m-compass.ring .m-comp{opacity:.55}
 
 .maplight .sunjump{margin-top:8px}
+
+/* Sun rays: a warm wash from the sun's side of the map, stronger on the light daytime map */
+#map{--mBeam:#ffd75e;--mBeamO:.2}
+#map[data-sky="day"]{--mBeam:#ffae00;--mBeamO:.34}
+#map[data-sky="gold"]{--mBeam:#ff8a1a;--mBeamO:.4}
+.bm0{stop-color:var(--mBeam);stop-opacity:var(--mBeamO)} .bm5{stop-color:var(--mBeam);stop-opacity:calc(var(--mBeamO) * .4)} .bm1{stop-color:var(--mBeam);stop-opacity:0}
 </style>
 
 <div class="app">
@@ -2484,7 +2490,11 @@ function mapDraw(){
   const cc=CITIES[state.city], sp=sunPos(mapNow(),cc.lat,cc.lon), ph=sunPhase(sp.alt); if($("map").dataset.sky!==ph) $("map").dataset.sky=ph;
   const tint='<rect x="'+f(x0)+'" y="'+f(y0)+'" width="'+f(w)+'" height="'+f(h)+'" class="m-tint '+ph+'"/>';
   let sun=""; if(sp.alt>-6){ const r=sp.az*Math.PI/180, dx=Math.sin(r), dy=-Math.cos(r), m=18*u, vt=y0+topPx()*u, vb=y1-sheetPx()*u, cx=(x0+x1)/2, cy=(vt+vb)/2, hx=w/2-m, hy=Math.max(10*u,(vb-vt)/2-m), k=Math.min(Math.abs(dx)>1e-6?hx/Math.abs(dx):1e9, Math.abs(dy)>1e-6?hy/Math.abs(dy):1e9), sx=cx+dx*k, sy=cy+dy*k;
-    if(sp.alt>0) for(const o of [-0.32,-0.16,0,0.16,0.32]){ const px=-dy, py=dx, ax=sx+px*o*w, ay=sy+py*o*w; sun+='<path d="M'+f(ax)+' '+f(ay)+' L'+f(ax-dx*w*1.6)+' '+f(ay-dy*w*1.6)+'" class="m-beam" stroke-width="'+f(14*u)+'"/>'; }
+    // rays fanning out from the sun across the map, strongest at the sun and fading with distance
+    if(sp.alt>0){ const L=w*1.25, px=-dy, py=dx, ex=sx-dx*L, ey=sy-dy*L, P=(x,y)=>f(x)+' '+f(y);
+      sun+='<defs><linearGradient id="beamG" gradientUnits="userSpaceOnUse" x1="'+f(sx)+'" y1="'+f(sy)+'" x2="'+f(ex)+'" y2="'+f(ey)+'"><stop offset="0" class="bm0"/><stop offset=".55" class="bm5"/><stop offset="1" class="bm1"/></linearGradient></defs>';
+      for(const o of [-0.42,-0.21,0,0.21,0.42]){ const h0=1.5*u, h1=0.05*w, c0x=sx+px*o*w*0.06, c0y=sy+py*o*w*0.06, c1x=ex+px*o*w, c1y=ey+py*o*w;
+        sun+='<path d="M'+P(c0x+px*h0,c0y+py*h0)+' L'+P(c1x+px*h1,c1y+py*h1)+' L'+P(c1x-px*h1,c1y-py*h1)+' L'+P(c0x-px*h0,c0y-py*h0)+'Z" class="m-beam" fill="url(#beamG)"/>'; } }
     const R=(sp.alt>0?8:6)*u; sun+='<g class="m-sun'+(sp.alt>0?'':' low')+'"><circle cx="'+f(sx)+'" cy="'+f(sy)+'" r="'+f(R*1.9)+'" class="m-sunglow"/>'+
       [0,45,90,135,180,225,270,315].map(a=>{ const q=a*Math.PI/180; return '<path d="M'+f(sx+Math.cos(q)*R*1.3)+' '+f(sy+Math.sin(q)*R*1.3)+' L'+f(sx+Math.cos(q)*R*1.8)+' '+f(sy+Math.sin(q)*R*1.8)+'" stroke-width="'+f(1.6*u)+'"/>'; }).join("")+
       '<circle cx="'+f(sx)+'" cy="'+f(sy)+'" r="'+f(R)+'" class="m-sundisc"/></g>'; }

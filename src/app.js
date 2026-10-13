@@ -1740,7 +1740,11 @@ function mapDraw(){
   const cc=CITIES[state.city], sp=sunPos(mapNow(),cc.lat,cc.lon), ph=sunPhase(sp.alt); if($("map").dataset.sky!==ph) $("map").dataset.sky=ph;
   const tint='<rect x="'+f(x0)+'" y="'+f(y0)+'" width="'+f(w)+'" height="'+f(h)+'" class="m-tint '+ph+'"/>';
   let sun=""; if(sp.alt>-6){ const r=sp.az*Math.PI/180, dx=Math.sin(r), dy=-Math.cos(r), m=18*u, vt=y0+topPx()*u, vb=y1-sheetPx()*u, cx=(x0+x1)/2, cy=(vt+vb)/2, hx=w/2-m, hy=Math.max(10*u,(vb-vt)/2-m), k=Math.min(Math.abs(dx)>1e-6?hx/Math.abs(dx):1e9, Math.abs(dy)>1e-6?hy/Math.abs(dy):1e9), sx=cx+dx*k, sy=cy+dy*k;
-    if(sp.alt>0) for(const o of [-0.32,-0.16,0,0.16,0.32]){ const px=-dy, py=dx, ax=sx+px*o*w, ay=sy+py*o*w; sun+='<path d="M'+f(ax)+' '+f(ay)+' L'+f(ax-dx*w*1.6)+' '+f(ay-dy*w*1.6)+'" class="m-beam" stroke-width="'+f(14*u)+'"/>'; }
+    // rays fanning out from the sun across the map, strongest at the sun and fading with distance
+    if(sp.alt>0){ const L=w*1.25, px=-dy, py=dx, ex=sx-dx*L, ey=sy-dy*L, P=(x,y)=>f(x)+' '+f(y);
+      sun+='<defs><linearGradient id="beamG" gradientUnits="userSpaceOnUse" x1="'+f(sx)+'" y1="'+f(sy)+'" x2="'+f(ex)+'" y2="'+f(ey)+'"><stop offset="0" class="bm0"/><stop offset=".55" class="bm5"/><stop offset="1" class="bm1"/></linearGradient></defs>';
+      for(const o of [-0.42,-0.21,0,0.21,0.42]){ const h0=1.5*u, h1=0.05*w, c0x=sx+px*o*w*0.06, c0y=sy+py*o*w*0.06, c1x=ex+px*o*w, c1y=ey+py*o*w;
+        sun+='<path d="M'+P(c0x+px*h0,c0y+py*h0)+' L'+P(c1x+px*h1,c1y+py*h1)+' L'+P(c1x-px*h1,c1y-py*h1)+' L'+P(c0x-px*h0,c0y-py*h0)+'Z" class="m-beam" fill="url(#beamG)"/>'; } }
     const R=(sp.alt>0?8:6)*u; sun+='<g class="m-sun'+(sp.alt>0?'':' low')+'"><circle cx="'+f(sx)+'" cy="'+f(sy)+'" r="'+f(R*1.9)+'" class="m-sunglow"/>'+
       [0,45,90,135,180,225,270,315].map(a=>{ const q=a*Math.PI/180; return '<path d="M'+f(sx+Math.cos(q)*R*1.3)+' '+f(sy+Math.sin(q)*R*1.3)+' L'+f(sx+Math.cos(q)*R*1.8)+' '+f(sy+Math.sin(q)*R*1.8)+'" stroke-width="'+f(1.6*u)+'"/>'; }).join("")+
       '<circle cx="'+f(sx)+'" cy="'+f(sy)+'" r="'+f(R)+'" class="m-sundisc"/></g>'; }
