@@ -663,6 +663,7 @@ body.tipopen{overflow:hidden}
 .nearf{padding:0 14px 6px}
 .nrow{align-items:flex-start} .nrow .snum{margin-top:2px} .nrow .t{display:flex;flex-direction:column}
 .mleadcta{padding:0 14px 8px}
+.svnote{margin:-4px 0 8px;font-size:12px;color:var(--muted)} .stand .svnote{color:var(--sign-muted)}
 </style>
 
 <div class="app">
@@ -2169,8 +2170,133 @@ function workDetails(x){
 /* Spots: numbers that match the map, Street View, walking to a spot, and the spots near you. */
 const spotNum = id => +String(id).split(":")[1]+1;
 const spotShort = S => S[3].split(",")[0];
-const svUrl = S => 'https://www.google.com/maps/@?api=1&map_action=pano&viewpoint='+S[0].toFixed(6)+','+S[1].toFixed(6)+'&heading='+Math.round(S[2])+'&pitch=0&fov=80';
-const svLink = (pid,S) => pid==="ferry" ? '' : '<a class="chip" href="'+svUrl(S)+'" target="_blank" rel="noopener">Street View ↗</a>';
+/* Street View panorama for each spot, checked by eye. kind 0 is Google's own imagery, 1 a visitor's photo sphere (Google's cars
+   never reach inside Grand Central, on the sand or onto Little Island). lat/lon is where the camera stood when it is not at the spot;
+   the view is then aimed at the spot. A note explains when the picture is not quite the spot. */
+const SV_PANO = {"chinatown:0":["Nozhzjl9Q6UV7wUXZwT5YQ",0,null,null],
+"chinatown:1":["4Q6oKGiiB256PZ5cVXYAuQ",0,null,null],
+"chinatown:2":["-aKPagm39695n5I328OxPw",0,null,null],
+"chinatown:3":["VycETDsjWOVm9pnpWnJUWQ",0,40.718901,-73.995995],
+"chinatown:4":["v5vR8CCY8nFtcYS__94h1Q",0,null,null],
+"gct:0":["CIHM0ogKEICAgID45_a81AE",1,40.75272,-73.977604,"A visitor's photo of the concourse; the balcony is above and behind this view."],
+"gct:1":["CIHM0ogKEICAgIC6js-0xAE",1,40.752703,-73.97703],
+"gct:2":["CIHM0ogKEICAgIDqxfncvgE",1,40.752354,-73.977049,"The nearest photo is on the main concourse; the gallery is one level down, outside the Oyster Bar."],
+"gct:3":["CIHM0ogKEICAgIC6tt2c5QE",1,40.752697,-73.977703],
+"gct:4":["CIHM0ogKEICAgID45_a81AE",1,40.75272,-73.977604],
+"tsq:0":["-S2sEvwlWsmRFIRD3MZD1A",0,null,null],
+"tsq:1":["kSMIAGIHbesu_JB0pChqAA",0,null,null],
+"tsq:2":["PQvwZBT5v6TPYq5388-0pQ",0,null,null],
+"tsq:3":["LnCxJX-3o2w3FO5_THWxog",0,null,null],
+"tsq:4":["2wBMnsvQeKVbYDrrCZuHfA",0,null,null],
+"wsp:0":["lo-W8SAE8TzV5B1HtwVFcw",0,null,null],
+"wsp:1":["qQ0qjNoa9eWXN-XHEiMxwg",0,null,null],
+"wsp:2":["EnH84w2Bhm4vwL7l4Xcw5A",0,null,null],
+"wsp:3":["2Pxxh-knIkEUlxO9w9xLNA",0,null,null],
+"wsp:4":["KObPWmrk96UgAk5zi0d7Hw",0,null,null],
+"wsp:5":["qQ0qjNoa9eWXN-XHEiMxwg",0,null,null],
+"dumbo:0":["L4kFiqdPQJnskd6Yli9nrw",0,null,null],
+"dumbo:1":["sEuO7KlPtZbLER_UQkIkBQ",0,null,null],
+"dumbo:2":["KvYZRyHvemQCSFfq2iJIPw",0,null,null],
+"dumbo:3":["f4D4zx7KOyRZ7pCjsgb6Ag",0,null,null],
+"dumbo:4":["CiWWcR9cjXzSyDE3wGH-2g",0,null,null],
+"coney:0":["d4Qm9scUv4HcyW3EvUZTZA",0,40.571424,-73.984931],
+"coney:1":["0g7IURziSHHPlhXakUn4mg",0,null,null],
+"coney:2":["yOjN6KBCd6LBPMyVSCuBJQ",0,null,null],
+"coney:3":["oVXWx6cOU7QTx4Vbm3c_qw",0,null,null],
+"coney:4":["2NLxdKenwFaIqH5F-2V2BQ",0,40.575617,-73.980092],
+"soho:0":["7-VLTVFS0syYZue-FLMqmg",0,null,null],
+"soho:1":["3bYDMafbFpepO_bRKgjUhw",0,null,null],
+"soho:2":["_GM5WhSYBGS3lyCJeqVc2w",0,null,null],
+"soho:3":["a4Qp8jN5u3e_UWTckZhs8w",0,null,null],
+"soho:4":["5QAXSl4d1PjAAk--Y0tfyQ",0,null,null],
+"jh:0":["zUjTeItGe6gxXcJcfoRsiA",0,null,null],
+"jh:1":["tqEx_-fpWb6I5zCutDtdYg",0,null,null],
+"jh:2":["X9pgFIgJBu4hc4Df_NK-qQ",0,null,null],
+"jh:3":["p0ziUl0RyX_3s0wDIY3wKw",0,null,null],
+"jh:4":["lmoQjv6-adqThbYrV9IE0Q",0,null,null],
+"harlem:0":["MMiUcPhP6IZytsTVC97aOw",0,null,null],
+"harlem:1":["DjRICiYo95hEgd7oLPbhFA",0,40.815915,-73.941108],
+"harlem:2":["LHLA-XCOl_FZpLS0nTiJlg",0,null,null],
+"harlem:3":["iXxoxNVEZCDjj9ZCM6g4FA",0,40.808262,-73.946666],
+"harlem:4":["d0p1PPb5WjuPYMZhxZEynQ",0,null,null],
+"harlem:5":["IfnBNHpAQEuY1rxLVDtVwA",0,null,null],
+"les:0":["_Sh3QpwuMvgL_npFbWDeAw",0,null,null],
+"les:1":["sAF-ycS96pNYUWVRLQRg_g",0,null,null,"Shows the street outside; the counters are inside Essex Market."],
+"les:2":["rBuZZl8PbnPSq8qOSVPZJQ",0,null,null],
+"les:3":["EppMz4afuK6FNP1wKzYvQw",0,null,null],
+"les:4":["4HMDh9U2Yq2VwQk7JxAbQg",0,null,null],
+"flushing:0":["cS5WtfWZMPCg1t4KtCw2Xw",0,null,null],
+"flushing:1":["mam9JwP0KwXmb1gaCkjXxQ",0,40.758864,-73.830145],
+"flushing:2":["I9hEw4UwGsXxsn_1RnN1HA",0,null,null,"Shows Main Street outside; the food court is downstairs inside the mall."],
+"flushing:3":["Jj6aEZkLBr-Pz2pEqfJISg",0,40.757268,-73.829699],
+"flushing:4":["qbCMIM1Vjba2VG5_kwFjMQ",0,null,null],
+"wburg:0":["9wF49PHRoVXaZcmgS-wRbA",0,null,null],
+"wburg:1":["yaLH5FR1poGitb_WMRhEGw",0,null,null],
+"wburg:2":["wdMn8AySmK_bELns59FvVQ",0,null,null],
+"wburg:3":["_83MG3R6m-rLsW4_ApCFtw",0,null,null],
+"wburg:4":["UFJ2zF9TV6wRZUJB2-u6Yg",0,null,null],
+"midtown:0":["ZRsUeJPYbJasIwcip9Tlwg",0,null,null],
+"midtown:1":["5sBQEuCOlTFh96dI4Fwmaw",0,40.758663,-73.971671],
+"midtown:2":["42ZwuodlrDjLMATpTTJjZQ",0,null,null],
+"midtown:3":["D4j1gmhZGMJCMJBuShnVXg",0,null,null],
+"midtown:4":["ZmR4nlAuJWGwhJ5gBO1ITQ",0,null,null],
+"cpark:0":["4qN5fACdYIApY6Zzclf87g",0,null,null],
+"cpark:1":["-_TcbuB50k_0kUiOTYXj9g",0,40.77501,-73.970416],
+"cpark:2":["nSTTtsH_k2UVoNkXJPh95w",0,null,null],
+"cpark:3":["KmOw8SaKjczvOhfDikUuQg",0,null,null],
+"cpark:4":["nENpWsiSphZYitivAWQrgQ",0,null,null],
+"cpark:5":["nSTTtsH_k2UVoNkXJPh95w",0,null,null],
+"rockaway:0":["hpJhB1vS1oFMvySuJZYeEA",0,null,null],
+"rockaway:4":["rStK0cjYPFybUaOYgf8V7Q",0,null,null],
+"arthur:0":["1C8pRp30BrgOetn9c1VEmQ",0,null,null],
+"arthur:1":["4fn6OVKQgvsnJK87b5snCw",0,null,null,"Shows the corner outside; the counters are inside the Retail Market."],
+"arthur:2":["4fn6OVKQgvsnJK87b5snCw",0,null,null,"Shows the corner outside; the cigar bench is at the back of the Retail Market."],
+"arthur:3":["ay9nn8FFSzhkJJeA8DB4uw",0,null,null],
+"arthur:4":["f9VbBk1HOPWZ2nnTYVvhFw",0,null,null],
+"union:0":["kVbFdGXAMqAv_1b20mJxoQ",0,40.736752,-73.991271],
+"union:1":["nzG02EV2ibclsG61ODPEXw",0,null,null],
+"union:2":["DRIAxsCyXkApa5cIaNld4g",0,null,null],
+"union:3":["Lkt1niqtIBNcajIZBnKQaA",0,null,null],
+"union:4":["6lWJ5WhDolEGy3F4Uuz6MA",0,null,null],
+"union:5":["f6wJB4mQtLv0z4KSlbQLLw",0,null,null],
+"fidi:0":["jHsUbKEs3vHp_gohy-CZ5g",0,null,null],
+"fidi:1":["HB9Lf1pmsSZIKZYhZAC8jg",0,null,null],
+"fidi:2":["CIHM0ogKEICAgICE1ums-QE",1,40.711385,-74.011036],
+"fidi:3":["BRqwSebnhyOu4r-zqgO7ow",0,null,null],
+"fidi:4":["myBZOjXL7Ys5qyoN0KVeMw",0,null,null],
+"ktown:0":["E0T1uNMYCcV1fO2l1wyElQ",0,null,null],
+"ktown:1":["IusbvL_M6p3IYQ1q93teHA",0,null,null],
+"ktown:2":["yPIeDGd5k7OW37kGqitc8A",0,null,null],
+"ktown:3":["DbAx0ajWkPRZT4HzWvqY2A",0,40.750221,-73.988792],
+"ktown:4":["ApZVFBv8mx0YyI3G__6fmw",0,null,null],
+"bushwick:0":["ryywB1yBGIsLk_zU4gmckQ",0,null,null],
+"bushwick:1":["PsiBaE1ox4mQ7q70Uac0Tg",0,null,null],
+"bushwick:2":["wx_yYnxzX0ZOCo6GOIoKYQ",0,40.705422,-73.922828],
+"bushwick:3":["RsC4cCYWimqYtetVfGqTDg",0,null,null],
+"bushwick:4":["bC8B0_MLKfrkGDeEt6geeg",0,40.704725,-73.92236],
+"chelsea:0":["O9S_hsHemcrjx9SHCQ0YLw",0,null,null],
+"chelsea:1":["CIHM0ogKEICAgIC12vKFxQE",1,40.742606,-74.005761],
+"chelsea:3":["YXsorrJjRwE04c_QGBCxUw",0,null,null],
+"chelsea:4":["X_xDvvTfymQo7Dqbqebivw",0,40.753572,-74.001751],
+"brighton:0":["LGOxR3ThUc8yrNlMwVQLxw",0,null,null],
+"brighton:1":["TQ2ej6yfLEMiQDaqMDEBjQ",0,null,null],
+"brighton:2":["jEa4QhJxsHlSyKLbTeNIhA",0,null,null],
+"brighton:3":["NaVF02LGoyKi0xAi6CBDHg",0,null,null],
+"brighton:4":["ryXne1odTzGCRHRsyUjYRQ",0,null,null],
+"brighton:5":["GFAfTkZk4MPED64Rzc1i9w",0,null,null],
+"dumbo:5":["CIHM0ogKEICAgID-1MC_gwE",1,40.692334,-73.975411],
+"cpark:6":["_1L-ZC4dUqpCLy4oqBGhpw",0,40.77221,-73.973534,"The nearest imagery is on the Mall, about 90 m away."],
+"rockaway:1":["CIHM0ogKEICAgIDqo8-A0gE",1,40.583558,-73.812771],
+"rockaway:2":["CIHM0ogKEICAgIDqo8-A0gE",1,40.583558,-73.812771,"The photo is on the sand about 50 m east of the jetty."],
+"rockaway:3":["CIHM0ogKEICAgIDqvYGhSQ",1,40.583708,-73.808209,"The nearest photo is on the jetty just east of the steps."],
+"chelsea:2":["CIABIhC7STCT9YCAultfC-SOaMAt",1,40.741597,-74.01,"A visitor's photo from the entrance bridge."]};
+const svUrl = (S,id) => { const P=id&&SV_PANO[id], far=P&&P[2]!==null&&kmBetween({lat:P[2],lon:P[3]},{lat:S[0],lon:S[1]})>0.025;
+  const h=Math.round(far?bearingTo({lat:P[2],lon:P[3]},{lat:S[0],lon:S[1]}):S[2]);
+  if(!P) return 'https://www.google.com/maps/@?api=1&map_action=pano&viewpoint='+S[0].toFixed(6)+','+S[1].toFixed(6)+'&heading='+h+'&pitch=0&fov=80';
+  if(P[1]===1) return 'https://www.google.com/maps/@'+P[2].toFixed(6)+','+P[3].toFixed(6)+',3a,80y,'+h+'h,90t/data=!3m6!1e1!3m4!1s'+P[0]+'!2e10!7i5376!8i2688';
+  return 'https://www.google.com/maps/@?api=1&map_action=pano&pano='+P[0]+'&viewpoint='+S[0].toFixed(6)+','+S[1].toFixed(6)+'&heading='+h+'&pitch=0&fov=80'; };
+const svNote = id => { const P=SV_PANO[id]; return P&&P[4] ? '<p class="hint svnote">Street View: '+esc(P[4])+'</p>' : ''; };
+const svLink = (pid,S,id) => pid==="ferry" ? '' : '<a class="chip" href="'+svUrl(S,id)+'" target="_blank" rel="noopener">Street View ↗</a>';
 function bearingTo(a,b){ const r=Math.PI/180, y=Math.sin((b.lon-a.lon)*r)*Math.cos(b.lat*r), x=Math.cos(a.lat*r)*Math.sin(b.lat*r)-Math.sin(a.lat*r)*Math.cos(b.lat*r)*Math.cos((b.lon-a.lon)*r); return (Math.atan2(y,x)/r+360)%360; }
 const walkMin = km => Math.max(1,Math.round(km*1000*1.25/80));
 const mDist = km => km<1 ? Math.max(10,Math.round(km*100)*10)+' m' : (km/1.609).toFixed(1)+' mi';
@@ -2234,7 +2360,7 @@ function standBlock(x){ const sp=spotFor(x), t=new Date(), pl=PLACES[x.p];
   if(sp){ const S=sp.S, lf=lightFacing(S[2],t), c=CITIES[state.city], sun=sunPos(t,c.lat,c.lon);
     return '<div class="part stand"><span class="label">Where to stand</span><div class="standrow">'+standDial(S[2],t)+'<div class="standtxt"><b><span class="snum">'+spotNum(sp.id)+'</span> '+esc(S[3])+'</b>'+
       '<span>Face '+compass(S[2])+' · <span class="sdk '+lf.k+'">'+lf.txt+' now</span>'+(sun.alt>-0.8?' (sun to the '+compass(sun.az)+')':'')+'</span><p>'+esc(S[4])+'</p></div></div>'+
-      '<div class="callinks"><a class="chip" href="https://www.google.com/maps/dir/?api=1&destination='+S[0].toFixed(5)+','+S[1].toFixed(5)+'&travelmode=walking" target="_blank" rel="noopener">Walk there ↗</a>'+svLink(x.p,S)+'<button type="button" class="chip" data-spotmap="'+sp.id+'">See it on the map</button><button type="button" class="chip" data-guidego="'+sp.id+'">Guide me there</button></div></div>'; }
+      '<div class="callinks"><a class="chip" href="https://www.google.com/maps/dir/?api=1&destination='+S[0].toFixed(5)+','+S[1].toFixed(5)+'&travelmode=walking" target="_blank" rel="noopener">Walk there ↗</a>'+svLink(x.p,S,sp.id)+'<button type="button" class="chip" data-spotmap="'+sp.id+'">See it on the map</button><button type="button" class="chip" data-guidego="'+sp.id+'">Guide me there</button></div>'+svNote(sp.id)+'</div>'; }
   if(typeof pl.lat!=="number") return '';
   const g=START_GEO[x.p], st=START[x.p];
   return '<div class="part stand"><span class="label">Where to stand</span><p>'+esc(x.work.split(/(?<=\.)\s/)[0])+'</p>'+(st?'<p class="hint">Start at '+esc(st[0])+'.</p>':'')+
@@ -2996,7 +3122,7 @@ document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&state.mapFull) map
 $("tipSheet").addEventListener("click",e=>{ if(e.target.closest("[data-tipclose]")){ const k=openTip; openTip=null; tipSheet(); const t=document.querySelector('#card [data-tip="'+k+'"]'); if(t) t.focus({preventScroll:true}); } });
 function spotPanel(id){ const [pid,i]=id.split(":"), S=SPOTS[pid][+i], t=mapNow(), lf=lightFacing(S[2],t), idea=IDEAS.find(x=>x.id===S[5]), cam=CAMERAS[state.camera];
   return '<section class="group mapsel"><button type="button" class="mapselx" data-unsel="1" aria-label="Close">×</button><div class="group-head"><b><span class="snum">'+spotNum(id)+'</span> '+esc(S[3])+'</b><span class="where">'+esc(PLACES[pid].name)+' · facing '+compass(S[2])+(state.pos?' · '+mDist(kmBetween(state.pos,{lat:S[0],lon:S[1]}))+' from you':'')+'</span></div>'+
-    '<div class="callinks guidecta">'+(state.guide&&state.guide.id===id?'<button type="button" class="chip" data-guidestop="1">Stop guiding</button>':'<button type="button" class="chip primary" data-guide="'+id+'">Guide me there</button>')+svLink(pid,S)+'</div>'+
+    '<div class="callinks guidecta">'+(state.guide&&state.guide.id===id?'<button type="button" class="chip" data-guidestop="1">Stop guiding</button>':'<button type="button" class="chip primary" data-guide="'+id+'">Guide me there</button>')+svLink(pid,S,id)+'</div>'+svNote(id)+
     '<p class="mapcount">'+esc(S[4])+'</p><p class="maplight"><span class="sdot '+lf.k+'"></span><b>'+lf.txt+' at '+hmText(t.getHours()*60+t.getMinutes())+'.</b> '+LIGHT_TIP[lf.k]+'</p>'+
     '<p class="hint spotfov">The wedge on the map is what '+(cam&&state.camera!=='other'?'the '+esc(cam.name):'your camera')+' takes in from here, about '+Math.round(camFov())+'° across. Drag the time slider to see how the light changes.</p>'+
     (idea?'<button type="button" class="row" data-id="'+idea.id+'"><span class="dot" style="background:'+INTENTS[idea.i].color+'"></span><span class="t"><b>'+esc(idea.t)+'</b><span>The idea for this spot · '+esc(INTENTS[idea.i].name)+'</span></span><span class="go" aria-hidden="true">›</span></button>':'')+

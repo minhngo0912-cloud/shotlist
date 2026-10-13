@@ -645,3 +645,4 @@ body.tipopen{overflow:hidden}
 .nearf{padding:0 14px 6px}
 .nrow{align-items:flex-start} .nrow .snum{margin-top:2px} .nrow .t{display:flex;flex-direction:column}
 .mleadcta{padding:0 14px 8px}
+.svnote{margin:-4px 0 8px;font-size:12px;color:var(--muted)} .stand .svnote{color:var(--sign-muted)}
