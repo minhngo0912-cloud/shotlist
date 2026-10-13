@@ -685,3 +685,14 @@ body.tipopen{overflow:hidden}
 .m-pin.big .m-halo{opacity:.9}
 /* label voices */
 .m-hood{letter-spacing:.14em;font-weight:600;opacity:.7} .m-water{font-weight:500;letter-spacing:.04em} .m-lab{letter-spacing:.01em}
+
+/* bridges and tunnels */
+.m-brgc{fill:none;stroke:var(--mBrgEdge);stroke-linecap:butt;stroke-linejoin:round} .m-brgd{fill:none;stroke:var(--mBrgDeck);stroke-linecap:butt;stroke-linejoin:round}
+.m-brgt{fill:none;stroke:var(--mBrgEdge);opacity:.55} .m-tun{fill:none;stroke:var(--mTun);stroke-linecap:round;opacity:.7}
+.m-brglab{fill:var(--mBrgTxt);font-family:var(--sans);font-weight:700;font-style:italic;letter-spacing:.02em;paint-order:stroke;stroke:var(--mHalo);stroke-width:.3em;stroke-linejoin:round;pointer-events:none}
+.m-brglab.tun{font-weight:600;opacity:.8}
+#map{--mBrgEdge:#6d7382;--mBrgDeck:#3a3e47;--mTun:#7a7f8c;--mBrgTxt:#dfe3ec}
+#map[data-sky="day"]{--mBrgEdge:#747a87;--mBrgDeck:#f6f4ee;--mTun:#9aa0ab;--mBrgTxt:#3c414b}
+#map[data-sky="gold"]{--mBrgEdge:#9a8468;--mBrgDeck:#fff6e6;--mTun:#a89a84;--mBrgTxt:#4c3b25}
+#map[data-sky="blue"]{--mBrgEdge:#7d86a8;--mBrgDeck:#474e6b;--mTun:#8b93b3;--mBrgTxt:#e8ecff}
+.m-lm .m-lmg path,.m-lm .m-lmg circle{fill:none}
