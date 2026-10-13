@@ -590,3 +590,5 @@ body.mapfull{overflow:hidden}
 body.tipopen{overflow:hidden}
 @keyframes tsup{from{transform:translateY(30px);opacity:.4}to{transform:none;opacity:1}} @keyframes tsfade{from{opacity:0}to{opacity:1}}
 @media (prefers-reduced-motion:reduce){.tsheet,.tsback{animation:none}}
+
+.tdef{margin:8px 0 0;padding:10px 12px;border:1px solid var(--sign-line);border-radius:8px;font-size:14px;line-height:1.45;color:var(--sign-muted)} .tdef b{color:var(--sign-fg)}
