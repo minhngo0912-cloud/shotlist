@@ -622,3 +622,4 @@ body.tipopen{overflow:hidden}
 .wk{display:grid;gap:0;margin:14px 0 4px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
 .wkrow{padding:10px 14px;border-top:1px solid var(--line)} .wkrow:first-child{border-top:0}
 .wkrow .label{display:block;margin-bottom:2px} .wkrow p{margin:0;font-size:15px;line-height:1.45}
+.wktips ul{margin:4px 0 0;padding-left:20px} .wktips li{margin:0 0 6px;line-height:1.45}
