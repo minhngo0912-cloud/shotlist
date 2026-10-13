@@ -560,3 +560,33 @@ body.mapfull{overflow:hidden}
 #today .row .t{display:flex;flex-direction:column;min-width:0} #today .row .t span{font-size:13px;color:var(--muted)}
 
 .setup .scenealt{display:block;margin-top:3px;font-size:12px;font-weight:400;color:var(--muted);line-height:1.35}
+
+/* ===== Settings: compact rows, and explanations in a sheet ===== */
+.setup{display:flex;flex-direction:column;gap:0;border-top:1px solid var(--sign-line)}
+.setup button{display:grid;grid-template-columns:minmax(96px,38%) 1fr 22px;align-items:center;gap:10px;width:100%;padding:11px 0;border-bottom:1px solid var(--sign-line);border-radius:0;font-size:16px}
+.setup button .label{font-size:11px;text-decoration:none;color:var(--sign-muted)}
+.setup .sv{display:flex;flex-direction:column;min-width:0} .setup .sv b{font-size:15px;font-weight:700;line-height:1.3} .setup .sv small{font-size:12.5px;color:var(--sign-muted);line-height:1.35;margin-top:1px}
+.setup .si{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--sign-muted);color:var(--sign-muted);font:italic 700 12px/17px Georgia,serif;text-align:center}
+.setup button:hover .si,.setup button[aria-expanded="true"] .si{border-color:var(--sign-fg);color:var(--sign-fg)}
+@media (min-width:621px){.setup{display:grid;grid-template-columns:1fr 1fr;column-gap:24px}}
+.tipwrap{position:fixed;inset:0;z-index:2000;display:flex;flex-direction:column;justify-content:flex-end}
+.tsback{position:absolute;inset:0;background:rgba(0,0,0,.45);animation:tsfade .18s ease}
+.tsheet{position:relative;max-height:min(78vh,640px);display:flex;flex-direction:column;background:var(--bg);color:var(--fg);border-radius:18px 18px 0 0;box-shadow:0 -10px 30px rgba(0,0,0,.35);padding-bottom:env(safe-area-inset-bottom,0px);animation:tsup .22s ease;max-width:760px;width:100%;margin:0 auto}
+.tsgrab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:8px auto 0}
+.tsheet header{display:flex;align-items:center;justify-content:space-between;padding:8px 10px 6px 18px}
+.tsheet header h3{margin:0;font-size:19px}
+.tsheet .mapselx{position:static;background:var(--line);color:var(--fg)}
+.tsbody{overflow:auto;padding:4px 18px 20px;overscroll-behavior:contain}
+.tsval{display:flex;flex-direction:column;gap:2px;padding:12px 14px;border-radius:12px;background:var(--panel);border:1px solid var(--line);margin-bottom:12px}
+.tsval .label{font-size:11px} .tsval b{font-size:18px} .tsval span:last-child:not(.label){font-size:14px;color:var(--muted)}
+.tswhat{margin:0 0 10px;font-size:15px;line-height:1.45}
+.tsopts{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.tsopts li{display:flex;flex-direction:column;gap:2px;padding:10px 0;border-bottom:1px solid var(--line)}
+.tsopts li b{font-size:15px;display:flex;align-items:center;gap:8px} .tsopts li span:not(.pill){font-size:14px;color:var(--muted);line-height:1.4}
+.tsopts li.on{background:linear-gradient(90deg,rgba(252,204,10,.16),transparent);margin:0 -10px;padding:10px;border-radius:8px}
+.tsgroup{margin:16px 0 4px;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.tsalt{margin:12px 0 0;padding:10px 12px;border-radius:10px;background:var(--panel);font-size:14px}
+.tsmore{margin:12px 0 0;font-size:14px;color:var(--muted);line-height:1.45}
+body.tipopen{overflow:hidden}
+@keyframes tsup{from{transform:translateY(30px);opacity:.4}to{transform:none;opacity:1}} @keyframes tsfade{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.tsheet,.tsback{animation:none}}

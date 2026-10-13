@@ -65,16 +65,43 @@ const SCENE_ALT = {zone:null, freeze:"Sports", drag:null, deep:"Landscape", shal
 const SETUP_LABELS = ["Focus mode","Focus area","Metering","Exposure comp.","Scene mode","Aspect ratio","Shutter type","White balance"];
 // Explanations shown when a setting is tapped. Index matches SETUP_LABELS; "exp" is the aperture/shutter/ISO line.
 const TIPS = {
-  exp:["Aperture · shutter · ISO","Aperture (f-number) sets how much of the scene is sharp front to back: f/2 blurs the background, f/8 keeps most of it sharp. Shutter speed sets how movement looks: 1/500 s freezes walkers, 1/15 s blurs them. ISO is the sensor's sensitivity; Auto ISO lets the camera raise it so your aperture and shutter stay where you put them. For recipes in A mode, the shutter speed shown is the slowest to allow: set it as the Auto ISO shutter speed limit and the camera raises ISO rather than dropping below it."],
-  0:["Focus mode","How the camera focuses. AFs locks focus once when you half-press, which suits still subjects. AFc keeps refocusing while you hold, which suits people moving toward or away from you. MF means you set the distance yourself on the lens ring, so there is no delay when you press. iAF lets the camera switch between AFs and AFc on its own; it does not always pick right, so this card names one or the other."],
-  1:["Focus area","Where in the frame the camera looks for focus. Field is one movable box you place on the subject. Spot is a smaller box for precise targets. Eye/Face/Body Detection finds a person and follows them. Multi-Field lets the camera choose, which is fast but can pick the wrong thing in a crowd. Zone is a block of points for fast action, and Tracking follows whatever you place the box on."],
-  2:["Metering","How the camera measures brightness to set exposure. Multi-Field averages the whole frame and is right most of the time. Center-Weighted favours the middle, useful when the subject is central and the edges are much brighter or darker. Spot reads one small point. Highlight-Weighted protects the brightest areas from blowing out."],
-  3:["Exposure compensation","Tells the camera to make the picture brighter (+) or darker (−) than its meter suggests. Use minus when bright lights or sky are being washed out, and plus when a backlit face comes out too dark. It only has an effect when the camera is choosing at least one of shutter, aperture or ISO. In M with Auto ISO it works by changing the ISO, and Auto ISO cannot go below 100, so in full sun minus compensation may do nothing."],
-  4:["Scene mode","On the Q3 this is the Scene Mode item in the menu. PASM is the normal setting: the shutter speed dial and the aperture ring control exposure, and the settings on this card only work there. The scene modes are fully automatic and ignore both dials: Auto (general snapshots, or handing the camera to someone), Sports (moving subjects), Portrait (a person), Landscape (broad outdoor scenes), Night Portrait (a person against night lights), Snow / Beach (bright, reflective surroundings), Fireworks, Candlelight (dim, candle-lit scenes), Sunset, and Digiscoping (through a spotting scope). The shortcut under the setting names the one closest to this recipe, for when there is no time to set the dials; switch back to PASM afterwards. The letter after it is the exposure mode for this idea, chosen with the A marks on the dials: A (aperture priority) is shutter dial on A and the aperture set on the ring; S (shutter priority) is aperture ring on A and the speed set on the dial; M is both set by hand, here with ISO on Auto; both on A gives P (program)."],
-  5:["Aspect ratio","The shape of the picture. 3:2 uses the whole sensor. 16:9 is wider and suits skylines; 1:1 is square and suits a single centred subject. Choosing another ratio shows crop lines while you frame."],
-  6:["Shutter type","Mechanical is a physical shutter: reliable under artificial light and with fast movement, up to 1/2000 s. Electronic is silent and reaches 1/16000 s, but can bend fast-moving subjects and show dark bands under LED or fluorescent light. Hybrid uses mechanical normally and switches to electronic only when the light needs a faster speed."],
-  7:["White balance","Sets the overall colour cast so whites look white. Auto adjusts for each scene. Daylight is fixed, so warm light stays warm and neon keeps its colour, and every frame in a set matches. With DNG files you can change it afterwards without losing quality."]
+  exp:{t:"Aperture · shutter · ISO", what:"Three settings decide how bright the picture is, and two of them also change how it looks.",
+    opts:[["Aperture (f-number)","How much is sharp front to back. f/2 blurs the background; f/8 keeps most of the scene sharp."],["Shutter speed","How movement looks. 1/500 s freezes walkers; 1/15 s blurs them."],["ISO","Sensitivity. Auto ISO raises it so the aperture and shutter stay where you put them."]],
+    more:"In A mode the shutter speed shown is the slowest to allow: set it as the Auto ISO shutter speed limit, and the camera raises ISO instead of going slower."},
+  0:{t:"Focus mode", what:"How the camera focuses when you half-press.",
+    opts:[["AFs","Locks focus once. For still subjects."],["AFc","Keeps refocusing while you hold. For people moving toward or away from you."],["MF","You set the distance on the lens ring, so there is no delay when you press."],["iAF","Switches between AFs and AFc on its own. It does not always pick right, so cards name one or the other."]]},
+  1:{t:"Focus area", what:"Where in the frame the camera looks for focus.",
+    opts:[["Field","One movable box you place on the subject."],["Spot","A smaller box, for precise targets."],["Eye/Face/Body Detection","Finds a person and follows them."],["Multi-Field","The camera chooses. Fast, but can pick the wrong thing in a crowd."],["Zone","A block of points, for fast action."],["Tracking","Follows whatever you place the box on."]]},
+  2:{t:"Metering", what:"How the camera measures brightness to set the exposure.",
+    opts:[["Multi-Field","Reads the whole frame. Right most of the time."],["Center-Weighted","Favours the middle. For a central subject with much brighter or darker edges."],["Spot","Reads one small point."],["Highlight-Weighted","Protects the brightest areas from blowing out."]]},
+  3:{t:"Exposure compensation", what:"Makes the picture brighter or darker than the meter suggests.",
+    opts:[["+ (plus)","Brighter. When a backlit face comes out too dark."],["− (minus)","Darker. When bright lights or sky are washed out."]],
+    more:"It only works when the camera chooses at least one of shutter, aperture or ISO. In M with Auto ISO it changes the ISO, which cannot go below 100, so in full sun minus may do nothing."},
+  4:{t:"Scene mode", what:"The Scene Mode item in the Q3 menu. Use PASM: the dials control exposure, and the settings on this card only work there.",
+    opts:[["P","Shutter dial and aperture ring both on A."],["A (aperture priority)","Shutter dial on A, aperture set on the ring."],["S (shutter priority)","Aperture ring on A, speed set on the dial."],["M","Both set by hand. Here with ISO on Auto."]],
+    group:["Scene modes: fully automatic, the dials are ignored",[["Auto","General snapshots, or handing the camera to someone."],["Sports","Moving subjects and action."],["Portrait","A person."],["Landscape","Broad outdoor scenes."],["Night Portrait","A person against night lights."],["Snow / Beach","Bright, reflective surroundings."],["Fireworks","Bursts and light trails."],["Candlelight","Dim, candle-lit scenes."],["Sunset","Sunset skies."],["Digiscoping","Through a spotting scope."]]],
+    more:"Switch back to PASM after using a scene mode."},
+  5:{t:"Aspect ratio", what:"The shape of the picture. Other ratios show crop lines while you frame.",
+    opts:[["3:2","The whole sensor."],["16:9","Wider. Suits skylines."],["1:1","Square. Suits a single centred subject."]]},
+  6:{t:"Shutter type", what:"Which shutter takes the picture.",
+    opts:[["Mechanical","A physical shutter, up to 1/2000 s. Reliable under artificial light and with fast movement."],["Electronic","Silent, up to 1/16000 s, but can bend fast subjects and band under LED light."],["Hybrid","Mechanical normally; electronic only when the light needs a faster speed."]]},
+  7:{t:"White balance", what:"The overall colour cast, so whites look white. With DNG files you can change it afterwards without losing quality.",
+    opts:[["Auto","Adjusts for each scene."],["Daylight","Fixed, so warm light stays warm, neon keeps its colour and a set of frames matches."],["Cloudy","Warmer. Flatters skin in flat light."]]}
 };
+// The value on a card is a main setting plus, often, a note: "Mechanical (no skew on fast movement)", "3:2, or 16:9 for a skyline".
+function splitVal(v){ const m=/^(.*?)(?: \((.*)\)|, (or .*))$/.exec(v); return m ? [m[1], m[2]||m[3]] : [v,""]; }
+/* The explanation for a setting, as a sheet over the page: this idea's value first, then the options, with this idea's one marked. */
+function tipSheet(){ const box=$("tipSheet"); if(!box) return; const T=openTip!==null&&openTip!=="c"&&TIPS[openTip];
+  if(!T||state.view!=="shoot"||state.tab!=="settings"){ box.hidden=true; document.body.classList.remove("tipopen"); return; }
+  const x=IDEAS.find(i=>i.id===state.current), cam=CAMERAS[state.camera], su=x&&setupFor(cam,x.r), val=openTip==="exp" ? (cam.recipes[x.r]||[])[0] : su&&su[+openTip], [main,note]=splitVal(val||"");
+  const isOn=name=>{ const n=name.split(" (")[0]; return main.startsWith(n+" ")||main===n||main.startsWith(n+" ·")||(openTip==="4"&&main.includes("· "+n)); };
+  const list=opts=>'<ul class="tsopts">'+opts.map(([n,d])=>'<li'+(isOn(n)?' class="on"':'')+'><b>'+esc(n)+(isOn(n)?' <span class="pill">This idea</span>':'')+'</b><span>'+esc(d)+'</span></li>').join("")+'</ul>';
+  const alt=openTip==="4"&&cam.setup==="leica" ? (SCENE_ALT[x.r]?'<p class="tsalt"><b>Shortcut for this idea:</b> '+esc(SCENE_ALT[x.r])+'. Use it only when there is no time to set the dials.</p>':'<p class="tsalt">No scene mode matches this idea. Stay on PASM.</p>') : '';
+  box.innerHTML='<div class="tsback" data-tipclose="1"></div><section class="tsheet" role="dialog" aria-modal="true" aria-labelledby="tsTitle"><div class="tsgrab"></div>'+
+    '<header><h3 id="tsTitle">'+esc(T.t)+'</h3><button type="button" class="mapselx" data-tipclose="1" aria-label="Close">×</button></header>'+
+    '<div class="tsbody"><div class="tsval"><span class="label">This idea</span><b>'+esc(main)+'</b>'+(note?'<span>'+esc(note)+'</span>':'')+'</div>'+
+    '<p class="tswhat">'+esc(T.what)+'</p>'+list(T.opts)+alt+(T.group?'<p class="tsgroup">'+esc(T.group[0])+'</p>'+list(T.group[1]):'')+(T.more?'<p class="tsmore">'+esc(T.more)+'</p>':'')+'</div></section>';
+  box.hidden=false; document.body.classList.add("tipopen"); const c=box.querySelector("header .mapselx"); if(c) c.focus({preventScroll:true}); }
 let openTip = null;
 const GENERIC_TERMS =[["PASM · ","Mode dial: "],["AFs","Single AF"],["AFc","Continuous AF"],["MF","Manual focus"],["Multi-Field","Evaluative / matrix"],["Field","Single point"],["Spot","Small single point"],["Hybrid","Auto (mechanical + electronic)"]];
 function setupFor(cam, recipe){
@@ -1089,8 +1116,8 @@ function renderCard(){
       (su ? '<div><button type="button" class="vals tipbtn" data-tip="exp" aria-expanded="'+(openTip==="exp")+'">'+esc(rec[0])+'</button></div>' : '<span class="vals">'+esc(rec[0])+'</span>')+
       '<p class="note">'+esc(rec[1])+'</p>'+
       (adv.length ? '<div class="adjust"><span class="label">Adjust for now · '+esc(nowLabel(ni))+'</span><ul>'+adv.map(a=>'<li>'+esc(a)+'</li>').join("")+'</ul></div>' : '')+
-      (su ? '<div class="setup">'+SETUP_LABELS.map((l,n)=>'<button type="button" data-tip="'+n+'" aria-expanded="'+(openTip===String(n))+'"><span class="label">'+l+'</span><span>'+esc(su[n])+(n===4&&cam.setup==="leica"?'<small class="scenealt">'+(SCENE_ALT[x.r]?'Shortcut: '+esc(SCENE_ALT[x.r])+' scene mode, if there is no time to set the dials':'No scene mode matches this; stay on PASM')+'</small>':'')+'</span></button>').join("")+'</div>'+
-        (openTip!==null && TIPS[openTip] ? '<p class="tip"><b>'+TIPS[openTip][0]+'</b>'+esc(TIPS[openTip][1])+'</p>' : '<p class="hint">Tap any setting for an explanation.</p>') : '');
+      (su ? '<div class="setup">'+SETUP_LABELS.map((l,n)=>{ const [mv,nt]=splitVal(su[n]); return '<button type="button" data-tip="'+n+'" aria-haspopup="dialog" aria-expanded="'+(openTip===String(n))+'"><span class="label">'+l+'</span><span class="sv"><b>'+esc(mv)+'</b>'+(nt?'<small>'+esc(nt)+'</small>':'')+'</span><span class="si" aria-hidden="true">i</span></button>'; }).join("")+'</div>'+
+        '<p class="hint">Tap a setting to see what it does and the other options.</p>' : '');
   } else {
     pane='<div class="part"><span class="label">Look for</span><p>'+esc(x.look)+'</p></div>'+
       '<div class="part"><span class="label">Your rule</span><p>'+esc(x.rule)+'</p></div>'+
@@ -1769,7 +1796,8 @@ function mapFull(on){ state.mapFull=on; const m=$("map"); m.classList.toggle("fu
   try{ if(on&&document.fullscreenEnabled&&!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{}); else if(!on&&document.fullscreenElement) document.exitFullscreen().catch(()=>{}); }catch(e){}
   requestAnimationFrame(mapLayout); }
 document.addEventListener("fullscreenchange",()=>{ if(!document.fullscreenElement&&state.mapFull) mapFull(false); });
-document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&state.mapFull) mapFull(false); });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&state.mapFull) mapFull(false); if(e.key==="Escape"&&openTip!==null&&openTip!=="c"){ const k=openTip; openTip=null; tipSheet(); const t=document.querySelector('#card [data-tip="'+k+'"]'); if(t) t.focus(); } });
+$("tipSheet").addEventListener("click",e=>{ if(e.target.closest("[data-tipclose]")){ const k=openTip; openTip=null; tipSheet(); const t=document.querySelector('#card [data-tip="'+k+'"]'); if(t) t.focus({preventScroll:true}); } });
 function spotPanel(id){ const [pid,i]=id.split(":"), S=SPOTS[pid][+i], t=mapNow(), lf=lightFacing(S[2],t), idea=IDEAS.find(x=>x.id===S[5]), cam=CAMERAS[state.camera];
   return '<section class="group mapsel"><button type="button" class="mapselx" data-unsel="1" aria-label="Close">×</button><div class="group-head"><b>'+esc(S[3])+'</b><span class="where">'+esc(PLACES[pid].name)+' · facing '+compass(S[2])+'</span></div>'+
     '<p class="mapcount">'+esc(S[4])+'</p><p class="maplight"><span class="sdot '+lf.k+'"></span><b>'+lf.txt+' at '+hmText(t.getHours()*60+t.getMinutes())+'.</b> '+LIGHT_TIP[lf.k]+'</p>'+
@@ -1938,7 +1966,7 @@ function planToday(h){ renderPlan(); const t=new Date(), best=todayPicks(atMin(M
   if(best&&[...$("pStart").options].some(o=>o.value===best.id)) $("pStart").value=best.id;
   $("pTime").value=(+h*60<=dayMin(new Date()))?"now":String(h); $("pLen").value="150"; state.plan=makePlan(); savePlan(); state.view="map"; render(); }
 function render(){
-  openTip=null; if(state.view!=="map"&&state.mapFull) mapFull(false);
+  openTip=null; tipSheet(); if(state.view!=="map"&&state.mapFull) mapFull(false);
   const shoot=state.view==="shoot", ev=state.view==="events", pl=state.view==="plan", mp=state.view==="map", ln=state.view==="learn", td=state.view==="today";
   $("viewToday").hidden=!td; if(td) renderToday();
   $("viewLearn").hidden=!ln; if(ln) renderLearn();
@@ -2103,7 +2131,7 @@ $("list").addEventListener("click",e=>{
   const r=e.target.closest(".row"); if(!r) return; show(r.dataset.id); state.view="shoot"; render(); window.scrollTo({top:0});});
 $("card").addEventListener("click",e=>{
   const t=e.target.closest("[data-tab]"); if(t){ state.tab=t.dataset.tab; openTip=null; renderCard(); return; }
-  const b=e.target.closest("[data-tip]"); if(b){ openTip = openTip===b.dataset.tip ? null : b.dataset.tip; renderCard(); }
+  const b=e.target.closest("[data-tip]"); if(b){ const was=openTip; openTip = openTip===b.dataset.tip ? null : b.dataset.tip; if(b.dataset.tip==="c") renderCard(); else { tipSheet(); if(openTip===null&&was!==null) b.focus(); } }
 });
 $("card").addEventListener("input",e=>{ if(e.target.id!=="note"||!state.current) return;
   const v=e.target.value.trim(); if(v) state.notes[state.current]=e.target.value; else delete state.notes[state.current]; store.set("notes",state.notes); });

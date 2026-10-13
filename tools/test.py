@@ -96,6 +96,14 @@ def run(path, name):
         for tab in ["idea", "work", "compose", "settings"]:
             pg.evaluate("t=>{state.view='shoot';state.tab=t;render()}", tab); pg.wait_for_timeout(80)
         no_overflow("Shoot"); shot("shoot")
+        pg.evaluate("state.camera='q328'; show('ktown-moment'); state.tab='settings'; renderCard()")
+        pg.click("[data-tip='6']"); pg.wait_for_timeout(250)
+        check("A setting opens its explanation in a sheet, with this idea's option marked", pg.evaluate("[!document.getElementById('tipSheet').hidden, document.querySelector('.tsopts li.on b')?.textContent.startsWith('Mechanical')]")==[True,True])
+        shot("settings-sheet")
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(100)
+        check("The sheet closes with Escape", pg.evaluate("document.getElementById('tipSheet').hidden && !document.body.classList.contains('tipopen')"))
+        pg.click("[data-tip='4']"); pg.click(".tsback", position={"x":20,"y":20}); pg.wait_for_timeout(100)
+        check("The sheet closes when tapping outside", pg.evaluate("document.getElementById('tipSheet').hidden"))
         pg.click("#next"); pg.wait_for_timeout(80)
         # Browse and Saved
         pg.click("#vBrowse"); pg.wait_for_timeout(150); no_overflow("Browse"); shot("browse")
