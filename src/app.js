@@ -1322,6 +1322,49 @@ const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&g
 const inSeason = x => !x.m || x.m.includes(new Date().getMonth()+1);
 const seasonText = x => x.m ? "In season "+x.m.map(n=>["January","February","March","April","May","June","July","August","September","October","November","December"][n-1]).join(" and ") : "";
 const cityIdeas = () => IDEAS.filter(x=>PLACES[x.p].city===state.city && inSeason(x));
+/* When an idea is actually on: days of the week (0 Sunday to 6 Saturday), hours (start inclusive, end exclusive; past midnight when
+   start > end), extra months, and the weather it needs. sun: needs direct sun. rain: needs rain or wet ground. dull: best in bad weather.
+   Ideas not listed are open whenever their light is right. The plan and Today keep to these; the card shows them under Best light. */
+const AVAIL = {
+  "gct-energy":{d:[1,2,3,4,5],h:[[17,18]]},"gct-mood":{wx:"sun"},"tsq-mood":{wx:"rain"},
+  "coney-moment":{m:[4,5,6,7,8,9,10]},"coney-energy":{m:[4,5,6,7,8,9,10]},"coney-mood":{d:[1,2,3,4,5],h:[[6,12]],m:[10,11,12,1,2,3,4],wx:"dull"},
+  "soho-moment":{h:[[11,20]]},"soho-mood":{wx:"sun"},"soho-energy":{h:[[11,19]]},
+  "jh-moment":{h:[[17,23]]},"jh-mood":{h:[[10,15]],wx:"sun"},
+  "subway-mood":{h:[[22,4]]},"subway-odd":{h:[[8,22]]},
+  "harlem-moment":{d:[0],h:[[10,14]]},
+  "les-moment":{h:[[8,20]]},"les-energy":{d:[1,2,3,4,5],h:[[7,9],[16,19]]},
+  "flushing-moment":{h:[[10,21]]},"flushing-energy":{d:[1,2,3,4,5],h:[[17,19]]},"flushing-mood":{h:[[18,23]]},"flushing-odd":{h:[[8,20]]},
+  "wburg-moment":{h:[[10,19]],m:[4,5,6,7,8,9,10]},"wburg-mood":{wx:"sun"},
+  "midtown-place":{h:[[11,15]]},"midtown-moment":{d:[1,2,3,4,5],h:[[11,15]]},"midtown-energy":{d:[1,2,3,4,5],h:[[11,15]]},"midtown-mood":{h:[[10,15]],wx:"sun"},"midtown-odd":{d:[1,2,3,4,5],h:[[11,15]]},
+  "cpark-energy":{h:[[6,9],[17,19]]},"cpark-mood":{wx:"dull"},
+  "rockaway-mood":{d:[1,2,3,4,5],h:[[6,12]],m:[11,12,1,2,3],wx:"dull"},"rockaway-odd":{h:[[7,11]],m:[5,6,7,8,9,10]},
+  "arthur-moment":{d:[1,2,3,4,5,6],h:[[8,18]]},"arthur-odd":{d:[1,2,3,4,5,6],h:[[9,17]]},"arthur-energy":{d:[6],h:[[10,16]]},
+  "union-place":{d:[1,3,5,6],h:[[8,18]]},"union-odd-s":{d:[1,3,5,6],h:[[8,18]]},"union-energy":{d:[1,2,3,4,5],h:[[16,19]]},
+  "fidi-place":{d:[1,2,3,4,5],h:[[8,18]]},"fidi-moment":{d:[1,2,3,4,5],h:[[12,14]],m:[4,5,6,7,8,9,10]},"fidi-mood":{h:[[11,14]],wx:"sun"},
+  "ktown-moment":{h:[[10,21]]},"ktown-mood":{d:[5,6],h:[[21,3]]},
+  "bushwick-moment":{d:[0,6],h:[[11,18]]},"bushwick-energy":{d:[6],h:[[11,18]]},
+  "chelsea-moment":{d:[4],h:[[18,20]]},"chelsea-energy":{h:[[8,21]]},"chelsea-odd":{h:[[10,21]]},
+  "brighton-energy":{m:[5,6,7,8,9],h:[[17,22]]},"brighton-mood":{m:[11,12,1,2,3]},"brighton-mood-s":{wx:"sun"},
+  "wsp-mood":{wx:"sun"},"dumbo-place":{h:[[5,9]]},"dumbo-moment":{h:[[10,19]]}
+};
+const DAY_NAMES=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"], DAY_SHORT=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const hourText = h => h===0||h===24 ? "midnight" : h===12 ? "noon" : (h%12)+(h<12?" am":" pm");
+/* Is the idea on at this moment? sky is the forecast for then (undefined when unknown). Weather is a soft test: "sun" fails only when
+   rain or heavy cloud is forecast, "rain" needs rain in the forecast or now, "dull" never blocks. */
+function ideaOpen(x,t,sky){ const a=AVAIL[x.id]; if(!a) return true;
+  if(a.d&&!a.d.includes(t.getDay())) return false;
+  if(a.m&&!a.m.includes(t.getMonth()+1)) return false;
+  if(a.h){ const hr=t.getHours()+t.getMinutes()/60; if(!a.h.some(([s,e])=>s<e?(hr>=s&&hr<e):(hr>=s||hr<e))) return false; }
+  if(a.wx==="sun"&&/rain|storm|snow|fog|cloud/.test(sky||"")) return false;
+  if(a.wx==="rain"&&!(sky==="rain"||sky==="storm"||(sky===undefined&&nowInfo().sky==="rain"&&Math.abs(t-Date.now())<6*36e5))) return false;
+  return true; }
+function availText(x){ const a=AVAIL[x.id]; if(!a) return ""; const out=[];
+  if(a.d){ const d=a.d.slice().sort(); out.push(d.join()==="1,2,3,4,5"?"Weekdays":d.join()==="0,6"?"Weekends":d.join()==="1,2,3,4,5,6"?"Monday to Saturday":d.length===1?DAY_NAMES[d[0]]+"s":d.map(n=>DAY_SHORT[n]).join(", ")); }
+  if(a.h) out.push(a.h.map(([s,e])=>hourText(s)+" to "+hourText(e)).join(" and "));
+  if(a.m&&!x.m){ const M=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"], m=a.m; out.push(m.length>=5&&m[0]<=m[m.length-1]?M[m[0]-1]+" to "+M[m[m.length-1]-1]:m.length>=5?M[m[0]-1]+" to "+M[m[m.length-1]-1]:m.map(n=>M[n-1]).join(", ")); }
+  if(a.wx==="sun") out.push("needs sun"); if(a.wx==="rain") out.push("needs rain"); if(a.wx==="dull") out.push("best in bad weather");
+  return out.join(" · "); }
+
 
 function matches(savedOnly){
   return cityIdeas().filter(x => (state.intent==="all"||x.i===state.intent) && (state.place==="all"||(state.place==="near"?nearSet().has(x.p):x.p===state.place))
@@ -1629,7 +1672,7 @@ function renderCard(){
   } else {
     pane='<div class="part"><span class="label">Look for</span><p>'+esc(x.look)+'</p></div>'+standBlock(x)+
       '<div class="part"><span class="label">Your rule</span><p>'+esc(x.rule)+'</p></div>'+
-      '<div class="part"><span class="label">Best light</span><div class="times">'+x.w.map(w=>'<span class="time">'+WHEN[w]+'</span>').join("")+(x.m?'<span class="time season">'+seasonText(x)+'</span>':'')+'</div></div>'+
+      '<div class="part"><span class="label">Best light</span><div class="times">'+x.w.map(w=>'<span class="time">'+WHEN[w]+'</span>').join("")+(x.m?'<span class="time season">'+seasonText(x)+'</span>':'')+(availText(x)?'<span class="time avail">'+esc(availText(x))+'</span>':'')+'</div></div>'+
       '<div class="part"><label class="label" for="note">Your notes</label><textarea id="note" rows="2" placeholder="What worked, what was different, what to try next time">'+esc(state.notes[x.id]||"")+'</textarea></div>'+followIdea(x.i)+igRow(x)+
       '<div class="jumps">'+
       (st ? '<button type="button" class="jump" data-tab="work"><span><small>Work it</small>'+esc(st[1])+'</span><span class="go" aria-hidden="true">›</span></button>' : '')+
@@ -1819,25 +1862,36 @@ function kmBetween(a,b){ const r=Math.PI/180, h=Math.sin((a.lat-b.lat)*r/2)**2+M
 function makePlan(){
   const withPos=Object.keys(CITIES[state.city].places).filter(id=>typeof PLACES[id].lat==="number"); if(!withPos.length) return null;
   let cur=$("pStart").value; if(cur==="near"||!PLACES[cur]) cur=state.pos?placeOrder()[0]:withPos[0];
-  const now=new Date(), hv=$("pTime").value; let t=new Date(now);
-  if(hv!=="now"){ t=new Date(now.getFullYear(),now.getMonth(),now.getDate(),+hv); if(t<now) t=new Date(+t+864e5); }
-  const start=new Date(t), end=new Date(+t+(+$("pLen").value)*6e4), stops=[], seen=new Set(), used=new Set();
+  const now=new Date(), hv=$("pTime").value, dayOff=+($("pDay")&&$("pDay").value||0); let t=new Date(now), notes=[];
+  if(hv!=="now"){ t=new Date(now.getFullYear(),now.getMonth(),now.getDate()+dayOff,+hv); if(t<now) t=new Date(+t+864e5); }
+  else if(dayOff>0){ t=new Date(now.getFullYear(),now.getMonth(),now.getDate()+dayOff,now.getHours(),now.getMinutes()); }
+  // a start before first light moves to the start of blue hour
+  const c=CITIES[state.city], dawn=sunAlt(t,c.lat,c.lon,-6); if(dawn&&dawn[0]&&t<dawn[0]&&t.getHours()>=3&&t.getHours()<9){ t=new Date(Math.ceil(+dawn[0]/3e5)*3e5); notes.push("Moved the start to "+hmText(t.getHours()*60+t.getMinutes())+", when the light begins."); }
+  const start=new Date(t), end=new Date(+t+(+$("pLen").value)*6e4), stops=[], seen=new Set(), skipped=new Set();
+  const horizon=Math.abs(t-now)<40*36e5, skyFor=tt=>horizon?skyAt(tt):undefined;
+  const openHere=(id,tt)=>cityIdeas().filter(x=>x.p===id&&ideaOpen(x,tt,skyFor(tt)));
   while(t<end && stops.length<5){
-    const key=lightAt(t), here=cityIdeas().filter(x=>x.p===cur);
-    let pool=here.filter(x=>x.w.includes(key)); if(pool.length<2) pool=here;
-    pool=pool.map(x=>({x,r:Math.random()+(state.done.has(x.id)?2:0)})).sort((a,b)=>a.r-b.r).map(o=>o.x);
-    const next=withPos.filter(id=>id!==cur&&!seen.has(id)).map(id=>({id,km:kmBetween(PLACES[cur],PLACES[id])})).sort((a,b)=>a.km-b.km)[0];
-    const walk=next?Math.round(next.km*1.3/0.08):999, mins=walk<=30?Math.max(3,walk):Math.round(15+next.km*3);
-    const left=(end-t)/6e4, canMove=next && mins<=35 && left>=50+mins+20;   // isolated place or little time: stay and shoot more here
+    const key=lightAt(t), sky=skyFor(t), all=cityIdeas().filter(x=>x.p===cur), here=all.filter(x=>ideaOpen(x,t,sky));
+    all.forEach(x=>{ if(!here.includes(x)&&AVAIL[x.id]) skipped.add(x.id); });
+    const base=here.length?here:all;
+    if(!here.length&&all.length) notes.push("Nothing at "+PLACES[cur].name+" is on at "+hmText(t.getHours()*60+t.getMinutes())+" on a "+DAY_NAMES[t.getDay()]+", so these ideas are out of their hours.");
+    // ideas that suit the light first, not yet shot first, then luck
+    const pool=base.map(x=>({x,r:Math.random()+(x.w.includes(key)?0:3)+(state.done.has(x.id)?1.5:0)+(AVAIL[x.id]&&AVAIL[x.id].wx==="dull"&&!/rain|cloud|fog|snow|storm/.test(sky||"")?1:0)})).sort((a,b)=>a.r-b.r).map(o=>o.x);
+    const dur=n=>Math.max(1,n)*25;
+    // the next place: close by, with ideas that suit the light when you would get there
+    const cand=withPos.filter(id=>id!==cur&&!seen.has(id)).map(id=>{ const km=kmBetween(PLACES[cur],PLACES[id]), walk=Math.round(km*1.3/0.08), mins=walk<=30?Math.max(3,walk):Math.round(15+km*3);
+      const arrive=new Date(+t+dur(2)*6e4+mins*6e4), fit=openHere(id,arrive).filter(x=>x.w.includes(lightAt(arrive))&&!state.done.has(x.id)).length;
+      return {id,km,mins,walk,fit,score:fit*8-mins}; }).filter(o=>o.mins<=35).sort((a,b)=>b.score-a.score||a.mins-b.mins);
+    const next=cand[0], left=(end-t)/6e4, canMove=!!next && left>=50+next.mins+20;   // isolated place or little time: stay and shoot more here
     const want=canMove?2:Math.min(4,Math.max(1,Math.floor(left/25)));
     const picks=[]; for(const x of pool){ if(picks.length<want && !picks.some(p=>p.i===x.i)) picks.push(x); }
-    for(const x of here){ if(picks.length<want && !picks.includes(x) && !picks.some(p=>p.i===x.i)) picks.push(x); }
+    for(const x of pool){ if(picks.length<want && !picks.includes(x)) picks.push(x); }
     const stop={place:cur,at:new Date(t),key,ideas:picks}; stops.push(stop); seen.add(cur);
-    t=new Date(+t+Math.max(1,picks.length)*25*6e4);
+    t=new Date(+t+dur(picks.length)*6e4);
     if(!canMove) break;
-    stop.leg={to:next.id,mins,mode:walk<=30?"walk":"by subway"}; t=new Date(+t+mins*6e4); cur=next.id;
+    stop.leg={to:next.id,mins:next.mins,mode:next.walk<=30?"walk":"by subway"}; t=new Date(+t+next.mins*6e4); cur=next.id;
   }
-  return {start,end:t,stops};
+  return {start,end:t,stops,notes,skipped:[...skipped].filter(id=>stops.some(s=>s.place===id.split("-")[0]))};
 }
 // "Before you leave": what to carry and set for this plan, from its places, times and the current weather.
 const PLACE_NOTES = {"chinatown": "Buy something before photographing at a stall. In Columbus Park, keep to the spectators unless a player agrees.", "gct": "Handheld only. Tripods, lights and stabilizers need a permit.", "tsq": "Costumed characters expect a tip if they pose for you. Candid frames from a distance are a different matter.", "wsp": "Musicians and chess players often expect a tip. Carry a few small bills.", "dumbo": "The Washington Street view fills with people by mid-morning. Before 8 am it is clear.", "coney": "Most rides and food stands run from spring to October. Out of season, the empty boardwalk is the subject.", "soho": "Most shops open around 11 am. Before that the streets are empty, which suits the facades.", "jh": "Buy from a cart before you photograph it.", "ferry": "The ferry is free and the crossing takes about 25 minutes each way. You have to get off at Staten Island and board again.", "harlem": "Outside churches, stay on the public pavement and do not photograph inside.", "les": "Essex Market closes in the evening and earlier on Sunday, so do the counters first.", "flushing": "In the food court, order first and shoot from your seat.", "wburg": "McCarren Park games are busiest on weekend afternoons.", "midtown": "Paley Park is open 8 am to 8 pm and closed on national holidays. The lunch crowd peaks between noon and 2 pm on weekdays.", "cpark": "Bethesda Fountain is fenced off for restoration until about summer 2027. The arcade and terrace are open.", "rockaway": "Take the A to Broad Channel and change to the shuttle. Allow an hour or more from Midtown.", "arthur": "It is about a 16-minute walk from Fordham Rd station. The Retail Market is open daily until 8 pm.", "subway": "No flash, tripods or lights."};
@@ -1845,10 +1899,12 @@ Object.assign(PLACE_NOTES, {"union": "The greenmarket runs Monday, Wednesday, Fr
 function planPrep(p){
   const i=nowInfo(), c=CITIES[state.city], leica=CAMERAS[state.camera].setup==="leica", soon=Math.abs(p.start-Date.now())<6*36e5;
   const tf=d=>d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}).toLowerCase(), W=[], L=[], P=[], T=[];
-  const sky=soon?i.sky:null, dull=/rain|cloud|fog|snow|storm/.test(sky||"");
+  const fc=hourlyAt(p.start), fsky=fc?(skyAt(p.start)||(fc.cc>=50?"partly":"sun")):undefined, fromFc=fsky!==undefined;
+  const sky=fromFc?fsky:(soon?i.sky:null), dull=/rain|cloud|fog|snow|storm/.test(sky||"");
   const names=list=>[...new Set(list.map(o=>PLACES[o.s.place].name))].map(esc).join(" and ");
   // Weather
-  if(!soon) W.push("This plan starts more than six hours from now, so the current reading may not hold. Check the conditions panel before you leave.");
+  if(fromFc) W.push("Forecast for "+tf(p.start)+": "+(WX_WORD[fsky]||(fsky==="partly"?"Sun and cloud":"Clear"))+(fc.pop!=null?", "+fc.pop+"% chance of rain":"")+".");
+  if(!soon&&!fromFc) W.push("This plan starts more than six hours from now, so the current reading may not hold. Check the conditions panel before you leave.");
   else if(!sky) W.push("No weather reading is loaded. Check the conditions panel, or set the conditions by hand, before you leave.");
   else{
     const tc=i.w&&typeof i.w.temp_c==="number"?i.w.temp_c:null, f=tc===null?null:Math.round(tc*9/5+32), pc=i.w&&typeof i.w.precip_chance_today==="number"?i.w.precip_chance_today:null;
@@ -1890,13 +1946,19 @@ function renderPlan(){
   const ps=$("pStart"), pt=$("pTime"), keepS=ps.value, keepT=pt.value, tf=d=>d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}).toLowerCase();
   ps.innerHTML=(state.pos?'<option value="near">Nearest to me</option>':'')+groupOptions(placeOrder().filter(id=>typeof PLACES[id].lat==="number"), id=>'<option value="'+id+'">'+esc(PLACES[id].name)+'</option>');
   ps.value=keepS; if(!ps.value) ps.selectedIndex=0;
-  const h0=new Date().getHours(); let opts='<option value="now">Now</option>';
-  for(let h=6;h<=22;h++){ const lab=(h%12||12)+(h<12?" am":" pm"); opts+='<option value="'+h+'">'+lab+(h<=h0?" tomorrow":"")+'</option>'; }
-  pt.innerHTML=opts; pt.value=keepT; if(!pt.value) pt.value="now";
+  const pd=$("pDay"), keepD=pd.value||"0", now=new Date();
+  pd.innerHTML=[0,1,2,3,4,5,6,7].map(n=>{ const d=new Date(now.getFullYear(),now.getMonth(),now.getDate()+n); return '<option value="'+n+'">'+(n===0?"Today":n===1?"Tomorrow":DAY_NAMES[d.getDay()])+(n>1?" "+d.toLocaleDateString("en-US",{month:"short",day:"numeric"}):" ("+DAY_SHORT[d.getDay()]+")")+'</option>'; }).join("");
+  pd.value=keepD; const today=pd.value==="0", h0=now.getHours(); let opts=today?'<option value="now">Now</option>':'';
+  for(let h=5;h<=22;h++){ if(today&&h<=h0) continue; opts+='<option value="'+h+'">'+((h%12||12)+(h<12?" am":" pm"))+'</option>'; }
+  pt.innerHTML=opts; pt.value=keepT; if(!pt.value) pt.selectedIndex=0;
   const box=$("plan"), p=state.plan;
   if(!p){ box.innerHTML='<p class="lead">Choose where you will start, when, and how long you have. The plan picks ideas that suit the light at each stop and orders the stops as a walk.</p>'; return; }
   const mins=Math.round((p.end-p.start)/6e4), n=p.stops.reduce((a,s)=>a+s.ideas.length,0);
-  box.innerHTML='<p class="lead">'+tf(p.start)+' to about '+tf(p.end)+' · '+p.stops.length+' place'+(p.stops.length===1?'':'s')+' · '+n+' ideas. Tap an idea to open it.</p>'+planRoute(p)+planPrep(p)+
+  const dayLab=p.start.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"});
+  const skipped=(p.skipped||[]).map(id=>IDEAS.find(x=>x.id===id)).filter(Boolean);
+  box.innerHTML='<p class="lead">'+esc(dayLab)+', '+tf(p.start)+' to about '+tf(p.end)+' · '+p.stops.length+' place'+(p.stops.length===1?'':'s')+' · '+n+' ideas. Tap an idea to open it.</p>'+
+    (p.notes&&p.notes.length?'<p class="msg">'+p.notes.map(esc).join(" ")+'</p>':'')+
+    (skipped.length?'<p class="msg">Left out because they are not on then: '+skipped.map(x=>'<b>'+esc(x.t)+'</b> ('+esc(availText(x))+')').join("; ")+'.</p>':'')+planRoute(p)+planPrep(p)+
     p.stops.map(s=>{ const pl=PLACES[s.place];
       return '<section class="group"><div class="group-head"><b>'+tf(s.at)+' · '+esc(pl.name)+'</b><span class="where">'+esc(WHEN[s.key])+' · '+esc(pl.stop||"")+' '+bullets(pl.lines,pl.city)+'</span>'+startLink(s.place)+'</div>'+
         s.ideas.map(x=>'<button type="button" class="row'+(state.done.has(x.id)?" done":"")+'" data-id="'+x.id+'"><span class="dot" style="background:'+INTENTS[x.i].color+'"></span>'+
@@ -2106,10 +2168,11 @@ function lightMarks(){ const L=lightDay(), tf=hmText, out=[], pos=m=>'calc(13px 
 function savePlan(){ const p=state.plan; store.set("plan", p ? {start:+p.start,end:+p.end,stops:p.stops.map(s=>({place:s.place,at:+s.at,key:s.key,ideas:s.ideas.map(x=>x.id),leg:s.leg||null}))} : null); }
 function loadPlan(){ const p=store.get("plan",null); if(!p||!p.stops||!p.stops.length||p.end<Date.now()-12*36e5) return null;
   return {start:new Date(p.start),end:new Date(p.end),stops:p.stops.filter(s=>PLACES[s.place]).map(s=>({place:s.place,at:new Date(s.at),key:s.key,ideas:s.ideas.map(id=>IDEAS.find(x=>x.id===id)).filter(Boolean),leg:s.leg}))}; }
-function pickIdeas(pid,key,n){ const here=cityIdeas().filter(x=>x.p===pid); let pool=here.filter(x=>x.w.includes(key)); if(pool.length<n) pool=here;
-  const out=[]; for(const x of pool.slice().sort((a,b)=>state.done.has(a.id)-state.done.has(b.id))) if(out.length<n&&!out.some(o=>o.i===x.i)) out.push(x); return out; }
+function pickIdeas(pid,key,n,at){ const t=at||new Date(), sky=Math.abs(t-Date.now())<40*36e5?skyAt(t):undefined, all=cityIdeas().filter(x=>x.p===pid), here=all.filter(x=>ideaOpen(x,t,sky));
+  const pool=(here.length?here:all).slice().sort((a,b)=>(b.w.includes(key)-a.w.includes(key))||(state.done.has(a.id)-state.done.has(b.id)));
+  const out=[]; for(const x of pool) if(out.length<n&&!out.some(o=>o.i===x.i)) out.push(x); for(const x of pool) if(out.length<n&&!out.includes(x)) out.push(x); return out; }
 function legBetween(a,b){ const km=kmBetween(PLACES[a],PLACES[b]), walk=Math.round(km*1.3/0.08); return walk<=30?{to:b,mins:Math.max(3,walk),mode:"walk"}:{to:b,mins:Math.round(15+km*3),mode:"by subway"}; }
-function retimePlan(p){ let t=new Date(p.stops[0].at); p.stops.forEach((s,n)=>{ s.at=new Date(t); const k=lightAt(s.at); if(k!==s.key||!s.ideas.length){ s.key=k; s.ideas=pickIdeas(s.place,k,Math.max(2,s.ideas.length)); }
+function retimePlan(p){ let t=new Date(p.stops[0].at); p.stops.forEach((s,n)=>{ s.at=new Date(t); const k=lightAt(s.at); if(k!==s.key||!s.ideas.length){ s.key=k; s.ideas=pickIdeas(s.place,k,Math.max(2,s.ideas.length),s.at); }
     t=new Date(+t+Math.max(1,s.ideas.length)*25*6e4); if(n<p.stops.length-1){ s.leg=legBetween(s.place,p.stops[n+1].place); t=new Date(+t+s.leg.mins*6e4); } else delete s.leg; });
   p.start=new Date(p.stops[0].at); p.end=t; return p; }
 function planAdd(pid){ if(!state.plan){ const now=new Date(), k=lightAt(now); state.plan={start:now,end:now,stops:[{place:pid,at:now,key:k,ideas:pickIdeas(pid,k,2)}]}; }
@@ -2454,7 +2517,7 @@ function rainRuns(){ const w=WEATHER[state.city]; if(!w||!w.hourly) return null;
 /* Places ranked for a moment: ideas that suit that light, not yet shot, saved, and close by. */
 function todayPicks(t){ const key=lightAt(t), ideas=cityIdeas();
   return Object.keys(CITIES[state.city].places).filter(id=>typeof PLACES[id].lat==="number").map(id=>{
-    const mine=ideas.filter(x=>x.p===id), fit=mine.filter(x=>x.w.includes(key)), fresh=fit.filter(x=>!state.done.has(x.id)), saved=mine.filter(x=>state.saved.has(x.id)&&!state.done.has(x.id)).length, mi=milesTo(PLACES[id]);
+    const sky=skyAt(t), mine=ideas.filter(x=>x.p===id&&ideaOpen(x,t,sky)), fit=mine.filter(x=>x.w.includes(key)), fresh=fit.filter(x=>!state.done.has(x.id)), saved=mine.filter(x=>state.saved.has(x.id)&&!state.done.has(x.id)).length, mi=milesTo(PLACES[id]);
     const best=fresh.sort((a,b)=>state.saved.has(b.id)-state.saved.has(a.id))[0]||fit[0]||mine[0];
     return {id,fit:fit.length,fresh:fresh.length,mi,best,score:fresh.length*3+fit.length+saved*1.5-(mi===null?0:Math.min(mi,12)*0.5)}; })
     .filter(p=>p.fit>0).sort((a,b)=>b.score-a.score).slice(0,3); }
@@ -2511,7 +2574,7 @@ function renderToday(){ const box=$("today"); if(!box) return;
     (nudge?'<section class="tcard">'+nudge+'</section>':''); }
 function planToday(h){ renderPlan(); const t=new Date(), best=todayPicks(atMin(Math.min(1435,(+h+1)*60)))[0];
   if(best&&[...$("pStart").options].some(o=>o.value===best.id)) $("pStart").value=best.id;
-  $("pTime").value=(+h*60<=dayMin(new Date()))?"now":String(h); $("pLen").value="150"; state.plan=makePlan(); savePlan(); state.view="map"; render(); }
+  $("pDay").value="0"; renderPlan(); $("pTime").value=(+h*60<=dayMin(new Date()))?"now":String(h); if(!$("pTime").value) $("pTime").selectedIndex=0; $("pLen").value="150"; state.plan=makePlan(); savePlan(); state.view="map"; render(); }
 function render(){
   openTip=null; tipSheet(); if(state.view!=="map"&&state.mapFull) mapFull(false); if(state.view!=="map"&&state.guide) guideStop(true);
   const shoot=state.view==="shoot", ev=state.view==="events", pl=state.view==="plan", mp=state.view==="map", ln=state.view==="learn", td=state.view==="today";
@@ -2585,6 +2648,7 @@ $("theme").addEventListener("click",()=>{ const next=isDark()?"light":"dark"; ro
 syncTheme();
 $("events").addEventListener("click",e=>{ const c=e.target.closest("#evTypes .chip"); if(!c) return; state.evType=c.dataset.t; renderEvents(); });
 $("pGo").addEventListener("click",()=>{ state.plan=makePlan(); savePlan(); renderPlan(); });
+$("pDay").addEventListener("change",()=>{ const keep=$("pTime").value; renderPlan(); if([...$("pTime").options].some(o=>o.value===keep)) $("pTime").value=keep; });
 $("plan").addEventListener("click",e=>{ const r=e.target.closest(".row"); if(!r) return; show(r.dataset.id); state.view="shoot"; render(); window.scrollTo({top:0}); });
 state.plan=loadPlan();
 syncNear();

@@ -131,6 +131,19 @@ def run(path, name):
         # Plan
         pg.click("#vPlan"); pg.click("#pGo"); pg.wait_for_timeout(150)
         check("Plan makes an outing", pg.evaluate("!!(state.plan&&state.plan.stops.length)")); no_overflow("Plan"); shot("plan")
+        # the plan keeps to days, hours and first light
+        pg.evaluate("(()=>{ const now=new Date(); let n=1; while(new Date(now.getFullYear(),now.getMonth(),now.getDate()+n).getDay()!==2) n++; $('pDay').value=String(n); renderPlan(); $('pStart').value='harlem'; $('pTime').value='10'; $('pLen').value='90'; state.plan=makePlan(); })()")
+        tue=pg.evaluate("[state.plan.start.getDay(), state.plan.stops.flatMap(s=>s.ideas.map(x=>x.id)), state.plan.skipped]")
+        check("A Tuesday plan leaves out the Sunday church idea and says so", tue[0]==2 and "harlem-moment" not in tue[1] and "harlem-moment" in tue[2], tue)
+        pg.evaluate("(()=>{ const now=new Date(); let n=1; while(new Date(now.getFullYear(),now.getMonth(),now.getDate()+n).getDay()!==0) n++; $('pDay').value=String(n); renderPlan(); $('pStart').value='harlem'; $('pTime').value='10'; $('pLen').value='90'; state.plan=makePlan(); })()")
+        check("A Sunday morning plan in Harlem includes the church steps", pg.evaluate("state.plan.stops.flatMap(s=>s.ideas.map(x=>x.id)).includes('harlem-moment')"))
+        pg.evaluate("$('pDay').value='1'; renderPlan(); $('pStart').value='cpark'; $('pTime').value='5'; $('pLen').value='240'; state.plan=makePlan()")
+        dawn=pg.evaluate("[state.plan.notes.length, state.plan.start.getHours()*60+state.plan.start.getMinutes(), lightAt(state.plan.start)]")
+        check("A start before first light moves to blue hour", dawn[0]==1 and dawn[1]>5*60+30 and dawn[2]!="night", dawn)
+        pg.evaluate("$('pDay').value='1'; renderPlan(); $('pStart').value='midtown'; $('pTime').value='18'; $('pLen').value='90'; state.plan=makePlan()")
+        check("An evening Midtown plan says the lunch ideas are out of hours", pg.evaluate("state.plan.notes.some(n=>n.startsWith('Nothing at Midtown'))"), pg.evaluate("state.plan.notes"))
+        check("Availability shows on the card", pg.evaluate("availText(IDEAS.find(x=>x.id==='gct-energy'))")=="Weekdays · 5 pm to 6 pm")
+        pg.evaluate("$('pDay').value='0'; renderPlan(); state.plan=makePlan(); savePlan(); renderPlan()")
         # Events
         pg.click("#vEvents"); pg.wait_for_timeout(150)
         check("Events lists events", pg.evaluate("document.querySelectorAll('#events details').length") > 10); no_overflow("Events"); shot("events")
