@@ -665,6 +665,14 @@ body.tipopen{overflow:hidden}
 .mleadcta{padding:0 14px 8px}
 .svnote{margin:-4px 0 8px;font-size:12px;color:var(--muted)} .stand .svnote{color:var(--sign-muted)}
 .time.avail{border-style:dashed}
+
+/* Today: right now strip */
+.tnow{display:flex;align-items:center;gap:12px;padding:14px;border-radius:14px;background:#14161a;color:#fff;border:1px solid #14161a}
+.tnow.gold{background:#3b2a0c;border-color:#a8721f} .tnow.blue{background:#15204a;border-color:#3e63d8} .tnow.night{background:#0f1220;border-color:#2b3360}
+.tnow .tlabel{color:rgba(255,255,255,.7);margin-bottom:4px} .tnow .tverdict{font-size:17px;margin:0 0 4px;color:#fff} .tnow .msg{margin:0;color:rgba(255,255,255,.8);font-size:13px}
+.tnowl{flex:1;min-width:0} .tshoot{flex:none;padding:10px 14px;white-space:nowrap}
+.tlight .tband{margin-top:4px} .tlight .twins{margin-top:8px;font-size:13px;gap:4px 12px} .tlight>.msg{margin-top:8px}
+.tspot{margin:6px 0 0;display:flex;align-items:flex-start;gap:6px} .tspot>span:last-child{flex:1;min-width:0} .tspot .snum{margin-top:1px}
 </style>
 
 <div class="app">
@@ -3317,6 +3325,15 @@ function todayPicks(t){ const key=lightAt(t), ideas=cityIdeas();
     .filter(p=>p.fit>0).sort((a,b)=>b.score-a.score).slice(0,3); }
 function todayEvents(){ const now=new Date(), d0=new Date(now.getFullYear(),now.getMonth(),now.getDate());
   return eventRows(d0).filter(r=>r.o&&!r.cancelled&&evDay(r.o[0])<=d0&&evDay(r.o[1]||r.o[0])>=d0).map(r=>({r,st:evStatus(r,now)})).filter(x=>x.st.k!=="over").slice(0,4); }
+/* What the light is good for right now, by phase of the sun and sky. */
+function nowLight(now){ const c=CITIES[state.city], sp=sunPos(now,c.lat,c.lon), ph=sunPhase(sp.alt), key=lightAt(now), sky=nowInfo().sky, dull=/rain|cloud|fog|snow|storm/.test(sky||"");
+  let what;
+  if(ph==="night") what="Night: signs, windows and street lamps light the street. Neon, reflections and interiors.";
+  else if(ph==="blue") what="Blue hour: the sky and the city lights balance for a few minutes. Skylines, lit windows, wet streets.";
+  else if(ph==="gold") what=dull?"Golden hour, but cloud is muting it: soft, even light for faces and colour.":"Golden hour: low warm light, long shadows. Backlight, silhouettes and faces.";
+  else if(key==="am") what=dull?"Morning under cloud: soft light with no shadows, good for faces, colour and detail.":"Morning sun: low, clean light from the east. Side light down the cross streets.";
+  else what=dull?(sky==="rain"?"Rain: reflections, umbrellas and steamed windows. Shoot through glass or under cover.":"Overcast: flat, even light. Faces, colour, signs and interiors; no hard shadows."):"Midday sun: hard light overhead. Shadows as shapes, silhouettes in slots of light, canyons.";
+  return {ph,key,sp,what}; }
 function renderToday(){ const box=$("today"); if(!box) return;
   const now=new Date(), nm=dayMin(now), c=CITIES[state.city], {L,list}=todayWindows(), tf=hmText, w=WEATHER[state.city];
   const ph=sunPhase(sunPos(now,c.lat,c.lon).alt), next=list.find(x=>x.e>nm);
@@ -3325,29 +3342,36 @@ function renderToday(){ const box=$("today"); if(!box) return;
   if(state.todayAt===undefined) state.todayAt = (ph==="gold"||ph==="blue"||!next) ? null : (next.s>nm?next.s:null);
   if(state.todayAt!==null&&state.todayAt<=nm) state.todayAt=null;
   const t = state.todayAt===null ? now : atMin(state.todayAt), key=lightAt(t);
-  // light and weather
-  let verdict; if(ph==="gold"||ph==="blue"){ const cur=list.find(x=>x.s<=nm&&x.e>nm); verdict=(cur?cur.name:SUN_PHASE[ph])+' now, until '+tf(cur?cur.e:nm)+'.'; }
-  else if(next){ const sk=skyAt(atMin(next.s)); verdict=next.name+' '+tf(next.s)+' to '+tf(next.e)+(sk==="rain"?', but rain is likely then':sk===undefined?'':sk==="cloud"?', overcast':', dry')+'.'; }
-  else if(ph==="night"&&nm>720) verdict='Night now: neon, shop windows and reflections. The next soft light is tomorrow\u2019s blue hour, about '+tf(list[0]?list[0].s:L.rise-30)+'.';
-  else verdict='Daylight now. '+(list[0]?'Tomorrow\u2019s blue hour starts about '+tf(list[0].s)+'.':'');
+  // 1. right now: the light, what it suits, the next window, the sun
+  const NL=nowLight(now), cur=list.find(x=>x.s<=nm&&x.e>nm), upcoming=list.find(x=>x.s>nm), mins=m=>m>=60?Math.floor(m/60)+' h'+(m%60?' '+(m%60)+' min':''):m+' min';
+  const nextTxt = cur ? cur.name+' until '+tf(cur.e) : upcoming ? upcoming.name+' in '+mins(upcoming.s-nm)+' ('+tf(upcoming.s)+')' : 'Next good light: blue hour tomorrow about '+tf(list[0]?list[0].s:L.rise-30);
+  const sunTxt = NL.sp.alt>0 ? 'Sun to the '+compass(NL.sp.az)+', '+Math.round(NL.sp.alt)+'° up' : 'Sun down';
+  const nowStrip='<section class="tnow '+NL.ph+'"><div class="tnowl"><span class="tlabel">Right now · '+tf(nm)+'</span><p class="tverdict">'+esc(NL.what)+'</p><p class="msg">'+esc(nextTxt)+' · '+esc(sunTxt)+'</p></div>'+
+    '<button type="button" class="btn primary tshoot" data-shootnow="1">Shoot now</button></section>';
+  // the light today, compact: bar with windows as labels, weather on one line
   const runs=rainRuns(), rainTxt = runs ? (runs.length ? 'Rain likely '+runs.map(r=>hmText(r.s*60)+' to '+hmText(r.e*60)).join(" and ")+'.' : 'No rain expected today.') : (w&&typeof w.precip_chance_today==="number" ? 'Chance of rain today '+w.precip_chance_today+'%.' : '');
-  const fresh=w&&w.updated&&Date.now()-new Date(w.updated)<3*36e5;
-  const nowTxt = fresh&&w.condition_text ? esc(w.condition_text)+(typeof w.temp_c==="number"?', '+Math.round(w.temp_c*9/5+32)+'°F':'')+' now. ' : '';
+  const nowTxt = w&&w.condition_text ? esc(w.condition_text)+(typeof w.temp_c==="number"?', '+Math.round(w.temp_c*9/5+32)+'°F':'')+' now. ' : '';
   const mo=moonPos(atMin(720),c.lat,c.lon), mt=moonTimes(atMin(720),c.lat,c.lon);
   const pos=m=>(Math.min(1435,Math.max(0,m))/1435*100).toFixed(2)+'%';
   const band='<div class="tband" style="background:'+lightBand().replace(/calc\(13px \+ \(100% - 26px\) \* ([0-9.]+)\)/g,(_,p)=>(p*100).toFixed(2)+'%')+'"><i style="left:'+pos(nm)+'"></i></div>'+
     '<div class="tbandlab"><span>12 am</span><span>6 am</span><span>Noon</span><span>6 pm</span><span>12 am</span></div>';
-  const wins=list.map(x=>'<span class="twin'+(x.e<=nm?' past':x.s<=nm?' on':'')+'"><span class="lk '+x.k+'"></span>'+x.name+' '+tf(x.s)+'–'+tf(x.e)+'</span>').join("")+
+  const wins=list.map(x=>'<span class="twin'+(x.e<=nm?' past':x.s<=nm?' on':'')+'"><span class="lk '+x.k+'"></span>'+x.name.replace("Morning golden hour","Morning gold").replace("Morning blue hour","Morning blue")+' '+tf(x.s)+'–'+tf(x.e)+'</span>').join("")+
     '<span class="twin"><span class="lk rise"></span>Sunrise '+tf(L.rise)+'</span><span class="twin"><span class="lk set"></span>Sunset '+tf(L.set)+'</span>'+
     (mt.rise!==null&&mo.frac>0.3?'<span class="twin"><span class="lk moon"></span>'+(mo.frac>=0.97?'Full moon rises ':'Moonrise ')+tf(mt.rise)+'</span>':'');
-  // picks
+  // 2. because it is <day>: ideas that are only on today, or only this week
+  const dayN=Math.floor(Date.now()/864e5), todayIdeas=cityIdeas().filter(x=>{ const a=AVAIL[x.id]; return a&&a.d&&a.d.length<=6&&a.d.includes(now.getDay()); })
+    .map(x=>({x,on:!AVAIL[x.id].h||AVAIL[x.id].h.some(([s,e])=>s<e?(nm/60>=s&&nm/60<e):(nm/60>=s||nm/60<e)),over:AVAIL[x.id].h&&AVAIL[x.id].h.every(([s,e])=>s<e&&nm/60>=e)})).filter(o=>!o.over).sort((a,b)=>b.on-a.on);
+  const dayCard=todayIdeas.length?'<section class="tcard"><p class="tlabel">Because it is '+DAY_NAMES[now.getDay()]+'</p>'+todayIdeas.slice(0,5).map(({x,on})=>'<button type="button" class="row'+(state.done.has(x.id)?" done":"")+'" data-id="'+x.id+'"><span class="dot" style="background:'+INTENTS[x.i].color+'"></span><span class="t"><b>'+esc(x.t)+'</b><span>'+esc(PLACES[x.p].name)+' · '+esc(availText(x))+(on?' · on now':'')+'</span></span><span class="go" aria-hidden="true">›</span></button>').join("")+'</section>':'';
+  // 3 and 4. picks, with distance and the top pick's spot once location is on
   const picks=todayPicks(t), lname=WHEN[key]?WHEN[key].toLowerCase():key;
-  const pickHtml=picks.length?picks.map((p,n)=>{ const P=PLACES[p.id], ph2=PHOTOS_INLINE&&PLACE_PHOTO[p.id];
+  const pickHtml=picks.length?picks.map((p,n)=>{ const P=PLACES[p.id], ph2=PHOTOS_INLINE&&PLACE_PHOTO[p.id], sp=n===0&&p.best&&spotFor(p.best), lf=sp&&lightFacing(sp.S[2],t), walk=p.mi!==null?Math.round(p.mi*1.609*1000*1.25/80):null;
     return '<article class="tpick">'+(ph2?'<img src="'+esc(ph2.src)+'" alt="" loading="lazy" onerror="this.remove()">':'<span class="tpickn">'+(n+1)+'</span>')+
-      '<div class="tpickb"><b>'+esc(P.name)+'</b><span class="msg">'+esc(AREAS[areaOf(p.id)]||"")+(p.mi!==null?' · '+milesText(p.mi):'')+' · '+p.fit+' idea'+(p.fit>1?'s':'')+' for '+esc(lname)+(p.fresh<p.fit?' · '+(p.fit-p.fresh)+' shot':'')+'</span>'+
+      '<div class="tpickb"><b>'+esc(P.name)+'</b><span class="msg">'+esc(AREAS[areaOf(p.id)]||"")+(p.mi!==null?' · '+milesText(p.mi)+(walk!==null&&walk<=45?', '+walk+' min walk':''):'')+' · '+p.fit+' idea'+(p.fit>1?'s':'')+' for '+esc(lname)+(p.fresh<p.fit?' · '+(p.fit-p.fresh)+' shot':'')+'</span>'+
       (p.best?'<button type="button" class="row" data-id="'+p.best.id+'"><span class="dot" style="background:'+INTENTS[p.best.i].color+'"></span><span class="t"><b>'+esc(p.best.t)+'</b><span>'+esc(INTENTS[p.best.i].name)+(state.saved.has(p.best.id)?' · saved':'')+'</span></span><span class="go" aria-hidden="true">›</span></button>':'')+
-      '<div class="callinks"><button type="button" class="chip" data-mapgo="'+p.id+'">On the map</button>'+(START_GEO[p.id]?'<a class="chip" href="https://www.google.com/maps/dir/?api=1&destination='+START_GEO[p.id][0]+','+START_GEO[p.id][1]+'&travelmode=transit" target="_blank" rel="noopener">Directions ↗</a>':'')+'</div></div></article>'; }).join("")
+      (sp?'<p class="msg tspot"><span class="snum '+lf.k+'">'+spotNum(sp.id)+'</span><span>'+esc(sp.S[3])+' · face '+compass(sp.S[2])+', '+esc(lf.txt.toLowerCase())+(state.todayAt===null?' now':' then')+'</span></p>':'')+
+      '<div class="callinks"><button type="button" class="chip" data-mapgo="'+p.id+'">On the map</button>'+(sp&&state.pos?'<button type="button" class="chip" data-guidego="'+sp.id+'">Guide me there</button>':'')+(START_GEO[p.id]?'<a class="chip" href="https://www.google.com/maps/dir/?api=1&destination='+START_GEO[p.id][0]+','+START_GEO[p.id][1]+'&travelmode=transit" target="_blank" rel="noopener">Directions ↗</a>':'')+'</div></div></article>'; }).join("")
     : '<p class="msg">No ideas suit this light. Try another time above.</p>';
+  const locChip = state.pos ? '' : '<button type="button" class="chip" data-todayloc="1">Use my location</button>';
   // events
   const evs=todayEvents(), evHtml=evs.length?evs.map(({r,st})=>'<div class="tev'+(st.k==="live"?' live':'')+'"><b>'+esc(r.e.name)+'</b><span class="msg">'+esc(st.line)+(r.e.where?' · '+esc(r.e.where):'')+'</span><div class="callinks"><button type="button" class="chip" data-event="'+esc(r.e.id)+'">Open in Events</button></div></div>').join("")
     : '<p class="msg">No events listed for today. <button type="button" class="linkbtn" data-goview="events">See what is coming up</button></p>';
@@ -3355,17 +3379,24 @@ function renderToday(){ const box=$("today"); if(!box) return;
   const eg=list.find(x=>x.name==="Golden hour"), planFor = eg&&eg.s-60>nm ? {when:"tonight",h:Math.max(6,Math.floor((eg.s-75)/60)),txt:'Starts about '+tf(Math.floor((eg.s-75)/60)*60)+' at the best place for that light and walks you through golden hour into blue hour.'}
     : {when:"tomorrow morning",h:Math.max(6,Math.floor(((list.find(x=>x.name==="Morning golden hour")||{s:420}).s-30)/60)),txt:'Golden hour has passed, so this plans tomorrow morning, starting just before the morning light.'};
   // a nudge
-  const savedOpen=cityIdeas().filter(x=>state.saved.has(x.id)&&!state.done.has(x.id)), dayN=Math.floor(Date.now()/864e5);
+  const savedOpen=cityIdeas().filter(x=>state.saved.has(x.id)&&!state.done.has(x.id));
   const nudge = savedOpen.length ? (x=>'<p class="tlabel">From your saved ideas</p><button type="button" class="row" data-id="'+x.id+'"><span class="dot" style="background:'+INTENTS[x.i].color+'"></span><span class="t"><b>'+esc(x.t)+'</b><span>'+esc(PLACES[x.p].name)+(x.w.includes(key)?' · suits '+esc(lname):'')+'</span></span><span class="go" aria-hidden="true">›</span></button>')(savedOpen[dayN%savedOpen.length])
     : (d=>d?'<p class="tlabel">Assignment for today</p><p><b>'+esc(d[1])+'</b>. '+esc(d[2])+'</p><button type="button" class="linkbtn" data-goview="learn">More assignments in Learn</button>':'')(DRILLS.filter(d=>!state.drills.has(d[0]))[dayN%Math.max(1,DRILLS.filter(d=>!state.drills.has(d[0])).length)]);
   box.innerHTML=
-    '<header class="thead"><h2>'+now.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})+'</h2><span class="msg">'+esc(c.name)+' · '+tf(nm)+'</span></header>'+
-    '<section class="tcard"><p class="tlabel">The light today</p><p class="tverdict">'+verdict+'</p><p class="msg">'+nowTxt+rainTxt+'</p>'+band+'<div class="twins">'+wins+'</div></section>'+
-    '<section class="tcard"><p class="tlabel">Where to go</p><div class="intents tmoments">'+moments.map(m=>'<button type="button" class="chip" data-tat="'+(m.at===null?'now':m.at)+'" aria-pressed="'+(m.at===state.todayAt)+'">'+m.label+'</button>').join("")+'</div>'+
+    '<header class="thead"><h2>'+now.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})+'</h2><span class="msg">'+esc(c.name)+'</span></header>'+
+    nowStrip+
+    '<section class="tcard tlight"><p class="tlabel">The light today</p>'+band+'<div class="twins">'+wins+'</div>'+(nowTxt||rainTxt?'<p class="msg">'+nowTxt+rainTxt+'</p>':'')+'</section>'+
+    dayCard+
+    '<section class="tcard"><p class="tlabel">Where to go</p><div class="intents tmoments">'+moments.map(m=>'<button type="button" class="chip" data-tat="'+(m.at===null?'now':m.at)+'" aria-pressed="'+(m.at===state.todayAt)+'">'+m.label+'</button>').join("")+locChip+'</div>'+
       '<p class="msg">Best places for '+esc(lname)+(state.todayAt===null?' now':' at '+tf(state.todayAt))+(state.pos?', nearest first among equals':'')+'.</p>'+pickHtml+'</section>'+
     '<section class="tcard"><p class="tlabel">On today</p>'+evHtml+'</section>'+
     '<section class="tcard tplan"><p class="tlabel">Plan an outing</p><p>'+planFor.txt+'</p><button type="button" class="btn primary" data-planday="'+planFor.h+'">Plan '+planFor.when+'</button></section>'+
     (nudge?'<section class="tcard">'+nudge+'</section>':''); }
+/* Shoot now: the one best idea for this light, nearest first, not yet shot. */
+function shootNow(){ const now=new Date(), key=lightAt(now), sky=nowInfo().sky, pool=cityIdeas().filter(x=>typeof PLACES[x.p].lat==="number"&&ideaOpen(x,now,sky)&&x.w.includes(key));
+  const score=x=>(state.done.has(x.id)?-5:0)+(state.saved.has(x.id)?1:0)+(state.pos?-Math.min(10,milesTo(PLACES[x.p])||0)*0.6:0)+Math.random()*0.5;
+  const best=(pool.length?pool:cityIdeas()).slice().sort((a,b)=>score(b)-score(a))[0]; if(!best) return;
+  state.view="shoot"; show(best.id); state.tab="idea"; render(); window.scrollTo({top:0}); }
 function planToday(h){ renderPlan(); const t=new Date(), best=todayPicks(atMin(Math.min(1435,(+h+1)*60)))[0];
   if(best&&[...$("pStart").options].some(o=>o.value===best.id)) $("pStart").value=best.id;
   $("pDay").value="0"; renderPlan(); $("pTime").value=(+h*60<=dayMin(new Date()))?"now":String(h); if(!$("pTime").value) $("pTime").selectedIndex=0; $("pLen").value="150"; state.plan=makePlan(); savePlan(); state.view="map"; render(); }
@@ -3519,6 +3550,10 @@ $("learn").addEventListener("change",e=>{
 });
 $("today").addEventListener("click",e=>{
   const tm=e.target.closest("[data-tat]"); if(tm){ state.todayAt=tm.dataset.tat==="now"?null:+tm.dataset.tat; renderToday(); return; }
+  if(e.target.closest("[data-shootnow]")){ shootNow(); return; }
+  const tg=e.target.closest("[data-guidego]"); if(tg){ const id=tg.dataset.guidego; state.mapT=null; state.view="map"; render(); guideStart(id); requestAnimationFrame(()=>requestAnimationFrame(()=>{ mapSelectSpot(id); guideRender(); })); return; }
+  const tl=e.target.closest("[data-todayloc]"); if(tl){ tl.textContent="…"; const done=()=>{ renderToday(); if(!state.pos) $("today").insertAdjacentHTML("afterbegin",'<p class="msg">Your location is not available here. In the installed app, allow location access for Shot List when asked.</p>'); };
+    if(!navigator.geolocation){ done(); return; } try{ navigator.geolocation.getCurrentPosition(p=>{ state.pos={lat:p.coords.latitude,lon:p.coords.longitude}; fillPlaces(); syncNear(); done(); }, done, {timeout:10000,maximumAge:120000}); }catch(err){ done(); } return; }
   const mg=e.target.closest("[data-mapgo]"); if(mg){ const id=mg.dataset.mapgo; state.mapT=state.todayAt; state.view="map"; render(); requestAnimationFrame(()=>requestAnimationFrame(()=>{ mapSelect(id); })); return; }
   const pd=e.target.closest("[data-planday]"); if(pd){ planToday(pd.dataset.planday); return; }
   const gv=e.target.closest("[data-goview]"); if(gv){ state.view=gv.dataset.goview; render(); window.scrollTo({top:0}); return; }

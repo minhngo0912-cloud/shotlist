@@ -82,6 +82,9 @@ def run(path, name):
 
         # Today: opens first, with the light, places to go and an outing
         check("App opens on Today", pg.evaluate("state.view")=="today" and pg.evaluate("!document.getElementById('viewToday').hidden"))
+        check("Today opens with what the light is good for right now and a Shoot now button", pg.evaluate("[!!document.querySelector('.tnow .tverdict'), !!document.querySelector('[data-shootnow]'), (document.querySelector('.tnow .msg')||{}).textContent.includes('Sun')]")==[True,True,True])
+        check("Because it is Sunday lists the weekend-only ideas", "Posing for the wall" in pg.evaluate("(document.querySelector('.tcard .tlabel')&&[...document.querySelectorAll('.tcard')].find(c=>c.textContent.includes('Because it is'))||{textContent:''}).textContent"))
+        check("Today offers to use your location", pg.evaluate("!!document.querySelector('[data-todayloc]')"))
         check("Today gives the light and places to go", pg.evaluate("[!!document.querySelector('.tverdict').textContent, document.querySelectorAll('.twin').length>=4, document.querySelectorAll('.tpick').length]")==[True,True,3])
         if pg.evaluate("document.querySelectorAll('[data-tat]').length")>1:
             pg.click("[data-tat]:not([data-tat=now])"); pg.wait_for_timeout(100)
@@ -92,6 +95,8 @@ def run(path, name):
         pg.evaluate("state.plan=null; savePlan(); state.view='today'; render()"); pg.wait_for_timeout(100)
         pg.click(".tpick .row"); pg.wait_for_timeout(100)
         check("A pick opens its idea in Shoot", pg.evaluate("state.view")=="shoot")
+        pg.evaluate("state.view='today'; render()"); pg.click("[data-shootnow]"); pg.wait_for_timeout(150)
+        check("Shoot now opens an idea that suits the light", pg.evaluate("state.view==='shoot' && IDEAS.find(x=>x.id===state.current).w.includes(lightAt(new Date()))"))
         # Shoot: every tab of a card
         for tab in ["idea", "work", "compose", "settings"]:
             pg.evaluate("t=>{state.view='shoot';state.tab=t;render()}", tab); pg.wait_for_timeout(80)
