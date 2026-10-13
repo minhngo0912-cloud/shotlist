@@ -2032,12 +2032,17 @@ function mapFly(to){ cancelAnimationFrame(mapAnim); const from=Object.assign({},
 const mapTxt = (lat,lon,t,cls,size,rot) => { const [x,y]=mapXY(lat,lon); return '<text x="'+x.toFixed(0)+'" y="'+y.toFixed(0)+'" font-size="'+size+'" text-anchor="middle" class="'+cls+'"'+(rot?' transform="rotate('+rot+' '+x.toFixed(0)+' '+y.toFixed(0)+')"':'')+'>'+t+'</text>'; };
 const mapLine = (a,b) => { const p=mapXY(a[0],a[1]), q=mapXY(b[0],b[1]); return 'M'+p[0].toFixed(1)+' '+p[1].toFixed(1)+'L'+q[0].toFixed(1)+' '+q[1].toFixed(1); };
 function mapShell(box){
-  const R=MAPD_ROADS, road=(k,c)=>R[k]?'<path d="'+R[k]+'" class="m-rd '+c+'"/>':'';
+  const R=MAPD_ROADS, road=(k,c)=>R[k]?'<use href="#rd-'+k+'" class="m-rd '+c+'"/>':'';
+  const defs='<defs>'+Object.keys(R).map(k=>'<path id="rd-'+k+'" d="'+R[k]+'" class="m-rdp"/>').join("")+'<path id="ld-land" d="'+MAPD_LAND+'"/><path id="ld-park" d="'+MAPD_PARK+'"/>'+
+    '<pattern id="pWater" patternUnits="userSpaceOnUse" width="1.2" height="0.6"><path d="M0 .3h.42M.7 .12h.36" class="m-texw"/></pattern>'+
+    '<pattern id="pPark" patternUnits="userSpaceOnUse" width="12" height="12" patternTransform="rotate(20)"><circle cx="3" cy="3" r="1.1" class="m-texp"/><circle cx="9" cy="9" r="1.1" class="m-texp"/></pattern>'+
+    '<radialGradient id="spotG"><stop offset="55%" stop-color="#000"/><stop offset="100%" stop-color="#fff"/></radialGradient></defs>';
   const LAYER_ICON='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 8.5 12 14l10-5.5L12 3Z"/><path d="m2 12.5 10 5.5 10-5.5M2 16.5 12 22l10-5.5"/></svg>';
   box.innerHTML=
-    '<div class="mapwrap"><svg class="mapsvg" id="mapSvg" role="group" aria-label="Map of shooting places. Drag to move, pinch to zoom."><rect x="-500" y="-500" width="2500" height="2500" class="m-sea"/>'+
-    '<g transform="scale(0.1)" class="m-base"><path d="'+MAPD_CTX+'" class="m-ctx"/><path d="'+MAPD_LAND+'" class="m-land"/><path d="'+MAPD_AIR+'" class="m-air"/><path d="'+MAPD_CEM+'" class="m-cem"/><path d="'+MAPD_PARK+'" class="m-park"/></g>'+
-    '<g transform="scale(0.1)" class="m-roads">'+road("path","foot")+road("local","local")+road("ave","ave")+road("hwy","hwy")+'</g>'+
+    '<div class="mapwrap"><svg class="mapsvg" id="mapSvg" role="group" aria-label="Map of shooting places. Drag to move, pinch to zoom."><rect x="-500" y="-500" width="2500" height="2500" class="m-sea"/>'+defs+'<rect x="-500" y="-500" width="2500" height="2500" class="m-tex m-seatex" fill="url(#pWater)"/>'+
+    '<g transform="scale(0.1)" class="m-base"><path d="'+MAPD_CTX+'" class="m-ctx"/><use href="#ld-land" class="m-coastglow"/><use href="#ld-land" class="m-land"/><path d="'+MAPD_AIR+'" class="m-air"/><path d="'+MAPD_CEM+'" class="m-cem"/><use href="#ld-park" class="m-park"/><use href="#ld-park" class="m-tex m-parktex" fill="url(#pPark)"/></g>'+
+    '<g transform="scale(0.1)" class="m-roads m-rdc">'+road("path","foot")+road("local","local")+road("ave","ave")+road("hwy","hwy")+'</g>'+
+    '<g transform="scale(0.1)" class="m-roads m-rdf">'+road("path","foot")+road("local","local")+road("ave","ave")+road("hwy","hwy")+'</g>'+
     '<g transform="scale(0.1)" class="m-subway">'+MAPD_SUBWAY.map(([c,d])=>'<path d="'+d+'" stroke="'+c+'"/>').join("")+'</g>'+
     mapTxt(40.787,-73.957,"MANHATTAN","m-boro",15,-61)+mapTxt(40.648,-73.95,"BROOKLYN","m-boro",22)+mapTxt(40.705,-73.825,"QUEENS","m-boro",22)+mapTxt(40.845,-73.86,"THE BRONX","m-boro",18)+mapTxt(40.585,-74.14,"STATEN ISLAND","m-boro",16)+mapTxt(40.765,-74.085,"NEW JERSEY","m-boro",15)+
     mapTxt(40.772,-74.004,"Hudson River","m-water",7,-62)+mapTxt(40.672,-74.045,"Upper Bay","m-water",8)+mapTxt(40.612,-73.845,"Jamaica Bay","m-water",8)+mapTxt(40.558,-73.905,"Atlantic Ocean","m-water",9)+mapTxt(40.7385,-73.9665,"East River","m-water",5,-68)+
@@ -2211,7 +2216,8 @@ function mapPts(){ const key=lightAt(mapNow()), ideas=cityIdeas().filter(i=>stat
 function mapDraw(){
   const svg=$("mapSvg"); if(!svg||!mapV) return; const ar=svg.clientHeight/svg.clientWidth; if(ar>0.3&&ar<4) MAP_ASPECT=ar; const v=mapV, w=v.w, h=w*MAP_ASPECT, x0=v.cx-w/2, y0=v.cy-h/2, x1=x0+w, y1=y0+h, u=w/(svg.clientWidth||360), f=n=>n.toFixed(1);
   svg.setAttribute("viewBox",f(x0)+" "+f(y0)+" "+f(w)+" "+f(h));
-  svg.setAttribute("class","mapsvg "+(w>=260?"zfar":w>=110?"zmid":w>=45?"znear":"zclose")+(state.mapShowSub?"":" nosub"));
+  const zstreet=w<=22; svg.setAttribute("class","mapsvg "+(w>=260?"zfar":w>=110?"zmid":w>=45?"znear":"zclose")+(zstreet?" zstreet":"")+(state.mapShowSub?"":" nosub")+(state.mapSel&&!state.mapSpot&&w<140?" hassel":""));
+  if(mapDraw.zs!==zstreet){ mapDraw.zs=zstreet; svg.querySelectorAll(".m-rdp").forEach(e=>e.setAttribute("vector-effect",zstreet?"none":"non-scaling-stroke")); }
   const pts=mapPts().filter(p=>p.x>x0-20*u&&p.x<x1+20*u&&p.y>y0-20*u&&p.y<y1+20*u), far=w>330, R=(far?7:16)*u, fs=(far?11:12)*u;
   // route of the current plan
   let route=""; if(state.plan){ const st=state.plan.stops.map(s=>s.place).filter((id,n,a)=>id!==a[n-1]&&typeof PLACES[id].lat==="number").map(id=>mapXY(PLACES[id].lat,PLACES[id].lon));
@@ -2233,7 +2239,7 @@ function mapDraw(){
     evs+='<g class="m-ev '+e.st.k+(on?" on":"")+'" data-e="'+esc(e.id)+'" tabindex="0" role="button" aria-label="'+esc(e.r.e.name+", "+e.st.line)+'"><rect x="'+f(e.x-hw-6*u)+'" y="'+f(e.y-hh-6*u)+'" width="'+f(2*hw+12*u)+'" height="'+f(2*hh+12*u)+'" class="m-hit"/>'+
       (e.st.k==="live"?'<rect x="'+f(e.x-hw-3*u)+'" y="'+f(e.y-hh-3*u)+'" width="'+f(2*hw+6*u)+'" height="'+f(2*hh+6*u)+'" rx="'+f(5*u)+'" stroke-width="'+f(2.5*u)+'" class="m-evglow"/>':'')+
       '<rect x="'+f(e.x-hw)+'" y="'+f(e.y-hh)+'" width="'+f(2*hw)+'" height="'+f(2*hh)+'" rx="'+f(3*u)+'" stroke-width="'+f(1.5*u)+'" class="m-evbox"/><text x="'+f(e.x)+'" y="'+f(e.y+3.2*u)+'" text-anchor="middle" font-size="'+f(9*u)+'" class="m-evday">'+esc(e.day)+'</text>'+lab+'</g>'; }
-  if(w<130) for(const p of pts){ const g=START_GEO[p.id]; if(!g||!START[p.id]) continue; const [x,y]=mapXY(g[0],g[1]); if(Math.hypot(x-p.x,y-p.y)<R+5*u) continue; const name="Start: "+START[p.id][0], fl=10*u, tw=name.length*fl*0.54, dot=[x-5*u,y-5*u,x+5*u,y+5*u]; if(taken.some(t=>hit(t,dot))) continue;
+  if(w<130) for(const p of pts){ const g=START_GEO[p.id]; if(!g||!START[p.id]) continue; const [x,y]=mapXY(g[0],g[1]); if(Math.hypot(x-p.x,y-p.y)<R+5*u) continue; const name=p.id===state.mapSel?"Start: "+START[p.id][0]:"Start", fl=(p.id===state.mapSel?10:8.5)*u, tw=name.length*fl*0.54, dot=[x-5*u,y-5*u,x+5*u,y+5*u]; if(taken.some(t=>hit(t,dot))) continue;
     for(const [bx,anchor,tx] of [[x+8*u,"start",x+8*u],[x-8*u-tw,"end",x-8*u]]){ const rect=[bx,y-fl*0.6,bx+tw,y+fl*0.6]; if(rect[0]<x0+2*u||rect[2]>x1-2*u||taken.some(t=>hit(t,rect))) continue; taken.push(rect,dot);
       flags+='<path d="M'+f(p.x)+' '+f(p.y)+'L'+f(x)+' '+f(y)+'" class="m-startline" stroke-width="'+f(1.2*u)+'" stroke-dasharray="'+f(3*u)+' '+f(3*u)+'"/><path d="M'+f(x)+' '+f(y-6*u)+'L'+f(x+5.5*u)+' '+f(y+4*u)+'H'+f(x-5.5*u)+'Z" class="m-start" stroke-width="'+f(1.2*u)+'"/><text x="'+f(tx)+'" y="'+f(y+fl*0.36)+'" text-anchor="'+anchor+'" font-size="'+f(fl)+'" class="m-startlab">'+esc(name)+'</text>'; break; } }
   let stations=""; if(w<300) for(const p of pts){ for(const [lat,lon,ln] of (STATION_GEO[p.id]||[])){ const [x,y]=mapXY(lat,lon); if(x<x0||x>x1||y<y0||y>y1) continue; const r=4.2*u, box=[x-r,y-r,x+r,y+r]; if(taken.some(t=>hit(t,box))) continue; taken.push(box);
@@ -2247,19 +2253,21 @@ function mapDraw(){
       if(w<45){ const fl=8.5*u, tw=name.length*fl*0.52, rect=[x+r+2*u,y-fl*0.6,x+r+2*u+tw,y+fl*0.6]; if(!taken.some(t=>hit(t,rect))){ taken.push(rect,box); allStn+='<text x="'+f(x+r+2*u)+'" y="'+f(y+fl*0.35)+'" font-size="'+f(fl)+'" class="m-stnlab">'+esc(name)+'</text>'; } } } }
   let sunny=""; { const cs=CITIES[state.city], spp=sunPos(mapNow(),cs.lat,cs.lon); if(state.mapShowSunny && spp.alt>0 && w<140){ const r=spp.az*Math.PI/180, SX=Math.sin(r), SY=-Math.cos(r), off=(w<70?3.2:1.6)*u;
     // zoomed in: every street block in view; further out: the main avenues and streets only
-    if(w<70){ const G=streetGrid(), sp0=state.mapSel&&PLACES[state.mapSel]?mapXY(PLACES[state.mapSel].lat,PLACES[state.mapSel].lon):null, RR=9;   // around the chosen place, about 500 m
-      const bx0=sp0?Math.max(x0,sp0[0]-RR):x0, bx1=sp0?Math.min(x1,sp0[0]+RR):x1, by0=sp0?Math.max(y0,sp0[1]-RR):y0, by1=sp0?Math.min(y1,sp0[1]+RR):y1;
-      const cx0=Math.floor(bx0/10), cx1=Math.floor(bx1/10), cy0=Math.floor(by0/10), cy1=Math.floor(by1/10); let d="";
+    if(w<70){ const G=streetGrid(), selP=state.mapSel&&PLACES[state.mapSel]?mapXY(PLACES[state.mapSel].lat,PLACES[state.mapSel].lon):null;
+      // a few blocks round the chosen place, or round the middle of the view: a soft glow along the lit kerb, fading with distance
+      const sp0=selP||[(x0+x1)/2,(y0+y1)/2+(sheetPx()-topPx())*u/2], RR=selP?7:Math.min(6,w*0.3), bands=[[0.55,""],[0.8,"mid"],[1,"far"]], D=["","",""];
+      const bx0=Math.max(x0,sp0[0]-RR), bx1=Math.min(x1,sp0[0]+RR), by0=Math.max(y0,sp0[1]-RR), by1=Math.min(y1,sp0[1]+RR);
+      const cx0=Math.floor(bx0/10), cx1=Math.floor(bx1/10), cy0=Math.floor(by0/10), cy1=Math.floor(by1/10);
       for(let gx=cx0;gx<=cx1;gx++) for(let gy=cy0;gy<=cy1;gy++){ const cell=G.cells.get(gx+","+gy); if(!cell) continue;
         for(const k of cell){ const ax=G.seg[k], ay=G.seg[k+1], bx=G.seg[k+2], by=G.seg[k+3], L=Math.hypot(bx-ax,by-ay); if(L<0.3) continue;
-          if(sp0&&Math.hypot((ax+bx)/2-sp0[0],(ay+by)/2-sp0[1])>RR) continue;
+          const dist=Math.hypot((ax+bx)/2-sp0[0],(ay+by)/2-sp0[1])/RR; if(dist>1) continue;
           let nx=-(by-ay)/L, ny=(bx-ax)/L; const face=-(nx*SX+ny*SY); if(Math.abs(face)<0.12) continue; if(face<0){ nx=-nx; ny=-ny; }
-          d+='M'+f(ax+nx*off)+' '+f(ay+ny*off)+'L'+f(bx+nx*off)+' '+f(by+ny*off); } }
-      if(d) sunny='<path d="'+d+'" class="m-sunny near" stroke-width="'+f(2*u)+'"/>'; }
+          D[dist<bands[0][0]?0:dist<bands[1][0]?1:2]+='M'+f(ax+nx*off)+' '+f(ay+ny*off)+'L'+f(bx+nx*off)+' '+f(by+ny*off); } }
+      D.forEach((d,i)=>{ if(d) sunny+='<path d="'+d+'" class="m-sunglow '+bands[i][1]+'" stroke-width="'+f(5.5*u)+'"/><path d="'+d+'" class="m-sunny near '+bands[i][1]+'" stroke-width="'+f(1.6*u)+'"/>'; }); }
     else for(const [,,line] of MAP_STREETS) for(let i=0;i<line.length-1;i++){ const a=mapXY(line[i][0],line[i][1]), b=mapXY(line[i+1][0],line[i+1][1]), L=Math.hypot(b[0]-a[0],b[1]-a[1]); if(!L) continue;
       const tx=(b[0]-a[0])/L, ty=(b[1]-a[1])/L; let nx=-ty, ny=tx; const face=-(nx*SX+ny*SY); if(Math.abs(face)<0.12) continue; if(face<0){ nx=-nx; ny=-ny; }
       if(Math.max(a[0],b[0])<x0||Math.min(a[0],b[0])>x1||Math.max(a[1],b[1])<y0||Math.min(a[1],b[1])>y1) continue;
-      sunny+='<path d="M'+f(a[0]+nx*off)+' '+f(a[1]+ny*off)+' L'+f(b[0]+nx*off)+' '+f(b[1]+ny*off)+'" class="m-sunny" stroke-width="'+f(1.1*u)+'"/>'; } } }
+      sunny+='<path d="M'+f(a[0]+nx*off)+' '+f(a[1]+ny*off)+' L'+f(b[0]+nx*off)+' '+f(b[1]+ny*off)+'" class="m-sunny" stroke-width="'+f(0.9*u)+'"/>'; } } }
   let detail=""; const inside=(x,y,m)=>x>x0+m&&x<x1-m&&y>y0+m&&y<y1-m, free=rect=>!(rect[0]<x0+2*u||rect[2]>x1-2*u||rect[1]<y0+2*u||rect[3]>y1-2*u||taken.some(t=>hit(t,rect)));
   let lms=""; if(state.mapShowLm) LANDMARKS.forEach((L,i)=>{ const [name,lat,lon,kind,tier]=L, on=state.mapLm===i; if(!on&&(tier===2?w>=300:w>520)) return;
     const [x,y]=mapXY(lat,lon); if(!inside(x,y,6*u)) return; const r=(on?9:6.5)*u, box=[x-r,y-r,x+r,y+r]; if(!on&&taken.some(t=>hit(t,box))) return; taken.push(box);
@@ -2271,9 +2279,10 @@ function mapDraw(){
       '<g class="m-lmg" transform="translate('+f(x)+' '+f(y)+') scale('+k.toFixed(3)+')" stroke-width="1.1">'+LM_GLYPH[kind]+'</g>'+lab+'</g>'; });
   if(state.mapShowNames&&w<420) for(const [name,lat,lon] of MAP_HOODS){ const [x,y]=mapXY(lat,lon); if(!inside(x,y,0)) continue; const fh=9*u, tw=name.length*fh*0.68, rect=[x-tw/2,y-fh*0.7,x+tw/2,y+fh*0.6]; if(!free(rect)) continue; taken.push(rect);
     detail+='<text x="'+f(x)+'" y="'+f(y+fh*0.35)+'" text-anchor="middle" font-size="'+f(fh)+'" class="m-hood">'+esc(name.toUpperCase())+'</text>'; }
-  if(state.mapShowNames&&w<260) for(const [name,seg,line] of MAP_STREETS){ if(seg<0) continue; const a=mapXY(line[seg][0],line[seg][1]), b=mapXY(line[seg+1][0],line[seg+1][1]), x=(a[0]+b[0])/2, y=(a[1]+b[1])/2; if(!inside(x,y,10*u)) continue;
+  let stLab=0; const stMax=w<22?34:w<45?22:w<110?14:8;
+  if(state.mapShowNames&&w<260) for(const [name,seg,line] of MAP_STREETS){ if(seg<0||stLab>=stMax) continue; const a=mapXY(line[seg][0],line[seg][1]), b=mapXY(line[seg+1][0],line[seg+1][1]), x=(a[0]+b[0])/2, y=(a[1]+b[1])/2; if(!inside(x,y,10*u)) continue;
     let ang=Math.atan2(b[1]-a[1],b[0]-a[0])*180/Math.PI; if(ang>90) ang-=180; if(ang<-90) ang+=180; const fl=8.5*u, tw=name.length*fl*0.55, half=Math.max(tw/2*Math.abs(Math.cos(ang*Math.PI/180)),fl), halfy=Math.max(tw/2*Math.abs(Math.sin(ang*Math.PI/180)),fl*0.7), rect=[x-half,y-halfy,x+half,y+halfy];
-    if(!free(rect)) continue; taken.push(rect); detail+='<text x="'+f(x)+'" y="'+f(y-1.5*u)+'" text-anchor="middle" font-size="'+f(fl)+'" class="m-st" transform="rotate('+f(ang)+' '+f(x)+' '+f(y)+')">'+esc(name)+'</text>'; }
+    if(!free(rect)) continue; taken.push(rect); stLab++; detail+='<text x="'+f(x)+'" y="'+f(y-1.5*u)+'" text-anchor="middle" font-size="'+f(fl)+'" class="m-st" transform="rotate('+f(ang)+' '+f(x)+' '+f(y)+')">'+esc(name)+'</text>'; }
   // scale bar, with the walking time it stands for
   const sc=$("mapScale"); if(sc){ const perMile=28.9/u, mi=[5,2,1,0.5,0.25,0.1].find(m=>m*perMile<=96)||0.1; sc.innerHTML='<span>'+mi+' mi · '+Math.round(mi*20)+' min walk</span><i style="width:'+Math.round(mi*perMile)+'px"></i>'; }
   const ring=state.pos&&w<330 ? (()=>{ const [x,y]=mapXY(state.pos.lat,state.pos.lon); return '<circle cx="'+f(x)+'" cy="'+f(y)+'" r="14.5" class="m-walk" stroke-width="'+f(1.2*u)+'" stroke-dasharray="'+f(4*u)+' '+f(4*u)+'"/>'; })() : "";
@@ -2289,17 +2298,17 @@ function mapDraw(){
       return g0+(on?'<circle cx="'+f(p.x)+'" cy="'+f(p.y)+'" r="'+f(r)+'" class="m-halo" stroke-width="'+f(2*u)+'"/>':'')+
         (part?'<circle cx="'+f(p.x)+'" cy="'+f(p.y)+'" r="'+f(rr)+'" class="m-prog" stroke-width="'+f(2.4*u)+'" stroke-dasharray="'+f(c*part)+' '+f(c)+'" transform="rotate(-90 '+f(p.x)+' '+f(p.y)+')"/>':'')+
         '<circle cx="'+f(p.x)+'" cy="'+f(p.y)+'" r="'+f(r)+'" stroke-width="'+f(2*u)+'" class="m-dot"/>'+(on?'<text x="'+f(p.x)+'" y="'+f(p.y+4.4*u)+'" text-anchor="middle" font-size="'+f(12.5*u)+'" class="m-num">'+p.fit+'</text>':'')+'</g>'; }
-    const r=(on?(w<45?15:20):w<150?13:10.5)*u, ringR=r+2.6*u, list=ideasOf(p.id), photo=PHOTOS_INLINE&&PLACE_PHOTO[p.id];
+    const r=(on?(w<45?13:16):w<150?10.5:9)*u, ringR=r+2.4*u, list=ideasOf(p.id), photo=PHOTOS_INLINE&&PLACE_PHOTO[p.id];
     let ring=""; if(list.length){ const n=list.length, gap=n>1?0.16:0, step=2*Math.PI/n;
       list.forEach((it,k)=>{ const a0=-Math.PI/2+k*step+gap/2, a1=a0+step-gap, P=a=>f(p.x+Math.cos(a)*ringR)+' '+f(p.y+Math.sin(a)*ringR);
-        ring+='<path d="M'+P(a0)+' A'+f(ringR)+' '+f(ringR)+' 0 '+(a1-a0>Math.PI?1:0)+' 1 '+P(a1)+'" class="m-arc'+(it.w.includes(key)?'':' off')+'" stroke="'+(it.w.includes(key)?INTENTS[it.i].color:'')+'" stroke-width="'+f(3.4*u)+'"/>'; }); }
+        ring+='<path d="M'+P(a0)+' A'+f(ringR)+' '+f(ringR)+' 0 '+(a1-a0>Math.PI?1:0)+' 1 '+P(a1)+'" class="m-arc'+(it.w.includes(key)?'':' off')+'" stroke="'+(it.w.includes(key)?INTENTS[it.i].color:'')+'" stroke-width="'+f(3*u)+'"/>'; }); }
     if(photo) photoOn[p.id]=[p.x,p.y,r];
     const bx=p.x+r*0.78, by=p.y-r*0.78;
     over+=(p.fit||photo?'<g class="m-badge'+(p.fit?'':' zero')+'"><circle cx="'+f(bx)+'" cy="'+f(by)+'" r="'+f(6.6*u)+'" stroke-width="'+f(1.4*u)+'"/><text x="'+f(bx)+'" y="'+f(by+3.3*u)+'" text-anchor="middle" font-size="'+f(9*u)+'">'+p.fit+'</text></g>':'')+
       (p.done?'<g class="m-done"><circle cx="'+f(p.x-r*0.78)+'" cy="'+f(p.y+r*0.78)+'" r="'+f(5.4*u)+'" stroke-width="'+f(1.2*u)+'"/><path d="M'+f(p.x-r*0.78-2.6*u)+' '+f(p.y+r*0.78)+' l'+f(1.9*u)+' '+f(2*u)+' l'+f(3.4*u)+' '+f(-4*u)+'" stroke-width="'+f(1.5*u)+'"/></g>':'');
     return g0+(on?'<circle cx="'+f(p.x)+'" cy="'+f(p.y)+'" r="'+f(ringR+3*u)+'" class="m-halo" stroke-width="'+f(2*u)+'"/>':'')+ring+
-      '<circle cx="'+f(p.x)+'" cy="'+f(p.y)+'" r="'+f(r)+'" stroke-width="'+f(1.4*u)+'" class="m-face"/>'+
-      (photo?'':'<text x="'+f(p.x)+'" y="'+f(p.y+(on?5:4)*u)+'" text-anchor="middle" font-size="'+f((on?14:11)*u)+'" class="m-num">'+p.fit+'</text>')+'</g>'; }).join("");
+      '<circle cx="'+f(p.x)+'" cy="'+f(p.y)+'" r="'+f(r)+'" stroke-width="'+f(1.2*u)+'" class="m-face"/>'+
+      (photo?'':'<text x="'+f(p.x)+'" y="'+f(p.y+(on?4.6:3.6)*u)+'" text-anchor="middle" font-size="'+f((on?13:10.5)*u)+'" class="m-num">'+p.fit+'</text>')+'</g>'; }).join("");
   // photos sit in a layer of their own so they are not reloaded on every redraw
   if(PHOTOS_INLINE) document.querySelectorAll("#mapPhotos image").forEach(im=>{ const id=im.dataset.ph, v=photoOn[id];
     if(!v){ if(im.style.display!=="none") im.style.display="none"; return; }
@@ -2340,7 +2349,10 @@ function mapDraw(){
     const rx=R*Math.abs(1-2*mp.frac), lit='M0 '+f(-R)+' A'+f(R)+' '+f(R)+' 0 0 1 0 '+f(R)+' A'+f(rx)+' '+f(R)+' 0 0 '+(mp.frac>0.5?1:0)+' 0 '+f(-R)+'Z';
     moonSvg='<g class="m-moon" transform="translate('+f(mx)+' '+f(my)+')"><circle r="'+f(R*1.8)+'" class="m-moonglow"/><circle r="'+f(R)+'" class="m-moondark"/>'+(mp.frac>0.02?'<path d="'+lit+'" class="m-moonlit"'+(mp.phase>0.5?' transform="scale(-1 1)"':'')+'/>':'')+'</g>'; }
   let guideLine=""; const GI=guideInfo(); if(GI){ const [ax,ay]=mapXY(state.pos.lat,state.pos.lon), [bx,by]=mapXY(GI.S[0],GI.S[1]); guideLine='<path d="M'+f(ax)+' '+f(ay)+' L'+f(bx)+' '+f(by)+'" class="m-guide" stroke-width="'+f(3*u)+'" stroke-dasharray="'+f(2*u)+' '+f(6*u)+'"/>'; }
-  $("mapDyn").innerHTML=tint+sun+moonSvg+sunny+detail+allStn+route+ring+stations+flags+labels+lms+comp+(w<60?"":spotsSvg+spotLabs)+evs+guideLine+you+pins;
+  let dim=""; if(state.mapSel&&!state.mapSpot&&w<140&&PLACES[state.mapSel]){ const [sx,sy]=mapXY(PLACES[state.mapSel].lat,PLACES[state.mapSel].lon), rr=Math.max(9,w*0.28);
+    dim='<mask id="spotM" maskUnits="userSpaceOnUse" x="'+f(x0)+'" y="'+f(y0)+'" width="'+f(w)+'" height="'+f(h)+'"><rect x="'+f(x0)+'" y="'+f(y0)+'" width="'+f(w)+'" height="'+f(h)+'" fill="#fff"/><circle cx="'+f(sx)+'" cy="'+f(sy)+'" r="'+f(rr)+'" fill="url(#spotG)"/></mask>'+
+      '<rect x="'+f(x0)+'" y="'+f(y0)+'" width="'+f(w)+'" height="'+f(h)+'" class="m-dim" mask="url(#spotM)"/>'; }
+  $("mapDyn").innerHTML=tint+sun+moonSvg+sunny+detail+allStn+route+ring+stations+flags+labels+lms+dim+comp+(w<60?"":spotsSvg+spotLabs)+evs+guideLine+you+pins;
   $("mapOver").innerHTML=over+badges+(w<60?spotsSvg+spotLabs:"");
   const sl=$("sunLine"); if(sl) sl.innerHTML=sunLine();
 }
