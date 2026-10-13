@@ -1111,6 +1111,61 @@ const EVENTS = [
 // Event types. Built-in events are typed here; events added by the weekly task carry a "type" field,
 // and older ones without it are typed from their name.
 const EVENT_TYPES = {parade:"Parade",festival:"Street festival",cultural:"Cultural celebration",holiday:"Holiday",sports:"Sport",light:"Light",fireworks:"Fireworks",gathering:"Gathering",market:"Market",photowalk:"Photo walk or workshop",photoshow:"Photo festival or show",camera:"Camera event"};
+/* For each event: which way to face at the viewing spot, the bearing of the street it runs along (for the sunny side), and how to
+   arrive. face and street are compass bearings; the Manhattan grid runs 29° (avenues) and 119° (streets). Hand-written. */
+const EVENT_VIEW = {
+  threekings:{face:299,street:119,arrive:"Be at 106th Street and Park Avenue by 10:30 am, where groups and animals line up; the walk along 106th is short, so the lining-up is most of the picture. The 6 train to 103rd Street."},
+  lunar:{face:20,street:20,arrive:"Come for the firecracker ceremony mid-morning, then follow a lion troupe rather than the parade line. Mott and Bayard fill by noon; Canal Street station on the N, Q, R, W, 6, J or Z."},
+  stpat:{face:209,street:29,arrive:"The crowd is thickest from 44th to 59th; above 72nd there is room at the barriers. Arrive by 10:30 am for a front spot. Fifth Avenue is closed, so come by the 6 to 68th Street or the Q to 72nd."},
+  easter:{face:209,street:29,arrive:"No barriers: the street itself is the parade, and the best hats gather outside St. Patrick's from about 11 am. Come by 10:30 am and work the steps and the crossing at 51st Street."},
+  dance:{face:20,street:20,arrive:"The parade starts at 21st Street and Broadway around 1 pm and reaches St. Marks Place about an hour later; the DanceFest in Tompkins Square follows. Union Square station for the start."},
+  henge:{face:299,street:119,arrive:"Stand in the crossing at Park Avenue on 34th or 42nd Street, step out only on the red light, and arrive an hour early: the photographers fill the crossings first. The 6 to 33rd Street."},
+  foliage:{face:null,street:null,arrive:"The Mall, Bethesda Terrace and the Pond colour first; the Ramble a week later. Go on a weekday morning for empty paths; weekends after noon are crowded."},
+  prday:{face:209,street:29,arrive:"Arrive by 10 am for a barrier spot in the 60s; the floats and flags are densest after 1 pm. Fifth Avenue and the side streets near it close; the 6 to 68th Street."},
+  mermaid:{face:75,street:75,arrive:"Line-up is on West 21st Street from about 11 am and is better than the parade: no barriers and everyone posing. Surf Avenue is barricaded by 12:30. The D, F, N or Q to Stillwell Avenue."},
+  pride:{face:110,street:120,arrive:"The march reaches Christopher Street mid-afternoon; the Stonewall block is barriered and packed by noon. Arrive before 11 am there, or shoot the start on Fifth Avenue at 25th Street around noon."},
+  july4:{face:null,street:null,arrive:"The viewing zones open mid-afternoon and fill by 6 pm. Decide on the river in advance and get there before the entry points close; carry water."},
+  westindian:{face:100,street:100,arrive:"The parade is huge and slow: stand anywhere along Eastern Parkway after noon and the bands keep coming. The 2 or 3 to Franklin Avenue or Eastern Parkway; expect closures on the Parkway all day."},
+  sangennaro:{face:200,street:20,arrive:"Evenings from 7 pm are best, when the lights are on and the street is full. Mulberry Street is closed to cars for the festival; the 6 to Spring Street or Canal Street."},
+  columbus:{face:209,street:29,arrive:"Arrive by 11 am for the 60s; the crowd is lighter than St. Patrick's and the floats are the subject. Fifth Avenue is closed from 44th to 72nd; the 6 to 68th Street."},
+  dogparade:{face:29,street:null,arrive:"Entrants gather from about noon; the costumes are best before the judging, in the park and on Avenue B. The L to First Avenue."},
+  halloween:{face:209,street:29,arrive:"Sixth Avenue below 14th is barriered and packed by 6 pm. For room, stand north of 14th Street where it ends, or shoot the line-up on Canal Street before 7 pm. The side streets are the way in; subways are crowded afterwards."},
+  marathon:{face:205,street:25,arrive:"Fourth Avenue in Brooklyn from about 9:30 am has the mass of runners with room at the kerb; First Avenue in Manhattan after noon is louder and tighter. Cross the course only at marshalled points."},
+  veterans:{face:209,street:29,arrive:"Smaller crowds than the other Fifth Avenue parades; arrive by noon anywhere from 26th to 45th Street. The ceremony at Madison Square Park is before the march."},
+  balloons:{face:299,street:119,arrive:"The inflation viewing line forms on 72nd Street and Columbus Avenue from mid-afternoon and can take an hour; the balloons are at their best between 4 and 6 pm. The 1, B or C to 79th Street."},
+  thanksgiving:{face:29,street:29,arrive:"Central Park West fills by 6:30 am; Sixth Avenue in the 40s by 7:30. The balloons come first and the light is low and from the side on Central Park West. Many stations near the route are exit-only."},
+  tree:{face:299,street:119,arrive:"The lighting itself is ticketed and fenced; the week after, come before 8 am or after 10 pm for the tree without the crowd. Rockefeller Center on the B, D, F or M."},
+  santacon:{face:null,street:null,arrive:"Starts around 10 am where it is announced that morning; by 1 pm Midtown bars have queues of Santas outside, which is the picture."},
+  dyker:{face:20,street:null,arrive:"Dusk to about 9 pm; weeknights are far quieter than weekends. The D to 79th Street or the R to 86th Street, then a 15-minute walk; coaches clog 12th Avenue on weekends."},
+  nye:{face:209,street:29,arrive:"The pens fill from early afternoon and you cannot leave and return. For pictures of the crowd rather than the ball, work the side streets and the edges of the closures from 5 pm, and leave before midnight."},
+  aipad:{face:null,street:null,arrive:"Ticketed; weekday afternoons are quietest. The 6 to 68th Street."},
+  bild:{face:null,street:null,arrive:"Register in advance; the keynote mornings are busiest. The 7 to 34th Street–Hudson Yards."},
+  photoville:{face:null,street:null,arrive:"Free and outdoors; the containers are on Emily Warren Roebling Plaza under the Brooklyn Bridge. Go on a weekday afternoon, and stay for blue hour on the waterfront."}
+};
+const compass8 = b => ["north","north-east","east","south-east","south","south-west","west","north-west"][Math.round((((b%360)+360)%360)/45)%8];
+const compass4 = b => ["north","east","south","west"][Math.round((((b%360)+360)%360)/90)%4];
+const stopName = s => s.ev ? (EVENTS.find(x=>x.id===s.ev)||{name:s.ev}).name : PLACES[s.place].name;
+/* The light during an event: the sun through its window, sunset, and for a parade which side of the street is lit. */
+function eventLight(e,day){ const c=CITIES[state.city], w=evWindow(e,day)||[13*60,16*60], at=m=>new Date(day.getFullYear(),day.getMonth(),day.getDate(),0,m), V=EVENT_VIEW[e.id]||{};
+  const t0=at(w[0]), t1=at(Math.min(w[1],1439)), mid=at(Math.round((w[0]+Math.min(w[1],1439))/2)), set=sunTimes(day,c.lat,c.lon)[1], setM=set.getHours()*60+set.getMinutes();
+  const ph=t=>sunPhase(sunPos(t,c.lat,c.lon).alt), p0=ph(t0), p1=ph(t1), pm=ph(mid), spm=sunPos(mid,c.lat,c.lon), spm0=sunPos(t0,c.lat,c.lon);
+  const name={day:"daylight",gold:"golden hour",blue:"blue hour",night:"dark"};
+  let line=hmText(w[0])+' to '+hmText(Math.min(w[1],1439))+': ';
+  if(p0==="night"&&p1==="night") line+='after dark the whole time. Street lights, signs and the event\'s own lighting.';
+  else if(p0===p1) line+=name[p0]+(p0==="day"?(spm.alt>50?', with the sun high and shadows short.':spm.alt>25?', with the sun fairly high.':', with a low sun and long shadows.'):'.');
+  else line+=name[p0]+' at the start, '+name[p1]+' by the end.';
+  if(spm.alt>0) line+=' Sun to the '+compass8(spm.az)+', '+Math.round(spm.alt)+'° up at '+hmText(Math.round((w[0]+Math.min(w[1],1439))/2))+'.';
+  if(w[0]<setM&&w[1]>setM) line+=' Sunset is at '+hmText(setM)+', during the event.'; else if(w[1]<=setM) line+=' Sunset '+hmText(setM)+'.';
+  const parts=[line];
+  if(V.street!==null&&V.street!==undefined&&spm.alt>0){ const r=Math.PI/180, S=[Math.sin(spm.az*r),Math.cos(spm.az*r)], n1=V.street+90, n2=V.street-90, dot=b=>Math.sin(b*r)*S[0]+Math.cos(b*r)*S[1];
+    const along=Math.abs(Math.sin((spm.az-V.street)*r));   // 1 when the sun is square to the street, 0 when it runs along it
+    if(spm.alt>58) parts.push('The sun is almost overhead, so both sides of the street are lit and faces are in shadow under hats.');
+    else if(along<0.3) parts.push('The sun runs almost along the street, so both sides are lit and shadows stretch along it. Shoot into the light from the shaded side for rim-lit figures.');
+    else { const lit=dot(n1)<0?n1:n2, shade=lit===n1?n2:n1, lf=lightFacing(V.face||0,mid);
+      parts.push('Stand on the '+compass4(lit)+' side of the street: the sun reaches that pavement and the faces coming toward you. The '+compass4(shade)+' side is in shade'+(spm.alt<25?', and the low sun will be in your eyes from there':'')+'.'); } }
+  if(V.face!==null&&V.face!==undefined){ const lf=lightFacing(V.face,mid); parts.push('Facing '+compass(V.face)+' at the viewing spot: '+lf.txt.toLowerCase()+' in the middle of the event.'); }
+  const fc=hourlyAt(mid); if(fc){ const sky=skyAt(mid)||(fc.cc>=50?"partly":"sun"); parts.push('Forecast: '+(WX_WORD[sky]||(sky==="partly"?"Sun and cloud":"Clear"))+(fc.pop!=null?', '+fc.pop+'% chance of rain':'')+'.'); }
+  return parts; }
 const PHOTO_TYPES = new Set(["photowalk","photoshow","camera"]);
 const EVENT_TYPE_OF = {foliage:"light",threekings:"parade",lunar:"cultural",stpat:"parade",easter:"parade",dance:"parade",henge:"light",prday:"parade",mermaid:"parade",pride:"parade",july4:"fireworks",westindian:"parade",sangennaro:"festival",columbus:"parade",dogparade:"parade",halloween:"parade",marathon:"sports",veterans:"parade",balloons:"holiday",thanksgiving:"parade",tree:"holiday",santacon:"gathering",dyker:"holiday",nye:"holiday"};
 EVENTS.forEach(e=>{ e.type=e.type||EVENT_TYPE_OF[e.id]; });
@@ -1598,7 +1653,9 @@ function guideStart(id){
 function guideStop(silent){ const g=state.guide; if(!g) return; try{ if(g.watch!=null) navigator.geolocation.clearWatch(g.watch); }catch(e){}
   try{ removeEventListener("deviceorientation",g.onOri); removeEventListener("deviceorientationabsolute",g.onOri); }catch(e){}
   state.guide=null; if(!silent){ guideRender(); mapDraw(); mapPanel(); } }
-function guideTarget(id){ if(id.startsWith("lm:")){ const L=LANDMARKS[+id.slice(3)]; return L?[L[1],L[2],L[6]||0,L[0],L[5]]:null; } const [pid,i]=id.split(":"); return SPOTS[pid]&&SPOTS[pid][+i]||null; }
+function eventGeo(id){ const d=EVENT_DOCS[id]; return (d&&typeof d.lat==="number"&&typeof d.lon==="number"&&d.lat>40.4&&d.lat<41&&d.lon>-74.3&&d.lon<-73.6)?[d.lat,d.lon]:EVENT_GEO[id]||null; }
+function guideTarget(id){ if(id.startsWith("ev:")){ const e=EVENTS.find(x=>x.id===id.slice(3))||{id:id.slice(3),name:id.slice(3)}, g=eventGeo(id.slice(3)); const V=EVENT_VIEW[e.id]||{}; return g?[g[0],g[1],V.face||29,e.map&&e.map[0]?e.map[0]:e.name,e.spot||""]:null; }
+  if(id.startsWith("lm:")){ const L=LANDMARKS[+id.slice(3)]; return L?[L[1],L[2],L[6]||0,L[0],L[5]]:null; } const [pid,i]=id.split(":"); return SPOTS[pid]&&SPOTS[pid][+i]||null; }
 function guideInfo(){ const g=state.guide; if(!g||!state.pos) return null; const S=guideTarget(g.id); if(!S) return null;
   const to={lat:S[0],lon:S[1]}, km=kmBetween(state.pos,to); return {S, km, brg:bearingTo(state.pos,to), here:km*1000<=Math.max(20,Math.min(40,g.acc||0))}; }
 function guideFit(){ const G=guideInfo(); if(!G) return; const [ax,ay]=mapXY(state.pos.lat,state.pos.lon), [bx,by]=mapXY(G.S[0],G.S[1]);
@@ -1800,10 +1857,13 @@ function renderEvents(){
   const open=new Set([...box.querySelectorAll("details[open]")].map(d=>d.dataset.id)), first=!box.querySelector("details");
   const all=eventRows(today), kinds=Object.keys(EVENT_TYPES).filter(k=>all.some(r=>r.e.type===k));
   if(state.evType!=="all" && !kinds.includes(state.evType)) state.evType="all";
-  const list=state.evType==="all"?all:all.filter(r=>r.e.type===state.evType);
-  const chips='<div class="intents" id="evTypes"><button type="button" class="chip" data-t="all" aria-pressed="'+(state.evType==="all")+'">All types</button>'+
+  const Q=state.evQuick||(state.evQuick=new Set()), lim30=new Date(today.getFullYear(),today.getMonth(),today.getDate()+30);
+  const quick=r=>(!Q.has("soon")||(r.o&&r.o[0]<=lim30))&&(!Q.has("confirmed")||r.confirmed)&&(!Q.has("photo")||PHOTO_TYPES.has(r.e.type));
+  const list=(state.evType==="all"?all:all.filter(r=>r.e.type===state.evType)).filter(quick);
+  const chips='<div class="intents evquick">'+[["soon","Next 30 days"],["confirmed","Confirmed"],["photo","Photo events"]].map(([k,l])=>'<button type="button" class="chip" data-q="'+k+'" aria-pressed="'+Q.has(k)+'">'+l+'</button>').join("")+'</div>'+
+    '<div class="intents" id="evTypes"><button type="button" class="chip" data-t="all" aria-pressed="'+(state.evType==="all")+'">All types</button>'+
     kinds.map(k=>'<button type="button" class="chip" data-t="'+k+'" aria-pressed="'+(state.evType===k)+'">'+EVENT_TYPES[k]+' · '+all.filter(r=>r.e.type===k).length+'</button>').join("")+'</div>';
-  if(!list.length){ box.innerHTML='<p class="empty">No events listed for this city yet.</p>'; return; }
+  if(!list.length){ box.innerHTML=(all.length?'<p class="lead">Events worth shooting, soonest first.</p>'+chips+'<p class="empty">Nothing matches these filters.</p>':'<p class="empty">No events listed for this city yet.</p>'); return; }
   const st=EVENT_DOCS._status, chk=st&&eParse(st.checked);
   box.innerHTML='<p class="lead">Events worth shooting, plus photo walks, shows and camera events for photographers, soonest first. '+
     (chk?'Dates were last checked on '+fmt(chk,{month:"short",day:"numeric"})+' and the list is rechecked every week. ':'')+
@@ -1822,6 +1882,9 @@ function renderEvents(){
         '<span>'+esc(e.time)+(e.approx?". This date is announced each year and may differ.":"")+(e.note?" "+esc(e.note):"")+'</span></p>'+
       (e.why?'<p>'+esc(e.why)+'</p>':'')+
       (e.spot?'<div class="part"><span class="label">'+(PHOTO_TYPES.has(e.type)?"Good to know":"Where to be")+'</span><p>'+esc(e.spot)+'</p></div>':'')+
+      (o&&!PHOTO_TYPES.has(e.type)?'<div class="part evlight"><span class="label">The light during the event</span>'+eventLight(e,evDay(o[0])).map(x=>'<p>'+esc(x)+'</p>').join("")+'</div>':'')+
+      (EVENT_VIEW[e.id]&&EVENT_VIEW[e.id].arrive?'<div class="part"><span class="label">Getting there and when</span><p>'+esc(EVENT_VIEW[e.id].arrive)+'</p></div>':'')+
+      (o&&(EVENT_GEO[e.id]||(EVENT_DOCS[e.id]&&typeof EVENT_DOCS[e.id].lat==="number"))&&!r.cancelled?'<div class="callinks"><button type="button" class="chip primary" data-planev="'+esc(e.id)+'">Plan this outing</button><button type="button" class="chip" data-mapev="'+esc(e.id)+'">Viewing spot on the map</button></div>':'')+
       (e.map?'<a class="check" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(e.map[1])+'" target="_blank" rel="noopener">'+(e.map[0]===""?(PHOTO_TYPES.has(e.type)?"Open the venue in Google Maps":"Open the viewing spot in Google Maps"):e.map[0]==="area"?"Open the area in Google Maps":(PHOTO_TYPES.has(e.type)?"Venue: ":"Viewing spot: ")+esc(e.map[0]))+' ↗</a>':'')+
       (e.ideas.length?'<div class="part"><span class="label">Shots to look for</span><ul class="eideas">'+e.ideas.map(i=>
         '<li><span class="tag"><span class="dot" style="background:'+INTENTS[i[0]].color+'"></span>'+INTENTS[i[0]].name+'</span><b>'+esc(i[1])+'</b><span>'+esc(i[2])+'</span><span class="set">'+esc(cam.recipes[i[3]][0])+'</span></li>').join("")+'</ul></div>':'')+
@@ -1924,7 +1987,7 @@ function planPrep(p){
   const st=sunAlt(p.start,c.lat,c.lon,-0.833), sunset=st?st[1]:null, all=p.stops.flatMap(s=>s.ideas.map(x=>({x,s})));
   const gold=lightWindows(p.start).find(w=>w.k==="gold" && w.s<p.end && w.e>p.start);
   if(gold){ const at=[...p.stops].reverse().find(s=>s.at<=gold.s)||p.stops[0];
-    L.push("Golden hour is "+tf(gold.s)+" to "+tf(gold.e)+", while you are at "+esc(PLACES[at.place].name)+"."+(dull?" Cloud will mute it today.":" Be in position before it starts.")); }
+    L.push("Golden hour is "+tf(gold.s)+" to "+tf(gold.e)+", while you are at "+esc(stopName(at))+"."+(dull?" Cloud will mute it today.":" Be in position before it starts.")); }
   if(sunset && p.start<sunset && p.end>sunset) L.push("The plan runs past sunset ("+tf(sunset)+"). Raise the Auto ISO ceiling to 6400 and expect to open up to the widest aperture.");
   else if(sunset && p.start>=sunset) L.push("The whole plan is after dark. Set the Auto ISO ceiling to 6400 before you leave.");
   const drag=all.filter(o=>o.x.r==="drag"), sil=all.filter(o=>o.x.r==="silhouette"), ins=all.filter(o=>o.x.r==="interior");
@@ -1938,7 +2001,8 @@ function planPrep(p){
   const first=p.stops[0], fp=PLACES[first.place], now=new Date();
   if(state.pos && typeof fp.lat==="number"){ const km=kmBetween(state.pos,fp), walk=Math.round(km*1.3/0.08), mins=walk<=30?Math.max(3,walk):Math.round(15+km*3), leave=new Date(p.start-mins*6e4), how=walk<=30?"on foot":"by subway";
     T.push(leave>now ? "Leave by "+tf(leave)+". The first stop is about "+mins+" min away "+how+"." : "The first stop is about "+mins+" min away "+how+", so leaving now gets you there about "+tf(new Date(+now+mins*6e4))+"."); }
-  T.push("Start at "+tf(p.start)+" at "+esc(START[first.place]?START[first.place][0]:fp.name)+"."+(START[first.place]?' <a href="'+mapUrl(first.place)+'" target="_blank" rel="noopener">Map ↗</a>':''));
+  if(first.ev){ const e=EVENTS.find(x=>x.id===first.ev); T.push("Start at "+tf(p.start)+" at "+esc(e&&e.map&&e.map[0]?e.map[0]:(e?e.name:first.ev))+", about an hour before the event, to take a spot before the crowd fills in."); }
+  else T.push("Start at "+tf(p.start)+" at "+esc(START[first.place]?START[first.place][0]:fp.name)+"."+(START[first.place]?' <a href="'+mapUrl(first.place)+'" target="_blank" rel="noopener">Map ↗</a>':''));
   T.push("You should finish about "+tf(p.end)+"."+(sunset&&p.start<sunset&&sunset-p.end<3*36e5?" Sunset is at "+tf(sunset)+".":""));
   const part=(label,items)=>items.length?'<div class="part"><span class="label">'+label+'</span><ul>'+items.map(x=>'<li>'+x+'</li>').join("")+'</ul></div>':'';
   return '<section class="group prep"><div class="group-head"><b>Before you leave</b></div><div class="prepbody">'+part("Weather",W.map(esc))+part("Light",L)+part("Places",P)+part("Timing",T)+'</div></section>';
@@ -1954,13 +2018,19 @@ function renderPlan(){
   pt.innerHTML=opts; pt.value=keepT; if(!pt.value) pt.selectedIndex=0;
   const box=$("plan"), p=state.plan;
   if(!p){ box.innerHTML='<p class="lead">Choose where you will start, when, and how long you have. The plan picks ideas that suit the light at each stop and orders the stops as a walk.</p>'; return; }
-  const mins=Math.round((p.end-p.start)/6e4), n=p.stops.reduce((a,s)=>a+s.ideas.length,0);
+  const mins=Math.round((p.end-p.start)/6e4), n=p.stops.reduce((a,s)=>a+s.ideas.length+(s.ev?((EVENTS.find(x=>x.id===s.ev)||{ideas:[]}).ideas||[]).length:0),0);
   const dayLab=p.start.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"});
   const skipped=(p.skipped||[]).map(id=>IDEAS.find(x=>x.id===id)).filter(Boolean);
-  box.innerHTML='<p class="lead">'+esc(dayLab)+', '+tf(p.start)+' to about '+tf(p.end)+' · '+p.stops.length+' place'+(p.stops.length===1?'':'s')+' · '+n+' ideas. Tap an idea to open it.</p>'+
+  box.innerHTML='<p class="lead">'+esc(dayLab)+', '+tf(p.start)+' to about '+tf(p.end)+' · '+p.stops.length+' stop'+(p.stops.length===1?'':'s')+' · '+n+' ideas. Tap an idea to open it.</p>'+
     (p.notes&&p.notes.length?'<p class="msg">'+p.notes.map(esc).join(" ")+'</p>':'')+
     (skipped.length?'<p class="msg">Left out because they are not on then: '+skipped.map(x=>'<b>'+esc(x.t)+'</b> ('+esc(availText(x))+')').join("; ")+'.</p>':'')+planRoute(p)+planPrep(p)+
     p.stops.map(s=>{ const pl=PLACES[s.place];
+      if(s.ev){ const e=EVENTS.find(x=>x.id===s.ev)||{name:s.ev,ideas:[]}, g=eventGeo(s.ev), V=EVENT_VIEW[s.ev]||{}, cam=CAMERAS[state.camera];
+        return '<section class="group"><div class="group-head"><b>'+tf(s.at)+' · '+esc(e.name)+'</b><span class="where">Event · '+esc(e.where||"")+(e.map&&e.map[0]?' · viewing spot: '+esc(e.map[0]):'')+(V.face!=null?' · face '+compass(V.face):'')+'</span></div>'+
+          (e.spot?'<p class="leg">'+esc(e.spot)+'</p>':'')+
+          (e.ideas||[]).map(i=>'<button type="button" class="row" data-event="'+esc(s.ev)+'"><span class="dot" style="background:'+INTENTS[i[0]].color+'"></span><span class="t"><b>'+esc(i[1])+'</b><span>'+esc(INTENTS[i[0]].name)+' · '+esc(cam.recipes[i[3]][0])+'</span></span><span class="go" aria-hidden="true">›</span></button>').join("")+
+          '<div class="callinks"><button type="button" class="chip" data-mapev="'+esc(s.ev)+'">Viewing spot on the map</button>'+(g?'<a class="chip" href="https://www.google.com/maps/dir/?api=1&destination='+g[0].toFixed(5)+','+g[1].toFixed(5)+'&travelmode=transit" target="_blank" rel="noopener">Directions ↗</a>':'')+'</div></section>'+
+          (s.leg?'<p class="leg">↓ Then about '+s.leg.mins+' min walk to '+esc(PLACES[s.leg.to].name)+'</p>':''); }
       return '<section class="group"><div class="group-head"><b>'+tf(s.at)+' · '+esc(pl.name)+'</b><span class="where">'+esc(WHEN[s.key])+' · '+esc(pl.stop||"")+' '+bullets(pl.lines,pl.city)+'</span>'+startLink(s.place)+'</div>'+
         s.ideas.map(x=>'<button type="button" class="row'+(state.done.has(x.id)?" done":"")+'" data-id="'+x.id+'"><span class="dot" style="background:'+INTENTS[x.i].color+'"></span>'+
           '<span class="t"><b>'+esc(x.t)+'</b><span>'+esc(INTENTS[x.i].name)+(COMPOSE[x.id]?' · '+esc(TECH[COMPOSE[x.id][0]][0]):'')+'</span></span><span class="go" aria-hidden="true">›</span></button>').join("")+'</section>'+
@@ -2186,37 +2256,38 @@ function lightMarks(){ const L=lightDay(), tf=hmText, out=[], pos=m=>'calc(13px 
   const upcoming=x=>state.mapT!==null||x[1]+(x[0]==="gold"?60:x[0]==="blue"?25:10)>cur;
   return out.filter(upcoming).concat(out.filter(x=>!upcoming(x))).map(([k,m,t])=>'<button type="button" class="chip lmark'+(cur>=m&&cur<m+(k==="gold"?60:k==="blue"?25:10)?' on':'')+(m<cur&&state.mapT===null?' past':'')+'" data-jump="'+m+'"><span class="lk '+k+'"></span>'+t+'</button>').join(""); }
 /* Today's outing: kept on the device so it survives closing the app; editable from the map. */
-function savePlan(){ const p=state.plan; store.set("plan", p ? {start:+p.start,end:+p.end,stops:p.stops.map(s=>({place:s.place,at:+s.at,key:s.key,ideas:s.ideas.map(x=>x.id),leg:s.leg||null}))} : null); }
+function savePlan(){ const p=state.plan; store.set("plan", p ? {start:+p.start,end:+p.end,stops:p.stops.map(s=>({place:s.place,at:+s.at,key:s.key,ideas:s.ideas.map(x=>x.id),leg:s.leg||null,ev:s.ev||null,mins:s.mins||null}))} : null); }
 function loadPlan(){ const p=store.get("plan",null); if(!p||!p.stops||!p.stops.length||p.end<Date.now()-12*36e5) return null;
-  return {start:new Date(p.start),end:new Date(p.end),stops:p.stops.filter(s=>PLACES[s.place]).map(s=>({place:s.place,at:new Date(s.at),key:s.key,ideas:s.ideas.map(id=>IDEAS.find(x=>x.id===id)).filter(Boolean),leg:s.leg}))}; }
+  return {start:new Date(p.start),end:new Date(p.end),stops:p.stops.filter(s=>PLACES[s.place]).map(s=>({place:s.place,at:new Date(s.at),key:s.key,ideas:s.ideas.map(id=>IDEAS.find(x=>x.id===id)).filter(Boolean),leg:s.leg,ev:s.ev||undefined,mins:s.mins||undefined}))}; }
 function pickIdeas(pid,key,n,at){ const t=at||new Date(), sky=Math.abs(t-Date.now())<40*36e5?skyAt(t):undefined, all=cityIdeas().filter(x=>x.p===pid), here=all.filter(x=>ideaOpen(x,t,sky));
   const pool=(here.length?here:all).slice().sort((a,b)=>(b.w.includes(key)-a.w.includes(key))||(state.done.has(a.id)-state.done.has(b.id)));
   const out=[]; for(const x of pool) if(out.length<n&&!out.some(o=>o.i===x.i)) out.push(x); for(const x of pool) if(out.length<n&&!out.includes(x)) out.push(x); return out; }
 function legBetween(a,b){ const km=kmBetween(PLACES[a],PLACES[b]), walk=Math.round(km*1.3/0.08); return walk<=30?{to:b,mins:Math.max(3,walk),mode:"walk"}:{to:b,mins:Math.round(15+km*3),mode:"by subway"}; }
-function retimePlan(p){ let t=new Date(p.stops[0].at); p.stops.forEach((s,n)=>{ s.at=new Date(t); const k=lightAt(s.at); if(k!==s.key||!s.ideas.length){ s.key=k; s.ideas=pickIdeas(s.place,k,Math.max(2,s.ideas.length),s.at); }
-    t=new Date(+t+Math.max(1,s.ideas.length)*25*6e4); if(n<p.stops.length-1){ s.leg=legBetween(s.place,p.stops[n+1].place); t=new Date(+t+s.leg.mins*6e4); } else delete s.leg; });
+function retimePlan(p){ let t=new Date(p.stops[0].at); p.stops.forEach((s,n)=>{ s.at=new Date(t); const k=lightAt(s.at); if(!s.ev&&(k!==s.key||!s.ideas.length)){ s.key=k; s.ideas=pickIdeas(s.place,k,Math.max(2,s.ideas.length),s.at); }
+    t=new Date(+t+(s.ev?(s.mins||120):Math.max(1,s.ideas.length)*25)*6e4); if(n<p.stops.length-1){ s.leg=legBetween(s.place,p.stops[n+1].place); t=new Date(+t+s.leg.mins*6e4); } else delete s.leg; });
   p.start=new Date(p.stops[0].at); p.end=t; return p; }
 function planAdd(pid){ if(!state.plan){ const now=new Date(), k=lightAt(now); state.plan={start:now,end:now,stops:[{place:pid,at:now,key:k,ideas:pickIdeas(pid,k,2)}]}; }
   else state.plan.stops.push({place:pid,at:new Date(),key:"",ideas:[]});
   retimePlan(state.plan); savePlan(); }
 function planRemove(pid){ if(!state.plan) return; state.plan.stops=state.plan.stops.filter(s=>s.place!==pid); if(!state.plan.stops.length) state.plan=null; else retimePlan(state.plan); savePlan(); }
 const planIndex = pid => state.plan ? state.plan.stops.findIndex(s=>s.place===pid) : -1;
-function nextStopIndex(){ const p=state.plan; if(!p) return -1; const now=Date.now(); const i=p.stops.findIndex(s=>+s.at+Math.max(1,s.ideas.length)*25*6e4>now); return i<0?p.stops.length-1:i; }
+function nextStopIndex(){ const p=state.plan; if(!p) return -1; const now=Date.now(); const i=p.stops.findIndex(s=>+s.at+(s.ev?(s.mins||120):Math.max(1,s.ideas.length)*25)*6e4>now); return i<0?p.stops.length-1:i; }
 function mapGoStop(i){ const p=state.plan, s=p&&p.stops[i]; if(!s) return; const today=new Date(); today.setHours(0,0,0,0);
   const sameDay=s.at>=today && s.at<new Date(+today+864e5), live=Math.abs(s.at-Date.now())<15*6e4 || (i===nextStopIndex() && s.at<=Date.now());
   state.mapT = live||!sameDay ? null : s.at.getHours()*60+Math.round(s.at.getMinutes()/5)*5;
   const tm=$("mapTime"), n=new Date(); if(tm) tm.value=state.mapT===null? n.getHours()*60+n.getMinutes() : state.mapT;
+  if(s.ev&&eventGeo(s.ev)){ const g=eventGeo(s.ev); state.mapSel=null; state.mapSpot=null; state.mapLm=null; state.mapEv=s.ev; state.mapShowEv=true; mapPanel(); mapDraw(); const [x,y]=mapXY(g[0],g[1]); mapFly(mapAim({cx:x,cy:y,w:Math.min(mapV.w,30)})); setSheet("half"); return; }
   state.mapSel=s.place; state.mapEv=null; const [x,y]=mapXY(PLACES[s.place].lat,PLACES[s.place].lon); mapPanel(); mapDraw(); mapZoomPlace(s.place); }
 /* Google Maps directions: the next stop (walking or transit), and the rest of the outing as one multi-stop route.
    Google Maps allows 3 stops between start and end in a phone browser, 9 in the app; transit cannot do multi-stop routes. */
-const stopGeo = id => { const g=START_GEO[id]||[PLACES[id].lat,PLACES[id].lon]; return g[0].toFixed(5)+","+g[1].toFixed(5); };
+const stopGeo = (id,ev) => { const g=(ev&&eventGeo(ev))||START_GEO[id]||[PLACES[id].lat,PLACES[id].lon]; return g[0].toFixed(5)+","+g[1].toFixed(5); };
 function planLinks(){ const p=state.plan; if(!p) return ""; const nx=Math.max(0,nextStopIndex()), rest=p.stops.slice(nx), next=rest[0]; if(!next) return "";
   const prevLeg=nx>0?p.stops[nx-1].leg:null, km=state.pos?kmBetween(state.pos,PLACES[next.place]):null;
   const mode=prevLeg&&prevLeg.mode==="by subway" ? "transit" : km!==null ? (km<=1.8?"walking":"transit") : (prevLeg?"walking":"transit");
   const base="https://www.google.com/maps/dir/?api=1";
-  const one=base+"&destination="+stopGeo(next.place)+"&travelmode="+mode;
+  const one=base+"&destination="+stopGeo(next.place,next.ev)+"&travelmode="+mode;
   let whole="";
-  if(rest.length>1){ const pts=rest.map(s=>stopGeo(s.place)), allWalk=rest.slice(0,-1).every(s=>!s.leg||s.leg.mode==="walk");
+  if(rest.length>1){ const pts=rest.map(s=>stopGeo(s.place,s.ev)), allWalk=rest.slice(0,-1).every(s=>!s.leg||s.leg.mode==="walk");
     const origin=pts.length>4?pts.shift():null;   // keep within 3 stops in between, so it also works in a phone browser
     whole=base+(origin?"&origin="+origin:"")+"&destination="+pts.pop()+(pts.length?"&waypoints="+encodeURIComponent(pts.join("|")):"")+"&travelmode=walking";
     whole='<a class="chip" href="'+whole+'" target="_blank" rel="noopener">Whole outing on foot ↗</a>'+(allWalk?'':'<span class="hint maplinkhint">Google Maps cannot do multi-stop routes by subway, so this shows the walk. Use the stop link for the subway legs.</span>'); }
@@ -2225,7 +2296,7 @@ function mapPlanBar(){ const p=state.plan, tf=d=>d.toLocaleTimeString("en-US",{h
   if(!p) return '<p class="hint planhint">Tap a pin and choose Add to today to build an outing on the map, or make one in Plan.</p>';
   const nx=nextStopIndex();
   return '<div class="planbar"><div class="planbar-head"><b>Today\u2019s outing</b><span>'+tf(p.start)+' to about '+tf(p.end)+'</span><button type="button" class="chip primary" data-nextstop="1">Next stop ›</button><button type="button" class="chip" data-clearplan="1">Clear</button></div>'+
-    '<div class="intents planstops">'+p.stops.map((s,n)=>'<button type="button" class="chip stopchip'+(n===nx?" next":"")+'" data-stop="'+n+'"><span class="stopn">'+(n+1)+'</span>'+esc(PLACES[s.place].name)+' · '+tf(s.at)+'</button>').join("")+'</div>'+planLinks()+'</div>'; }
+    '<div class="intents planstops">'+p.stops.map((s,n)=>'<button type="button" class="chip stopchip'+(n===nx?" next":"")+'" data-stop="'+n+'"><span class="stopn">'+(n+1)+'</span>'+esc(s.ev?(EVENTS.find(x=>x.id===s.ev)||{name:s.ev}).name:PLACES[s.place].name)+' · '+tf(s.at)+'</button>').join("")+'</div>'+planLinks()+'</div>'; }
 function mapPts(){ const key=lightAt(mapNow()), ideas=cityIdeas().filter(i=>state.mapIntent==="all"||i.i===state.mapIntent);
   return Object.keys(CITIES[state.city].places).filter(id=>typeof PLACES[id].lat==="number").map(id=>{ const [x,y]=mapXY(PLACES[id].lat,PLACES[id].lon), mine=ideas.filter(i=>i.p===id);
     return {id,x,y,n:mine.length,fit:mine.filter(i=>i.w.includes(key)).length,done:mine.filter(i=>state.done.has(i.id)).length,empty:!mine.length}; }); }
@@ -2247,6 +2318,8 @@ function mapDraw(){
     return ""; }).join("");
   if(state.pos){ const [yx,yy]=mapXY(state.pos.lat,state.pos.lon); taken.push([yx-9*u,yy-9*u,yx+9*u,yy+9*u]); }
   let evs="", flags=""; const evList=(state.mapShowEv?mapEvents():[]).filter(e=>e.x>x0+8*u&&e.x<x1-8*u&&e.y>y0+8*u&&e.y<y1-8*u);
+  if(state.mapEv&&w<140){ const V=EVENT_VIEW[state.mapEv]; const g=eventGeo(state.mapEv); if(V&&V.face!=null&&g){ const [x,y]=mapXY(g[0],g[1]), fov=camFov(), L=34*u, lf=lightFacing(V.face,mapNow()), a0=(V.face-fov/2)*Math.PI/180, a1=(V.face+fov/2)*Math.PI/180;
+      evs+='<g class="m-spotg on evwedge"><path d="M'+f(x)+' '+f(y)+' L'+f(x+Math.sin(a0)*L)+' '+f(y-Math.cos(a0)*L)+' A'+f(L)+' '+f(L)+' 0 0 1 '+f(x+Math.sin(a1)*L)+' '+f(y-Math.cos(a1)*L)+'Z" class="m-cone '+lf.k+'"/></g>'; } }
   for(const e of evList.sort((a,b)=>(b.id===state.mapEv)-(a.id===state.mapEv)||(b.st.k==="live")-(a.st.k==="live")||a.r.o[0]-b.r.o[0])){ if(w>=520&&e.st.k!=="live"&&e.id!==state.mapEv) continue; const on=e.id===state.mapEv, hw=(e.day.length*3.1+5)*u, hh=7*u, box=[e.x-hw,e.y-hh,e.x+hw,e.y+hh];
     const live=e.st.k==="live", soon=live||e.st.k==="today"; if(!on && !soon && taken.some(t=>hit(t,box))) continue; taken.push(box);
     let lab=""; if(w<300||on||live){ const nm=e.r.e.name.length>26?e.r.e.name.slice(0,25)+"…":e.r.e.name, fl=10*u, tw=nm.length*fl*0.56;
@@ -2411,7 +2484,9 @@ function mapPanel(){
         '<p class="evnow '+evSel.st.k+'">'+esc(evSel.st.k==="today"&&!/from about/.test(evSel.st.line)?"Today":evSel.st.line)+'</p>'+
         '<p class="mapcount"><b>'+evSel.r.o[0].toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})+(evSel.r.o[1]?' to '+evSel.r.o[1].toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"}):'')+'</b>'+(evSel.r.confirmed?' <span class="pill">Confirmed</span>':' (expected)')+(evSel.r.e.time?'<br>'+esc(evSel.r.e.time):'')+'</p>'+
         (evSel.r.e.why?'<p class="mapcount">'+esc(evSel.r.e.why)+'</p>':'')+
-        '<div class="callinks"><button type="button" class="chip" data-event="'+esc(evSel.id)+'">Open in Events</button>'+(evSel.r.e.map?'<a class="chip" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(evSel.r.e.map[1])+'" target="_blank" rel="noopener">Google Maps ↗</a>':'')+'</div></section>' :
+        (()=>{ const V=EVENT_VIEW[evSel.id]||{}, g=eventGeo(evSel.id), t=mapNow(), lf=V.face!=null?lightFacing(V.face,t):null; return (evSel.r.e.map&&evSel.r.e.map[0]?'<p class="mapcount"><b>Viewing spot: '+esc(evSel.r.e.map[0])+'</b>'+(lf?' · face '+compass(V.face)+' · <span class="sdk '+lf.k+'">'+esc(lf.txt)+'</span> at '+hmText(t.getHours()*60+t.getMinutes()):'')+'</p>':'')+
+          '<div class="callinks guidecta">'+(g?(state.guide&&state.guide.id==="ev:"+evSel.id?'<button type="button" class="chip" data-guidestop="1">Stop guiding</button>':'<button type="button" class="chip primary" data-guide="ev:'+esc(evSel.id)+'">Guide me there</button>')+'<a class="chip" href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint='+g[0].toFixed(6)+','+g[1].toFixed(6)+'&heading='+(V.face||29)+'&pitch=0&fov=80" target="_blank" rel="noopener">Street View ↗</a>':'')+'</div>'; })()+
+        '<div class="callinks"><button type="button" class="chip primary" data-planev="'+esc(evSel.id)+'">Plan this outing</button><button type="button" class="chip" data-event="'+esc(evSel.id)+'">Open in Events</button>'+(evSel.r.e.map?'<a class="chip" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(evSel.r.e.map[1])+'" target="_blank" rel="noopener">Google Maps ↗</a>':'')+'</div></section>' :
     sel ? '<section class="group mapsel"><button type="button" class="mapselx" data-unsel="1" aria-label="Close">×</button>'+(PHOTOS_INLINE&&PLACE_PHOTO[sel.id]?'<figure class="mapselfig"><img src="'+esc(PLACE_PHOTO[sel.id].src)+'" alt="'+esc(pl.name)+'" loading="lazy" onerror="this.parentNode.hidden=true"><figcaption><a href="'+esc(PLACE_PHOTO[sel.id].page)+'" target="_blank" rel="noopener">Photo: '+esc(PLACE_PHOTO[sel.id].by)+', '+esc(PLACE_PHOTO[sel.id].lic)+', Wikimedia Commons</a></figcaption></figure>':'')+'<div class="group-head"><b>'+esc(pl.name)+(d?'<span class="dist">'+d+'</span>':'')+'</b>'+whereHtml(pl)+'</div>'+startHtml(sel.id).replace('class="start"','class="start mapstart"')+
         '<p class="maplight">'+lightHere(mapNow())+'</p>'+
         '<p class="mapcount">'+sel.n+(sel.n===1?' idea':' ideas')+(state.mapIntent==="all"?'':' for '+INTENTS[state.mapIntent].name.toLowerCase())+' · '+sel.fit+(sel.fit===1?' suits':' suit')+' the light now · '+sel.done+' shot</p>'+
@@ -2640,6 +2715,16 @@ function shootNow(){ const now=new Date(), key=lightAt(now), sky=nowInfo().sky, 
   const score=x=>(state.done.has(x.id)?-5:0)+(state.saved.has(x.id)?1:0)+(state.pos?-Math.min(10,milesTo(PLACES[x.p])||0)*0.6:0)+Math.random()*0.5;
   const best=(pool.length?pool:cityIdeas()).slice().sort((a,b)=>score(b)-score(a))[0]; if(!best) return;
   state.view="shoot"; show(best.id); state.tab="idea"; render(); window.scrollTo({top:0}); }
+/* An outing built round an event: arrive an hour before, shoot the event with its own shots, then the nearest place while the light lasts. */
+function planEvent(id){ const now=new Date(), today=new Date(now.getFullYear(),now.getMonth(),now.getDate()), r=eventRows(today).find(x=>x.e.id===id); if(!r||!r.o) return;
+  const day=evDay(r.o[0]<today?today:r.o[0]), w=evWindow(r.e,day)||[13*60,16*60], g=eventGeo(id); if(!g) return;
+  const near=Object.keys(CITIES[state.city].places).filter(p=>typeof PLACES[p].lat==="number").map(p=>({p,km:kmBetween({lat:g[0],lon:g[1]},PLACES[p])})).sort((a,b)=>a.km-b.km)[0];
+  let at=new Date(day.getFullYear(),day.getMonth(),day.getDate(),0,Math.max(0,w[0]-60)); if(at<now) at=new Date(Math.ceil(+now/3e5)*3e5);
+  const end=new Date(day.getFullYear(),day.getMonth(),day.getDate(),0,Math.min(w[1],1439)), dur=Math.max(60,Math.min(240,Math.round((end-at)/6e4)));
+  const stops=[{place:near.p,ev:id,at,key:lightAt(new Date(+at+30*6e4)),ideas:[],mins:dur}];
+  const after=new Date(+at+dur*6e4+10*6e4); if(near&&near.km<2.5&&lightAt(after)!=="night"){ const k=lightAt(after); stops.push({place:near.p,at:after,key:k,ideas:pickIdeas(near.p,k,2,after)}); }
+  state.plan={start:at,end:new Date(+(stops[stops.length-1].at)+(stops.length>1?2*25*6e4:dur*6e4)),stops,notes:[],skipped:[]}; if(stops.length>1) stops[0].leg={to:near.p,mins:10,mode:"walk"};
+  savePlan(); state.view="plan"; render(); window.scrollTo({top:0}); }
 function planToday(h){ renderPlan(); const t=new Date(), best=todayPicks(atMin(Math.min(1435,(+h+1)*60)))[0];
   if(best&&[...$("pStart").options].some(o=>o.value===best.id)) $("pStart").value=best.id;
   $("pDay").value="0"; renderPlan(); $("pTime").value=(+h*60<=dayMin(new Date()))?"now":String(h); if(!$("pTime").value) $("pTime").selectedIndex=0; $("pLen").value="150"; state.plan=makePlan(); savePlan(); state.view="map"; render(); }
@@ -2714,10 +2799,17 @@ function syncTheme(){ const d=isDark(); $("theme").textContent=d?"☼":"☾"; $(
 { const t=store.get("theme",null); if(t==="dark"||t==="light") rootEl.setAttribute("data-theme",t); }
 $("theme").addEventListener("click",()=>{ const next=isDark()?"light":"dark"; rootEl.setAttribute("data-theme",next); store.set("theme",next); syncTheme(); });
 syncTheme();
-$("events").addEventListener("click",e=>{ const c=e.target.closest("#evTypes .chip"); if(!c) return; state.evType=c.dataset.t; renderEvents(); });
+$("events").addEventListener("click",e=>{
+  const q=e.target.closest(".evquick .chip"); if(q){ const k=q.dataset.q, Q=state.evQuick||(state.evQuick=new Set()); if(Q.has(k)) Q.delete(k); else Q.add(k); renderEvents(); return; }
+  const pe=e.target.closest("[data-planev]"); if(pe){ planEvent(pe.dataset.planev); return; }
+  const me=e.target.closest("[data-mapev]"); if(me){ const id=me.dataset.mapev, g=eventGeo(id); state.mapT=null; state.view="map"; render(); requestAnimationFrame(()=>requestAnimationFrame(()=>{ state.mapShowEv=true; state.mapEv=id; state.mapSel=null; state.mapSpot=null; state.mapLm=null; mapPanel(); mapDraw(); if(g){ const [x,y]=mapXY(g[0],g[1]); mapFly(mapAim({cx:x,cy:y,w:Math.min(mapV.w,30)})); } setSheet("half"); })); return; }
+  const c=e.target.closest("#evTypes .chip"); if(!c) return; state.evType=c.dataset.t; renderEvents(); });
 $("pGo").addEventListener("click",()=>{ state.plan=makePlan(); savePlan(); renderPlan(); });
 $("pDay").addEventListener("change",()=>{ const keep=$("pTime").value; renderPlan(); if([...$("pTime").options].some(o=>o.value===keep)) $("pTime").value=keep; });
-$("plan").addEventListener("click",e=>{ const r=e.target.closest(".row"); if(!r) return; show(r.dataset.id); state.view="shoot"; render(); window.scrollTo({top:0}); });
+$("plan").addEventListener("click",e=>{
+  const me=e.target.closest("[data-mapev]"); if(me){ const id=me.dataset.mapev, g=eventGeo(id); state.mapT=null; state.view="map"; render(); requestAnimationFrame(()=>requestAnimationFrame(()=>{ state.mapShowEv=true; state.mapEv=id; state.mapSel=null; state.mapSpot=null; state.mapLm=null; mapPanel(); mapDraw(); if(g){ const [x,y]=mapXY(g[0],g[1]); mapFly(mapAim({cx:x,cy:y,w:Math.min(mapV.w,30)})); } setSheet("half"); })); return; }
+  const ev=e.target.closest("[data-event]"); if(ev){ state.view="events"; render(); const d=document.querySelector('#events details[data-id="'+ev.dataset.event+'"]'); if(d){ d.open=true; d.scrollIntoView({block:"start"}); } return; }
+  const r=e.target.closest(".row"); if(!r||!r.dataset.id) return; show(r.dataset.id); state.view="shoot"; render(); window.scrollTo({top:0}); });
 state.plan=loadPlan();
 syncNear();
 // Move marks between devices with a copy-and-paste code. Import merges: it only ever adds.
@@ -2745,6 +2837,7 @@ $("map").addEventListener("click",e=>{
   if(e.target.closest("[data-full]")){ mapFull(!state.mapFull); return; }
   if(e.target.closest("[data-unsel]")){ const back=state.mapNear&&state.mapSpot; mapSelect(null); if(back){ mapPanel(); } return; }
   const gd=e.target.closest("[data-guide]"); if(gd){ guideStart(gd.dataset.guide); return; }
+  const pe=e.target.closest("[data-planev]"); if(pe){ planEvent(pe.dataset.planev); return; }
   if(e.target.closest("[data-guidestop]")){ guideStop(); return; }
   if(e.target.closest("[data-nearspots]")){ $("mapLayers").hidden=true; $("mapLayersBtn").setAttribute("aria-expanded","false"); needPos(showNear); return; }
   const na=e.target.closest("[data-nearall]"); if(na){ state.mapNearAll=na.dataset.nearall==="1"; mapPanel(); return; }
@@ -2819,6 +2912,7 @@ $("list").addEventListener("click",e=>{
     return; }
   const r=e.target.closest(".row"); if(!r) return; show(r.dataset.id); state.view="shoot"; render(); window.scrollTo({top:0});});
 $("card").addEventListener("click",e=>{
+  const pe=e.target.closest("[data-planev]"); if(pe){ planEvent(pe.dataset.planev); return; }
   const gg=e.target.closest("[data-guidego]"); if(gg){ const id=gg.dataset.guidego; state.mapT=null; state.view="map"; render(); guideStart(id); requestAnimationFrame(()=>requestAnimationFrame(()=>{ mapSelectSpot(id); guideRender(); })); return; }
   const sm=e.target.closest("[data-spotmap]"); if(sm){ const id=sm.dataset.spotmap; state.mapT=null; state.view="map"; render(); requestAnimationFrame(()=>requestAnimationFrame(()=>mapSelectSpot(id))); return; }
   const pm=e.target.closest("[data-placemap]"); if(pm){ const id=pm.dataset.placemap; state.mapT=null; state.view="map"; render(); requestAnimationFrame(()=>requestAnimationFrame(()=>mapSelect(id))); return; }

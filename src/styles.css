@@ -696,3 +696,4 @@ body.tipopen{overflow:hidden}
 #map[data-sky="gold"]{--mBrgEdge:#9a8468;--mBrgDeck:#fff6e6;--mTun:#a89a84;--mBrgTxt:#4c3b25}
 #map[data-sky="blue"]{--mBrgEdge:#7d86a8;--mBrgDeck:#474e6b;--mTun:#8b93b3;--mBrgTxt:#e8ecff}
 .m-lm .m-lmg path,.m-lm .m-lmg circle{fill:none}
+.evquick{margin-bottom:6px} .evlight p{margin:0 0 6px} .evlight p:last-child{margin-bottom:0}

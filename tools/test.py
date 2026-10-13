@@ -152,6 +152,16 @@ def run(path, name):
         # Events
         pg.click("#vEvents"); pg.wait_for_timeout(150)
         check("Events lists events", pg.evaluate("document.querySelectorAll('#events details').length") > 10); no_overflow("Events"); shot("events")
+        el=pg.evaluate("eventLight(EVENTS.find(e=>e.id==='thanksgiving'), new Date(2026,10,26))")
+        check("The light during an event: window, sun, sunset and the sunny side of the street", el[0].startswith("8:30 am to 12 pm") and "Sunset" in el[0] and el[1].startswith("Stand on the west side"), el)
+        check("Events carry arrival advice and quick filters", pg.evaluate("[document.querySelectorAll('#events .evquick .chip').length, [...document.querySelectorAll('#events .label')].some(l=>l.textContent==='Getting there and when')]")==[3,True])
+        pg.click("#events .evquick [data-q=confirmed]"); pg.wait_for_timeout(100)
+        check("Confirmed filter keeps only confirmed events", pg.evaluate("[...document.querySelectorAll('#events details')].every(d=>d.querySelector('.pill')&&d.querySelector('.pill').textContent==='Confirmed')"))
+        pg.click("#events .evquick [data-q=confirmed]"); pg.wait_for_timeout(100)
+        pg.evaluate("planEvent('halloween')"); pg.wait_for_timeout(200)
+        pl=pg.evaluate("[state.view, state.plan.stops[0].ev, state.plan.stops[0].at.getHours(), state.plan.start.getMonth(), state.plan.start.getDate(), document.querySelectorAll('#plan .row[data-event]').length]")
+        check("Plan this outing builds a plan round the event, an hour early, with its shots", pl[0]=="plan" and pl[1]=="halloween" and pl[2]==18 and pl[3]==9 and pl[4]==31 and pl[5]==3, pl)
+        pg.evaluate("state.plan=null; savePlan(); state.view='events'; render()"); pg.wait_for_timeout(100)
         # Map
         pg.click("#vMap"); pg.wait_for_timeout(400)
         box=pg.evaluate("(()=>{const m=document.getElementById('map').getBoundingClientRect(); return [Math.round(m.height), Math.round(m.bottom)]})()")
