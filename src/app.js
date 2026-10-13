@@ -1509,7 +1509,7 @@ function mapLayout(){ const m=$("map"); if(!m||state.view!=="map") return; if(st
   setSheet(state.sheet||"peek",true); mapDraw(); }
 /* Map layers you can turn on and off */
 const MAP_LAYERS = [["mapShowEv","Events","Upcoming events, and what is on now","lg ev"],["mapShowLm","Landmarks","Buildings, bridges and views, with tips","lg lmk"],["mapShowSub","Subway lines","In MTA colours","lg sub"],["mapShowStn","Stations","Every subway station when zoomed in","lg stn"],
-  ["mapShowSunny","Sunny side","Which side of the street is in sun","lg sunny"],["mapShowSpots","Where to stand","Spots and lens wedges when zoomed in","lg spot"],["mapShowNames","Street and area names","","lg names"]];
+  ["mapShowSunny","Sunny side","Which side of each street is in sun, while the sun is up","lg sunny"],["mapShowSpots","Where to stand","Spots and lens wedges when zoomed in","lg spot"],["mapShowNames","Street and area names","","lg names"]];
 function mapLayersHtml(nLive){ return '<div class="mlayers-head"><b>Map layers</b><button type="button" class="mapselx" data-layersclose="1" aria-label="Close">×</button></div>'+
   MAP_LAYERS.map(([k,t,sub,ic])=>'<button type="button" class="mlayer" data-layer="'+k+'" aria-pressed="'+!!state[k]+'"><span class="'+ic+'"></span><span class="t"><b>'+t+(k==="mapShowEv"&&nLive?' · '+nLive+' on now':'')+'</b>'+(sub?'<span>'+sub+'</span>':'')+'</span><span class="sw" aria-hidden="true"></span></button>').join("")+
   '<p class="mlayers-sub">Jump to</p><div class="intents" id="mapZoom">'+MAP_PRESETS.concat(state.pos?[["me","Near me"]]:[]).map(z=>'<button type="button" class="chip" data-z="'+z[0]+'">'+z[1]+'</button>').join("")+'</div>'; }
@@ -1569,8 +1569,9 @@ function lightFacing(bearing,t){ const c=CITIES[state.city], sp=sunPos(t,c.lat,c
   const d=angDiff(bearing,sp.az); return d<=50?{k:"back",txt:"Backlit"}:d>=130?{k:"front",txt:"Front-lit"}:{k:"side",txt:"Side light"}; }
 const LIGHT_TIP = {back:"Facing into the sun: silhouettes, rim light and glowing hair. Expose for the bright part.",side:"Sun from the side: texture, depth and long shadows.",front:"Sun behind you: even colour on faces, flatter light. Watch for your own shadow.",dark:"Light comes from windows, signs and street lamps."};
 function lightHere(t){ const c=CITIES[state.city], sp=sunPos(t,c.lat,c.lon), tf=hmText(t.getHours()*60+t.getMinutes());
-  if(sp.alt<-0.8) return 'Light at '+tf+': the sun is down. Light comes from windows, signs and street lamps.';
-  return 'Light at '+tf+': face <b>'+compass(sp.az)+'</b> for backlight, <b>'+compass(sp.az+90)+'</b> or <b>'+compass(sp.az-90)+'</b> for side light, <b>'+compass(sp.az+180)+'</b> for front light.'+(sp.alt>45?' The sun is high, so shadows are short and streets are in shade or full sun.':''); }
+  if(sp.alt<-0.8||sp.alt<=0){ const g=lightDay().runs.find(r=>r.ph==="gold"&&r.s>=720), at=g?Math.max(600,Math.round((g.s-90)/5)*5):960;
+    return 'Light at '+tf+': the sun is down, so there is no sunny side to show. Light comes from windows, signs and street lamps.<br><button type="button" class="chip sunjump" data-jump="'+at+'">See the sunny side at '+hmText(at)+'</button>'; }
+  return 'Light at '+tf+': orange lines on the map mark the sunny side of each street. Face <b>'+compass(sp.az)+'</b> for backlight, <b>'+compass(sp.az+90)+'</b> or <b>'+compass(sp.az-90)+'</b> for side light, <b>'+compass(sp.az+180)+'</b> for front light.'+(sp.alt>45?' The sun is high, so shadows are short and streets are in shade or full sun.':''); }
 /* The day's light, minute by minute: night, blue hour, golden hour, daylight. Drawn as the slider track, with marks to jump to. */
 let LIGHT_DAY = null;
 function lightDay(){ const c=CITIES[state.city], d=new Date(); d.setHours(0,0,0,0); const key=state.city+":"+(+d);

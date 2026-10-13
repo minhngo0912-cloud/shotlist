@@ -596,3 +596,5 @@ body.tipopen{overflow:hidden}
 .m-sunny.near{opacity:.7;stroke:#ffd34d;stroke-linecap:butt} #map[data-sky="day"] .m-sunny.near,#map[data-sky="gold"] .m-sunny.near{stroke:#f5a623;opacity:.7}
 
 .m-compass.ring .m-comp{opacity:.55}
+
+.maplight .sunjump{margin-top:8px}
