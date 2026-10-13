@@ -558,3 +558,5 @@ body.mapfull{overflow:hidden}
 .linkbtn{padding:0;border:0;background:none;color:inherit;font:inherit;text-decoration:underline;cursor:pointer}
 .savedswitch{margin:0 0 10px}
 #today .row .t{display:flex;flex-direction:column;min-width:0} #today .row .t span{font-size:13px;color:var(--muted)}
+
+.setup .scenealt{display:block;margin-top:3px;font-size:12px;font-weight:400;color:var(--muted);line-height:1.35}

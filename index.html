@@ -576,6 +576,8 @@ body.mapfull{overflow:hidden}
 .linkbtn{padding:0;border:0;background:none;color:inherit;font:inherit;text-decoration:underline;cursor:pointer}
 .savedswitch{margin:0 0 10px}
 #today .row .t{display:flex;flex-direction:column;min-width:0} #today .row .t span{font-size:13px;color:var(--muted)}
+
+.setup .scenealt{display:block;margin-top:3px;font-size:12px;font-weight:400;color:var(--muted);line-height:1.35}
 </style>
 
 <div class="app">
@@ -731,6 +733,9 @@ const SETUP = {
   interior:["AFs","Field","Center-Weighted","0","PASM · M with Auto ISO","3:2","Mechanical (artificial light can band with electronic)","Auto"],
   detail:["AFs","Spot","Multi-Field","0","PASM · A (aperture priority)","3:2, or 1:1 for a single sign","Mechanical","Auto"]
 };
+/* The Q3's own scene modes are fully automatic and ignore the dials, so every card uses PASM. Where one comes close to the recipe,
+   it is offered as a shortcut; where none does (zone focus, slow shutter), the card says to stay on PASM. */
+const SCENE_ALT = {zone:null, freeze:"Sports", drag:null, deep:"Landscape", shallow:"Portrait", night:"Night Portrait, if a person is close with the lights behind", silhouette:"Sunset", interior:null, detail:null};
 const SETUP_LABELS = ["Focus mode","Focus area","Metering","Exposure comp.","Scene mode","Aspect ratio","Shutter type","White balance"];
 // Explanations shown when a setting is tapped. Index matches SETUP_LABELS; "exp" is the aperture/shutter/ISO line.
 const TIPS = {
@@ -739,7 +744,7 @@ const TIPS = {
   1:["Focus area","Where in the frame the camera looks for focus. Field is one movable box you place on the subject. Spot is a smaller box for precise targets. Eye/Face/Body Detection finds a person and follows them. Multi-Field lets the camera choose, which is fast but can pick the wrong thing in a crowd. Zone is a block of points for fast action, and Tracking follows whatever you place the box on."],
   2:["Metering","How the camera measures brightness to set exposure. Multi-Field averages the whole frame and is right most of the time. Center-Weighted favours the middle, useful when the subject is central and the edges are much brighter or darker. Spot reads one small point. Highlight-Weighted protects the brightest areas from blowing out."],
   3:["Exposure compensation","Tells the camera to make the picture brighter (+) or darker (−) than its meter suggests. Use minus when bright lights or sky are being washed out, and plus when a backlit face comes out too dark. It only has an effect when the camera is choosing at least one of shutter, aperture or ISO. In M with Auto ISO it works by changing the ISO, and Auto ISO cannot go below 100, so in full sun minus compensation may do nothing."],
-  4:["Scene mode","On the Q3 this is the Scene Mode item in the menu. PASM is the normal setting: the shutter speed dial and the aperture ring control exposure. The other choices, such as Auto, are fully automatic and ignore both dials, so leave it on PASM. The letter after it is the exposure mode for this idea, chosen with the A marks on the dials: A (aperture priority) is shutter dial on A and the aperture set on the ring; S (shutter priority) is aperture ring on A and the speed set on the dial; M is both set by hand, here with ISO on Auto; both on A gives P (program)."],
+  4:["Scene mode","On the Q3 this is the Scene Mode item in the menu. PASM is the normal setting: the shutter speed dial and the aperture ring control exposure, and the settings on this card only work there. The scene modes are fully automatic and ignore both dials: Auto (general snapshots, or handing the camera to someone), Sports (moving subjects), Portrait (a person), Landscape (broad outdoor scenes), Night Portrait (a person against night lights), Snow / Beach (bright, reflective surroundings), Fireworks, Candlelight (dim, candle-lit scenes), Sunset, and Digiscoping (through a spotting scope). The shortcut under the setting names the one closest to this recipe, for when there is no time to set the dials; switch back to PASM afterwards. The letter after it is the exposure mode for this idea, chosen with the A marks on the dials: A (aperture priority) is shutter dial on A and the aperture set on the ring; S (shutter priority) is aperture ring on A and the speed set on the dial; M is both set by hand, here with ISO on Auto; both on A gives P (program)."],
   5:["Aspect ratio","The shape of the picture. 3:2 uses the whole sensor. 16:9 is wider and suits skylines; 1:1 is square and suits a single centred subject. Choosing another ratio shows crop lines while you frame."],
   6:["Shutter type","Mechanical is a physical shutter: reliable under artificial light and with fast movement, up to 1/2000 s. Electronic is silent and reaches 1/16000 s, but can bend fast-moving subjects and show dark bands under LED or fluorescent light. Hybrid uses mechanical normally and switches to electronic only when the light needs a faster speed."],
   7:["White balance","Sets the overall colour cast so whites look white. Auto adjusts for each scene. Daylight is fixed, so warm light stays warm and neon keeps its colour, and every frame in a set matches. With DNG files you can change it afterwards without losing quality."]
@@ -1758,7 +1763,7 @@ function renderCard(){
       (su ? '<div><button type="button" class="vals tipbtn" data-tip="exp" aria-expanded="'+(openTip==="exp")+'">'+esc(rec[0])+'</button></div>' : '<span class="vals">'+esc(rec[0])+'</span>')+
       '<p class="note">'+esc(rec[1])+'</p>'+
       (adv.length ? '<div class="adjust"><span class="label">Adjust for now · '+esc(nowLabel(ni))+'</span><ul>'+adv.map(a=>'<li>'+esc(a)+'</li>').join("")+'</ul></div>' : '')+
-      (su ? '<div class="setup">'+SETUP_LABELS.map((l,n)=>'<button type="button" data-tip="'+n+'" aria-expanded="'+(openTip===String(n))+'"><span class="label">'+l+'</span><span>'+esc(su[n])+'</span></button>').join("")+'</div>'+
+      (su ? '<div class="setup">'+SETUP_LABELS.map((l,n)=>'<button type="button" data-tip="'+n+'" aria-expanded="'+(openTip===String(n))+'"><span class="label">'+l+'</span><span>'+esc(su[n])+(n===4&&cam.setup==="leica"?'<small class="scenealt">'+(SCENE_ALT[x.r]?'Shortcut: '+esc(SCENE_ALT[x.r])+' scene mode, if there is no time to set the dials':'No scene mode matches this; stay on PASM')+'</small>':'')+'</span></button>').join("")+'</div>'+
         (openTip!==null && TIPS[openTip] ? '<p class="tip"><b>'+TIPS[openTip][0]+'</b>'+esc(TIPS[openTip][1])+'</p>' : '<p class="hint">Tap any setting for an explanation.</p>') : '');
   } else {
     pane='<div class="part"><span class="label">Look for</span><p>'+esc(x.look)+'</p></div>'+
