@@ -291,5 +291,81 @@
   "start": "2026-11-11",
   "time": "12:30 pm to about 3:30 pm",
   "where": "Fifth Av, 26 St north to about 50 St"
+ },
+ "_fixtures": {
+  "checked": "2026-10-13",
+  "source": "league schedules via the sports data tool",
+  "games": [
+   {
+    "team": "nycfc",
+    "at": "2026-10-17T19:30",
+    "opp": "LAFC"
+   },
+   {
+    "team": "knicks",
+    "at": "2026-10-20T19:00",
+    "opp": "76ers"
+   },
+   {
+    "team": "nets",
+    "at": "2026-10-21T19:30",
+    "opp": "Hornets"
+   },
+   {
+    "team": "nets",
+    "at": "2026-10-25T18:00",
+    "opp": "Pacers"
+   },
+   {
+    "team": "knicks",
+    "at": "2026-10-25T19:00",
+    "opp": "Magic"
+   },
+   {
+    "team": "knicks",
+    "at": "2026-10-27T20:00",
+    "opp": "Pistons"
+   },
+   {
+    "team": "nycfc",
+    "at": "2026-10-28T19:30",
+    "opp": "Atlanta United"
+   },
+   {
+    "team": "nets",
+    "at": "2026-10-30T19:30",
+    "opp": "Pistons"
+   },
+   {
+    "team": "nycfc",
+    "at": "2026-10-31T14:00",
+    "opp": "CF Montréal"
+   },
+   {
+    "team": "knicks",
+    "at": "2026-11-02T19:30",
+    "opp": "Nets"
+   },
+   {
+    "team": "knicks",
+    "at": "2026-11-04T19:30",
+    "opp": "Bulls"
+   },
+   {
+    "team": "nets",
+    "at": "2026-11-04T19:30",
+    "opp": "Hornets"
+   },
+   {
+    "team": "knicks",
+    "at": "2026-11-10T19:30",
+    "opp": "Bucks"
+   },
+   {
+    "team": "knicks",
+    "at": "2026-11-11T19:00",
+    "opp": "Cavaliers"
+   }
+  ]
  }
 }

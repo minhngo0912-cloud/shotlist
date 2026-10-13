@@ -158,6 +158,15 @@ def run(path, name):
         pg.click("#events .evquick [data-q=confirmed]"); pg.wait_for_timeout(100)
         check("Confirmed filter keeps only confirmed events", pg.evaluate("[...document.querySelectorAll('#events details')].every(d=>d.querySelector('.pill')&&d.querySelector('.pill').textContent==='Confirmed')"))
         pg.click("#events .evquick [data-q=confirmed]"); pg.wait_for_timeout(100)
+        # Music: the free outdoor series are built-ins with a stand and a view
+        mu=pg.evaluate("[EVENTS.filter(e=>e.type==='music').map(e=>e.id), EVENTS.filter(e=>e.type==='music'&&(!EVENT_VIEW[e.id]||!EVENT_GEO[e.id]||e.ideas.length<3)).map(e=>e.id), EVENTS.find(e=>e.id==='summerstage').when(2026).map(w=>w.map(d=>d.getMonth()+1+'/'+d.getDate()))]")
+        check("Free outdoor music series are built-in events with a stand", len(mu[0])>=7 and not mu[1] and mu[2]==[["6/1","8/31"]], mu)
+        # Game days: fixture rows from the weekly check, one card per venue
+        pg.evaluate("""()=>{ EVENT_DOCS._fixtures={checked:"2026-10-10",games:[{team:"knicks",at:"2026-10-20T19:00",opp:"76ers"},{team:"knicks",at:"2026-10-25T19:00",opp:"Magic"},{team:"nycfc",at:"2026-10-17T19:30",opp:"LAFC"},{team:"nets",at:"2026-10-01T19:30",opp:"Past"}]}; renderEvents(); }"""); pg.wait_for_timeout(150)
+        fx=pg.evaluate("""()=>{ const rows=fixtureRows(evDay(new Date())); const k=rows.filter(r=>r.e.id==='msg'); const cards=[...document.querySelectorAll('#events details')].filter(d=>/Game day/.test(d.querySelector('summary').textContent));
+          return [rows.map(r=>r.game.team), k[0].e.time, evTitle(rows.find(r=>r.game.team==='nycfc')), cards.length, cards.map(c=>c.querySelectorAll('.games li').length), cards.map(c=>c.querySelector('summary').textContent.includes('Next:'))]; }""")
+        check("Game days: future home games become rows, grouped as one card per venue", fx[0]==["nycfc","knicks","knicks"] and fx[1]=="5:30 pm to 7:20 pm; tip-off 7 pm" and fx[2]=="NYCFC v LAFC (football) · Yankee Stadium" and fx[3]==2 and fx[4]==[1,2] and all(fx[5]), fx)
+        pg.evaluate("()=>{ delete EVENT_DOCS._fixtures; renderEvents(); }"); pg.wait_for_timeout(100)
         pg.evaluate("planEvent('halloween')"); pg.wait_for_timeout(200)
         pl=pg.evaluate("[state.view, state.plan.stops[0].ev, state.plan.stops[0].at.getHours(), state.plan.start.getMonth(), state.plan.start.getDate(), document.querySelectorAll('#plan .row[data-event]').length]")
         check("Plan this outing builds a plan round the event, an hour early, with its shots", pl[0]=="plan" and pl[1]=="halloween" and pl[2]==18 and pl[3]==9 and pl[4]==31 and pl[5]==3, pl)
