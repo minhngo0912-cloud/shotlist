@@ -130,6 +130,8 @@ def run(path, name):
         pg.select_option("#mapGo", "union"); pg.wait_for_timeout(500)
         check("Map go-to selects a place", pg.evaluate("state.mapSel") == "union")
         check("Selecting a place opens the sheet halfway", pg.evaluate("state.sheet")=="half")
+        pg.wait_for_timeout(900)
+        check("Selecting a place zooms in to its spots", pg.evaluate("mapV.w")<=60 and pg.evaluate("document.querySelectorAll('.m-spotg').length")>=2, pg.evaluate("mapV.w"))
         pg.evaluate("state.plan=null"); pg.click("[data-addplan]"); pg.wait_for_timeout(100)
         pg.evaluate("mapSelect('wsp')"); pg.click("[data-addplan]"); pg.wait_for_timeout(100)
         check("Map builds an outing", pg.evaluate("state.plan.stops.map(s=>s.place).join()") == "union,wsp")
@@ -184,7 +186,7 @@ def run(path, name):
         check("Event that has finished is marked over", evk(18*60).startswith("m-ev over"), evk(18*60))
         pg.evaluate("()=>{ delete EVENT_DOCS.testlive; state.mapT=null; mapDraw(); mapPanel(); }")
         # Light compass, where to stand, moon
-        pg.evaluate("state.mapT=16*60; mapSelect('union'); mapV={cx:mapXY(40.7359,-73.9906)[0],cy:mapXY(40.7359,-73.9906)[1],w:100}; mapDraw(); mapPanel()")
+        pg.evaluate("state.mapT=16*60; mapSelect('union'); cancelAnimationFrame(mapAnim); mapV={cx:mapXY(40.7359,-73.9906)[0],cy:mapXY(40.7359,-73.9906)[1],w:100}; mapDraw(); mapPanel()")
         check("Light compass round the selected place", pg.evaluate("document.querySelectorAll('.m-comp').length")==4 and "for backlight" in pg.evaluate("document.querySelector('.maplight').textContent"))
         check("Place lists where to stand", pg.evaluate("document.querySelectorAll('#mapPanel [data-spot]').length")>=2)
         pg.evaluate("setSheet('half')"); pg.wait_for_timeout(300)

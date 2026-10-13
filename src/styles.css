@@ -592,3 +592,7 @@ body.tipopen{overflow:hidden}
 @media (prefers-reduced-motion:reduce){.tsheet,.tsback{animation:none}}
 
 .tdef{margin:8px 0 0;padding:10px 12px;border:1px solid var(--sign-line);border-radius:8px;font-size:14px;line-height:1.45;color:var(--sign-muted)} .tdef b{color:var(--sign-fg)}
+
+.m-sunny.near{opacity:.7;stroke:#ffd34d;stroke-linecap:butt} #map[data-sky="day"] .m-sunny.near,#map[data-sky="gold"] .m-sunny.near{stroke:#f5a623;opacity:.7}
+
+.m-compass.ring .m-comp{opacity:.55}

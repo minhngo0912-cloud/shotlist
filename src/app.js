@@ -1615,7 +1615,7 @@ function mapGoStop(i){ const p=state.plan, s=p&&p.stops[i]; if(!s) return; const
   const sameDay=s.at>=today && s.at<new Date(+today+864e5), live=Math.abs(s.at-Date.now())<15*6e4 || (i===nextStopIndex() && s.at<=Date.now());
   state.mapT = live||!sameDay ? null : s.at.getHours()*60+Math.round(s.at.getMinutes()/5)*5;
   const tm=$("mapTime"), n=new Date(); if(tm) tm.value=state.mapT===null? n.getHours()*60+n.getMinutes() : state.mapT;
-  state.mapSel=s.place; state.mapEv=null; const [x,y]=mapXY(PLACES[s.place].lat,PLACES[s.place].lon); mapPanel(); mapFly(mapAim({cx:x,cy:y,w:Math.min(mapV.w,140)})); }
+  state.mapSel=s.place; state.mapEv=null; const [x,y]=mapXY(PLACES[s.place].lat,PLACES[s.place].lon); mapPanel(); mapDraw(); mapZoomPlace(s.place); }
 /* Google Maps directions: the next stop (walking or transit), and the rest of the outing as one multi-stop route.
    Google Maps allows 3 stops between start and end in a phone browser, 9 in the app; transit cannot do multi-stop routes. */
 const stopGeo = id => { const g=START_GEO[id]||[PLACES[id].lat,PLACES[id].lon]; return g[0].toFixed(5)+","+g[1].toFixed(5); };
@@ -1675,8 +1675,18 @@ function mapDraw(){
     for(const [name,lat,lon] of MAPD_STATIONS){ const [x,y]=mapXY(lat,lon); if(x<x0||x>x1||y<y0||y>y1) continue; const r=(w<45?3.4:2.6)*u, box=[x-r,y-r,x+r,y+r]; if(taken.some(t=>hit(t,box))) continue;
       allStn+='<circle cx="'+f(x)+'" cy="'+f(y)+'" r="'+f(r)+'" stroke-width="'+f(1.1*u)+'" class="m-stn2"/>';
       if(w<45){ const fl=8.5*u, tw=name.length*fl*0.52, rect=[x+r+2*u,y-fl*0.6,x+r+2*u+tw,y+fl*0.6]; if(!taken.some(t=>hit(t,rect))){ taken.push(rect,box); allStn+='<text x="'+f(x+r+2*u)+'" y="'+f(y+fl*0.35)+'" font-size="'+f(fl)+'" class="m-stnlab">'+esc(name)+'</text>'; } } } }
-  let sunny=""; { const cs=CITIES[state.city], spp=sunPos(mapNow(),cs.lat,cs.lon); if(state.mapShowSunny && spp.alt>0 && w<140){ const r=spp.az*Math.PI/180, SX=Math.sin(r), SY=-Math.cos(r), off=1.6*u;
-    for(const [,,line] of MAP_STREETS) for(let i=0;i<line.length-1;i++){ const a=mapXY(line[i][0],line[i][1]), b=mapXY(line[i+1][0],line[i+1][1]), L=Math.hypot(b[0]-a[0],b[1]-a[1]); if(!L) continue;
+  let sunny=""; { const cs=CITIES[state.city], spp=sunPos(mapNow(),cs.lat,cs.lon); if(state.mapShowSunny && spp.alt>0 && w<140){ const r=spp.az*Math.PI/180, SX=Math.sin(r), SY=-Math.cos(r), off=(w<70?3.2:1.6)*u;
+    // zoomed in: every street block in view; further out: the main avenues and streets only
+    if(w<70){ const G=streetGrid(), sp0=state.mapSel&&PLACES[state.mapSel]?mapXY(PLACES[state.mapSel].lat,PLACES[state.mapSel].lon):null, RR=9;   // around the chosen place, about 500 m
+      const bx0=sp0?Math.max(x0,sp0[0]-RR):x0, bx1=sp0?Math.min(x1,sp0[0]+RR):x1, by0=sp0?Math.max(y0,sp0[1]-RR):y0, by1=sp0?Math.min(y1,sp0[1]+RR):y1;
+      const cx0=Math.floor(bx0/10), cx1=Math.floor(bx1/10), cy0=Math.floor(by0/10), cy1=Math.floor(by1/10); let d="";
+      for(let gx=cx0;gx<=cx1;gx++) for(let gy=cy0;gy<=cy1;gy++){ const cell=G.cells.get(gx+","+gy); if(!cell) continue;
+        for(const k of cell){ const ax=G.seg[k], ay=G.seg[k+1], bx=G.seg[k+2], by=G.seg[k+3], L=Math.hypot(bx-ax,by-ay); if(L<0.3) continue;
+          if(sp0&&Math.hypot((ax+bx)/2-sp0[0],(ay+by)/2-sp0[1])>RR) continue;
+          let nx=-(by-ay)/L, ny=(bx-ax)/L; const face=-(nx*SX+ny*SY); if(Math.abs(face)<0.12) continue; if(face<0){ nx=-nx; ny=-ny; }
+          d+='M'+f(ax+nx*off)+' '+f(ay+ny*off)+'L'+f(bx+nx*off)+' '+f(by+ny*off); } }
+      if(d) sunny='<path d="'+d+'" class="m-sunny near" stroke-width="'+f(2*u)+'"/>'; }
+    else for(const [,,line] of MAP_STREETS) for(let i=0;i<line.length-1;i++){ const a=mapXY(line[i][0],line[i][1]), b=mapXY(line[i+1][0],line[i+1][1]), L=Math.hypot(b[0]-a[0],b[1]-a[1]); if(!L) continue;
       const tx=(b[0]-a[0])/L, ty=(b[1]-a[1])/L; let nx=-ty, ny=tx; const face=-(nx*SX+ny*SY); if(Math.abs(face)<0.12) continue; if(face<0){ nx=-nx; ny=-ny; }
       if(Math.max(a[0],b[0])<x0||Math.min(a[0],b[0])>x1||Math.max(a[1],b[1])<y0||Math.min(a[1],b[1])>y1) continue;
       sunny+='<path d="M'+f(a[0]+nx*off)+' '+f(a[1]+ny*off)+' L'+f(b[0]+nx*off)+' '+f(b[1]+ny*off)+'" class="m-sunny" stroke-width="'+f(1.1*u)+'"/>'; } } }
@@ -1709,7 +1719,7 @@ function mapDraw(){
       return g0+(on?'<circle cx="'+f(p.x)+'" cy="'+f(p.y)+'" r="'+f(r)+'" class="m-halo" stroke-width="'+f(2*u)+'"/>':'')+
         (part?'<circle cx="'+f(p.x)+'" cy="'+f(p.y)+'" r="'+f(rr)+'" class="m-prog" stroke-width="'+f(2.4*u)+'" stroke-dasharray="'+f(c*part)+' '+f(c)+'" transform="rotate(-90 '+f(p.x)+' '+f(p.y)+')"/>':'')+
         '<circle cx="'+f(p.x)+'" cy="'+f(p.y)+'" r="'+f(r)+'" stroke-width="'+f(2*u)+'" class="m-dot"/>'+(on?'<text x="'+f(p.x)+'" y="'+f(p.y+4.4*u)+'" text-anchor="middle" font-size="'+f(12.5*u)+'" class="m-num">'+p.fit+'</text>':'')+'</g>'; }
-    const r=(on?20:w<150?13:10.5)*u, ringR=r+2.6*u, list=ideasOf(p.id), photo=PHOTOS_INLINE&&PLACE_PHOTO[p.id];
+    const r=(on?(w<45?15:20):w<150?13:10.5)*u, ringR=r+2.6*u, list=ideasOf(p.id), photo=PHOTOS_INLINE&&PLACE_PHOTO[p.id];
     let ring=""; if(list.length){ const n=list.length, gap=n>1?0.16:0, step=2*Math.PI/n;
       list.forEach((it,k)=>{ const a0=-Math.PI/2+k*step+gap/2, a1=a0+step-gap, P=a=>f(p.x+Math.cos(a)*ringR)+' '+f(p.y+Math.sin(a)*ringR);
         ring+='<path d="M'+P(a0)+' A'+f(ringR)+' '+f(ringR)+' 0 '+(a1-a0>Math.PI?1:0)+' 1 '+P(a1)+'" class="m-arc'+(it.w.includes(key)?'':' off')+'" stroke="'+(it.w.includes(key)?INTENTS[it.i].color:'')+'" stroke-width="'+f(3.4*u)+'"/>'; }); }
@@ -1735,10 +1745,10 @@ function mapDraw(){
       '<circle cx="'+f(sx)+'" cy="'+f(sy)+'" r="'+f(R)+'" class="m-sundisc"/></g>'; }
   // light compass round the selected place: which way to face for back, side and front light
   let comp=""; const selP=state.mapSel&&pts.find(p=>p.id===state.mapSel);
-  if(selP&&sp.alt>-0.8&&!state.mapSpot&&w>=60){ const r1=19*u, r2=50*u, sec=(c,k,lab)=>{ const a0=(c-28)*Math.PI/180, a1=(c+28)*Math.PI/180, P=(r,a)=>f(selP.x+Math.sin(a)*r)+" "+f(selP.y-Math.cos(a)*r);
+  if(selP&&sp.alt>-0.8&&!state.mapSpot){ const near=w<60, r1=(near?62:19)*u, r2=(near?80:50)*u, sec=(c,k,lab)=>{ const a0=(c-28)*Math.PI/180, a1=(c+28)*Math.PI/180, P=(r,a)=>f(selP.x+Math.sin(a)*r)+" "+f(selP.y-Math.cos(a)*r);
       const m=c*Math.PI/180, lx=selP.x+Math.sin(m)*(r2+9*u), ly=selP.y-Math.cos(m)*(r2+9*u);
       return '<path d="M'+P(r1,a0)+' L'+P(r2,a0)+' A'+f(r2)+' '+f(r2)+' 0 0 1 '+P(r2,a1)+' L'+P(r1,a1)+' A'+f(r1)+' '+f(r1)+' 0 0 0 '+P(r1,a0)+'Z" class="m-comp '+k+'"/><text x="'+f(lx)+'" y="'+f(ly+3*u)+'" text-anchor="middle" font-size="'+f(8.5*u)+'" class="m-comptx">'+lab+'</text>'; };
-    comp='<g class="m-compass">'+sec(sp.az,"back","Back")+sec(sp.az+90,"side","Side")+sec(sp.az-90,"side","Side")+sec(sp.az+180,"front","Front")+'</g>'; }
+    comp='<g class="m-compass'+(near?' ring':'')+'">'+sec(sp.az,"back","Back")+sec(sp.az+90,"side","Side")+sec(sp.az-90,"side","Side")+sec(sp.az+180,"front","Front")+'</g>'; }
   // where to stand: spots with a wedge as wide as the lens sees, coloured by the light facing that way
   let spotsSvg=""; const fov=camFov(), tNow=mapNow();
   for(const [pid,list] of Object.entries(SPOTS)){ if(!state.mapShowSpots||!PLACES[pid]||!(w<40||(state.mapSel===pid&&w<130))) continue;
@@ -1820,8 +1830,24 @@ function mapEnsure(x,y){ const svg=$("mapSvg"); if(!svg||!mapV) return; const k=
   if(sx<30||sx>svg.clientWidth-60||sy<topPx()+20||sy>H-sheetPx()-20) mapFly(mapAim({cx:x,cy:y,w:mapV.w})); }
 function mapSelectLm(i){ state.mapLm=i; state.mapSel=null; state.mapEv=null; state.mapSpot=null; mapDraw(); mapPanel(); const L=LANDMARKS[i]; if(L){ const [x,y]=mapXY(L[1],L[2]); requestAnimationFrame(()=>{ mapDraw(); mapEnsure(x,y); }); } }
 function mapSelectEv(id){ state.mapEv=id; state.mapSel=null; state.mapLm=null; state.mapSpot=null; mapDraw(); mapPanel(); const e=id&&mapEvents().find(v=>v.id===id); requestAnimationFrame(()=>{ mapDraw(); if(e) mapEnsure(e.x,e.y); }); }
+/* Street segments for the sunny side when zoomed in, read once from the street paths and bucketed by 10-unit cells. */
+let STREET_GRID=null;
+function streetGrid(){ if(STREET_GRID) return STREET_GRID; const seg=[], cells=new Map();
+  for(const k of ["ave","local"]){ const d=MAPD_ROADS[k]; if(!d) continue; const re=/([Ml])([^Ml]*)/g; let m, x=0, y=0;
+    while((m=re.exec(d))){ const n=m[2].match(/-?\d+/g)||[];
+      if(m[1]==="M"){ x=+n[0]; y=+n[1]; } else for(let i=0;i+1<n.length;i+=2){ const nx=x+ +n[i], ny=y+ +n[i+1]; seg.push(x/10,y/10,nx/10,ny/10); x=nx; y=ny; } } }
+  for(let k=0;k<seg.length;k+=4){ const key=Math.floor((seg[k]+seg[k+2])/20)+","+Math.floor((seg[k+1]+seg[k+3])/20); let c=cells.get(key); if(!c){ c=[]; cells.set(key,c); } c.push(k); }
+  return STREET_GRID={seg:Float32Array.from(seg),cells}; }
+/* The view for a place: close enough to see its where-to-stand spots and the sunny side of its streets.
+   Fits the pin, its starting point and its spots, and never zooms out if you are already closer. */
+function placeView(id){ const pl=PLACES[id], pts=[[pl.lat,pl.lon]].concat(START_GEO[id]?[START_GEO[id]]:[]).concat((SPOTS[id]||[]).filter(S=>kmBetween({lat:S[0],lon:S[1]},pl)<1.2).map(S=>[S[0],S[1]])).map(c=>mapXY(c[0],c[1]));
+  const xs=pts.map(p=>p[0]), ys=pts.map(p=>p[1]), x0=Math.min(...xs), x1=Math.max(...xs), y0=Math.min(...ys), y1=Math.max(...ys);
+  const svg=$("mapSvg"), H=svg?svg.clientHeight:600, Wpx=svg?svg.clientWidth:360, visH=Math.max(160,H-sheetPx()-topPx()), aspect=visH/Wpx;
+  const w=Math.max(20,Math.min(100,Math.max(x1-x0,(y1-y0)/aspect)*2+8));
+  return {cx:(x0+x1)/2, cy:(y0+y1)/2, w:Math.min(w,mapV?Math.max(mapV.w,20):w)}; }
+function mapZoomPlace(id){ const v=placeView(id); mapFly(mapAim(v)); }
 function mapSelect(id){ state.mapSel=id; state.mapEv=null; state.mapLm=null; state.mapSpot=null; mapDraw(); mapPanel(); if(id){ const fly=()=>{ const p=mapPts().find(q=>q.id===id), h=mapV.w*MAP_ASPECT;
-  if(p){ const svg=$("mapSvg"), k=mapV.w/(svg.clientWidth||360), H=svg.clientHeight, sx=(p.x-mapV.cx)/k+svg.clientWidth/2, sy=(p.y-mapV.cy)/k+H/2; if(sx<30||sx>svg.clientWidth-60||sy<topPx()+20||sy>H-sheetPx()-20) mapFly(mapAim({cx:p.x,cy:p.y,w:mapV.w})); } };
+  if(p) mapZoomPlace(id); };
   if(state.mapFull) requestAnimationFrame(()=>{ mapDraw(); fly(); }); else fly(); } else if(state.mapFull) requestAnimationFrame(mapDraw); }
 function mapGestures(svg){
   const ptr=new Map(); let g=null, lastTap=0, raf=0;
@@ -2084,7 +2110,7 @@ $("map").addEventListener("click",e=>{
   if(e.target.closest("[data-layersclose]")){ $("mapLayers").hidden=true; $("mapLayersBtn").setAttribute("aria-expanded","false"); return; }
   const ly=e.target.closest("[data-layer]"); if(ly){ const k=ly.dataset.layer; state[k]=!state[k]; store.set(k,state[k]); if(k==="mapShowEv"&&!state[k]) state.mapEv=null; if(k==="mapShowLm"&&!state[k]) state.mapLm=null; mapPanel(); mapDraw(); return; }
   const ssp=e.target.closest("[data-spot]"); if(ssp){ mapSelectSpot(ssp.dataset.spot); return; }
-  const gs=e.target.closest("[data-gosel]"); if(gs){ const id=gs.dataset.gosel; mapSelect(id); const p=mapPts().find(q=>q.id===id); if(p) mapFly(mapAim({cx:p.x,cy:p.y,w:Math.min(mapV.w,140)})); return; }
+  const gs=e.target.closest("[data-gosel]"); if(gs){ const id=gs.dataset.gosel; mapSelect(id); return; }
   const z=e.target.closest("#mapZoom .chip"); if(z){ $("mapLayers").hidden=true; $("mapLayersBtn").setAttribute("aria-expanded","false"); state.mapZoom=z.dataset.z; store.set("mapZoom",state.mapZoom); mapFly(mapPreset(z.dataset.z)); return; }
   const b=e.target.closest("[data-zoom]"); if(b){ mapFly({cx:mapV.cx,cy:mapV.cy,w:mapV.w*parseFloat(b.dataset.zoom)}); return; }
   const ev=e.target.closest("[data-event]"); if(ev){ state.view="events"; render(); const d=document.querySelector('#events details[data-id="'+ev.dataset.event+'"]'); if(d){ d.open=true; d.scrollIntoView({block:"start"}); } return; }
@@ -2094,7 +2120,7 @@ $("map").addEventListener("click",e=>{
 });
 let mapTimeRaf=0;
 $("map").addEventListener("input",e=>{ if(e.target.id!=="mapTime") return; state.mapT=+e.target.value; if(!mapTimeRaf) mapTimeRaf=requestAnimationFrame(()=>{ mapTimeRaf=0; mapDraw(); mapPanel(); }); });
-$("map").addEventListener("change",e=>{ if(e.target.id!=="mapGo"||!e.target.value) return; const id=e.target.value; state.mapSel=id; state.mapEv=null; const p=mapPts().find(q=>q.id===id); mapPanel(); mapDraw(); if(p) mapFly(mapAim({cx:p.x,cy:p.y,w:Math.min(mapV.w,120)})); });
+$("map").addEventListener("change",e=>{ if(e.target.id!=="mapGo"||!e.target.value) return; const id=e.target.value; state.mapSel=id; state.mapEv=null; mapPanel(); mapDraw(); mapZoomPlace(id); });
 $("map").addEventListener("keydown",e=>{ if(e.key!=="Enter"&&e.key!==" ") return; const p=e.target.closest(".m-pin"); const v=e.target.closest(".m-ev"); const spk=e.target.closest(".m-spotg"); if(spk){ e.preventDefault(); mapSelectSpot(spk.dataset.s); return; } const lmk=e.target.closest(".m-lm"); if(lmk){ e.preventDefault(); mapSelectLm(+lmk.dataset.l); return; } if(v){ e.preventDefault(); mapSelectEv(v.dataset.e); return; }
   if(p){ e.preventDefault(); mapSelect(p.dataset.p); const n=document.querySelector('.m-pin[data-p="'+p.dataset.p+'"]'); if(n) n.focus(); } });
 window.addEventListener("resize",()=>{ if(state.view==="map") mapLayout(); });
@@ -2110,7 +2136,7 @@ $("learn").addEventListener("change",e=>{
 });
 $("today").addEventListener("click",e=>{
   const tm=e.target.closest("[data-tat]"); if(tm){ state.todayAt=tm.dataset.tat==="now"?null:+tm.dataset.tat; renderToday(); return; }
-  const mg=e.target.closest("[data-mapgo]"); if(mg){ const id=mg.dataset.mapgo; state.mapT=state.todayAt; state.view="map"; render(); requestAnimationFrame(()=>requestAnimationFrame(()=>{ const p=mapPts().find(q=>q.id===id); if(p){ mapSelect(id); mapFly(mapAim({cx:p.x,cy:p.y,w:Math.min(mapV.w,120)})); } })); return; }
+  const mg=e.target.closest("[data-mapgo]"); if(mg){ const id=mg.dataset.mapgo; state.mapT=state.todayAt; state.view="map"; render(); requestAnimationFrame(()=>requestAnimationFrame(()=>{ mapSelect(id); })); return; }
   const pd=e.target.closest("[data-planday]"); if(pd){ planToday(pd.dataset.planday); return; }
   const gv=e.target.closest("[data-goview]"); if(gv){ state.view=gv.dataset.goview; render(); window.scrollTo({top:0}); return; }
   const ev=e.target.closest("[data-event]"); if(ev){ state.view="events"; render(); const d=document.querySelector('#events details[data-id="'+ev.dataset.event+'"]'); if(d){ d.open=true; d.scrollIntoView({block:"start"}); } return; }
