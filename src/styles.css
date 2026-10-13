@@ -617,3 +617,8 @@ body.tipopen{overflow:hidden}
 .standtxt{display:flex;flex-direction:column;gap:2px;min-width:0} .standtxt b{font-size:16px} .standtxt>span{font-size:14px;color:var(--sign-muted)} .standtxt p{margin:4px 0 0;font-size:15px}
 .sdk{font-weight:700} .sdk.back{color:#f28a28} .sdk.side{color:#e0b000} .sdk.dark{color:#8296ff}
 .stand .callinks{margin-top:10px}
+
+/* Work it details: what to keep sharp, distance, height, focus and when to press */
+.wk{display:grid;gap:0;margin:14px 0 4px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.wkrow{padding:10px 14px;border-top:1px solid var(--line)} .wkrow:first-child{border-top:0}
+.wkrow .label{display:block;margin-bottom:2px} .wkrow p{margin:0;font-size:15px;line-height:1.45}
