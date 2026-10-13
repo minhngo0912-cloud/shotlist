@@ -623,3 +623,25 @@ body.tipopen{overflow:hidden}
 .wkrow{padding:10px 14px;border-top:1px solid var(--line)} .wkrow:first-child{border-top:0}
 .wkrow .label{display:block;margin-bottom:2px} .wkrow p{margin:0;font-size:15px;line-height:1.45}
 .wktips ul{margin:4px 0 0;padding-left:20px} .wktips li{margin:0 0 6px;line-height:1.45}
+/* Spot numbers: the same number on the map, in the place list, on the spot and on the idea */
+.snum{display:inline-flex;align-items:center;justify-content:center;flex:none;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:#fff;color:#14161a;font-size:12px;font-weight:800;line-height:1;vertical-align:1px;box-shadow:0 0 0 2px rgba(0,0,0,.35)}
+.snum.back{box-shadow:0 0 0 2.5px #f28a28} .snum.side{box-shadow:0 0 0 2.5px #fccc0a} .snum.front{box-shadow:0 0 0 2.5px #fff3c4} .snum.dark{box-shadow:0 0 0 2.5px #8296ff}
+.irow .srow .snum{min-width:18px;height:18px;font-size:11px;margin-top:1px}
+.group-head .snum,.standtxt .snum{margin-right:4px}
+.m-spotn{fill:#14161a;font-family:var(--sans);font-weight:800;pointer-events:none}
+.m-spotg.on .m-spotn{fill:#14161a}
+.m-spottx{font-weight:600} .m-spottx.on{font-weight:800}
+.m-guide{fill:none;stroke:var(--blue);stroke-linecap:round;opacity:.95}
+/* Guide me there */
+.mguide{position:absolute;top:108px;left:10px;right:62px;z-index:3;display:flex;align-items:center;gap:10px;padding:10px 8px 10px 12px;border-radius:14px;background:var(--bg);color:var(--fg);box-shadow:0 6px 20px rgba(0,0,0,.45)}
+.mguide.here{background:var(--yellow);color:#14161a}
+#map.full .mguide{top:calc(max(10px,env(safe-area-inset-top,0px)) + 96px)}
+.garrow{flex:none;width:40px;height:40px;border-radius:50%;background:var(--blue)} .garrow path{fill:#fff}
+.mguide.here .garrow{background:#14161a} .mguide.here .garrow path{fill:var(--yellow)}
+.gtxt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px} .gtxt b{font-size:15px} .gtxt span{font-size:13px;line-height:1.35;opacity:.85}
+.gtxt .snum{min-width:16px;height:16px;font-size:10px;padding:0 4px}
+.gstop{flex:none;width:32px;height:32px;border:0;border-radius:50%;background:transparent;color:inherit;font-size:22px;cursor:pointer}
+.guidecta{margin-top:-2px}
+.nearf{padding:0 14px 6px}
+.nrow{align-items:flex-start} .nrow .snum{margin-top:2px} .nrow .t{display:flex;flex-direction:column}
+.mleadcta{padding:0 14px 8px}

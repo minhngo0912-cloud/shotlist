@@ -641,6 +641,28 @@ body.tipopen{overflow:hidden}
 .wkrow{padding:10px 14px;border-top:1px solid var(--line)} .wkrow:first-child{border-top:0}
 .wkrow .label{display:block;margin-bottom:2px} .wkrow p{margin:0;font-size:15px;line-height:1.45}
 .wktips ul{margin:4px 0 0;padding-left:20px} .wktips li{margin:0 0 6px;line-height:1.45}
+/* Spot numbers: the same number on the map, in the place list, on the spot and on the idea */
+.snum{display:inline-flex;align-items:center;justify-content:center;flex:none;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:#fff;color:#14161a;font-size:12px;font-weight:800;line-height:1;vertical-align:1px;box-shadow:0 0 0 2px rgba(0,0,0,.35)}
+.snum.back{box-shadow:0 0 0 2.5px #f28a28} .snum.side{box-shadow:0 0 0 2.5px #fccc0a} .snum.front{box-shadow:0 0 0 2.5px #fff3c4} .snum.dark{box-shadow:0 0 0 2.5px #8296ff}
+.irow .srow .snum{min-width:18px;height:18px;font-size:11px;margin-top:1px}
+.group-head .snum,.standtxt .snum{margin-right:4px}
+.m-spotn{fill:#14161a;font-family:var(--sans);font-weight:800;pointer-events:none}
+.m-spotg.on .m-spotn{fill:#14161a}
+.m-spottx{font-weight:600} .m-spottx.on{font-weight:800}
+.m-guide{fill:none;stroke:var(--blue);stroke-linecap:round;opacity:.95}
+/* Guide me there */
+.mguide{position:absolute;top:108px;left:10px;right:62px;z-index:3;display:flex;align-items:center;gap:10px;padding:10px 8px 10px 12px;border-radius:14px;background:var(--bg);color:var(--fg);box-shadow:0 6px 20px rgba(0,0,0,.45)}
+.mguide.here{background:var(--yellow);color:#14161a}
+#map.full .mguide{top:calc(max(10px,env(safe-area-inset-top,0px)) + 96px)}
+.garrow{flex:none;width:40px;height:40px;border-radius:50%;background:var(--blue)} .garrow path{fill:#fff}
+.mguide.here .garrow{background:#14161a} .mguide.here .garrow path{fill:var(--yellow)}
+.gtxt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px} .gtxt b{font-size:15px} .gtxt span{font-size:13px;line-height:1.35;opacity:.85}
+.gtxt .snum{min-width:16px;height:16px;font-size:10px;padding:0 4px}
+.gstop{flex:none;width:32px;height:32px;border:0;border-radius:50%;background:transparent;color:inherit;font-size:22px;cursor:pointer}
+.guidecta{margin-top:-2px}
+.nearf{padding:0 14px 6px}
+.nrow{align-items:flex-start} .nrow .snum{margin-top:2px} .nrow .t{display:flex;flex-direction:column}
+.mleadcta{padding:0 14px 8px}
 </style>
 
 <div class="app">
@@ -2144,6 +2166,63 @@ function workDetails(x){
   return '<div class="wk">'+row("Keep sharp",esc(W[0].charAt(0).toUpperCase()+W[0].slice(1))+'.')+row("Distance","About "+esc(mText(W[2]))+(W[2]>=50?', far enough that everything beyond is sharp too':'')+'.')+row("Camera height",esc(W[1])+'.')+
     row("How to focus · "+esc(cam.name),esc(workFocus(x,state.camera)))+row("Press",esc(W[3])+'.')+'</div>'+workTips(x);
 }
+/* Spots: numbers that match the map, Street View, walking to a spot, and the spots near you. */
+const spotNum = id => +String(id).split(":")[1]+1;
+const spotShort = S => S[3].split(",")[0];
+const svUrl = S => 'https://www.google.com/maps/@?api=1&map_action=pano&viewpoint='+S[0].toFixed(6)+','+S[1].toFixed(6)+'&heading='+Math.round(S[2])+'&pitch=0&fov=80';
+const svLink = (pid,S) => pid==="ferry" ? '' : '<a class="chip" href="'+svUrl(S)+'" target="_blank" rel="noopener">Street View ↗</a>';
+function bearingTo(a,b){ const r=Math.PI/180, y=Math.sin((b.lon-a.lon)*r)*Math.cos(b.lat*r), x=Math.cos(a.lat*r)*Math.sin(b.lat*r)-Math.sin(a.lat*r)*Math.cos(b.lat*r)*Math.cos((b.lon-a.lon)*r); return (Math.atan2(y,x)/r+360)%360; }
+const walkMin = km => Math.max(1,Math.round(km*1000*1.25/80));
+const mDist = km => km<1 ? Math.max(10,Math.round(km*100)*10)+' m' : (km/1.609).toFixed(1)+' mi';
+const arrowSvg = deg => '<svg class="garrow" viewBox="-12 -12 24 24" aria-hidden="true"><g transform="rotate('+Math.round(deg)+')"><path d="M0 -10 L7 7 L0 3 L-7 7 Z"/></g></svg>';
+
+/* Guide me there: follows your position to a spot, then tells you which way to face. The arrow turns with the phone when it has a compass. */
+function guideStart(id){
+  guideStop(true); const g={id, heading:null, watch:null, fix:false, err:false, acc:null}; state.guide=g;
+  g.onOri=e=>{ let h=null; if(typeof e.webkitCompassHeading==="number") h=e.webkitCompassHeading; else if(e.absolute&&typeof e.alpha==="number") h=(360-e.alpha)%360; if(h!==null&&state.guide===g){ g.heading=h; guideRender(); } };
+  try{ const D=window.DeviceOrientationEvent; if(D&&typeof D.requestPermission==="function") D.requestPermission().then(r=>{ if(r==="granted") addEventListener("deviceorientation",g.onOri); }).catch(()=>{});
+    else if(D){ addEventListener("deviceorientationabsolute",g.onOri); addEventListener("deviceorientation",g.onOri); } }catch(e){}
+  const fail=()=>{ if(state.guide!==g) return; if(!g.fix){ g.err=true; } guideRender(); };
+  if(!navigator.geolocation){ g.err=true; guideRender(); return; }
+  try{ g.watch=navigator.geolocation.watchPosition(p=>{ if(state.guide!==g) return; state.pos={lat:p.coords.latitude,lon:p.coords.longitude}; g.acc=p.coords.accuracy; g.err=false;
+      if(!g.fix){ g.fix=true; guideFit(); } mapDraw(); guideRender(); }, fail, {enableHighAccuracy:true, maximumAge:5000, timeout:20000}); }catch(e){ g.err=true; }
+  guideRender(); mapPanel(); }
+function guideStop(silent){ const g=state.guide; if(!g) return; try{ if(g.watch!=null) navigator.geolocation.clearWatch(g.watch); }catch(e){}
+  try{ removeEventListener("deviceorientation",g.onOri); removeEventListener("deviceorientationabsolute",g.onOri); }catch(e){}
+  state.guide=null; if(!silent){ guideRender(); mapDraw(); mapPanel(); } }
+function guideInfo(){ const g=state.guide; if(!g||!state.pos) return null; const [pid,i]=g.id.split(":"), S=SPOTS[pid]&&SPOTS[pid][+i]; if(!S) return null;
+  const to={lat:S[0],lon:S[1]}, km=kmBetween(state.pos,to); return {S, pid, km, brg:bearingTo(state.pos,to), here:km*1000<=Math.max(20,Math.min(40,g.acc||0))}; }
+function guideFit(){ const G=guideInfo(); if(!G) return; const [ax,ay]=mapXY(state.pos.lat,state.pos.lon), [bx,by]=mapXY(G.S[0],G.S[1]);
+  if(G.km>6){ mapFly(mapAim({cx:bx,cy:by,w:12})); return; }
+  mapFly(mapAim({cx:(ax+bx)/2, cy:(ay+by)/2, w:Math.min(330,Math.max(10,Math.max(Math.abs(ax-bx),Math.abs(ay-by)*MAP_ASPECT)*1.7))})); }
+function guideRender(){ const box=$("mapGuide"); if(!box) return; const g=state.guide; if(!g){ box.hidden=true; box.innerHTML=""; return; }
+  const [pid,i]=g.id.split(":"), S=SPOTS[pid][+i], G=guideInfo(), stop='<button type="button" class="gstop" data-guidestop="1" aria-label="Stop guiding">×</button>', num='<span class="snum">'+spotNum(g.id)+'</span>';
+  let h;
+  if(g.err&&!G) h='<div class="gtxt"><b>Your location is not available here</b><span>Guide me there works in the installed app on your phone, with location allowed for Shot List.</span></div>';
+  else if(!G) h='<div class="gtxt"><b>Finding you…</b><span>Heading to '+esc(S[3])+'</span></div>';
+  else if(G.here){ const rel=g.heading===null?S[2]:S[2]-g.heading, lf=lightFacing(S[2],new Date());
+    h=arrowSvg(rel)+'<div class="gtxt"><b>You are here. Face '+compass(S[2])+'.</b><span>'+(g.heading===null?'The arrow points that way on the map, with north up; your phone has not shared a compass.':'Turn until the arrow points straight up.')+' '+esc(lf.txt)+' now.</span></div>'; }
+  else { const rel=g.heading===null?G.brg:G.brg-g.heading;
+    h=arrowSvg(rel)+'<div class="gtxt"><b>'+mDist(G.km)+' · about '+walkMin(G.km)+' min</b><span>Head '+compass(G.brg)+' to '+num+' '+esc(spotShort(S))+(g.heading===null?' (arrow on map north)':'')+(g.acc>40?'. GPS is rough here, ±'+Math.round(g.acc)+' m':'')+'</span></div>'; }
+  box.innerHTML=h+stop; box.hidden=false; box.classList.toggle("here",!!(G&&G.here)); }
+
+/* Spots near you: within about a 20-minute walk, those whose idea suits the light now first. */
+function nearSpots(all){ if(!state.pos) return []; const key=lightAt(mapNow()), out=[];
+  for(const [pid,list] of Object.entries(SPOTS)) list.forEach((S,i)=>{ const km=kmBetween(state.pos,{lat:S[0],lon:S[1]}); if(km>1.6) return;
+    const x=IDEAS.find(y=>y.id===S[5]), fit=!!(x&&x.w.includes(key)); if(!all&&!fit) return; out.push({id:pid+":"+i, S, pid, km, x, fit}); });
+  return out.sort((a,b)=>a.km-b.km).slice(0,15); }
+function nearPanel(){ const all=!!state.mapNearAll, list=nearSpots(all), key=lightAt(mapNow()), t=mapNow();
+  const rows=list.map(o=>{ const lf=lightFacing(o.S[2],t); return '<button type="button" class="row nrow" data-spot="'+o.id+'"><span class="snum '+lf.k+'">'+spotNum(o.id)+'</span><span class="t"><b>'+esc(o.x?o.x.t:o.S[3])+'</b><span>'+esc(spotShort(o.S))+' · '+esc(PLACES[o.pid].name)+'</span><span>'+mDist(o.km)+', '+walkMin(o.km)+' min walk · '+esc(lf.txt.toLowerCase())+(all&&o.fit?' · suits the light':'')+'</span></span><span class="go" aria-hidden="true">›</span></button>'; }).join("");
+  let empty='';
+  if(!list.length){ let best=null; for(const [pid,l] of Object.entries(SPOTS)) l.forEach((S,i)=>{ const km=kmBetween(state.pos,{lat:S[0],lon:S[1]}); if(!best||km<best.km) best={id:pid+":"+i,S,pid,km}; });
+    empty='<p class="msg">'+(all?'No spots within a 20-minute walk.':'No spots within a 20-minute walk suit '+esc((WHEN[key]||key).toLowerCase())+'. Try All spots, or move the time slider.')+'</p>'+
+      (best&&!all?'':best?'<button type="button" class="row" data-spot="'+best.id+'"><span class="snum">'+spotNum(best.id)+'</span><span class="t"><b>Nearest: '+esc(best.S[3])+'</b><span>'+esc(PLACES[best.pid].name)+' · '+mDist(best.km)+'</span></span><span class="go" aria-hidden="true">›</span></button>':''); }
+  return '<section class="group mapsel"><button type="button" class="mapselx" data-nearclose="1" aria-label="Close">×</button><div class="group-head"><b>Spots near you</b><span class="where">Within about a 20-minute walk, nearest first</span></div>'+
+    '<div class="intents nearf"><button type="button" class="chip" data-nearall="0" aria-pressed="'+!all+'">Suit the light now</button><button type="button" class="chip" data-nearall="1" aria-pressed="'+all+'">All spots</button></div>'+rows+empty+'</section>'; }
+function showNear(){ state.mapNear=true; state.mapSel=null; state.mapSpot=null; state.mapEv=null; state.mapLm=null; mapPanel(); mapDraw(); if(state.pos) mapFly(mapAim({...mapPreset("me"), w:30})); setSheet("half"); }
+function needPos(then){ if(state.pos){ then(); return; } const fail=()=>{ $("mapPanel").insertAdjacentHTML("afterbegin",'<p class="msg">Your location is not available here. In the installed app, allow location access for Shot List when asked.</p>'); };
+  if(!navigator.geolocation){ fail(); return; }
+  try{ navigator.geolocation.getCurrentPosition(p=>{ state.pos={lat:p.coords.latitude,lon:p.coords.longitude}; fillPlaces(); syncNear(); then(); }, fail, {timeout:10000,maximumAge:120000}); }catch(e){ fail(); } }
 function spotFor(x){ const list=SPOTS[x.p]||[], i=list.findIndex(S=>S[5]===x.id); return i<0?null:{id:x.p+":"+i,S:list[i]}; }
 function standDial(bearing,t){ const c=CITIES[state.city], sp=sunPos(t,c.lat,c.lon), fov=camFov(), R=34, C=40, P=(a,r)=>[(C+Math.sin(a*Math.PI/180)*r).toFixed(1),(C-Math.cos(a*Math.PI/180)*r).toFixed(1)];
   const a0=P(bearing-fov/2,R), a1=P(bearing+fov/2,R), lf=lightFacing(bearing,t);
@@ -2153,9 +2232,9 @@ function standDial(bearing,t){ const c=CITIES[state.city], sp=sunPos(t,c.lat,c.l
     '<text x="40" y="12" text-anchor="middle" class="sd-n">N</text>'+sun+'</svg>'; }
 function standBlock(x){ const sp=spotFor(x), t=new Date(), pl=PLACES[x.p];
   if(sp){ const S=sp.S, lf=lightFacing(S[2],t), c=CITIES[state.city], sun=sunPos(t,c.lat,c.lon);
-    return '<div class="part stand"><span class="label">Where to stand</span><div class="standrow">'+standDial(S[2],t)+'<div class="standtxt"><b>'+esc(S[3])+'</b>'+
+    return '<div class="part stand"><span class="label">Where to stand</span><div class="standrow">'+standDial(S[2],t)+'<div class="standtxt"><b><span class="snum">'+spotNum(sp.id)+'</span> '+esc(S[3])+'</b>'+
       '<span>Face '+compass(S[2])+' · <span class="sdk '+lf.k+'">'+lf.txt+' now</span>'+(sun.alt>-0.8?' (sun to the '+compass(sun.az)+')':'')+'</span><p>'+esc(S[4])+'</p></div></div>'+
-      '<div class="callinks"><a class="chip" href="https://www.google.com/maps/dir/?api=1&destination='+S[0].toFixed(5)+','+S[1].toFixed(5)+'&travelmode=walking" target="_blank" rel="noopener">Walk there ↗</a><button type="button" class="chip" data-spotmap="'+sp.id+'">See it on the map</button></div></div>'; }
+      '<div class="callinks"><a class="chip" href="https://www.google.com/maps/dir/?api=1&destination='+S[0].toFixed(5)+','+S[1].toFixed(5)+'&travelmode=walking" target="_blank" rel="noopener">Walk there ↗</a>'+svLink(x.p,S)+'<button type="button" class="chip" data-spotmap="'+sp.id+'">See it on the map</button><button type="button" class="chip" data-guidego="'+sp.id+'">Guide me there</button></div></div>'; }
   if(typeof pl.lat!=="number") return '';
   const g=START_GEO[x.p], st=START[x.p];
   return '<div class="part stand"><span class="label">Where to stand</span><p>'+esc(x.work.split(/(?<=\.)\s/)[0])+'</p>'+(st?'<p class="hint">Start at '+esc(st[0])+'.</p>':'')+
@@ -2544,7 +2623,7 @@ function evStatus(r,t){ const day=evDay(t), s=evDay(r.o[0]), en=evDay(r.o[1]||r.
 function mapEvents(){ const now=new Date(), today=new Date(now.getFullYear(),now.getMonth(),now.getDate()), lim=new Date(today.getFullYear(),today.getMonth(),today.getDate()+42);
   return eventRows(today).filter(r=>r.o&&!r.cancelled&&r.o[0]<=lim).map(r=>{ const d=EVENT_DOCS[r.e.id], g=(d&&typeof d.lat==="number"&&typeof d.lon==="number"&&d.lat>40.4&&d.lat<41&&d.lon>-74.3&&d.lon<-73.6)?[d.lat,d.lon]:EVENT_GEO[r.e.id];
     if(!g) return null; const [x,y]=mapXY(g[0],g[1]); const st=evStatus(r,mapNow()); return {r,id:r.e.id,x,y,st,day:st.chip}; }).filter(Boolean); }
-let MAP_ASPECT = 1.35; const MAP_LIM = {x:[250,880], y:[70,860], w:[20,560]};
+let MAP_ASPECT = 1.35; const MAP_LIM = {x:[250,880], y:[70,860], w:[6,560]};
 const mapPreset = k => { if(k==="me"&&state.pos){ const [x,y]=mapXY(state.pos.lat,state.pos.lon); return {cx:x,cy:y,w:110}; }
   return k==="man" ? {cx:486,cy:386,w:196} : k==="bk" ? {cx:520,cy:500,w:250} : {cx:576,cy:462,w:492}; };
 const MAP_PRESETS = [["city","Whole city"],["man","Manhattan"],["bk","Downtown and Brooklyn"]];
@@ -2569,7 +2648,7 @@ function mapShell(box){
     '<g id="mapDyn"></g><g id="mapPhotos">'+(PHOTOS_INLINE?Object.entries(PLACE_PHOTO).map(([id,P])=>'<clipPath id="pc-'+id+'"><circle r="1"/></clipPath><image data-ph="'+id+'" href="'+esc(P.src)+'" preserveAspectRatio="xMidYMid slice" clip-path="url(#pc-'+id+')" style="display:none" onerror="this.remove()"/>').join(""):'')+'</g><g id="mapOver"></g></svg></div>'+
     '<div class="mtop"><div class="mrow"><div class="mapgo"><select id="mapGo" aria-label="Go to a place"></select></div><button type="button" class="mlayersbtn" id="mapLayersBtn" aria-expanded="false" aria-controls="mapLayers" title="Map layers">'+LAYER_ICON+'<span>Layers</span><i id="mapLiveDot" hidden></i></button></div>'+
     '<div class="intents mchips" id="mapIntent"></div></div>'+
-    '<div class="mlayers" id="mapLayers" hidden></div>'+
+    '<div class="mlayers" id="mapLayers" hidden></div><div class="mguide" id="mapGuide" role="status" aria-live="polite" hidden></div>'+
     '<div class="mapbtns"><button type="button" data-full="1" aria-label="Full screen map" title="Full screen"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="ico-open" d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/><path class="ico-close" d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5"/></svg></button><button type="button" data-zoom="0.6" aria-label="Zoom in">+</button><button type="button" data-zoom="1.6" aria-label="Zoom out">−</button><button type="button" data-fit="1" aria-label="Show the whole city" title="Whole city">⌂</button><button type="button" data-locate="1" aria-label="Find me on the map" title="Find me">◎</button></div>'+
     '<div class="mapscale" id="mapScale"></div>'+
     '<section class="msheet" id="mapSheet" aria-label="Map details"><div class="mgrab" id="mapGrab" role="button" tabindex="0" aria-label="Show more or less"><i></i></div>'+
@@ -2605,7 +2684,7 @@ const MAP_LAYERS = [["mapShowEv","Events","Upcoming events, and what is on now",
   ["mapShowSunny","Sunny side","Which side of each street is in sun, while the sun is up","lg sunny"],["mapShowSpots","Where to stand","Spots and lens wedges when zoomed in","lg spot"],["mapShowNames","Street and area names","","lg names"]];
 function mapLayersHtml(nLive){ return '<div class="mlayers-head"><b>Map layers</b><button type="button" class="mapselx" data-layersclose="1" aria-label="Close">×</button></div>'+
   MAP_LAYERS.map(([k,t,sub,ic])=>'<button type="button" class="mlayer" data-layer="'+k+'" aria-pressed="'+!!state[k]+'"><span class="'+ic+'"></span><span class="t"><b>'+t+(k==="mapShowEv"&&nLive?' · '+nLive+' on now':'')+'</b>'+(sub?'<span>'+sub+'</span>':'')+'</span><span class="sw" aria-hidden="true"></span></button>').join("")+
-  '<p class="mlayers-sub">Jump to</p><div class="intents" id="mapZoom">'+MAP_PRESETS.concat(state.pos?[["me","Near me"]]:[]).map(z=>'<button type="button" class="chip" data-z="'+z[0]+'">'+z[1]+'</button>').join("")+'</div>'; }
+  '<p class="mlayers-sub">Jump to</p><div class="intents" id="mapZoom">'+MAP_PRESETS.concat(state.pos?[["me","Near me"]]:[]).map(z=>'<button type="button" class="chip" data-z="'+z[0]+'">'+z[1]+'</button>').join("")+'<button type="button" class="chip" data-nearspots="1">Spots near me</button></div>'; }
 
 /* Sun on the map: position of the sun for the map's time (now, or a time picked on the slider). Azimuth in degrees from north. */
 function sunPos(date,lat,lon){ const rad=Math.PI/180, e=rad*23.4397, d=date/864e5-0.5+2440588-2451545, M=rad*(357.5291+0.98560028*d),
@@ -2848,20 +2927,24 @@ function mapDraw(){
       return '<path d="M'+P(r1,a0)+' L'+P(r2,a0)+' A'+f(r2)+' '+f(r2)+' 0 0 1 '+P(r2,a1)+' L'+P(r1,a1)+' A'+f(r1)+' '+f(r1)+' 0 0 0 '+P(r1,a0)+'Z" class="m-comp '+k+'"/><text x="'+f(lx)+'" y="'+f(ly+3*u)+'" text-anchor="middle" font-size="'+f(8.5*u)+'" class="m-comptx">'+lab+'</text>'; };
     comp='<g class="m-compass'+(near?' ring':'')+'">'+sec(sp.az,"back","Back")+sec(sp.az+90,"side","Side")+sec(sp.az-90,"side","Side")+sec(sp.az+180,"front","Front")+'</g>'; }
   // where to stand: spots with a wedge as wide as the lens sees, coloured by the light facing that way
-  let spotsSvg=""; const fov=camFov(), tNow=mapNow();
+  let spotsSvg="", spotLabs=""; const fov=camFov(), tNow=mapNow(), labBoxes=[];
   for(const [pid,list] of Object.entries(SPOTS)){ if(!state.mapShowSpots||!PLACES[pid]||!(w<40||(state.mapSel===pid&&w<130))) continue;
     list.forEach((S,i)=>{ const [x,y]=mapXY(S[0],S[1]); if(!inside(x,y,0)) return; const id=pid+":"+i, on=state.mapSpot===id, L=(on?40:28)*u, lf=lightFacing(S[2],tNow);
       const a0=(S[2]-fov/2)*Math.PI/180, a1=(S[2]+fov/2)*Math.PI/180;
       spotsSvg+='<g class="m-spotg'+(on?" on":"")+'" data-s="'+id+'" tabindex="0" role="button" aria-label="'+esc(S[3]+", facing "+compass(S[2])+", "+lf.txt)+'"><path d="M'+f(x)+' '+f(y)+' L'+f(x+Math.sin(a0)*L)+' '+f(y-Math.cos(a0)*L)+' A'+f(L)+' '+f(L)+' 0 0 1 '+f(x+Math.sin(a1)*L)+' '+f(y-Math.cos(a1)*L)+'Z" class="m-cone '+lf.k+'"/>'+
-        '<circle cx="'+f(x)+'" cy="'+f(y)+'" r="'+f(12*u)+'" class="m-hit"/><circle cx="'+f(x)+'" cy="'+f(y)+'" r="'+f((on?5:4)*u)+'" stroke-width="'+f(1.5*u)+'" class="m-spotpt"/>'+
-        (on?'<text x="'+f(x)+'" y="'+f(y+13*u)+'" text-anchor="middle" font-size="'+f(8.5*u)+'" class="m-spottx">'+esc(S[3])+'</text>':'')+'</g>'; }); }
+        '<circle cx="'+f(x)+'" cy="'+f(y)+'" r="'+f(13*u)+'" class="m-hit"/><circle cx="'+f(x)+'" cy="'+f(y)+'" r="'+f((on?8.5:7)*u)+'" stroke-width="'+f(1.5*u)+'" class="m-spotpt"/>'+
+        '<text x="'+f(x)+'" y="'+f(y+(on?3.3:2.8)*u)+'" text-anchor="middle" font-size="'+f((on?9.5:8)*u)+'" class="m-spotn">'+(i+1)+'</text></g>';
+      // names next to the numbers when zoomed in close, skipping any that would overlap
+      if(on||w<=14){ const txt=on?S[3]:spotShort(S), fs=(on?8.5:7.5)*u, tw=txt.length*fs*0.52, bx=[x-tw/2, y+10*u, x+tw/2, y+10*u+fs*1.2];
+        if(on||!labBoxes.some(b=>b[0]<bx[2]&&bx[0]<b[2]&&b[1]<bx[3]&&bx[1]<b[3])){ labBoxes.push(bx); spotLabs+='<text x="'+f(x)+'" y="'+f(y+10*u+fs)+'" text-anchor="middle" font-size="'+f(fs)+'" class="m-spottx'+(on?' on':'')+'">'+esc(txt)+'</text>'; } } }); }
   // the moon on the edge of the map, like the sun, with its phase
   let moonSvg=""; const mp=moonPos(mapNow(),cc.lat,cc.lon);
   if(mp.alt>-0.5){ const r=mp.az*Math.PI/180, dx=Math.sin(r), dy=-Math.cos(r), m=18*u, vt=y0+topPx()*u, vb=y1-sheetPx()*u, cx=(x0+x1)/2, cy=(vt+vb)/2, hx=w/2-m, hy=Math.max(10*u,(vb-vt)/2-m), k=Math.min(Math.abs(dx)>1e-6?hx/Math.abs(dx):1e9, Math.abs(dy)>1e-6?hy/Math.abs(dy):1e9), mx=cx+dx*k, my=cy+dy*k, R=7*u;
     const rx=R*Math.abs(1-2*mp.frac), lit='M0 '+f(-R)+' A'+f(R)+' '+f(R)+' 0 0 1 0 '+f(R)+' A'+f(rx)+' '+f(R)+' 0 0 '+(mp.frac>0.5?1:0)+' 0 '+f(-R)+'Z';
     moonSvg='<g class="m-moon" transform="translate('+f(mx)+' '+f(my)+')"><circle r="'+f(R*1.8)+'" class="m-moonglow"/><circle r="'+f(R)+'" class="m-moondark"/>'+(mp.frac>0.02?'<path d="'+lit+'" class="m-moonlit"'+(mp.phase>0.5?' transform="scale(-1 1)"':'')+'/>':'')+'</g>'; }
-  $("mapDyn").innerHTML=tint+sun+moonSvg+sunny+detail+allStn+route+ring+stations+flags+labels+lms+comp+(w<60?"":spotsSvg)+evs+you+pins;
-  $("mapOver").innerHTML=over+badges+(w<60?spotsSvg:"");
+  let guideLine=""; const GI=guideInfo(); if(GI){ const [ax,ay]=mapXY(state.pos.lat,state.pos.lon), [bx,by]=mapXY(GI.S[0],GI.S[1]); guideLine='<path d="M'+f(ax)+' '+f(ay)+' L'+f(bx)+' '+f(by)+'" class="m-guide" stroke-width="'+f(3*u)+'" stroke-dasharray="'+f(2*u)+' '+f(6*u)+'"/>'; }
+  $("mapDyn").innerHTML=tint+sun+moonSvg+sunny+detail+allStn+route+ring+stations+flags+labels+lms+comp+(w<60?"":spotsSvg+spotLabs)+evs+guideLine+you+pins;
+  $("mapOver").innerHTML=over+badges+(w<60?spotsSvg+spotLabs:"");
   const sl=$("sunLine"); if(sl) sl.innerHTML=sunLine();
 }
 function mapPanel(){
@@ -2896,9 +2979,10 @@ function mapPanel(){
         mine.map(x=>{ const sp=spotFor(x), lf=sp&&lightFacing(sp.S[2],mapNow());
           return '<div class="irow"><button type="button" class="row'+(state.done.has(x.id)?" done":"")+'" data-id="'+x.id+'"><span class="dot" style="background:'+INTENTS[x.i].color+'"></span>'+
           '<span class="t"><b>'+esc(x.t)+'</b><span>'+esc(INTENTS[x.i].name)+(x.w.includes(key)?' · suits the light now':'')+'</span></span><span class="go" aria-hidden="true">›</span></button>'+
-          (sp?'<button type="button" class="srow" data-spot="'+sp.id+'" aria-label="Show where to stand on the map: '+esc(sp.S[3])+'"><span class="sdot '+lf.k+'"></span><span class="t"><b>'+esc(sp.S[3])+'</b> · face '+compass(sp.S[2])+', '+esc(lf.txt.charAt(0).toLowerCase()+lf.txt.slice(1))+'</span><span class="sgo" aria-hidden="true">◎</span></button>':'')+'</div>'; }).join("")+
+          (sp?'<button type="button" class="srow" data-spot="'+sp.id+'" aria-label="Show where to stand on the map: spot '+spotNum(sp.id)+', '+esc(sp.S[3])+'"><span class="snum '+lf.k+'">'+spotNum(sp.id)+'</span><span class="t"><b>'+esc(sp.S[3])+'</b> · face '+compass(sp.S[2])+', '+esc(lf.txt.charAt(0).toLowerCase()+lf.txt.slice(1))+'</span><span class="sgo" aria-hidden="true">◎</span></button>':'')+'</div>'; }).join("")+
         '<div class="callinks">'+(planIndex(sel.id)<0?'<button type="button" class="chip primary" data-addplan="'+sel.id+'">+ Add to today</button>':'<span class="pill instop">Stop '+(planIndex(sel.id)+1)+' · '+state.plan.stops[planIndex(sel.id)].at.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}).toLowerCase()+'</span><button type="button" class="chip" data-rmplan="'+sel.id+'">Remove from today</button>')+(START[sel.id]?'<a class="chip" href="https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(mapAddr(sel.id))+'&travelmode=transit" target="_blank" rel="noopener">Directions from where I am ↗</a>':'')+'<button type="button" class="chip" data-plan="'+sel.id+'">Plan an outing from here</button><button type="button" class="chip" data-go="'+sel.id+'">Open in Browse</button></div></section>'
-      : '<p class="lead mlead">Tap a pin to see a place and its ideas. Drag the bar above to see more.</p>');
+      : state.mapNear ? nearPanel() : '<p class="lead mlead">Tap a pin to see a place and its ideas. Drag the bar above to see more.</p><div class="callinks mleadcta"><button type="button" class="chip primary" data-nearspots="1">Spots near me</button></div>');
+  guideRender();
   if($("mapLegend")) $("mapLegend").innerHTML=legendHtml+'<p class="msg">Drag to move the map, pinch or use + and − to zoom, double-tap to zoom in. ⌂ shows the whole city and ◎ finds you. Zoom in for neighbourhoods, landmarks, stations, street names and spots. The number on a pin is how many of its ideas suit the light now. Streets come from the US Census street files and subway lines from the MTA; landmarks and spots are placed by hand. On the subway has no pin because it is everywhere.</p>';
   if(state.sheet==="peek"&&(sel||evSel||lmSel||spotSel)) setSheet("half");
   const selKey=[state.mapSel,state.mapEv,state.mapLm,state.mapSpot].join("|"); if(selKey!==mapPanel.last){ mapPanel.last=selKey; if($("mapBody")) $("mapBody").scrollTop=0; }
@@ -2911,11 +2995,12 @@ document.addEventListener("fullscreenchange",()=>{ if(!document.fullscreenElemen
 document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&state.mapFull) mapFull(false); if(e.key==="Escape"&&openTip!==null&&openTip!=="c"){ const k=openTip; openTip=null; tipSheet(); const t=document.querySelector('#card [data-tip="'+k+'"]'); if(t) t.focus(); } });
 $("tipSheet").addEventListener("click",e=>{ if(e.target.closest("[data-tipclose]")){ const k=openTip; openTip=null; tipSheet(); const t=document.querySelector('#card [data-tip="'+k+'"]'); if(t) t.focus({preventScroll:true}); } });
 function spotPanel(id){ const [pid,i]=id.split(":"), S=SPOTS[pid][+i], t=mapNow(), lf=lightFacing(S[2],t), idea=IDEAS.find(x=>x.id===S[5]), cam=CAMERAS[state.camera];
-  return '<section class="group mapsel"><button type="button" class="mapselx" data-unsel="1" aria-label="Close">×</button><div class="group-head"><b>'+esc(S[3])+'</b><span class="where">'+esc(PLACES[pid].name)+' · facing '+compass(S[2])+'</span></div>'+
+  return '<section class="group mapsel"><button type="button" class="mapselx" data-unsel="1" aria-label="Close">×</button><div class="group-head"><b><span class="snum">'+spotNum(id)+'</span> '+esc(S[3])+'</b><span class="where">'+esc(PLACES[pid].name)+' · facing '+compass(S[2])+(state.pos?' · '+mDist(kmBetween(state.pos,{lat:S[0],lon:S[1]}))+' from you':'')+'</span></div>'+
+    '<div class="callinks guidecta">'+(state.guide&&state.guide.id===id?'<button type="button" class="chip" data-guidestop="1">Stop guiding</button>':'<button type="button" class="chip primary" data-guide="'+id+'">Guide me there</button>')+svLink(pid,S)+'</div>'+
     '<p class="mapcount">'+esc(S[4])+'</p><p class="maplight"><span class="sdot '+lf.k+'"></span><b>'+lf.txt+' at '+hmText(t.getHours()*60+t.getMinutes())+'.</b> '+LIGHT_TIP[lf.k]+'</p>'+
     '<p class="hint spotfov">The wedge on the map is what '+(cam&&state.camera!=='other'?'the '+esc(cam.name):'your camera')+' takes in from here, about '+Math.round(camFov())+'° across. Drag the time slider to see how the light changes.</p>'+
     (idea?'<button type="button" class="row" data-id="'+idea.id+'"><span class="dot" style="background:'+INTENTS[idea.i].color+'"></span><span class="t"><b>'+esc(idea.t)+'</b><span>The idea for this spot · '+esc(INTENTS[idea.i].name)+'</span></span><span class="go" aria-hidden="true">›</span></button>':'')+
-    '<div class="callinks"><a class="chip" href="https://www.google.com/maps/search/?api=1&query='+S[0].toFixed(5)+','+S[1].toFixed(5)+'" target="_blank" rel="noopener">Google Maps ↗</a><button type="button" class="chip" data-gosel="'+pid+'">Back to '+esc(PLACES[pid].name)+'</button></div></section>'; }
+    '<div class="callinks"><a class="chip" href="https://www.google.com/maps/dir/?api=1&destination='+S[0].toFixed(5)+','+S[1].toFixed(5)+'&travelmode=walking" target="_blank" rel="noopener">Walking directions ↗</a>'+(state.mapNear?'<button type="button" class="chip" data-nearback="1">Back to spots near you</button>':'')+'<button type="button" class="chip" data-gosel="'+pid+'">Back to '+esc(PLACES[pid].name)+'</button></div></section>'; }
 function lmPanel(L){ const [name,lat,lon,kind,,tip]=L, here={lat,lon};
   const near=Object.keys(CITIES[state.city].places).filter(id=>typeof PLACES[id].lat==="number").map(id=>({id,km:kmBetween(here,PLACES[id])})).sort((a,b)=>a.km-b.km)[0];
   const d=milesText(milesTo(here));
@@ -2924,7 +3009,7 @@ function lmPanel(L){ const [name,lat,lon,kind,,tip]=L, here={lat,lon};
     (near&&near.km<2.5?'<button type="button" class="row" data-gosel="'+near.id+'"><span class="dot" style="background:var(--yellow)"></span><span class="t"><b>Nearest Shot List place: '+esc(PLACES[near.id].name)+'</b><span>About '+(near.km/1.609<0.15?"a block":(near.km/1.609).toFixed(1)+" mi")+' away · its ideas and starting point</span></span><span class="go" aria-hidden="true">›</span></button>':'')+
     '<div class="callinks"><a class="chip" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(name+", New York, NY")+'" target="_blank" rel="noopener">Google Maps ↗</a><a class="chip" href="https://www.google.com/maps/dir/?api=1&destination='+lat.toFixed(5)+','+lon.toFixed(5)+'&travelmode=transit" target="_blank" rel="noopener">Directions ↗</a></div></section>'; }
 function mapSelectSpot(id){ const [pid,i]=id.split(":"), S=SPOTS[pid]&&SPOTS[pid][+i]; if(!S) return; state.mapSpot=id; state.mapSel=pid; state.mapEv=null; state.mapLm=null; mapDraw(); mapPanel();
-  const [x,y]=mapXY(S[0],S[1]); requestAnimationFrame(()=>{ mapDraw(); mapFly(mapAim({cx:x,cy:y,w:Math.min(mapV.w,26)})); }); }
+  const [x,y]=mapXY(S[0],S[1]); requestAnimationFrame(()=>{ mapDraw(); mapFly(mapAim({cx:x,cy:y,w:Math.min(mapV.w,12)})); }); }
 /* Bring a point into the part of the map you can see, if it is under the search bar or the sheet. */
 function mapEnsure(x,y){ const svg=$("mapSvg"); if(!svg||!mapV) return; const k=mapV.w/(svg.clientWidth||360), H=svg.clientHeight, sx=(x-mapV.cx)/k+svg.clientWidth/2, sy=(y-mapV.cy)/k+H/2;
   if(sx<30||sx>svg.clientWidth-60||sy<topPx()+20||sy>H-sheetPx()-20) mapFly(mapAim({cx:x,cy:y,w:mapV.w})); }
@@ -2946,7 +3031,7 @@ function placeView(id){ const pl=PLACES[id], pts=[[pl.lat,pl.lon]].concat(START_
   const w=Math.max(20,Math.min(100,Math.max(x1-x0,(y1-y0)/aspect)*2+8));
   return {cx:(x0+x1)/2, cy:(y0+y1)/2, w:Math.min(w,mapV?Math.max(mapV.w,20):w)}; }
 function mapZoomPlace(id){ const v=placeView(id); mapFly(mapAim(v)); }
-function mapSelect(id){ state.mapSel=id; state.mapEv=null; state.mapLm=null; state.mapSpot=null; mapDraw(); mapPanel(); if(id){ const fly=()=>{ const p=mapPts().find(q=>q.id===id), h=mapV.w*MAP_ASPECT;
+function mapSelect(id){ if(id) state.mapNear=false; state.mapSel=id; state.mapEv=null; state.mapLm=null; state.mapSpot=null; mapDraw(); mapPanel(); if(id){ const fly=()=>{ const p=mapPts().find(q=>q.id===id), h=mapV.w*MAP_ASPECT;
   if(p) mapZoomPlace(id); };
   if(state.mapFull) requestAnimationFrame(()=>{ mapDraw(); fly(); }); else fly(); } else if(state.mapFull) requestAnimationFrame(mapDraw); }
 function mapGestures(svg){
@@ -3094,7 +3179,7 @@ function planToday(h){ renderPlan(); const t=new Date(), best=todayPicks(atMin(M
   if(best&&[...$("pStart").options].some(o=>o.value===best.id)) $("pStart").value=best.id;
   $("pTime").value=(+h*60<=dayMin(new Date()))?"now":String(h); $("pLen").value="150"; state.plan=makePlan(); savePlan(); state.view="map"; render(); }
 function render(){
-  openTip=null; tipSheet(); if(state.view!=="map"&&state.mapFull) mapFull(false);
+  openTip=null; tipSheet(); if(state.view!=="map"&&state.mapFull) mapFull(false); if(state.view!=="map"&&state.guide) guideStop(true);
   const shoot=state.view==="shoot", ev=state.view==="events", pl=state.view==="plan", mp=state.view==="map", ln=state.view==="learn", td=state.view==="today";
   $("viewToday").hidden=!td; if(td) renderToday();
   $("viewLearn").hidden=!ln; if(ln) renderLearn();
@@ -3192,7 +3277,13 @@ $("syncImport").addEventListener("click",()=>{ const r=syncImport($("syncCode").
   $("syncCode").value=""; render(); });
 $("map").addEventListener("click",e=>{
   if(e.target.closest("[data-full]")){ mapFull(!state.mapFull); return; }
-  if(e.target.closest("[data-unsel]")){ mapSelect(null); return; }
+  if(e.target.closest("[data-unsel]")){ const back=state.mapNear&&state.mapSpot; mapSelect(null); if(back){ mapPanel(); } return; }
+  const gd=e.target.closest("[data-guide]"); if(gd){ guideStart(gd.dataset.guide); return; }
+  if(e.target.closest("[data-guidestop]")){ guideStop(); return; }
+  if(e.target.closest("[data-nearspots]")){ $("mapLayers").hidden=true; $("mapLayersBtn").setAttribute("aria-expanded","false"); needPos(showNear); return; }
+  const na=e.target.closest("[data-nearall]"); if(na){ state.mapNearAll=na.dataset.nearall==="1"; mapPanel(); return; }
+  if(e.target.closest("[data-nearclose]")){ state.mapNear=false; mapPanel(); return; }
+  if(e.target.closest("[data-nearback]")){ showNear(); return; }
   const ap=e.target.closest("[data-addplan]"); if(ap){ planAdd(ap.dataset.addplan); mapPanel(); mapDraw(); return; }
   const rp=e.target.closest("[data-rmplan]"); if(rp){ planRemove(rp.dataset.rmplan); mapPanel(); mapDraw(); return; }
   const sc=e.target.closest("[data-stop]"); if(sc){ mapGoStop(+sc.dataset.stop); return; }
@@ -3258,6 +3349,7 @@ $("list").addEventListener("click",e=>{
     return; }
   const r=e.target.closest(".row"); if(!r) return; show(r.dataset.id); state.view="shoot"; render(); window.scrollTo({top:0});});
 $("card").addEventListener("click",e=>{
+  const gg=e.target.closest("[data-guidego]"); if(gg){ const id=gg.dataset.guidego; state.mapT=null; state.view="map"; render(); guideStart(id); requestAnimationFrame(()=>requestAnimationFrame(()=>{ mapSelectSpot(id); guideRender(); })); return; }
   const sm=e.target.closest("[data-spotmap]"); if(sm){ const id=sm.dataset.spotmap; state.mapT=null; state.view="map"; render(); requestAnimationFrame(()=>requestAnimationFrame(()=>mapSelectSpot(id))); return; }
   const pm=e.target.closest("[data-placemap]"); if(pm){ const id=pm.dataset.placemap; state.mapT=null; state.view="map"; render(); requestAnimationFrame(()=>requestAnimationFrame(()=>mapSelect(id))); return; }
   const t=e.target.closest("[data-tab]"); if(t){ state.tab=t.dataset.tab; openTip=null; renderCard(); return; }
