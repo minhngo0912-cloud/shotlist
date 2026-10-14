@@ -388,13 +388,13 @@ footer{font-size:13px;color:var(--muted);max-width:65ch}
 .lmtoggle[aria-pressed="false"] .lg{background:transparent;border-color:var(--muted);box-shadow:none}
 
 /* Light compass round the selected place */
-.m-comp{pointer-events:none;stroke:rgba(0,0,0,.35);stroke-width:.4}
+.m-comp{pointer-events:none;stroke:rgba(0,0,0,.35)}
 .m-comp.back{fill:rgba(242,138,40,.55)} .m-comp.side{fill:rgba(252,204,10,.38)} .m-comp.front{fill:rgba(255,248,220,.42)}
 .m-comptx{fill:#fff;font-family:var(--sans);font-weight:800;paint-order:stroke;stroke:#14161a;stroke-width:.3em;stroke-linejoin:round;pointer-events:none}
 /* Where to stand: spots and the lens wedge */
 .m-spotg{cursor:pointer;outline:none}
-.m-cone{stroke:#fff;stroke-width:.5;stroke-opacity:.8} .m-cone.back{fill:rgba(242,138,40,.55)} .m-cone.side{fill:rgba(252,204,10,.45)} .m-cone.front{fill:rgba(255,248,220,.5)} .m-cone.dark{fill:rgba(130,150,255,.4)}
-.m-spotg.on .m-cone{stroke-width:1;stroke-opacity:1}
+.m-cone{stroke:#fff;stroke-opacity:.8} .m-cone.back{fill:rgba(242,138,40,.55)} .m-cone.side{fill:rgba(252,204,10,.45)} .m-cone.front{fill:rgba(255,248,220,.5)} .m-cone.dark{fill:rgba(130,150,255,.4)}
+.m-spotg.on .m-cone{stroke-opacity:1}
 .m-spotpt{fill:#fff;stroke:#14161a} .m-spotg.on .m-spotpt{fill:var(--yellow)}
 .m-spottx{fill:#fff;font-family:var(--sans);font-weight:700;paint-order:stroke;stroke:#14161a;stroke-width:.3em;stroke-linejoin:round;pointer-events:none}
 /* Moon */
@@ -698,3 +698,26 @@ body.tipopen{overflow:hidden}
 .m-lm .m-lmg path,.m-lm .m-lmg circle{fill:none}
 .evquick{margin-bottom:6px} .evlight p{margin:0 0 6px} .evlight p:last-child{margin-bottom:0}
 .games{margin:4px 0 0;padding-left:18px} .games li{margin:0 0 4px}
+/* Day chips on the map's time slider */
+.mdays{margin:2px 0 0;padding:0 2px 2px;gap:6px} .mdays .chip{min-height:30px;padding:0 10px;font-size:13px}
+/* Heading-up: the map square turns round you; a north arrow shows which way is north */
+.mapwrap{overflow:hidden}
+#map.headup .mapsvg{position:absolute;transform-origin:50% 50%;will-change:transform}
+.mnorth{position:absolute;left:10px;top:122px;z-index:2;width:40px;height:40px;border-radius:50%;background:rgba(20,22,26,.88);box-shadow:0 2px 10px rgba(0,0,0,.4);pointer-events:none;transform-origin:50% 50%}
+.mnorth svg{position:absolute;inset:4px;width:32px;height:32px} .mnorth .n{fill:#ff5a4a} .mnorth .s{fill:#dfe3ec} .mnorth span{position:absolute;left:0;right:0;top:-1px;text-align:center;font-size:9px;font-weight:800;color:#fff;line-height:1}
+#map.full .mnorth{top:calc(max(10px,env(safe-area-inset-top,0px)) + 98px)}
+#map.headup .mguide{left:58px}
+.mapbtns button[data-head] svg{width:24px;height:24px;display:block;margin:auto;fill:none;stroke:#fff;stroke-width:1.6} .mapbtns button[data-head] .nd-n{fill:#ff5a4a;stroke:none} .mapbtns button[data-head] .nd-s{fill:#fff;stroke:none}
+.mapbtns button[data-head][aria-pressed="true"]{background:var(--blue)}
+.m-headcone{fill:rgba(45,120,255,.3);stroke:rgba(90,150,255,.85);pointer-events:none}
+.m-head{pointer-events:none}
+/* The sun and the shadow at a spot */
+.m-sunray{pointer-events:none} .m-tosun{stroke:#e8891a;fill:none;stroke-linecap:round} .m-shadow{stroke:rgba(0,0,0,.55);stroke-linecap:round;fill:none}
+.m-sunlab{fill:var(--yellow);font-weight:700;paint-order:stroke;stroke:rgba(0,0,0,.6);stroke-linejoin:round} .m-shadowlab{fill:#dfe3ec;font-weight:700;paint-order:stroke;stroke:rgba(0,0,0,.6);stroke-linejoin:round}
+#map[data-sky="day"] .m-shadow{stroke:rgba(0,0,0,.45)}
+/* Light facing one way through the day */
+.lstrip{margin:4px 14px 2px} .lstrip-runs{margin-left:14px;margin-right:14px} .lstrip-bar{position:relative;height:12px;border-radius:6px;border:1px solid rgba(0,0,0,.25);overflow:hidden}
+.lstrip-bar i{position:absolute;top:-2px;bottom:-2px;width:2px;margin-left:-1px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.5)}
+.lstrip-h{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:2px;padding:0 1px} .lstrip-h b{font-weight:600}
+.lstrip-runs{margin-top:6px}
+.turn{display:block;margin-top:4px;color:var(--blue)}

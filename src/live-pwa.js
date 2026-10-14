@@ -9,7 +9,7 @@ let weatherBusy=false;
 async function loadWeather(){
   const id=state.city, c=CITIES[id]; if(weatherBusy||typeof c.lat!=="number") return; weatherBusy=true;
   try{
-    const r=await fetch("https://api.open-meteo.com/v1/forecast?latitude="+c.lat+"&longitude="+c.lon+"&current=temperature_2m,weather_code,is_day&daily=precipitation_probability_max&hourly=precipitation_probability,precipitation,cloud_cover,weather_code&timezone=auto&forecast_days=2");
+    const r=await fetch("https://api.open-meteo.com/v1/forecast?latitude="+c.lat+"&longitude="+c.lon+"&current=temperature_2m,weather_code,is_day&daily=precipitation_probability_max&hourly=precipitation_probability,precipitation,cloud_cover,weather_code&timezone=auto&forecast_days=7");
     if(!r.ok) throw new Error("weather "+r.status);
     const j=await r.json(), cur=j.current||{}, txt=WMO(cur.weather_code);
     if(typeof cur.temperature_2m==="number" && txt){
