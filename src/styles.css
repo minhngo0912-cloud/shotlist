@@ -778,3 +778,5 @@ body.streetmode{overflow:hidden}
 .xout{margin:10px 0 8px;padding-left:18px;font-size:15px;line-height:1.45} .xout li{margin:0 0 4px}
 .xout .ok{color:#1e9e48} .xout .over{color:#d9822b} .xout .under{color:#4a7be0}
 .cropw .dofrow{grid-template-columns:1fr;margin-bottom:10px}
+.mnote{position:absolute;left:10px;right:62px;top:108px;z-index:4;padding:10px 12px;border-radius:12px;background:var(--bg);color:var(--fg);font-size:14px;line-height:1.4;box-shadow:0 2px 12px rgba(0,0,0,.35);cursor:pointer}
+.mnote[hidden]{display:none} #map.full .mnote{top:calc(max(10px,env(safe-area-inset-top,0px)) + 96px)} #map.headup .mnote{left:58px}

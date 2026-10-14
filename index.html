@@ -796,6 +796,8 @@ body.streetmode{overflow:hidden}
 .xout{margin:10px 0 8px;padding-left:18px;font-size:15px;line-height:1.45} .xout li{margin:0 0 4px}
 .xout .ok{color:#1e9e48} .xout .over{color:#d9822b} .xout .under{color:#4a7be0}
 .cropw .dofrow{grid-template-columns:1fr;margin-bottom:10px}
+.mnote{position:absolute;left:10px;right:62px;top:108px;z-index:4;padding:10px 12px;border-radius:12px;background:var(--bg);color:var(--fg);font-size:14px;line-height:1.4;box-shadow:0 2px 12px rgba(0,0,0,.35);cursor:pointer}
+.mnote[hidden]{display:none} #map.full .mnote{top:calc(max(10px,env(safe-area-inset-top,0px)) + 96px)} #map.headup .mnote{left:58px}
 </style>
 
 <div class="app">
@@ -2855,8 +2857,8 @@ function headSize(){ const m=$("map"), rot=$("mapRot"); if(!m||!rot||!state.mapH
   rot.style.width=rot.style.height=side+"px"; rot.style.left=Math.round(W/2-side/2)+"px"; rot.style.top=Math.round(oy-side/2)+"px"; }
 function headUp(on){ on=!!on; if(state.mapHead===on&&!on) return; state.mapHead=on; HEAD.drawn=false; HEAD.last=-1; const m=$("map"), svg=$("mapSvg"), rot=$("mapRot"); if(!m||!svg||!rot) return; const b=m.querySelector("[data-head]"); if(b){ b.setAttribute("aria-pressed",String(on)); b.title=on?"Back to north up":"Turn the map the way I am facing"; }
   m.classList.toggle("headup",on); cancelAnimationFrame(mapAnim);
-  if(on){ headSize(); if(state.pos){ const [x,y]=mapXY(state.pos.lat,state.pos.lon); mapV=mapClamp({cx:x,cy:y,w:Math.min(mapV.w,24)}); }
-    try{ if(HEAD.watch==null&&navigator.geolocation) HEAD.watch=navigator.geolocation.watchPosition(p=>{ state.pos={lat:p.coords.latitude,lon:p.coords.longitude}; if(state.mapHead){ const [x,y]=mapXY(state.pos.lat,state.pos.lon); mapV=mapClamp({cx:x,cy:y,w:mapV.w}); mapDraw(); } },()=>{},{enableHighAccuracy:true,maximumAge:3000,timeout:20000}); }catch(e){}
+  if(on){ headSize(); if(posOnMap()){ const [x,y]=mapXY(state.pos.lat,state.pos.lon); mapV=mapClamp({cx:x,cy:y,w:Math.min(mapV.w,24)}); } else if(state.pos) offMapMsg();
+    try{ if(HEAD.watch==null&&navigator.geolocation) HEAD.watch=navigator.geolocation.watchPosition(p=>{ state.pos={lat:p.coords.latitude,lon:p.coords.longitude}; if(state.mapHead&&posOnMap()){ const [x,y]=mapXY(state.pos.lat,state.pos.lon); mapV=mapClamp({cx:x,cy:y,w:mapV.w}); mapDraw(); } },()=>{},{enableHighAccuracy:true,maximumAge:3000,timeout:20000}); }catch(e){}
     setTimeout(headMsgShow,3000); }
   else { rot.style.transform=""; rot.style.width=rot.style.height=rot.style.left=rot.style.top=""; try{ if(HEAD.watch!=null){ navigator.geolocation.clearWatch(HEAD.watch); HEAD.watch=null; } }catch(e){} if(!state.guide) headingStop(); const hm=$("mapPanel")&&$("mapPanel").querySelector(".headmsg"); if(hm) hm.remove();
     if(state.pos&&mapV){ const [x,y]=mapXY(state.pos.lat,state.pos.lon); mapV=mapClamp(mapAim({cx:x,cy:y,w:mapV.w})); } }
@@ -2875,7 +2877,7 @@ function nearPanel(){ const all=!!state.mapNearAll, list=nearSpots(all), key=lig
       (best&&!all?'':best?'<button type="button" class="row" data-spot="'+best.id+'"><span class="snum">'+spotNum(best.id)+'</span><span class="t"><b>Nearest: '+esc(best.S[3])+'</b><span>'+esc(PLACES[best.pid].name)+' · '+mDist(best.km)+'</span></span><span class="go" aria-hidden="true">›</span></button>':''); }
   return '<section class="group mapsel"><button type="button" class="mapselx" data-nearclose="1" aria-label="Close">×</button><div class="group-head"><b>Spots near you</b><span class="where">Within about a 20-minute walk, nearest first</span></div>'+
     '<div class="intents nearf"><button type="button" class="chip" data-nearall="0" aria-pressed="'+!all+'">Suit the light now</button><button type="button" class="chip" data-nearall="1" aria-pressed="'+all+'">All spots</button></div>'+rows+empty+'</section>'; }
-function showNear(){ state.mapNear=true; state.mapSel=null; state.mapSpot=null; state.mapEv=null; state.mapLm=null; mapPanel(); mapDraw(); if(state.pos) mapFly(mapAim({...mapPreset("me"), w:30})); setSheet("half"); }
+function showNear(){ state.mapNear=true; state.mapSel=null; state.mapSpot=null; state.mapEv=null; state.mapLm=null; mapPanel(); mapDraw(); if(posOnMap()) mapFly(mapAim({...mapPreset("me"), w:30})); setSheet("half"); }
 function needPos(then){ if(state.pos){ then(); return; } const fail=()=>{ $("mapPanel").insertAdjacentHTML("afterbegin",'<p class="msg">Your location is not available here. In the installed app, allow location access for Shot List when asked.</p>'); };
   if(!navigator.geolocation){ fail(); return; }
   try{ navigator.geolocation.getCurrentPosition(p=>{ state.pos={lat:p.coords.latitude,lon:p.coords.longitude}; fillPlaces(); syncNear(); then(); }, fail, {timeout:10000,maximumAge:120000}); }catch(e){ fail(); } }
@@ -3455,7 +3457,13 @@ function mapEvents(){ const now=new Date(), today=new Date(now.getFullYear(),now
     if(state.mapD&&(st.k==="today"||st.k==="live")){ const dn=DAY_SHORT[mapDay().getDay()]; st={k:st.k,chip:st.k==="live"?"On "+dn:st.chip.replace("Today",dn),line:st.line.replace(/^Today/,dn).replace(/^On now/,"On "+dn+" at "+hmText(state.mapT===null?0:state.mapT))}; }
     return {r,id:r.e.id,x,y,st,day:st.chip}; }).filter(Boolean); }
 let MAP_ASPECT = 1.35; const MAP_LIM = {x:[250,880], y:[70,860], w:[6,560]};
-const mapPreset = k => { if(k==="me"&&state.pos){ const [x,y]=mapXY(state.pos.lat,state.pos.lon); return {cx:x,cy:y,w:110}; }
+const posOnMap = () => { if(!state.pos) return false; const [x,y]=mapXY(state.pos.lat,state.pos.lon); return x>=MAP_LIM.x[0]+10&&x<=MAP_LIM.x[1]-10&&y>=MAP_LIM.y[0]+10&&y<=MAP_LIM.y[1]-10; };
+function offMapMsg(){ const c=CITIES[state.city], mi=state.pos&&typeof c.lat==="number"?kmBetween(state.pos,{lat:c.lat,lon:c.lon})/1.609:null;
+  mapNote("You are "+(mi!==null?"about "+Math.round(mi)+" miles from "+c.name+", ":"")+"outside the area this map covers, so it stays on the city"+(state.mapHead?" and turns around the middle of the view":"")+". It centres on you once you are in town."); }
+/* A short note floating over the top of the map, gone after a few seconds or on tap. */
+function mapNote(t){ const m=$("map"); if(!m) return; let el=$("mapNote"); if(!el){ m.insertAdjacentHTML("beforeend",'<div class="mnote" id="mapNote" role="status"></div>'); el=$("mapNote"); el.addEventListener("click",()=>{ el.hidden=true; }); }
+  el.textContent=t; el.hidden=false; clearTimeout(mapNote.tm); mapNote.tm=setTimeout(()=>{ el.hidden=true; },9000); }
+const mapPreset = k => { if(k==="me"&&posOnMap()){ const [x,y]=mapXY(state.pos.lat,state.pos.lon); return {cx:x,cy:y,w:110}; }
   return k==="man" ? {cx:486,cy:386,w:196} : k==="bk" ? {cx:520,cy:500,w:250} : {cx:576,cy:462,w:492}; };
 const MAP_PRESETS = [["city","Whole city"],["man","Manhattan"],["bk","Downtown and Brooklyn"]];
 let mapV = null, mapAnim = 0;
@@ -3521,7 +3529,7 @@ const MAP_LAYERS = [["mapShowEv","Events","Upcoming events, and what is on now",
   ["mapShowSunny","Sunny side","Which side of each street is in sun, while the sun is up","lg sunny"],["mapShowSpots","Where to stand","Spots and lens wedges when zoomed in","lg spot"],["mapShowNames","Street and area names","","lg names"]];
 function mapLayersHtml(nLive){ return '<div class="mlayers-head"><b>Map layers</b><button type="button" class="mapselx" data-layersclose="1" aria-label="Close">×</button></div>'+
   MAP_LAYERS.map(([k,t,sub,ic])=>'<button type="button" class="mlayer" data-layer="'+k+'" aria-pressed="'+!!state[k]+'"><span class="'+ic+'"></span><span class="t"><b>'+t+(k==="mapShowEv"&&nLive?' · '+nLive+' on now':'')+'</b>'+(sub?'<span>'+sub+'</span>':'')+'</span><span class="sw" aria-hidden="true"></span></button>').join("")+
-  '<p class="mlayers-sub">Jump to</p><div class="intents" id="mapZoom">'+MAP_PRESETS.concat(state.pos?[["me","Near me"]]:[]).map(z=>'<button type="button" class="chip" data-z="'+z[0]+'">'+z[1]+'</button>').join("")+'<button type="button" class="chip" data-nearspots="1">Spots near me</button></div>'; }
+  '<p class="mlayers-sub">Jump to</p><div class="intents" id="mapZoom">'+MAP_PRESETS.concat(posOnMap()?[["me","Near me"]]:[]).map(z=>'<button type="button" class="chip" data-z="'+z[0]+'">'+z[1]+'</button>').join("")+'<button type="button" class="chip" data-nearspots="1">Spots near me</button></div>'; }
 
 /* Sun on the map: position of the sun for the map's time (now, or a time picked on the slider). Azimuth in degrees from north. */
 function sunPos(date,lat,lon){ const rad=Math.PI/180, e=rad*23.4397, d=date/864e5-0.5+2440588-2451545, M=rad*(357.5291+0.98560028*d),
@@ -4380,8 +4388,8 @@ $("map").addEventListener("click",e=>{
   if(e.target.closest("#mapTimeNow")){ state.mapT=null; state.mapD=0; const n=new Date(); $("mapTime").value=n.getHours()*60+n.getMinutes(); mapDraw(); mapPanel(); return; }
   const ic=e.target.closest("#mapIntent .chip"); if(ic){ state.mapIntent=ic.dataset.i; mapPanel(); mapDraw(); return; }
   const ft=e.target.closest("[data-fit]"); if(ft){ mapFly(mapPreset("city")); return; }
-  const lc=e.target.closest("[data-locate]"); if(lc){ if(state.pos){ mapFly(mapPreset("me")); return; } const b=lc; b.textContent="…";
-    const done=()=>{ b.textContent="◎"; mapPanel(); if(state.pos) mapFly(mapPreset("me")); else { $("mapPanel").insertAdjacentHTML("afterbegin",'<p class="msg">Your location is not available here. In the installed app, allow location access for Shot List when asked.</p>'); } };
+  const lc=e.target.closest("[data-locate]"); if(lc){ if(state.pos){ if(posOnMap()) mapFly(mapPreset("me")); else offMapMsg(); return; } const b=lc; b.textContent="…";
+    const done=()=>{ b.textContent="◎"; mapPanel(); if(state.pos&&!posOnMap()) offMapMsg(); else if(state.pos) mapFly(mapPreset("me")); else { $("mapPanel").insertAdjacentHTML("afterbegin",'<p class="msg">Your location is not available here. In the installed app, allow location access for Shot List when asked.</p>'); } };
     if(!navigator.geolocation){ done(); return; }
     try{ navigator.geolocation.getCurrentPosition(p=>{ state.pos={lat:p.coords.latitude,lon:p.coords.longitude}; fillPlaces(); syncNear(); done(); }, done, {timeout:10000,maximumAge:120000}); }catch(err){ done(); } return; }
   if(e.target.closest("#mapLayersBtn")){ const L=$("mapLayers"), open=L.hidden; L.hidden=!open; $("mapLayersBtn").setAttribute("aria-expanded",open); return; }
@@ -4392,7 +4400,7 @@ $("map").addEventListener("click",e=>{
   const z=e.target.closest("#mapZoom .chip"); if(z){ $("mapLayers").hidden=true; $("mapLayersBtn").setAttribute("aria-expanded","false"); state.mapZoom=z.dataset.z; store.set("mapZoom",state.mapZoom); mapFly(mapPreset(z.dataset.z)); return; }
   const b=e.target.closest("[data-zoom]"); if(b){ if(state.mapHead){ mapV=mapClamp({cx:mapV.cx,cy:mapV.cy,w:mapV.w*parseFloat(b.dataset.zoom)}); mapDraw(); return; } mapFly({cx:mapV.cx,cy:mapV.cy,w:mapV.w*parseFloat(b.dataset.zoom)}); return; }
   const hb=e.target.closest("[data-head]"); if(hb){ if(state.mapHead){ headUp(false); return; } const ok=headingStart();
-    ok.then(r=>{ headUp(true); if(!r){ headMsgShow(); return; } if(!state.pos&&navigator.geolocation){ try{ navigator.geolocation.getCurrentPosition(p=>{ state.pos={lat:p.coords.latitude,lon:p.coords.longitude}; if(state.mapHead){ const [x,y]=mapXY(state.pos.lat,state.pos.lon); mapV=mapClamp({cx:x,cy:y,w:Math.min(mapV.w,24)}); mapDraw(); } },()=>{ const pnl=$("mapPanel"); if(pnl&&!pnl.querySelector(".posmsg")) pnl.insertAdjacentHTML("afterbegin",'<p class="msg posmsg">Your location is not available, so the map turns around its centre. Allow location for Shot List to centre it on you.</p>'); },{timeout:10000,maximumAge:60000}); }catch(err){} } });
+    ok.then(r=>{ headUp(true); if(!r){ headMsgShow(); return; } if(!state.pos&&navigator.geolocation){ try{ navigator.geolocation.getCurrentPosition(p=>{ state.pos={lat:p.coords.latitude,lon:p.coords.longitude}; if(state.mapHead&&posOnMap()){ const [x,y]=mapXY(state.pos.lat,state.pos.lon); mapV=mapClamp({cx:x,cy:y,w:Math.min(mapV.w,24)}); mapDraw(); } else if(state.mapHead) offMapMsg(); },()=>{ const pnl=$("mapPanel"); if(pnl&&!pnl.querySelector(".posmsg")) pnl.insertAdjacentHTML("afterbegin",'<p class="msg posmsg">Your location is not available, so the map turns around its centre. Allow location for Shot List to centre it on you.</p>'); },{timeout:10000,maximumAge:60000}); }catch(err){} } });
     return; }
   const ev=e.target.closest("[data-event]"); if(ev){ state.view="events"; render(); const d=document.querySelector('#events details[data-id="'+ev.dataset.event+'"]'); if(d){ d.open=true; d.scrollIntoView({block:"start"}); } return; }
   const r=e.target.closest(".row"); if(r){ show(r.dataset.id); state.view="shoot"; render(); window.scrollTo({top:0}); return; }
