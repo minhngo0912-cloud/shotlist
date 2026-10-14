@@ -702,7 +702,8 @@ body.tipopen{overflow:hidden}
 .mdays{margin:2px 0 0;padding:0 2px 2px;gap:6px} .mdays .chip{min-height:30px;padding:0 10px;font-size:13px}
 /* Heading-up: the map square turns round you; a north arrow shows which way is north */
 .mapwrap{overflow:hidden}
-#map.headup .mapsvg{position:absolute;transform-origin:50% 50%;will-change:transform}
+.maprot{position:absolute;inset:0}
+#map.headup .maprot{inset:auto;transform-origin:50% 50%;will-change:transform;backface-visibility:hidden}
 .mnorth{position:absolute;left:10px;top:122px;z-index:2;width:40px;height:40px;border-radius:50%;background:rgba(20,22,26,.88);box-shadow:0 2px 10px rgba(0,0,0,.4);pointer-events:none;transform-origin:50% 50%}
 .mnorth svg{position:absolute;inset:4px;width:32px;height:32px} .mnorth .n{fill:#ff5a4a} .mnorth .s{fill:#dfe3ec} .mnorth span{position:absolute;left:0;right:0;top:-1px;text-align:center;font-size:9px;font-weight:800;color:#fff;line-height:1}
 #map.full .mnorth{top:calc(max(10px,env(safe-area-inset-top,0px)) + 98px)}

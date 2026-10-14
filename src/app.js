@@ -1922,33 +1922,47 @@ function guideRender(){ const box=$("mapGuide"); if(!box) return; const g=state.
 
 /* The phone's compass: which way you are facing. Shared by Guide me there and the heading-up map. iPhones ask once for permission, which has to
    come from a tap. Android gives the absolute heading from the deviceorientationabsolute event; alpha counts anticlockwise, so it is reversed. */
-const HEAD = {on:false, fn:null, raf:0, watch:null};
-function headingStart(){ if(HEAD.on) return Promise.resolve(true); const D=window.DeviceOrientationEvent; if(!D) return Promise.resolve(false);
-  HEAD.fn=e=>{ let h=null; if(typeof e.webkitCompassHeading==="number") h=e.webkitCompassHeading; else if(e.absolute&&typeof e.alpha==="number"){ h=(360-e.alpha)%360; try{ const a=(screen.orientation&&screen.orientation.angle)||window.orientation||0; h=(h+a+360)%360; }catch(x){} }
+const HEAD = {on:false, fn:null, raf:0, watch:null, why:"", acc:null, last:-1, txt:0, drawn:false};
+const inFrame = (()=>{ try{ return window.self!==window.top; }catch(e){ return true; } })();
+function headingStart(){ if(HEAD.on) return Promise.resolve(true); const D=window.DeviceOrientationEvent; if(!D){ HEAD.why="none"; return Promise.resolve(false); }
+  HEAD.fn=e=>{ let h=null; if(typeof e.webkitCompassHeading==="number"&&!isNaN(e.webkitCompassHeading)){ h=e.webkitCompassHeading; HEAD.acc=typeof e.webkitCompassAccuracy==="number"?e.webkitCompassAccuracy:null; } else if(e.absolute&&typeof e.alpha==="number"){ h=(360-e.alpha)%360; try{ const a=(screen.orientation&&screen.orientation.angle)||window.orientation||0; h=(h+a+360)%360; }catch(x){} }
     if(h!==null) headingSet(h); };
   const listen=()=>{ try{ addEventListener("deviceorientationabsolute",HEAD.fn); addEventListener("deviceorientation",HEAD.fn); }catch(e){ return false; } HEAD.on=true; return true; };
-  try{ if(typeof D.requestPermission==="function") return D.requestPermission().then(r=>r==="granted"?listen():false).catch(()=>false); }catch(e){ return Promise.resolve(false); }
+  HEAD.why="";
+  try{ if(typeof D.requestPermission==="function") return D.requestPermission().then(r=>{ if(r==="granted") return listen(); HEAD.why="denied"; return false; }).catch(()=>{ HEAD.why=inFrame?"frame":"denied"; return false; }); }catch(e){ HEAD.why=inFrame?"frame":"none"; return Promise.resolve(false); }
   return Promise.resolve(listen()); }
+/* What to tell the user when the compass is not turning the map. */
+function headMsg(){ const w=HEAD.why;
+  if(w==="frame") return "The compass is not available inside Claude. Open Shot List from your home screen (the installed app) to use it.";
+  if(w==="denied") return "Motion access was turned off for Shot List, so the map cannot read the compass. On iPhone, close Shot List completely (swipe it away), open it again and tap the compass button; choose Allow when asked. If it no longer asks, go to Settings › Apps › Safari › Advanced › Website Data, remove the site, and try again.";
+  if(w==="none") return "This device has no compass the app can read. The map stays north up; Guide me there still gives the direction as a bearing.";
+  if(HEAD.on&&state.heading===null) return inFrame?"No compass reading. Inside Claude the compass is usually blocked: open Shot List from your home screen.":"Waiting for the compass. Hold the phone flat in front of you and turn slowly; if nothing happens, close and reopen the app.";
+  if(HEAD.acc!==null&&(HEAD.acc<0||HEAD.acc>25)) return "The compass is unsure here (steel, cars and the subway throw it off). Move the phone in a slow figure of eight to calibrate it.";
+  return ""; }
+function headMsgShow(){ const pnl=$("mapPanel"); if(!pnl) return; let el=pnl.querySelector(".headmsg"); const t=state.mapHead?headMsg():"";
+  if(!t){ if(el) el.remove(); return; } if(!el){ pnl.insertAdjacentHTML("afterbegin",'<p class="msg headmsg" role="status"></p>'); el=pnl.querySelector(".headmsg"); } if(el.textContent!==t) el.textContent=t; }
 function headingStop(){ if(HEAD.on){ try{ removeEventListener("deviceorientationabsolute",HEAD.fn); removeEventListener("deviceorientation",HEAD.fn); }catch(e){} HEAD.on=false; } state.heading=null; headingApply(); }
-function headingSet(h){ const p=state.heading; if(p!==null){ const d=((h-p)%360+540)%360-180; h=(p+d*0.45+360)%360; } state.heading=h;
+function headingSet(h){ const p=state.heading; if(p!==null){ const d=((h-p)%360+540)%360-180; h=(p+d*0.3+360)%360; } state.heading=h;
   if(!HEAD.raf) HEAD.raf=requestAnimationFrame(()=>{ HEAD.raf=0; headingApply(); }); }
 /* Move only what the heading changes: the cone at your position, the map's rotation, the north arrow and any "turn left" lines. */
-function headingApply(){ const h=state.heading, g=$("mapHeadG"), svg=$("mapSvg"), nr=$("mapNorth");
-  if(g){ if(h===null) g.remove(); else g.setAttribute("transform","rotate("+h.toFixed(1)+" "+g.dataset.x+" "+g.dataset.y+")"); }
-  if(svg) svg.style.transform=state.mapHead&&h!==null?"rotate("+(-h).toFixed(1)+"deg)":"";
-  if(nr){ nr.hidden=!state.mapHead; nr.style.transform="rotate("+(state.mapHead&&h!==null?-h:0).toFixed(1)+"deg)"; }
-  document.querySelectorAll(".turnhint").forEach(el=>{ el.innerHTML=turnText(+el.dataset.face); });
-  if(state.guide) guideRender(); }
+function headingApply(){ const h=state.heading, g=$("mapHeadG"), rot=$("mapRot"), nr=$("mapNorth"), now=performance.now();
+  // the cone at your position is drawn with the map; the first reading after a draw needs one redraw to add it
+  if(h!==null&&!g&&state.pos&&!HEAD.drawn&&$("mapSvg")){ HEAD.drawn=true; mapDraw(); }
+  const g2=$("mapHeadG"); if(g2){ if(h===null) g2.remove(); else g2.setAttribute("transform","rotate("+h.toFixed(1)+" "+g2.dataset.x+" "+g2.dataset.y+")"); }
+  if(rot&&(h===null||HEAD.last<0||Math.abs(((h-HEAD.last)%360+540)%360-180)>=0.4)){ HEAD.last=h===null?-1:h; rot.style.transform=state.mapHead&&h!==null?"rotate("+(-h).toFixed(1)+"deg)":""; if(nr) nr.style.transform="rotate("+(state.mapHead&&h!==null?-h:0).toFixed(1)+"deg)"; }
+  if(nr) nr.hidden=!state.mapHead;
+  // words change at most four times a second
+  if(now-HEAD.txt>250||h===null){ HEAD.txt=now; document.querySelectorAll(".turnhint").forEach(el=>{ const t=turnText(+el.dataset.face); if(el.innerHTML!==t) el.innerHTML=t; }); if(state.guide) guideRender(); headMsgShow(); } }
 const turnText = face => { const hd=state.heading; if(hd===null||isNaN(face)) return ""; const d=((face-hd)%360+540)%360-180, a=Math.abs(d); return ' <b class="turn">'+(a<=12?'You are facing this shot.':'Turn '+(d>0?'right':'left')+' '+Math.round(a)+'° to face it.')+'</b>'; };
 /* Heading-up: the map turns so the way you face is up, centred on you, at street zoom. Dragging the map turns it off. */
-function headSize(){ const m=$("map"), svg=$("mapSvg"); if(!m||!svg||!state.mapHead) return; const W=m.clientWidth, H=m.clientHeight, oy=(topPx()+(H-sheetPx()))/2, R=Math.hypot(W/2,Math.max(oy,H-oy)), side=Math.ceil(2*R+8);
-  svg.style.width=svg.style.height=side+"px"; svg.style.left=Math.round(W/2-side/2)+"px"; svg.style.top=Math.round(oy-side/2)+"px"; }
-function headUp(on){ on=!!on; if(state.mapHead===on&&!on) return; state.mapHead=on; const m=$("map"), svg=$("mapSvg"); if(!m||!svg) return; const b=m.querySelector("[data-head]"); if(b){ b.setAttribute("aria-pressed",String(on)); b.title=on?"Back to north up":"Turn the map the way I am facing"; }
+function headSize(){ const m=$("map"), rot=$("mapRot"); if(!m||!rot||!state.mapHead) return; const W=m.clientWidth, H=m.clientHeight, oy=(topPx()+(H-sheetPx()))/2, R=Math.hypot(W/2,Math.max(oy,H-oy)), side=Math.ceil(2*R+8);
+  rot.style.width=rot.style.height=side+"px"; rot.style.left=Math.round(W/2-side/2)+"px"; rot.style.top=Math.round(oy-side/2)+"px"; }
+function headUp(on){ on=!!on; if(state.mapHead===on&&!on) return; state.mapHead=on; HEAD.drawn=false; HEAD.last=-1; const m=$("map"), svg=$("mapSvg"), rot=$("mapRot"); if(!m||!svg||!rot) return; const b=m.querySelector("[data-head]"); if(b){ b.setAttribute("aria-pressed",String(on)); b.title=on?"Back to north up":"Turn the map the way I am facing"; }
   m.classList.toggle("headup",on); cancelAnimationFrame(mapAnim);
   if(on){ headSize(); if(state.pos){ const [x,y]=mapXY(state.pos.lat,state.pos.lon); mapV=mapClamp({cx:x,cy:y,w:Math.min(mapV.w,24)}); }
     try{ if(HEAD.watch==null&&navigator.geolocation) HEAD.watch=navigator.geolocation.watchPosition(p=>{ state.pos={lat:p.coords.latitude,lon:p.coords.longitude}; if(state.mapHead){ const [x,y]=mapXY(state.pos.lat,state.pos.lon); mapV=mapClamp({cx:x,cy:y,w:mapV.w}); mapDraw(); } },()=>{},{enableHighAccuracy:true,maximumAge:3000,timeout:20000}); }catch(e){}
-    setTimeout(()=>{ if(state.mapHead&&state.heading===null&&$("mapPanel")&&!$("mapPanel").querySelector(".headmsg")) $("mapPanel").insertAdjacentHTML("afterbegin",'<p class="msg headmsg">No compass reading yet. This works in the installed app on a phone: hold it flat, away from the camera, and turn slowly. The map stays north up until a reading arrives.</p>'); },4000); }
-  else { svg.style.transform=""; svg.style.width=svg.style.height=svg.style.left=svg.style.top=""; try{ if(HEAD.watch!=null){ navigator.geolocation.clearWatch(HEAD.watch); HEAD.watch=null; } }catch(e){} if(!state.guide) headingStop(); const hm=$("mapPanel")&&$("mapPanel").querySelector(".headmsg"); if(hm) hm.remove();
+    setTimeout(headMsgShow,3000); }
+  else { rot.style.transform=""; rot.style.width=rot.style.height=rot.style.left=rot.style.top=""; try{ if(HEAD.watch!=null){ navigator.geolocation.clearWatch(HEAD.watch); HEAD.watch=null; } }catch(e){} if(!state.guide) headingStop(); const hm=$("mapPanel")&&$("mapPanel").querySelector(".headmsg"); if(hm) hm.remove();
     if(state.pos&&mapV){ const [x,y]=mapXY(state.pos.lat,state.pos.lon); mapV=mapClamp(mapAim({cx:x,cy:y,w:mapV.w})); } }
   mapDraw(); headingApply(); }
 
@@ -2533,14 +2547,14 @@ function mapShell(box){
     '<radialGradient id="spotG"><stop offset="55%" stop-color="#000"/><stop offset="100%" stop-color="#fff"/></radialGradient></defs>';
   const LAYER_ICON='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 8.5 12 14l10-5.5L12 3Z"/><path d="m2 12.5 10 5.5 10-5.5M2 16.5 12 22l10-5.5"/></svg>';
   box.innerHTML=
-    '<div class="mapwrap"><svg class="mapsvg" id="mapSvg" role="group" aria-label="Map of shooting places. Drag to move, pinch to zoom."><rect x="-500" y="-500" width="2500" height="2500" class="m-sea"/>'+defs+'<rect x="-500" y="-500" width="2500" height="2500" class="m-tex m-seatex" fill="url(#pWater)"/>'+
+    '<div class="mapwrap" id="mapWrap"><div class="maprot" id="mapRot"><svg class="mapsvg" id="mapSvg" role="group" aria-label="Map of shooting places. Drag to move, pinch to zoom."><rect x="-500" y="-500" width="2500" height="2500" class="m-sea"/>'+defs+'<rect x="-500" y="-500" width="2500" height="2500" class="m-tex m-seatex" fill="url(#pWater)"/>'+
     '<g transform="scale(0.1)" class="m-base"><path d="'+MAPD_CTX+'" class="m-ctx"/><use href="#ld-land" class="m-coastglow"/><use href="#ld-land" class="m-land"/><path d="'+MAPD_AIR+'" class="m-air"/><path d="'+MAPD_CEM+'" class="m-cem"/><use href="#ld-park" class="m-park"/><use href="#ld-park" class="m-tex m-parktex" fill="url(#pPark)"/></g>'+
     '<g transform="scale(0.1)" class="m-roads m-rdc">'+road("path","foot")+road("local","local")+road("ave","ave")+road("hwy","hwy")+'</g>'+
     '<g transform="scale(0.1)" class="m-roads m-rdf">'+road("path","foot")+road("local","local")+road("ave","ave")+road("hwy","hwy")+'</g>'+
     '<g transform="scale(0.1)" class="m-subway">'+MAPD_SUBWAY.map(([c,d])=>'<path d="'+d+'" stroke="'+c+'"/>').join("")+'</g>'+
     mapTxt(40.787,-73.957,"MANHATTAN","m-boro",15,-61)+mapTxt(40.648,-73.95,"BROOKLYN","m-boro",22)+mapTxt(40.705,-73.825,"QUEENS","m-boro",22)+mapTxt(40.845,-73.86,"THE BRONX","m-boro",18)+mapTxt(40.585,-74.14,"STATEN ISLAND","m-boro",16)+mapTxt(40.765,-74.085,"NEW JERSEY","m-boro",15)+
     mapTxt(40.772,-74.004,"Hudson River","m-water",7,-62)+mapTxt(40.672,-74.045,"Upper Bay","m-water",8)+mapTxt(40.612,-73.845,"Jamaica Bay","m-water",8)+mapTxt(40.558,-73.905,"Atlantic Ocean","m-water",9)+mapTxt(40.7385,-73.9665,"East River","m-water",5,-68)+
-    '<g id="mapDyn"></g><g id="mapPhotos">'+(PHOTOS_INLINE?Object.entries(PLACE_PHOTO).map(([id,P])=>'<clipPath id="pc-'+id+'"><circle r="1"/></clipPath><image data-ph="'+id+'" href="'+esc(P.src)+'" preserveAspectRatio="xMidYMid slice" clip-path="url(#pc-'+id+')" style="display:none" onerror="this.remove()"/>').join(""):'')+'</g><g id="mapOver"></g></svg></div>'+
+    '<g id="mapDyn"></g><g id="mapPhotos">'+(PHOTOS_INLINE?Object.entries(PLACE_PHOTO).map(([id,P])=>'<clipPath id="pc-'+id+'"><circle r="1"/></clipPath><image data-ph="'+id+'" href="'+esc(P.src)+'" preserveAspectRatio="xMidYMid slice" clip-path="url(#pc-'+id+')" style="display:none" onerror="this.remove()"/>').join(""):'')+'</g><g id="mapOver"></g></svg></div></div>'+
     '<div class="mtop"><div class="mrow"><div class="mapgo"><select id="mapGo" aria-label="Go to a place"></select></div><button type="button" class="mlayersbtn" id="mapLayersBtn" aria-expanded="false" aria-controls="mapLayers" title="Map layers">'+LAYER_ICON+'<span>Layers</span><i id="mapLiveDot" hidden></i></button></div>'+
     '<div class="intents mchips" id="mapIntent"></div></div>'+
     '<div class="mlayers" id="mapLayers" hidden></div><div class="mguide" id="mapGuide" role="status" aria-live="polite" hidden></div>'+
@@ -2728,7 +2742,7 @@ function mapPts(){ const key=lightAt(mapNow()), ideas=cityIdeas().filter(i=>stat
   return Object.keys(CITIES[state.city].places).filter(id=>typeof PLACES[id].lat==="number").map(id=>{ const [x,y]=mapXY(PLACES[id].lat,PLACES[id].lon), mine=ideas.filter(i=>i.p===id);
     return {id,x,y,n:mine.length,fit:mine.filter(i=>i.w.includes(key)).length,done:mine.filter(i=>state.done.has(i.id)).length,empty:!mine.length}; }); }
 function mapDraw(){
-  const svg=$("mapSvg"); if(!svg||!mapV) return; const cw=svg.parentNode.clientWidth||svg.clientWidth||360, zf=state.mapHead?Math.max(1,(svg.clientWidth||cw)/cw):1, ar=svg.clientHeight/svg.clientWidth; if(!state.mapHead&&ar>0.3&&ar<4) MAP_ASPECT=ar;
+  const svg=$("mapSvg"); if(!svg||!mapV) return; const cw=($("mapWrap")&&$("mapWrap").clientWidth)||svg.clientWidth||360, zf=state.mapHead?Math.max(1,(svg.clientWidth||cw)/cw):1, ar=svg.clientHeight/svg.clientWidth; if(!state.mapHead&&ar>0.3&&ar<4) MAP_ASPECT=ar;
   // w is the width you see across the screen; in heading-up the drawn square (wb) is wider so the corners stay filled as it turns
   const v=mapV, w=v.w, wb=w*zf, h=wb*(state.mapHead?1:MAP_ASPECT), x0=v.cx-wb/2, y0=v.cy-h/2, x1=x0+wb, y1=y0+h, u=w/cw, f=n=>n.toFixed(1);
   svg.setAttribute("viewBox",f(x0)+" "+f(y0)+" "+f(wb)+" "+f(h));
@@ -2938,7 +2952,7 @@ function mapPanel(){
           (sp?'<button type="button" class="srow" data-spot="'+sp.id+'" aria-label="Show where to stand on the map: spot '+spotNum(sp.id)+', '+esc(sp.S[3])+'"><span class="snum '+lf.k+'">'+spotNum(sp.id)+'</span><span class="t"><b>'+esc(sp.S[3])+'</b> · face '+compass(sp.S[2])+', '+esc(lf.txt.charAt(0).toLowerCase()+lf.txt.slice(1))+'</span><span class="sgo" aria-hidden="true">◎</span></button>':'')+'</div>'; }).join("")+
         '<div class="callinks">'+(planIndex(sel.id)<0?'<button type="button" class="chip primary" data-addplan="'+sel.id+'">+ Add to today</button>':'<span class="pill instop">Stop '+(planIndex(sel.id)+1)+' · '+state.plan.stops[planIndex(sel.id)].at.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}).toLowerCase()+'</span><button type="button" class="chip" data-rmplan="'+sel.id+'">Remove from today</button>')+(START[sel.id]?'<a class="chip" href="https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(mapAddr(sel.id))+'&travelmode=transit" target="_blank" rel="noopener">Directions from where I am ↗</a>':'')+'<button type="button" class="chip" data-plan="'+sel.id+'">Plan an outing from here</button><button type="button" class="chip" data-go="'+sel.id+'">Open in Browse</button></div></section>'
       : state.mapNear ? nearPanel() : '<p class="lead mlead">Tap a pin to see a place and its ideas. Drag the bar above to see more.</p><div class="callinks mleadcta"><button type="button" class="chip primary" data-nearspots="1">Spots near me</button></div>');
-  guideRender();
+  guideRender(); if(state.mapHead) headMsgShow();
   if($("mapLegend")) $("mapLegend").innerHTML=legendHtml+'<p class="msg">Drag to move the map, pinch or use + and − to zoom, double-tap to zoom in. ⌂ shows the whole city and ◎ finds you. Zoom in for neighbourhoods, landmarks, stations, street names and spots. The number on a pin is how many of its ideas suit the light now. Streets come from the US Census street files and subway lines from the MTA; landmarks and spots are placed by hand. On the subway has no pin because it is everywhere.</p>';
   if(state.sheet==="peek"&&(sel||evSel||lmSel||spotSel)) setSheet("half");
   const selKey=[state.mapSel,state.mapEv,state.mapLm,state.mapSpot].join("|"); if(selKey!==mapPanel.last){ mapPanel.last=selKey; if($("mapBody")) $("mapBody").scrollTop=0; }
@@ -2973,7 +2987,7 @@ function mapSelectSpot(id){ const [pid,i]=id.split(":"), S=SPOTS[pid]&&SPOTS[pid
 function mapEnsure(x,y){ const svg=$("mapSvg"); if(!svg||!mapV||state.mapHead) return; const k=mapV.w/(svg.clientWidth||360), H=svg.clientHeight, sx=(x-mapV.cx)/k+svg.clientWidth/2, sy=(y-mapV.cy)/k+H/2;
   if(sx<30||sx>svg.clientWidth-60||sy<topPx()+20||sy>H-sheetPx()-20) mapFly(mapAim({cx:x,cy:y,w:mapV.w})); }
 function mapSelectLm(i){ state.mapLm=i; state.mapSel=null; state.mapEv=null; state.mapSpot=null; mapDraw(); mapPanel(); const L=LANDMARKS[i]; if(L){ const [x,y]=mapXY(L[1],L[2]); requestAnimationFrame(()=>{ mapDraw(); mapEnsure(x,y); }); } }
-function mapSelectEv(id){ state.mapEv=id; state.mapSel=null; state.mapLm=null; state.mapSpot=null; mapDraw(); mapPanel(); const e=id&&mapEvents().find(v=>v.id===id); requestAnimationFrame(()=>{ mapDraw(); if(e) mapEnsure(e.x,e.y); }); }
+function mapSelectEv(id){ state.mapEv=id; state.mapSel=null; state.mapLm=null; state.mapSpot=null; mapDraw(); mapPanel(); const e=id&&mapEvents().find(v=>v.id===id); requestAnimationFrame(()=>{ mapDraw(); if(e&&!state.mapHead) mapEnsure(e.x,e.y); }); }
 /* Street segments for the sunny side when zoomed in, read once from the street paths and bucketed by 10-unit cells. */
 let STREET_GRID=null;
 function streetGrid(){ if(STREET_GRID) return STREET_GRID; const seg=[], cells=new Map();
@@ -2992,7 +3006,7 @@ function placeView(id){ const pl=PLACES[id], pts=[[pl.lat,pl.lon]].concat(START_
 function mapZoomPlace(id){ const v=placeView(id); mapFly(mapAim(v)); }
 function mapSelect(id){ if(id) state.mapNear=false; state.mapSel=id; state.mapEv=null; state.mapLm=null; state.mapSpot=null; mapDraw(); mapPanel(); if(id){ const fly=()=>{ const p=mapPts().find(q=>q.id===id), h=mapV.w*MAP_ASPECT;
   if(p) mapZoomPlace(id); };
-  if(state.mapFull) requestAnimationFrame(()=>{ mapDraw(); fly(); }); else fly(); } else if(state.mapFull) requestAnimationFrame(mapDraw); }
+  if(state.mapHead) return; if(state.mapFull) requestAnimationFrame(()=>{ mapDraw(); fly(); }); else fly(); } else if(state.mapFull) requestAnimationFrame(mapDraw); }
 function mapGestures(svg){
   const ptr=new Map(); let g=null, lastTap=0, raf=0;
   const redraw=()=>{ if(!raf) raf=requestAnimationFrame(()=>{ raf=0; mapDraw(); }); };
@@ -3002,7 +3016,7 @@ function mapGestures(svg){
   svg.addEventListener("pointerdown",e=>{ cancelAnimationFrame(mapAnim); const pin=e.target.closest&&e.target.closest(".m-pin"), ev=e.target.closest&&e.target.closest(".m-ev"), lm=e.target.closest&&e.target.closest(".m-lm"), sp=e.target.closest&&e.target.closest(".m-spotg"); ptr.set(e.pointerId,e); if(ptr.size===1) g={moved:false,pin:pin?pin.dataset.p:null,ev:ev?ev.dataset.e:null,lm:lm?+lm.dataset.l:null,spot:sp?sp.dataset.s:null}; start(); try{ svg.setPointerCapture(e.pointerId); }catch(err){} });
   svg.addEventListener("pointermove",e=>{ if(!ptr.has(e.pointerId)||!g) return; ptr.set(e.pointerId,e); const p=[...ptr.values()], r=svg.getBoundingClientRect(), k=g.v.w/r.width;
     if(p.length===1){ const dx=p[0].clientX-g.p0[0].x, dy=p[0].clientY-g.p0[0].y; if(!g.moved && Math.hypot(dx,dy)<7) return; g.moved=true;
-      if(state.mapHead){ headUp(false); g.v=Object.assign({},mapV); g.p0=[{x:p[0].clientX,y:p[0].clientY}]; return; }
+      if(state.mapHead){ if(Math.hypot(dx,dy)<24) return; headUp(false); g.v=Object.assign({},mapV); g.p0=[{x:p[0].clientX,y:p[0].clientY}]; return; }
       mapV=mapClamp({cx:g.v.cx-dx*k, cy:g.v.cy-dy*k, w:g.v.w}); }
     else if(p.length>=2 && g.p0.length>=2){ g.moved=true;
       if(state.mapHead){ const d0=Math.hypot(g.p0[0].x-g.p0[1].x,g.p0[0].y-g.p0[1].y)||1, d1=Math.hypot(p[0].clientX-p[1].clientX,p[0].clientY-p[1].clientY)||1; mapV=mapClamp({cx:mapV.cx,cy:mapV.cy,w:g.v.w*d0/d1}); redraw(); return; } const d0=Math.hypot(g.p0[0].x-g.p0[1].x,g.p0[0].y-g.p0[1].y)||1, d1=Math.hypot(p[0].clientX-p[1].clientX,p[0].clientY-p[1].clientY)||1;
@@ -3450,7 +3464,9 @@ $("map").addEventListener("click",e=>{
   const gs=e.target.closest("[data-gosel]"); if(gs){ const id=gs.dataset.gosel; mapSelect(id); return; }
   const z=e.target.closest("#mapZoom .chip"); if(z){ $("mapLayers").hidden=true; $("mapLayersBtn").setAttribute("aria-expanded","false"); state.mapZoom=z.dataset.z; store.set("mapZoom",state.mapZoom); mapFly(mapPreset(z.dataset.z)); return; }
   const b=e.target.closest("[data-zoom]"); if(b){ if(state.mapHead){ mapV=mapClamp({cx:mapV.cx,cy:mapV.cy,w:mapV.w*parseFloat(b.dataset.zoom)}); mapDraw(); return; } mapFly({cx:mapV.cx,cy:mapV.cy,w:mapV.w*parseFloat(b.dataset.zoom)}); return; }
-  const hb=e.target.closest("[data-head]"); if(hb){ if(state.mapHead){ headUp(false); return; } const ok=headingStart(); needPos(()=>{ ok.then(r=>{ if(!r){ $("mapPanel").insertAdjacentHTML("afterbegin",'<p class="msg headmsg">This device has no compass the app can read. The map stays north up; Guide me there still shows the way as a bearing.</p>'); return; } headUp(true); }); }); return; }
+  const hb=e.target.closest("[data-head]"); if(hb){ if(state.mapHead){ headUp(false); return; } const ok=headingStart();
+    ok.then(r=>{ headUp(true); if(!r){ headMsgShow(); return; } if(!state.pos&&navigator.geolocation){ try{ navigator.geolocation.getCurrentPosition(p=>{ state.pos={lat:p.coords.latitude,lon:p.coords.longitude}; if(state.mapHead){ const [x,y]=mapXY(state.pos.lat,state.pos.lon); mapV=mapClamp({cx:x,cy:y,w:Math.min(mapV.w,24)}); mapDraw(); } },()=>{ const pnl=$("mapPanel"); if(pnl&&!pnl.querySelector(".posmsg")) pnl.insertAdjacentHTML("afterbegin",'<p class="msg posmsg">Your location is not available, so the map turns around its centre. Allow location for Shot List to centre it on you.</p>'); },{timeout:10000,maximumAge:60000}); }catch(err){} } });
+    return; }
   const ev=e.target.closest("[data-event]"); if(ev){ state.view="events"; render(); const d=document.querySelector('#events details[data-id="'+ev.dataset.event+'"]'); if(d){ d.open=true; d.scrollIntoView({block:"start"}); } return; }
   const r=e.target.closest(".row"); if(r){ show(r.dataset.id); state.view="shoot"; render(); window.scrollTo({top:0}); return; }
   const g=e.target.closest("[data-go]"); if(g){ state.place=g.dataset.go; store.set("place",state.place); fillPlaces(); $("place").value=state.place; state.view="browse"; refilter(); window.scrollTo({top:0}); return; }
