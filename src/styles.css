@@ -754,3 +754,19 @@ body.streetmode{overflow:hidden}
 .st-bar .btn[aria-pressed="true"]{background:#2b2e34;border-color:#2b2e34}
 .onlyone{padding:10px 12px;border:1px solid var(--yellow);border-radius:10px} .onlyone p{margin:0 0 8px;font-size:15px} .onlyone .intents{margin:0;padding:0;gap:6px;flex-wrap:wrap;overflow:visible}
 .street .onlyone{margin:0 0 12px}
+/* Today: leave-by times and home */
+.tleave{margin:6px 0 4px;font-size:14px;line-height:1.4;padding:6px 10px;border-left:3px solid var(--yellow);background:color-mix(in srgb,var(--yellow) 10%,transparent);border-radius:0 8px 8px 0}
+.tleave.late{border-left-color:#e8763a;background:color-mix(in srgb,#e8763a 10%,transparent)}
+.tleave-link{white-space:nowrap;font-weight:700;color:inherit}
+.thome{margin:2px 0 6px}
+.thomeedit{margin:6px 0 10px;padding:10px;border:1px dashed var(--line);border-radius:10px} .thomeedit .intents{margin:6px 0 0;padding:0;flex-wrap:wrap}
+/* Today: the week ahead */
+.wrow{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:4px 0 6px}
+.wday{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0 8px;border:1.5px solid var(--line);border-radius:10px;background:var(--panel);color:var(--fg);font:inherit;cursor:pointer;min-width:0}
+.wday[aria-pressed="true"]{border-color:var(--fg)} .wday.past{opacity:.45}
+.wday.best{border-color:var(--yellow);box-shadow:inset 0 0 0 1px var(--yellow)}
+.wdn{font-size:12px;font-weight:700} .wds{font-size:11px;color:var(--muted)} .wday svg{width:22px;height:22px}
+.wde{display:flex;gap:2px;height:5px} .wde i{width:5px;height:5px;border-radius:50%;background:#1e9e48}
+.wstar{position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;background:var(--yellow);color:#111;padding:1px 5px;border-radius:6px}
+.wi-sun{fill:#f2ad3a} .wi-ray{stroke:#f2ad3a;stroke-width:1.6;stroke-linecap:round;fill:none} .wi-cloud{fill:#c9ccd3} .wi-cloud.dark{fill:#8d929c} .wi-rain{stroke:#4a7be0;stroke-width:1.6;stroke-linecap:round} .wi-none{fill:var(--line)}
+.wdet{margin-top:8px;padding-top:8px;border-top:1px solid var(--line)} .wdet p{margin:0 0 6px} .wdet .callinks{margin-top:6px}

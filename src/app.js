@@ -1597,7 +1597,7 @@ const store = {
 };
 const state = {
   city: store.get("city","nyc"), intent: store.get("intent","all"), place: store.get("place","all"), when: store.get("when","all"),
-  camera: store.get("camera","q343"), view:"today", tab:"idea", cond:"auto", camCmp:store.get("camCmp",["q343","x100vi","griv"]), lfF:43, lfN:8, lfS:3, drills:new Set(store.get("drills",[])), evType:"all", mapZoom:store.get("mapZoom","city"), mapSel:null, mapEv:null, mapT:null, mapD:0, mapHead:false, heading:null, mapIntent:"all", mapShowEv:store.get("mapShowEv",true)!==false, mapShowLm:store.get("mapShowLm",true)!==false, mapShowSub:store.get("mapShowSub",true)!==false, mapShowStn:store.get("mapShowStn",true)!==false, mapShowSunny:store.get("mapShowSunny",true)!==false, mapShowSpots:store.get("mapShowSpots",true)!==false, mapShowNames:store.get("mapShowNames",true)!==false, sheet:"peek", mapLm:null, mapSpot:null, notes: store.get("notes",{}) || {}, pos:null, plan:null,
+  camera: store.get("camera","q343"), view:"today", tab:"idea", cond:"auto", camCmp:store.get("camCmp",["q343","x100vi","griv"]), lfF:43, lfN:8, lfS:3, drills:new Set(store.get("drills",[])), evType:"all", mapZoom:store.get("mapZoom","city"), home:(h=>h&&typeof h.lat==="number"&&typeof h.lon==="number"?h:null)(store.get("home",null)), homeEdit:false, weekSel:null, mapSel:null, mapEv:null, mapT:null, mapD:0, mapHead:false, heading:null, mapIntent:"all", mapShowEv:store.get("mapShowEv",true)!==false, mapShowLm:store.get("mapShowLm",true)!==false, mapShowSub:store.get("mapShowSub",true)!==false, mapShowStn:store.get("mapShowStn",true)!==false, mapShowSunny:store.get("mapShowSunny",true)!==false, mapShowSpots:store.get("mapShowSpots",true)!==false, mapShowNames:store.get("mapShowNames",true)!==false, sheet:"peek", mapLm:null, mapSpot:null, notes: store.get("notes",{}) || {}, pos:null, plan:null,
   saved: new Set(store.get("saved",[])), done: new Set(store.get("done",[])), current:null, history:[],
   log: (o=>o&&typeof o==="object"&&!Array.isArray(o)?o:{})(store.get("log",{})), justShot:null, street:false, stayPrev:null
 };
@@ -2655,14 +2655,14 @@ function lightHere(t){ const c=CITIES[state.city], sp=sunPos(t,c.lat,c.lon), tf=
   return 'Light at '+tf+': orange lines on the map mark the sunny side of each street. Face <b>'+compass(sp.az)+'</b> for backlight, <b>'+compass(sp.az+90)+'</b> or <b>'+compass(sp.az-90)+'</b> for side light, <b>'+compass(sp.az+180)+'</b> for front light.'+(sp.alt>45?' The sun is high, so shadows are short and streets are in shade or full sun.':''); }
 /* The day's light, minute by minute: night, blue hour, golden hour, daylight. Drawn as the slider track, with marks to jump to. */
 let LIGHT_DAY = null;
-function lightDay(){ const c=CITIES[state.city], d=mapDay(); const key=state.city+":"+(+d);
+function lightDay(day){ const c=CITIES[state.city], d=day?new Date(day):mapDay(); d.setHours(0,0,0,0); const key=state.city+":"+(+d);
   if(LIGHT_DAY&&LIGHT_DAY.key===key) return LIGHT_DAY;
   const runs=[]; let cur=null;
   for(let m=0;m<1440;m++){ const ph=sunPhase(sunPos(new Date(+d+m*6e4),c.lat,c.lon).alt); if(cur&&cur.ph===ph) cur.e=m+1; else { cur={ph,s:m,e:m+1}; runs.push(cur); } }
   const [rise,set]=sunTimes(new Date(+d+12*36e5),c.lat,c.lon), mm=t=>t.getHours()*60+t.getMinutes();
   return LIGHT_DAY={key,runs,rise:mm(rise),set:mm(set)}; }
 const LIGHT_COL = {night:"#1c2340",blue:"#3e63d8",gold:"#f2ad3a",day:"#f4e7b4"};
-function lightBand(){ const L=lightDay(), at=m=>'calc(13px + (100% - 26px) * '+(m/1435).toFixed(4)+')';
+function lightBand(day){ const L=lightDay(day), at=m=>'calc(13px + (100% - 26px) * '+(m/1435).toFixed(4)+')';
   return 'linear-gradient(to right,'+L.runs.map(r=>LIGHT_COL[r.ph]+' '+at(r.s)+','+LIGHT_COL[r.ph]+' '+at(Math.min(r.e,1435))).join(",")+')'; }
 function lightMarks(){ const L=lightDay(), tf=hmText, out=[], pos=m=>'calc(13px + (100% - 26px) * '+(m/1435).toFixed(4)+')';
   const gold=L.runs.filter(r=>r.ph==="gold"), blue=L.runs.filter(r=>r.ph==="blue");
@@ -3065,7 +3065,7 @@ function renderLearn(){
 /* Today: the day's light and weather, where to go for the next good light, what is on, and a one-tap outing. */
 const dayMin = d => d.getHours()*60+d.getMinutes();
 const atMin = m => { const d=new Date(); d.setHours(0,0,0,0); return new Date(+d+m*6e4); };
-function todayWindows(){ const L=lightDay(), gold=L.runs.filter(r=>r.ph==="gold"), blue=L.runs.filter(r=>r.ph==="blue"), out=[];
+function todayWindows(day){ const L=lightDay(day||new Date()), gold=L.runs.filter(r=>r.ph==="gold"), blue=L.runs.filter(r=>r.ph==="blue"), out=[];
   const mg=gold.find(r=>r.s<720), eg=gold.find(r=>r.s>=720), mb=blue.find(r=>r.s<720), eb=blue.find(r=>r.s>=720);
   if(mb) out.push({k:"blue",s:mb.s,e:mb.e,name:"Morning blue hour"});
   if(mg) out.push({k:"gold",s:mg.s,e:mg.e,name:"Morning golden hour"});
@@ -3093,6 +3093,64 @@ function nowLight(now){ const c=CITIES[state.city], sp=sunPos(now,c.lat,c.lon), 
   else if(key==="am") what=dull?"Morning under cloud: soft light with no shadows, good for faces, colour and detail.":"Morning sun: low, clean light from the east. Side light down the cross streets.";
   else what=dull?(sky==="rain"?"Rain: reflections, umbrellas and steamed windows. Shoot through glass or under cover.":"Overcast: flat, even light. Faces, colour, signs and interiors; no hard shadows."):"Midday sun: hard light overhead. Shadows as shapes, silhouettes in slots of light, canyons.";
   return {ph,key,sp,what}; }
+/* Home and leave-by times. Home is a point the user saves (from their location while at home) with how they travel. Travel time is an
+   estimate from the straight-line distance, calibrated on suburban New Jersey and Westchester runs into Manhattan: a fixed part, a per-km
+   part, a bridge or tunnel when the trip is long, rush-hour traffic on weekdays, and parking. The directions link gives the live time. */
+const HOME_MODES = {car:"by car", transit:"by bus and subway"};
+function travelMins(from,to,mode,at){ const km=kmBetween(from,to), t=at||new Date(), wk=t.getDay()>0&&t.getDay()<6, h=t.getHours()+t.getMinutes()/60, rush=wk&&((h>=7&&h<10)||(h>=16&&h<19));
+  let m; if(mode==="transit") m=20+km*2.4+(rush?5:0); else m=(6+km*1.25+(km>12?8:0))*(rush?1.35:1)+10;
+  return Math.max(10,Math.ceil(m/5)*5); }
+// Leave-by times are shown when a home is saved and you are at home or your position is unknown
+const fromHome = () => state.home && (!state.pos || kmBetween(state.pos,state.home)<3) && typeof CITIES[state.city].lat==="number" && kmBetween(state.home,{lat:CITIES[state.city].lat,lon:CITIES[state.city].lon})>4 ? state.home : null;
+const homeRoute = (to,mode) => 'https://www.google.com/maps/dir/?api=1&origin='+state.home.lat.toFixed(4)+','+state.home.lon.toFixed(4)+'&destination='+to[0].toFixed(5)+','+to[1].toFixed(5)+'&travelmode='+(mode==="transit"?"transit":"driving");
+const durText = m => m>=60 ? Math.floor(m/60)+' h'+(m%60?' '+(m%60)+' min':'') : m+' min';
+/* "Leave home by 4:35 pm" for arriving 15 minutes before `startMin` on `day` at `to` ([lat,lon]); or, if that time has passed, when you would get there. */
+function leaveBy(to,startMin,day,what){ const H=fromHome(); if(!H||!to) return ""; const d=day?new Date(day):new Date(); d.setHours(0,0,0,0);
+  const arrive=new Date(+d+(startMin-15)*6e4), m=travelMins(H,{lat:to[0],lon:to[1]},H.mode,arrive), leave=new Date(Math.floor((+arrive-m*6e4)/3e5)*3e5), now=new Date(), link=' <a class="tleave-link" href="'+homeRoute(to,H.mode)+'" target="_blank" rel="noopener">Live route ↗</a>';
+  if(leave>now) return '<p class="tleave"><b>Leave home by '+hmText(dayMin(leave))+'</b> · about '+durText(m)+' '+HOME_MODES[H.mode]+(what?', there 15 min before '+esc(what):'')+'.'+link+'</p>';
+  const there=new Date(Math.ceil((+now+travelMins(H,{lat:to[0],lon:to[1]},H.mode,now)*6e4)/3e5)*3e5), late=Math.round((there-(+d+startMin*6e4))/6e4);
+  return '<p class="tleave late"><b>Leaving now, you would get there about '+hmText(dayMin(there))+'</b>'+(late>0&&what?', '+durText(late)+' into '+esc(what):'')+'.'+link+'</p>'; }
+function homeHtml(){ const H=state.home;
+  if(!state.homeEdit) return H ? '<p class="msg thome">Leave-by times are from home, '+HOME_MODES[H.mode]+'. <button type="button" class="linkbtn" data-homeedit="1">Change</button></p>'
+    : '<p class="msg thome">Travelling in from outside the city? <button type="button" class="linkbtn" data-homeedit="1">Set home</button> to see when to leave.</p>';
+  return '<div class="thomeedit"><p class="msg">Home is saved on this device only. Set it while you are at home, then choose how you travel in.</p>'+
+    '<div class="intents"><button type="button" class="chip" data-homehere="1">'+(H?'Use where I am now':'Use where I am now as home')+'</button>'+
+    Object.entries(HOME_MODES).map(([k,v])=>'<button type="button" class="chip" data-homemode="'+k+'" aria-pressed="'+(H?H.mode===k:k===(state.homeMode||"car"))+'">'+(k==="car"?"Car":"Bus and subway")+'</button>').join("")+
+    (H?'<button type="button" class="chip" data-homeclear="1">Remove home</button>':'')+'<button type="button" class="chip" data-homedone="1">Done</button></div><p class="msg" id="homeMsg" role="status"></p></div>'; }
+
+/* The week ahead: for each of the next seven evenings, sunset, golden and blue hour, the forecast for that light, and what is on. */
+function weekDays(){ const now=new Date(), today=new Date(now.getFullYear(),now.getMonth(),now.getDate()), rows=eventRows(today), out=[];
+  for(let k=0;k<7;k++){ const day=new Date(today.getFullYear(),today.getMonth(),today.getDate()+k), {L,list}=todayWindows(day), g=list.find(x=>x.name==="Golden hour"), b=list.find(x=>x.name==="Blue hour");
+    if(!g) continue; const s0=g.s, e0=b?b.e:g.e; let n=0, cc=0, pop=0, rain=false, known=true;
+    for(let m=Math.floor(s0/60)*60;m<e0;m+=60){ const t=new Date(+day+m*6e4), f=hourlyAt(t); if(!f){ known=false; break; } n++; cc+=f.cc||0; pop=Math.max(pop,f.pop||0); const sk=skyAt(t); if(sk==="rain"||sk==="snow") rain=true; }
+    const sky=!known||!n?null:rain?"rain":cc/n>=80?"overcast":cc/n>=35?"cloud":"clear";
+    const ev=rows.filter(r=>r.o&&!r.cancelled&&evDay(r.o[0])<=day&&evDay(r.o[1]||r.o[0])>=day), past=k===0&&dayMin(now)>=e0;
+    const score=past?-9:(sky==="cloud"?3.2:sky==="clear"?3:sky==="rain"?2.2:sky==="overcast"?1:0)+(ev.length?0.6:0);
+    out.push({k,day,L,g,b,sky,pop,ev,past,score}); }
+  const known=out.filter(d=>d.sky&&!d.past); if(known.length){ const best=known.slice().sort((a,b)=>b.score-a.score||a.k-b.k)[0]; best.best=true; }
+  return out; }
+const SKY_WORD = {clear:"Clear",cloud:"Some cloud",overcast:"Overcast",rain:"Rain"};
+const SKY_WHY = {clear:"Clear sky: warm low sun, long shadows and a clean sunset.",cloud:"Broken cloud often catches the best colour after sunset.",overcast:"Overcast: soft, even light and little colour in the sky; good for faces and interiors.",rain:"Rain: wet streets and reflections, best from blue hour on."};
+const skyIcon = k => k==="clear" ? '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="4.5" class="wi-sun"/><path d="M10 1.5v2.6M10 15.9v2.6M1.5 10h2.6M15.9 10h2.6M4 4l1.8 1.8M14.2 14.2L16 16M4 16l1.8-1.8M14.2 5.8L16 4" class="wi-ray"/></svg>'
+  : k==="cloud" ? '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="7.5" cy="7.5" r="3.6" class="wi-sun"/><path d="M5 16h9.5a3.2 3.2 0 0 0 0-6.4 4.4 4.4 0 0 0-8.4 1A2.7 2.7 0 0 0 5 16Z" class="wi-cloud"/></svg>'
+  : k==="overcast" ? '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 15h12a3.4 3.4 0 0 0 0-6.8 5 5 0 0 0-9.6 1.2A2.8 2.8 0 0 0 3.5 15Z" class="wi-cloud dark"/></svg>'
+  : k==="rain" ? '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 11.5h12a3.2 3.2 0 0 0 0-6.4 5 5 0 0 0-9.6 1.1A2.7 2.7 0 0 0 3.5 11.5Z" class="wi-cloud dark"/><path d="M6 14l-1 3M10 14l-1 3M14 14l-1 3" class="wi-rain"/></svg>'
+  : '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="3" class="wi-none"/></svg>';
+function weekHtml(){ const D=weekDays(); if(!D.length) return ""; const anyKnown=D.some(d=>d.sky), sel=D.find(d=>d.k===state.weekSel);
+  const cells=D.map(d=>'<button type="button" class="wday'+(d.best?' best':'')+(d.past?' past':'')+'" data-week="'+d.k+'" aria-pressed="'+(state.weekSel===d.k)+'" aria-label="'+esc(DAY_NAMES[d.day.getDay()]+', sunset '+hmText(d.L.set)+(d.sky?', '+SKY_WORD[d.sky]+' at golden hour':'')+(d.ev.length?', '+d.ev.length+' event'+(d.ev.length>1?'s':''):'')+(d.best?', best evening':''))+'">'+
+    '<span class="wdn">'+(d.k===0?'Today':DAY_SHORT[d.day.getDay()])+'</span>'+skyIcon(d.sky)+'<span class="wds">'+hmText(d.L.set).replace(/ pm$/,"")+'</span><span class="wde">'+(d.ev.length?'<i></i>'.repeat(Math.min(3,d.ev.length)):'')+'</span>'+(d.best?'<span class="wstar">Best</span>':'')+'</button>').join("");
+  let det=""; if(sel){ const d=sel, picks=todayPicks(new Date(+d.day+d.g.s*6e4)), top=picks[0], tg=top&&(START_GEO[top.id]||[PLACES[top.id].lat,PLACES[top.id].lon]);
+    det='<div class="wdet"><p><b>'+d.day.toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"})+'</b> · golden hour '+hmText(d.g.s)+' to '+hmText(d.g.e)+(d.b?', blue hour to '+hmText(d.b.e):'')+' · sunset '+hmText(d.L.set)+'</p>'+
+      (d.sky?'<p class="msg">'+SKY_WORD[d.sky]+' at golden hour'+(d.pop>=20?' ('+d.pop+'% chance of rain)':'')+'. '+SKY_WHY[d.sky]+'</p>':'<p class="msg">'+(anyKnown?'No forecast for this evening yet.':'The week’s forecast shows in the installed app.')+'</p>')+
+      (d.ev.length?'<p class="msg">On: '+d.ev.slice(0,4).map(r=>esc(evTitle(r))+(r.game?' ('+hmText(dayMin(r.game.at))+')':'')).join(" · ")+(d.ev.length>4?' and more':'')+'</p>':'')+
+      (top?'<p class="msg">Best place for that light: <b>'+esc(PLACES[top.id].name)+'</b>'+(picks[1]?', then '+esc(PLACES[picks[1].id].name):'')+'.</p>'+leaveBy(tg,d.g.s,d.day,"golden hour"):'')+
+      '<div class="callinks"><button type="button" class="chip primary" data-weekplan="'+d.k+'">Plan this evening</button><button type="button" class="chip" data-weekmap="'+d.k+'">See it on the map</button></div></div>'; }
+  return '<section class="tcard tweek"><p class="tlabel">The week ahead</p><div class="wrow">'+cells+'</div>'+
+    '<p class="msg">'+(anyKnown?'Sky at golden hour, sunset time and events each evening. Tap a day for details.':'Sunset and events each evening; the forecast shows in the installed app. Tap a day for details.')+'</p>'+det+'</section>'; }
+function weekPlan(k){ const D=weekDays().find(d=>d.k===+k); if(!D) return; const t=new Date(+D.day+D.g.s*6e4), best=todayPicks(t)[0]; state.view="plan"; render();
+  $("pDay").value=String(D.k); renderPlan(); if(best&&[...$("pStart").options].some(o=>o.value===best.id)) $("pStart").value=best.id;
+  const h=Math.max(6,Math.floor((D.g.s-75)/60)); if([...$("pTime").options].some(o=>o.value===String(h))) $("pTime").value=String(h); $("pLen").value="150"; state.plan=makePlan(); savePlan(); renderPlan(); window.scrollTo({top:0}); }
+function weekMap(k){ const D=weekDays().find(d=>d.k===+k); if(!D) return; state.mapD=D.k; state.mapT=Math.round(D.g.s/5)*5; state.view="map"; render(); window.scrollTo({top:0}); }
 function renderToday(){ const box=$("today"); if(!box) return;
   const now=new Date(), nm=dayMin(now), c=CITIES[state.city], {L,list}=todayWindows(), tf=hmText, w=WEATHER[state.city];
   const ph=sunPhase(sunPos(now,c.lat,c.lon).alt), next=list.find(x=>x.e>nm);
@@ -3112,7 +3170,7 @@ function renderToday(){ const box=$("today"); if(!box) return;
   const nowTxt = w&&w.condition_text ? esc(w.condition_text)+(typeof w.temp_c==="number"?', '+Math.round(w.temp_c*9/5+32)+'°F':'')+' now. ' : '';
   const mo=moonPos(atMin(720),c.lat,c.lon), mt=moonTimes(atMin(720),c.lat,c.lon);
   const pos=m=>(Math.min(1435,Math.max(0,m))/1435*100).toFixed(2)+'%';
-  const band='<div class="tband" style="background:'+lightBand().replace(/calc\(13px \+ \(100% - 26px\) \* ([0-9.]+)\)/g,(_,p)=>(p*100).toFixed(2)+'%')+'"><i style="left:'+pos(nm)+'"></i></div>'+
+  const band='<div class="tband" style="background:'+lightBand(new Date()).replace(/calc\(13px \+ \(100% - 26px\) \* ([0-9.]+)\)/g,(_,p)=>(p*100).toFixed(2)+'%')+'"><i style="left:'+pos(nm)+'"></i></div>'+
     '<div class="tbandlab"><span>12 am</span><span>6 am</span><span>Noon</span><span>6 pm</span><span>12 am</span></div>';
   const wins=list.map(x=>'<span class="twin'+(x.e<=nm?' past':x.s<=nm?' on':'')+'"><span class="lk '+x.k+'"></span>'+x.name.replace("Morning golden hour","Morning gold").replace("Morning blue hour","Morning blue")+' '+tf(x.s)+'–'+tf(x.e)+'</span>').join("")+
     '<span class="twin"><span class="lk rise"></span>Sunrise '+tf(L.rise)+'</span><span class="twin"><span class="lk set"></span>Sunset '+tf(L.set)+'</span>'+
@@ -3128,11 +3186,13 @@ function renderToday(){ const box=$("today"); if(!box) return;
       '<div class="tpickb"><b>'+esc(P.name)+'</b><span class="msg">'+esc(AREAS[areaOf(p.id)]||"")+(p.mi!==null?' · '+milesText(p.mi)+(walk!==null&&walk<=45?', '+walk+' min walk':''):'')+' · '+p.fit+' idea'+(p.fit>1?'s':'')+' for '+esc(lname)+(p.fresh<p.fit?' · '+(p.fit-p.fresh)+' shot':'')+'</span>'+
       (p.best?'<button type="button" class="row" data-id="'+p.best.id+'"><span class="dot" style="background:'+INTENTS[p.best.i].color+'"></span><span class="t"><b>'+esc(p.best.t)+'</b><span>'+esc(INTENTS[p.best.i].name)+(state.saved.has(p.best.id)?' · saved':'')+'</span></span><span class="go" aria-hidden="true">›</span></button>':'')+
       (sp?'<p class="msg tspot"><span class="snum '+lf.k+'">'+spotNum(sp.id)+'</span><span>'+esc(sp.S[3])+' · face '+compass(sp.S[2])+', '+esc(lf.txt.toLowerCase())+(state.todayAt===null?' now':' then')+'</span></p>':'')+
+      leaveBy(START_GEO[p.id]||[P.lat,P.lon], state.todayAt===null?nm:state.todayAt, null, state.todayAt===null?"":((list.find(x=>x.s===state.todayAt)||{}).name||"").toLowerCase())+
       '<div class="callinks"><button type="button" class="chip" data-mapgo="'+p.id+'">On the map</button>'+(sp&&state.pos?'<button type="button" class="chip" data-guidego="'+sp.id+'">Guide me there</button>':'')+(START_GEO[p.id]?'<a class="chip" href="https://www.google.com/maps/dir/?api=1&destination='+START_GEO[p.id][0]+','+START_GEO[p.id][1]+'&travelmode=transit" target="_blank" rel="noopener">Directions ↗</a>':'')+'</div></div></article>'; }).join("")
     : '<p class="msg">No ideas suit this light. Try another time above.</p>';
   const locChip = state.pos ? '' : '<button type="button" class="chip" data-todayloc="1">Use my location</button>';
   // events
-  const evs=todayEvents(), evHtml=evs.length?evs.map(({r,st})=>'<div class="tev'+(st.k==="live"?' live':'')+'"><b>'+esc(evTitle(r))+'</b><span class="msg">'+esc(st.line)+(r.e.where?' · '+esc(r.e.where):'')+'</span><div class="callinks"><button type="button" class="chip" data-event="'+esc(r.e.id)+'">Open in Events</button></div></div>').join("")
+  const evs=todayEvents(), evHtml=evs.length?evs.map(({r,st})=>'<div class="tev'+(st.k==="live"?' live':'')+'"><b>'+esc(evTitle(r))+'</b><span class="msg">'+esc(st.line)+(r.e.where?' · '+esc(r.e.where):'')+'</span>'+
+      (eventGeo(r.e.id)?(w0=>leaveBy(eventGeo(r.e.id), st.k==="live"||!w0?nm:w0[0], null, st.k==="live"||!w0?"":"it starts"))(evWindow(r.e,new Date(now.getFullYear(),now.getMonth(),now.getDate()))):'')+'<div class="callinks"><button type="button" class="chip" data-event="'+esc(r.e.id)+'">Open in Events</button></div></div>').join("")
     : '<p class="msg">No events listed for today. <button type="button" class="linkbtn" data-goview="events">See what is coming up</button></p>';
   // outing
   const eg=list.find(x=>x.name==="Golden hour"), planFor = eg&&eg.s-60>nm ? {when:"tonight",h:Math.max(6,Math.floor((eg.s-75)/60)),txt:'Starts about '+tf(Math.floor((eg.s-75)/60)*60)+' at the best place for that light and walks you through golden hour into blue hour.'}
@@ -3145,11 +3205,12 @@ function renderToday(){ const box=$("today"); if(!box) return;
     '<header class="thead"><h2>'+now.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})+'</h2><span class="msg">'+esc(c.name)+'</span></header>'+
     nowStrip+
     '<section class="tcard tlight"><p class="tlabel">The light today</p>'+band+'<div class="twins">'+wins+'</div>'+(nowTxt||rainTxt?'<p class="msg">'+nowTxt+rainTxt+'</p>':'')+'</section>'+
+    weekHtml()+
     dayCard+
     '<section class="tcard"><p class="tlabel">Where to go</p><div class="intents tmoments">'+moments.map(m=>'<button type="button" class="chip" data-tat="'+(m.at===null?'now':m.at)+'" aria-pressed="'+(m.at===state.todayAt)+'">'+m.label+'</button>').join("")+locChip+'</div>'+
-      '<p class="msg">Best places for '+esc(lname)+(state.todayAt===null?' now':' at '+tf(state.todayAt))+(state.pos?', nearest first among equals':'')+'.</p>'+pickHtml+'</section>'+
+      '<p class="msg">Best places for '+esc(lname)+(state.todayAt===null?' now':' at '+tf(state.todayAt))+(state.pos?', nearest first among equals':'')+'.</p>'+homeHtml()+pickHtml+'</section>'+
     '<section class="tcard"><p class="tlabel">On today</p>'+evHtml+'</section>'+
-    '<section class="tcard tplan"><p class="tlabel">Plan an outing</p><p>'+planFor.txt+'</p><button type="button" class="btn primary" data-planday="'+planFor.h+'">Plan '+planFor.when+'</button></section>'+
+    '<section class="tcard tplan"><p class="tlabel">Plan an outing</p><p>'+planFor.txt+'</p>'+(planFor.when==="tonight"?(tp=>tp?leaveBy(START_GEO[tp.id]||[PLACES[tp.id].lat,PLACES[tp.id].lon],planFor.h*60+15,null,""):"")(todayPicks(atMin(planFor.h*60+60))[0]):'')+'<button type="button" class="btn primary" data-planday="'+planFor.h+'">Plan '+planFor.when+'</button></section>'+
     (nudge?'<section class="tcard">'+nudge+'</section>':''); }
 /* Shoot now: the one best idea for this light, nearest first, not yet shot. */
 function shootNow(){ const now=new Date(), key=lightAt(now), sky=nowInfo().sky, pool=cityIdeas().filter(x=>typeof PLACES[x.p].lat==="number"&&ideaOpen(x,now,sky)&&x.w.includes(key));
@@ -3333,6 +3394,18 @@ $("learn").addEventListener("change",e=>{
   const cb=e.target.closest("[data-drill]"); if(cb){ cb.checked?state.drills.add(cb.dataset.drill):state.drills.delete(cb.dataset.drill); store.set("drills",[...state.drills]); const h=cb.closest(".drills").nextElementSibling; if(h) h.textContent=state.drills.size+" of "+DRILLS.length+" done."; }
 });
 $("today").addEventListener("click",e=>{
+  const wk=e.target.closest("[data-week]"); if(wk){ const k=+wk.dataset.week; state.weekSel=state.weekSel===k?null:k; renderToday(); return; }
+  const wp=e.target.closest("[data-weekplan]"); if(wp){ weekPlan(wp.dataset.weekplan); return; }
+  const wm=e.target.closest("[data-weekmap]"); if(wm){ weekMap(wm.dataset.weekmap); return; }
+  if(e.target.closest("[data-homeedit]")){ state.homeEdit=true; renderToday(); return; }
+  if(e.target.closest("[data-homedone]")){ state.homeEdit=false; renderToday(); return; }
+  if(e.target.closest("[data-homeclear]")){ state.home=null; store.set("home",null); state.homeEdit=false; renderToday(); return; }
+  const hm=e.target.closest("[data-homemode]"); if(hm){ if(state.home){ state.home.mode=hm.dataset.homemode; store.set("home",state.home); } else state.homeMode=hm.dataset.homemode; renderToday(); return; }
+  const hh=e.target.closest("[data-homehere]"); if(hh){ const msg=()=>$("homeMsg"); hh.textContent="Finding you…";
+    const fail=()=>{ renderToday(); if(msg()) msg().textContent="Your location is not available here. In the installed app on your phone, allow location access for Shot List and try again at home."; };
+    if(!navigator.geolocation){ fail(); return; }
+    try{ navigator.geolocation.getCurrentPosition(p=>{ state.home={lat:+p.coords.latitude.toFixed(4),lon:+p.coords.longitude.toFixed(4),mode:(state.home&&state.home.mode)||state.homeMode||"car"}; store.set("home",state.home); state.pos={lat:p.coords.latitude,lon:p.coords.longitude}; state.homeEdit=false; renderToday(); }, fail, {timeout:12000,maximumAge:60000}); }catch(err){ fail(); }
+    return; }
   const tm=e.target.closest("[data-tat]"); if(tm){ state.todayAt=tm.dataset.tat==="now"?null:+tm.dataset.tat; renderToday(); return; }
   if(e.target.closest("[data-shootnow]")){ shootNow(); return; }
   const tg=e.target.closest("[data-guidego]"); if(tg){ const id=tg.dataset.guidego; state.mapT=null; state.view="map"; render(); guideStart(id); requestAnimationFrame(()=>requestAnimationFrame(()=>{ mapSelectSpot(id); guideRender(); })); return; }
