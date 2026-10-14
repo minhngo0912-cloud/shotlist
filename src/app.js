@@ -874,6 +874,212 @@ const IDEA_ART = {
 WORK_ART["midtown-place"]=["Top view","Stand at the street edge of a plaza, where the pavement is widest, and aim straight along the avenue. Step sideways until both walls of towers take up the same amount of frame, and hold the camera level so the towers stay upright and run off the top of the frame with no sky.",
   "<rect x=\"60\" y=\"1\" width=\"30\" height=\"98\" class=\"d-bg\" opacity=\".35\"/><path d=\"M75 4 V74\" class=\"d-dash\"/><rect x=\"8\" y=\"5\" width=\"44\" height=\"24\" rx=\"1.5\" class=\"d-bg\" opacity=\"1\"/><rect x=\"8\" y=\"35\" width=\"44\" height=\"22\" rx=\"1.5\" class=\"d-bg\" opacity=\"1\"/><rect x=\"98\" y=\"5\" width=\"44\" height=\"18\" rx=\"1.5\" class=\"d-bg\" opacity=\"1\"/><rect x=\"98\" y=\"29\" width=\"44\" height=\"28\" rx=\"1.5\" class=\"d-bg\" opacity=\"1\"/><rect x=\"98\" y=\"63\" width=\"44\" height=\"32\" rx=\"1.5\" class=\"d-bg\" opacity=\"1\"/><rect x=\"8\" y=\"63\" width=\"17\" height=\"32\" rx=\"1.5\" class=\"d-bg\" opacity=\"1\"/><rect x=\"27\" y=\"63\" width=\"28\" height=\"32\" rx=\"1.5\" class=\"d-out\"/><circle cx=\"33\" cy=\"69\" r=\"2.2\" class=\"d-mu\"/><circle cx=\"41\" cy=\"69\" r=\"2.2\" class=\"d-mu\"/><circle cx=\"33\" cy=\"89\" r=\"2.2\" class=\"d-mu\"/><circle cx=\"41\" cy=\"89\" r=\"2.2\" class=\"d-mu\"/><rect x=\"71\" y=\"40\" width=\"5\" height=\"9\" rx=\"1.5\" class=\"d-mu\"/><rect x=\"79\" y=\"58\" width=\"5\" height=\"9\" rx=\"1.5\" class=\"d-mu\"/>"+dYou(57,84,-90,78)+dArrow(75,30,75,12)+dTx(30,19,'towers','middle')+dTx(120,45,'towers','middle')+dTx(120,81,'towers','middle')+dTx(38,81,'plaza','middle')+dTx(64,87,'you')+'<text transform="translate(94.5,52) rotate(90)" text-anchor="middle" class="d-tx">Sixth Avenue</text>'];
 IDEA_ART["midtown-place"]="<rect x=\"65\" y=\"1\" width=\"20\" height=\"58.8\" class=\"d-mu\" opacity=\".28\"/><rect x=\"70\" y=\"1\" width=\"10\" height=\"58.8\" class=\"d-mu\" opacity=\".3\"/><path d=\"M1 1 H27 V81.9 L1 97.0 Z\" class=\"d-bg\" opacity=\"1\"/><path d=\"M1 80.0 L27 70.9\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M1 62.0 L27 59.2\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M1 44.0 L27 47.5\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M1 26.0 L27 35.8\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M1 8.0 L27 24.2\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M1 -12.0 L27 11.2\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M7.5 1 V93.2\" class=\"d-feat\" style=\"stroke-width:.5\"/><path d=\"M14.0 1 V89.4\" class=\"d-feat\" style=\"stroke-width:.5\"/><path d=\"M20.5 1 V85.7\" class=\"d-feat\" style=\"stroke-width:.5\"/><path d=\"M27 1 V81.9\" class=\"d-feat\" style=\"stroke-width:1.4\"/><path d=\"M27 1 H44 V72.0 L27 81.9 Z\" class=\"d-mu\" opacity=\"0.55\"/><path d=\"M27 70.9 L44 64.9\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M27 59.2 L44 57.4\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M27 47.5 L44 49.8\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M27 35.8 L44 42.3\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M27 24.2 L44 34.7\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M27 11.2 L44 26.4\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M27 -3.1 L44 17.1\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M27 -19.9 L44 6.2\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M31.2 1 V79.4\" class=\"d-feat\" style=\"stroke-width:.5\"/><path d=\"M35.5 1 V77.0\" class=\"d-feat\" style=\"stroke-width:.5\"/><path d=\"M39.8 1 V74.5\" class=\"d-feat\" style=\"stroke-width:.5\"/><path d=\"M44 1 V72.0\" class=\"d-feat\" style=\"stroke-width:1.4\"/><path d=\"M44 1 H56 V65.0 L44 72.0 Z\" class=\"d-bg\" opacity=\"0.8\"/><path d=\"M44 64.9 L56 60.7\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M44 57.4 L56 56.1\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M44 49.8 L56 51.4\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M44 42.3 L56 46.8\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M44 34.7 L56 42.2\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M44 26.4 L56 37.1\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M44 17.1 L56 31.4\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M44 6.2 L56 24.7\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M44 -7.2 L56 16.5\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M44 -25.2 L56 5.5\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M48.0 1 V69.7\" class=\"d-feat\" style=\"stroke-width:.5\"/><path d=\"M52.0 1 V67.4\" class=\"d-feat\" style=\"stroke-width:.5\"/><path d=\"M56 1 V65.0\" class=\"d-feat\" style=\"stroke-width:1.4\"/><path d=\"M56 1 H65 V59.8 L56 65.0 Z\" class=\"d-mu\" opacity=\"0.4\"/><path d=\"M56 60.7 L65 57.5\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M56 56.1 L65 55.1\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M56 51.4 L65 52.6\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M56 46.8 L65 50.2\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M56 42.2 L65 47.8\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M56 37.1 L65 45.1\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M56 31.4 L65 42.1\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M56 24.7 L65 38.6\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M56 16.5 L65 34.3\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M56 5.5 L65 28.5\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M56 -11.2 L65 19.7\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M56 -42.0 L65 3.5\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M59.0 1 V63.3\" class=\"d-feat\" style=\"stroke-width:.5\"/><path d=\"M62.0 1 V61.6\" class=\"d-feat\" style=\"stroke-width:.5\"/><path d=\"M65 1 V59.8\" class=\"d-feat\" style=\"stroke-width:1.4\"/><path d=\"M149 1 H123 V81.9 L149 97.0 Z\" class=\"d-bg\" opacity=\"1\"/><path d=\"M149 80.0 L123 70.9\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M149 62.0 L123 59.2\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M149 44.0 L123 47.5\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M149 26.0 L123 35.8\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M149 8.0 L123 24.2\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M149 -12.0 L123 11.2\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M142.5 1 V93.2\" class=\"d-feat\" style=\"stroke-width:.5\"/><path d=\"M136.0 1 V89.4\" class=\"d-feat\" style=\"stroke-width:.5\"/><path d=\"M129.5 1 V85.7\" class=\"d-feat\" style=\"stroke-width:.5\"/><path d=\"M123 1 V81.9\" class=\"d-feat\" style=\"stroke-width:1.4\"/><path d=\"M123 1 H106 V72.0 L123 81.9 Z\" class=\"d-mu\" opacity=\"0.55\"/><path d=\"M123 70.9 L106 64.9\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M123 59.2 L106 57.4\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M123 47.5 L106 49.8\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M123 35.8 L106 42.3\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M123 24.2 L106 34.7\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M123 11.2 L106 26.4\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M123 -3.1 L106 17.1\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M123 -19.9 L106 6.2\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M118.8 1 V79.4\" class=\"d-feat\" style=\"stroke-width:.5\"/><path d=\"M114.5 1 V77.0\" class=\"d-feat\" style=\"stroke-width:.5\"/><path d=\"M110.2 1 V74.5\" class=\"d-feat\" style=\"stroke-width:.5\"/><path d=\"M106 1 V72.0\" class=\"d-feat\" style=\"stroke-width:1.4\"/><path d=\"M106 1 H94 V65.0 L106 72.0 Z\" class=\"d-bg\" opacity=\"0.8\"/><path d=\"M106 64.9 L94 60.7\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M106 57.4 L94 56.1\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M106 49.8 L94 51.4\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M106 42.3 L94 46.8\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M106 34.7 L94 42.2\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M106 26.4 L94 37.1\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M106 17.1 L94 31.4\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M106 6.2 L94 24.7\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M106 -7.2 L94 16.5\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M106 -25.2 L94 5.5\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M102.0 1 V69.7\" class=\"d-feat\" style=\"stroke-width:.5\"/><path d=\"M98.0 1 V67.4\" class=\"d-feat\" style=\"stroke-width:.5\"/><path d=\"M94 1 V65.0\" class=\"d-feat\" style=\"stroke-width:1.4\"/><path d=\"M94 1 H85 V59.8 L94 65.0 Z\" class=\"d-mu\" opacity=\"0.4\"/><path d=\"M94 60.7 L85 57.5\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M94 56.1 L85 55.1\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M94 51.4 L85 52.6\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M94 46.8 L85 50.2\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M94 42.2 L85 47.8\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M94 37.1 L85 45.1\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M94 31.4 L85 42.1\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M94 24.7 L85 38.6\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M94 16.5 L85 34.3\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M94 5.5 L85 28.5\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M94 -11.2 L85 19.7\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M94 -42.0 L85 3.5\" class=\"d-feat\" style=\"stroke-width:.7\"/><path d=\"M91.0 1 V63.3\" class=\"d-feat\" style=\"stroke-width:.5\"/><path d=\"M88.0 1 V61.6\" class=\"d-feat\" style=\"stroke-width:.5\"/><path d=\"M85 1 V59.8\" class=\"d-feat\" style=\"stroke-width:1.4\"/><path d=\"M1 97 L65 59.8 H85 L149 97 V99 H1 Z\" class=\"d-bg\" opacity=\".45\"/><path d=\"M48 99 L72 60.8 M102 99 L78 60.8\" class=\"d-dash\"/><rect x=\"57\" y=\"78\" width=\"9\" height=\"5\" rx=\"1.5\" class=\"d-you\"/><rect x=\"82\" y=\"70\" width=\"6\" height=\"3.5\" rx=\"1\" class=\"d-mu\"/><rect x=\"69\" y=\"65\" width=\"4\" height=\"2.5\" rx=\".8\" class=\"d-mu\"/><path d=\"M75 1 V99\" class=\"d-dash\"/><path d=\"M75 54 m-4 0 h8 m-4 -4 v8\" class=\"d-ln\"/>"+dP(24,97,13)+dP(31,98,11,'d-mu')+dP(124,97,13)+dP(117,98,11,'d-mu');
+/* Compose drawings made for single ideas, where the technique's own drawing would mislead. Same vocabulary as the technique drawings:
+   greys for the scene, white for the subject, a yellow guide layer with short labels. viewBox 0 0 150 100. */
+// A figure blurred by a slow shutter: fading copies trailing behind it and a few streaks. dir 1 = moving right
+const dBlur = (x,y,h,dir=1,c="d-mu") => [0.18,0.3,0.55].map((o,i)=>'<g opacity="'+o+'">'+dW(x-dir*(2-i)*h*0.16,y,h,c,dir)+'</g>').join("")+
+  '<path d="M'+n1(x-dir*h*0.55)+' '+n1(y-h*0.62)+' h'+n1(dir*h*0.3)+' M'+n1(x-dir*h*0.62)+' '+n1(y-h*0.4)+' h'+n1(dir*h*0.34)+' M'+n1(x-dir*h*0.5)+' '+n1(y-h*0.18)+' h'+n1(dir*h*0.26)+'" class="d-ln" style="stroke-width:.8;opacity:.5"/>';
+// A person standing still, a little more solid than the walking figure
+const dStand = (x,y,h,c="d-fg") => '<g class="'+c+'"><circle cx="'+n1(x)+'" cy="'+n1(y-h*0.9)+'" r="'+n1(h*0.09)+'"/><path d="M'+n1(x-h*0.13)+' '+n1(y-h*0.79)+' H'+n1(x+h*0.13)+' L'+n1(x+h*0.15)+' '+n1(y-h*0.42)+' H'+n1(x+h*0.09)+' L'+n1(x+h*0.08)+' '+n1(y)+' H'+n1(x+h*0.01)+' V'+n1(y-h*0.36)+' H'+n1(x-h*0.01)+' V'+n1(y)+' H'+n1(x-h*0.08)+' L'+n1(x-h*0.09)+' '+n1(y-h*0.42)+' H'+n1(x-h*0.15)+' Z"/></g>';
+// Empire State Building, base at (x,y), h tall
+const dESB = (x,y,h,c="d-mu") => { const k=h/64, P=(a,b)=>n1(x+a*k)+' '+n1(y-b*k);
+  return '<path d="M'+P(-11,0)+' L'+P(-11,36)+' L'+P(-8,36)+' L'+P(-8,44)+' L'+P(-5,44)+' L'+P(-5,51)+' L'+P(-1.5,51)+' L'+P(-1.5,58)+' L'+P(-0.4,58)+' L'+P(-0.4,64)+' L'+P(0.4,64)+' L'+P(0.4,58)+' L'+P(1.5,58)+' L'+P(1.5,51)+' L'+P(5,51)+' L'+P(5,44)+' L'+P(8,44)+' L'+P(8,36)+' L'+P(11,36)+' L'+P(11,0)+' Z" class="'+c+'"/>'; };
+const IDEA_ART2 = {};
+
+// Herald Square crossing: 34th Street and the crowd corner to corner, the Empire State in the top corner, one still person sharp
+(()=>{ let s='<rect width="150" height="100" class="d-hole"/>';
+  s+='<path d="M0 0 H62 V22 L0 52 Z" class="d-bg"/><path d="M150 0 V22 L98 44 V0 Z" class="d-bg" opacity=".55"/>';
+  s+=dESB(128,46,44);
+  s+='<path d="M0 100 L150 40 V28 L0 74 Z" class="d-mu" opacity=".18"/>';
+  for(let k=0;k<11;k++){ const x=6+k*13, y1=98-x*0.4, y2=79-x*0.3; s+='<path d="M'+n1(x)+' '+n1(y1)+' L'+n1(x+5)+' '+n1(y2-2)+'" class="d-feat" style="stroke-width:2.2;opacity:.45"/>'; }
+  s+=dBlur(84,72,19)+dBlur(108,61,15)+dBlur(128,52,11)+dBlur(62,82,22);
+  s+='<rect x="38" y="46" width="2.4" height="54" class="d-mu"/><rect x="35" y="44" width="8" height="12" rx="1.2" class="d-bg"/><circle cx="39" cy="48" r="1.6" class="d-fg"/><circle cx="39" cy="52.5" r="1.6" class="d-hole"/>';
+  s+=dStand(50,99,30);
+  s+=gL("M4 98 L146 34")+gT(146,10,"Empire State","end")+gT(58,74,"still: sharp")+gT(146,92,"crowd blurs along the line","end");
+  IDEA_ART2["ktown-energy"]=s; })();
+
+// Rides in motion: rings of light filling the top two thirds, the ticket booth small and sharp along the bottom
+(()=>{ let s='<rect width="150" height="100" class="d-hole"/>';
+  s+='<path d="M75 38 L60 74 M75 38 L90 74" class="d-ln" style="stroke:var(--sign-line);stroke-width:3"/>';
+  for(const [rx,ry,o,c] of [[66,24,.9,"var(--sign-fg)"],[58,20,.55,"var(--sign-muted)"],[48,16,.8,"var(--sign-fg)"],[38,12,.45,"var(--sign-muted)"],[26,8,.7,"var(--sign-fg)"]])
+    s+='<ellipse cx="75" cy="36" rx="'+rx+'" ry="'+ry+'" fill="none" stroke="'+c+'" stroke-width="1.6" opacity="'+o+'" stroke-dasharray="'+(rx/3).toFixed(0)+' 2"/>';
+  s+='<circle cx="75" cy="36" r="4" class="d-fg"/>';
+  s+='<path d="M0 78 H150" class="d-ln"/>'; for(let x=4;x<150;x+=8) s+='<path d="M'+x+' 78 V90" class="d-ln" style="stroke-width:.8;opacity:.6"/>';
+  s+='<rect x="0" y="90" width="150" height="10" class="d-bg"/>';
+  s+='<path d="M14 72 L28 64 L42 72 Z" class="d-mu"/><rect x="17" y="72" width="22" height="20" class="d-bg"/><rect x="21" y="75" width="14" height="8" class="d-fg"/>';
+  s+=dStand(120,96,20);
+  s+=gL("M1 66.7 H149")+gT(4,62,"rings of light: top two thirds")+gT(46,88,"booth: small, sharp")+gT(146,74,"or a waiting parent","end");
+  IDEA_ART2["coney-energy"]=s; })();
+
+// Hand-painted signs: the banner fills two thirds, the passer-by in the last third striking the same pose at the same size
+(()=>{ const strong=(x,y,h,c)=>{ const k=h/40; const P=(a,b)=>n1(x+a*k)+' '+n1(y+b*k);
+    return '<g class="'+c+'"><circle cx="'+P(0,-35).split(' ')[0]+'" cy="'+P(0,-35).split(' ')[1]+'" r="'+n1(3.6*k)+'"/><path d="M'+P(-5,-30)+' L'+P(5,-30)+' L'+P(6,-14)+' L'+P(4,0)+' L'+P(1,0)+' L'+P(0,-12)+' L'+P(-1,0)+' L'+P(-4,0)+' L'+P(-6,-14)+' Z"/>'+
+      '<path d="M'+P(-5,-29)+' L'+P(-11,-31)+' L'+P(-12,-41)+' L'+P(-9,-41)+' L'+P(-8,-33)+' L'+P(-4,-32)+' Z M'+P(5,-29)+' L'+P(11,-31)+' L'+P(12,-41)+' L'+P(9,-41)+' L'+P(8,-33)+' L'+P(4,-32)+' Z"/></g>'; };
+  let s='<rect width="150" height="100" class="d-hole"/>';
+  s+='<rect x="4" y="6" width="94" height="86" class="d-bg"/><rect x="7" y="9" width="88" height="80" fill="none" stroke="var(--sign-muted)" stroke-width="1"/>';
+  s+='<rect x="14" y="14" width="74" height="9" rx="2" class="d-mu"/>';
+  s+=strong(51,88,46,"d-mu");
+  s+='<path d="M0 92 H150 V100 H0 Z" class="d-bg" opacity=".6"/>';
+  s+=strong(124,92,46,"d-fg");
+  s+=gL("M100 1 V99")+gL("M38 41 H138")+gT(51,95,"the painted figure","middle")+gT(124,96,"the passer-by","middle")+gT(124,36,"same height","middle")+gT(4,7,"the sign: two thirds");
+  IDEA_ART2["coney-odd"]=s; })();
+
+// Rush-hour river: one still figure on a third, the crowd streaming past on both sides, the departure board in view
+(()=>{ let s='<rect width="150" height="100" class="d-hole"/>';
+  for(const x of [10,58,106]) s+='<path d="M'+x+' 60 V22 A17 17 0 0 1 '+(x+34)+' 22 V60 Z" class="d-bg"/><path d="M'+(x+17)+' 6 V60 M'+x+' 34 H'+(x+34)+'" class="d-feat" style="stroke-width:.6"/>';
+  s+='<rect x="36" y="44" width="54" height="14" class="d-mu"/>'; for(let y=47;y<57;y+=3) s+='<path d="M40 '+y+' H86" class="d-feat" style="stroke-width:.8"/>';
+  s+='<path d="M0 64 H150 V100 H0 Z" class="d-bg" opacity=".35"/>';
+  s+=dBlur(24,90,24,1)+dBlur(70,96,26,1)+dBlur(132,94,25,-1)+dBlur(52,78,18,-1)+dBlur(120,79,17,1);
+  s+=dStand(100,92,28);
+  s+=gL("M100 1 V99")+gArrow(94,70,72,70)+gT(104,62,"still: sharp")+gT(63,42,"departure board","middle")+gT(4,98,"crowd blurs both sides");
+  IDEA_ART2["gct-energy"]=s; })();
+
+// Characters off duty: the costume head and the human head side by side at the same height, plain wall behind
+(()=>{ let s='<rect width="150" height="100" class="d-bg"/>';
+  s+='<path d="M0 78 H150 V100 H0 Z" class="d-hole" opacity=".6"/>';
+  s+='<path d="M60 100 V64 Q60 52 74 50 H98 Q112 52 112 64 V100 Z" class="d-mu"/>';
+  s+='<circle cx="88" cy="36" r="11" class="d-fg"/><path d="M80 28 Q88 20 97 29 Q90 25 80 28 Z" class="d-hole"/><path d="M84 38 h2 M91 38 h2 M85 43 Q88.5 45 92 43" class="d-feat" style="stroke-width:1.2"/>';
+  s+='<rect x="96" y="66" width="10" height="14" rx="2" class="d-hole"/>';
+  s+='<circle cx="44" cy="36" r="21" class="d-fg"/><path d="M28 18 L32 8 L38 17 Z M60 18 L56 8 L50 17 Z" class="d-fg"/>';
+  s+='<circle cx="36" cy="33" r="5" class="d-hole"/><circle cx="52" cy="33" r="5" class="d-hole"/><circle cx="37" cy="32" r="1.6" class="d-fg"/><circle cx="53" cy="32" r="1.6" class="d-fg"/><path d="M36 45 Q44 52 52 45" class="d-feat" style="stroke-width:2"/>';
+  s+='<path d="M56 54 Q62 60 66 62" class="d-ln" style="stroke:var(--sign-muted);stroke-width:4"/>';
+  s+=gL("M20 36 H106")+gT(44,68,"costume head","middle")+gT(88,20,"the person","middle")+gT(146,38,"same height","end");
+  IDEA_ART2["tsq-odd"]=s; })();
+// Window doubles: a mannequin in the shop window and a reflected walker lined up at the same size, facing each other
+(()=>{ let s='<rect width="150" height="100" class="d-bg"/>';
+  s+='<rect x="8" y="6" width="134" height="88" class="d-hole"/><path d="M8 6 H142 V94 H8 Z" fill="none" stroke="var(--sign-muted)" stroke-width="2.5"/>';
+  s+='<rect x="40" y="10" width="70" height="7" rx="2" class="d-mu" opacity=".5"/>';
+  s+='<path d="M8 6 L60 94 H96 L44 6 Z" class="d-fg" opacity=".05"/>';
+  s+='<rect x="56" y="80" width="2" height="12" class="d-mu"/><rect x="48" y="91" width="18" height="2" class="d-mu"/>'+dStand(57,80,48,"d-mu");
+  s+='<g opacity=".45">'+dW(98,90,52,"d-fg",-1)+'</g>';
+  s+=gL("M28 36.5 H126")+gT(52,30,"mannequin","end")+gT(105,30,"reflection")+gT(14,44,"same height");
+  IDEA_ART2["soho-odd"]=s; })();
+
+// Old signs, new tenants: the faded painted sign across the top third, the new shopfront below, a customer in the doorway
+(()=>{ let s='<rect width="150" height="100" class="d-bg"/>';
+  for(let y=6;y<100;y+=6) s+='<path d="M0 '+y+' H150" class="d-feat" style="stroke-width:.4;opacity:.6"/>';
+  s+='<rect x="12" y="8" width="126" height="20" class="d-mu" opacity=".28"/>';
+  for(const [x,w] of [[18,14],[36,10],[50,18],[72,8],[84,16],[104,12],[120,12]]) s+='<rect x="'+x+'" y="13" width="'+w+'" height="10" rx="1" class="d-mu" opacity=".55"/>';
+  s+='<rect x="0" y="40" width="150" height="10" class="d-fg"/><path d="M0 50 L6 56 L12 50 L18 56 L24 50 L30 56 L36 50 L42 56 L48 50 L54 56 L60 50 L66 56 L72 50 L78 56 L84 50 L90 56 L96 50 L102 56 L108 50 L114 56 L120 50 L126 56 L132 50 L138 56 L144 50 L150 56 V50 Z" class="d-fg"/>';
+  s+='<rect x="8" y="60" width="44" height="34" class="d-hole"/><rect x="98" y="60" width="44" height="34" class="d-hole"/><rect x="62" y="58" width="26" height="40" class="d-hole"/>';
+  s+=dW(75,96,30,"d-fg",-1);
+  s+='<rect x="0" y="96" width="150" height="4" class="d-mu" opacity=".5"/>';
+  s+=gL("M1 33.3 H149")+gT(75,36,"old sign: top third","middle")+gT(4,58,"new shop")+gT(91,70,"customer in")+gT(91,78,"the doorway");
+  IDEA_ART2["les-odd"]=s; })();
+
+// Suits at the food cart: the cart and the suit side by side at the same scale, steam rising between them
+(()=>{ let s='<rect width="150" height="100" class="d-hole"/>';
+  s+='<rect x="0" y="0" width="26" height="72" class="d-bg"/><rect x="30" y="0" width="22" height="60" class="d-bg" opacity=".6"/><rect x="118" y="0" width="32" height="70" class="d-bg"/>';
+  s+='<path d="M0 86 H150 V100 H0 Z" class="d-bg" opacity=".5"/>';
+  s+='<path d="M14 26 L50 18 L86 26 Z" class="d-mu"/><rect x="49" y="24" width="2" height="16" class="d-mu"/>';
+  s+='<rect x="18" y="40" width="64" height="40" rx="2" class="d-mu"/><rect x="22" y="44" width="56" height="10" class="d-hole"/><rect x="24" y="58" width="52" height="18" class="d-bg"/>';
+  s+='<circle cx="28" cy="84" r="4" class="d-bg"/><circle cx="72" cy="84" r="4" class="d-bg"/>';
+  s+='<path d="M88 46 q-4 -6 0 -12 q4 -6 0 -12 M95 48 q-4 -6 0 -12 q4 -6 0 -12" fill="none" stroke="var(--sign-fg)" stroke-width="1.4" opacity=".55" stroke-linecap="round"/>';
+  s+='<g class="d-fg"><circle cx="118" cy="30" r="5.4"/><path d="M110 38 H126 L128 64 H122 L121 88 H116 L115.5 66 H114.5 L114 88 H109 L108 64 Z"/></g><path d="M118 38 L116 46 L118 52 L120 46 Z" class="d-hole"/><rect x="128" y="56" width="8" height="10" rx="1" class="d-mu"/>';
+  s+=gL("M14 24 V88 M128 24 V88")+gT(50,96,"the cart","middle")+gT(118,96,"the suit","middle")+gT(98,16,"steam between","middle");
+  IDEA_ART2["midtown-odd"]=s; })();
+
+// Surfboards on the shuttle: the board held upright beside the station sign, tops level
+(()=>{ let s='<rect width="150" height="100" class="d-hole"/>';
+  s+='<path d="M0 74 H150 V82 H0 Z" class="d-fg" opacity=".85"/><path d="M0 82 H150 V100 H0 Z" class="d-bg"/>';
+  s+='<rect x="0" y="0" width="150" height="10" class="d-bg"/><path d="M10 10 V74 M140 10 V74" class="d-ln" style="stroke:var(--sign-line);stroke-width:3"/>';
+  s+='<rect x="26" y="18" width="2.4" height="56" class="d-mu"/><rect x="58" y="18" width="2.4" height="56" class="d-mu"/><rect x="18" y="18" width="50" height="18" rx="1.5" class="d-fg"/>';
+  s+='<rect x="24" y="23" width="38" height="4" rx="1" class="d-hole"/><rect x="24" y="29" width="22" height="3" rx="1" class="d-hole"/>';
+  s+='<path d="M98 74 V30 Q98 18 103 18 Q108 18 108 30 V74 Q103 77 98 74 Z" class="d-mu"/><path d="M103 22 V72" class="d-feat" style="stroke-width:.6"/>';
+  s+=dStand(116,74,40);
+  s+=gL("M14 18 H112")+gT(43,44,"station sign","middle")+gT(103,88,"the board","middle")+gT(146,14,"tops level","end");
+  IDEA_ART2["rockaway-odd"]=s; })();
+
+// The soapbox: the hand-lettered sign and the reader's face, similar in size, the speaker left out
+(()=>{ let s='<rect width="150" height="100" class="d-bg"/>';
+  s+='<rect x="10" y="12" width="64" height="58" rx="1" class="d-fg"/>';
+  for(const [y,w] of [[20,50],[30,42],[40,54],[50,36],[60,46]]) s+='<path d="M16 '+y+' h'+w+'" stroke="var(--sign)" stroke-width="4" stroke-linecap="round" opacity=".8"/>';
+  s+='<rect x="38" y="70" width="3" height="30" class="d-mu"/>';
+  s+='<path d="M86 100 V82 Q88 68 104 66 H118 Q134 68 136 82 V100 Z" class="d-mu"/><circle cx="111" cy="46" r="17" class="d-fg"/><path d="M95 40 Q100 26 112 28 Q126 28 128 42 Q118 34 104 36 Z" class="d-hole"/>';
+  s+='<circle cx="102" cy="47" r="1.6" class="d-hole"/><circle cx="112" cy="47" r="1.6" class="d-hole"/><path d="M103 56 Q107 57.5 111 56" class="d-feat" style="stroke-width:1.3"/>';
+  s+=gArrow(96,46,80,44)+gT(42,8,"the sign","middle")+gT(111,24,"the reader","middle")+gT(146,96,"speaker out of frame","end");
+  IDEA_ART2["union-odd"]=s; })();
+
+// Pumpkins and skateboards: pumpkins large in front, the grey steps behind, a skater crossing the gap
+(()=>{ let s='<rect width="150" height="100" class="d-hole"/>';
+  for(let i=0;i<6;i++){ const y=20+i*8; s+='<rect x="0" y="'+y+'" width="150" height="8" class="d-bg" opacity="'+(0.45+i*0.08).toFixed(2)+'"/><path d="M0 '+y+' H150" class="d-feat" style="stroke-width:.6"/>'; }
+  s+='<rect x="0" y="68" width="150" height="32" class="d-bg" opacity=".9"/>';
+  const pk=(x,y,r)=>'<ellipse cx="'+x+'" cy="'+y+'" rx="'+r+'" ry="'+(r*0.8).toFixed(1)+'" class="d-mu"/><path d="M'+(x-r*0.4).toFixed(1)+' '+(y-r*0.75).toFixed(1)+' Q'+(x-r*0.55).toFixed(1)+' '+y+' '+(x-r*0.4).toFixed(1)+' '+(y+r*0.75).toFixed(1)+' M'+x+' '+(y-r*0.8).toFixed(1)+' V'+(y+r*0.8).toFixed(1)+' M'+(x+r*0.4).toFixed(1)+' '+(y-r*0.75).toFixed(1)+' Q'+(x+r*0.55).toFixed(1)+' '+y+' '+(x+r*0.4).toFixed(1)+' '+(y+r*0.75).toFixed(1)+'" class="d-feat" style="stroke-width:1"/><rect x="'+(x-1.5).toFixed(1)+'" y="'+(y-r*0.95).toFixed(1)+'" width="3" height="'+(r*0.3).toFixed(1)+'" class="d-bg"/>';
+  s+=pk(18,82,16)+pk(48,88,13)+pk(30,62,11)+pk(58,68,9);
+  s+='<g transform="rotate(-8 104 70)">'+dW(104,70,30,"d-fg",1)+'</g><rect x="92" y="72" width="22" height="2.4" rx="1.2" class="d-fg"/><circle cx="96" cy="76" r="1.6" class="d-fg"/><circle cx="110" cy="76" r="1.6" class="d-fg"/>';
+  s+=gL("M76 30 V96 M132 30 V96")+gT(4,50,"pumpkins: large, near")+gT(104,26,"skater in the gap","middle")+gT(146,8,"grey steps behind","end");
+  IDEA_ART2["union-odd-s"]=s; })();
+
+// The handoff: two hands meeting in the frame with the goods, faces cut by the top edge, nothing of the street
+const dHandoff = (item,faces,hx) => { let s='<rect width="150" height="100" class="d-hole"/>';
+  s+='<path d="M0 78 H150 V100 H0 Z" class="d-bg"/>';
+  s+='<path d="M-4 0 H44 Q48 22 30 30 Q14 34 -4 28 Z" class="d-mu"/><path d="M-4 30 Q20 36 42 34 L56 100 H-4 Z" class="d-bg" opacity=".9"/>';
+  if(faces>1) s+='<path d="M154 0 H106 Q102 22 120 30 Q136 34 154 28 Z" class="d-mu"/><path d="M154 30 Q130 36 108 34 L94 100 H154 Z" class="d-bg" opacity=".9"/>';
+  else s+='<path d="M154 40 Q130 44 108 48 L94 100 H154 Z" class="d-bg" opacity=".9"/>';
+  // forearms in sleeves reaching in from both sides, hands meeting at hx
+  s+='<path d="M14 84 L'+(hx-20)+' 58 L'+(hx-14)+' 66 L24 92 Z" class="d-mu"/><path d="M136 84 L'+(hx+20)+' 58 L'+(hx+14)+' 66 L126 92 Z" class="d-mu"/>';
+  s+='<path d="M'+(hx-20)+' 58 Q'+(hx-16)+' 52 '+(hx-9)+' 54 L'+(hx-5)+' 57 Q'+(hx-6)+' 63 '+(hx-12)+' 66 L'+(hx-14)+' 66 Z" class="d-fg"/><path d="M'+(hx+20)+' 58 Q'+(hx+16)+' 52 '+(hx+9)+' 54 L'+(hx+5)+' 57 Q'+(hx+6)+' 63 '+(hx+12)+' 66 L'+(hx+14)+' 66 Z" class="d-fg"/>';
+  s+=item(hx,54);
+  s+=gT(4,40,faces>1?"faces at the top edge":"one face at the top edge")+gT(hx,94,"hands and goods","middle");
+  return s; };
+const itemBag=(x,y)=>'<path d="M'+(x-9)+' '+(y-6)+' H'+(x+9)+' L'+(x+11)+' '+(y+14)+' H'+(x-11)+' Z" class="d-fg"/><path d="M'+(x-5)+' '+(y-6)+' Q'+x+' '+(y-14)+' '+(x+5)+' '+(y-6)+'" fill="none" stroke="var(--sign-fg)" stroke-width="1.6"/>';
+const itemParcel=(x,y)=>'<rect x="'+(x-12)+'" y="'+(y-4)+'" width="24" height="12" rx="2" class="d-fg"/><path d="M'+(x-12)+' '+(y+2)+' H'+(x+12)+' M'+x+' '+(y-4)+' V'+(y+8)+'" class="d-feat" style="stroke-width:.8"/>';
+const itemBowl=(x,y)=>'<path d="M'+(x-14)+' '+(y-2)+' H'+(x+14)+' Q'+(x+12)+' '+(y+12)+' '+x+' '+(y+12)+' Q'+(x-12)+' '+(y+12)+' '+(x-14)+' '+(y-2)+' Z" class="d-fg"/><path d="M'+(x-4)+' '+(y-6)+' q-3 -5 0 -10 M'+(x+4)+' '+(y-6)+' q-3 -5 0 -10" fill="none" stroke="var(--sign-fg)" stroke-width="1.2" opacity=".6"/>';
+const itemTray=(x,y)=>'<rect x="'+(x-12)+'" y="'+(y-2)+'" width="24" height="9" rx="1.5" class="d-fg"/><circle cx="'+(x-5)+'" cy="'+(y-3)+'" r="3.4" class="d-mu"/><circle cx="'+(x+4)+'" cy="'+(y-3)+'" r="3.4" class="d-mu"/>';
+IDEA_ART2["chinatown-moment"]=dHandoff(itemBag,2,75);
+IDEA_ART2["les-moment"]=dHandoff(itemParcel,2,75);
+IDEA_ART2["arthur-moment"]=dHandoff(itemParcel,2,75);
+IDEA_ART2["flushing-moment"]=dHandoff(itemBowl,1,75);
+IDEA_ART2["jh-moment"]=dHandoff(itemTray,2,100)+gL("M100 1 V99");
+
+// Neon in the window: reflections across the glass, the neon sign in an upper corner, one face inside on a third
+const dWindowNeon = steam => { let s='<rect width="150" height="100" class="d-hole"/>';
+  s+='<rect x="0" y="62" width="150" height="38" class="d-bg" opacity=".7"/>';
+  s+='<circle cx="100" cy="48" r="10" class="d-mu"/><path d="M86 70 Q88 58 100 58 Q112 58 114 70 Z" class="d-mu"/><circle cx="30" cy="52" r="8" class="d-bg"/><path d="M18 70 Q20 60 30 60 Q40 60 42 70 Z" class="d-bg"/><circle cx="134" cy="54" r="7" class="d-bg"/>';
+  if(steam) s+='<g fill="none" stroke="var(--sign-fg)" stroke-linecap="round" opacity=".25" stroke-width="5"><path d="M60 70 q-8 -12 2 -22 q8 -10 -2 -22"/><path d="M74 72 q-8 -12 2 -22"/></g>';
+  s+='<path d="M10 0 L44 0 L92 100 H58 Z M118 0 H134 L150 40 V70 Z" class="d-fg" opacity=".07"/>';
+  s+='<rect x="12" y="10" width="40" height="16" rx="8" fill="none" stroke="var(--sign-fg)" stroke-width="2.4" opacity=".9"/><path d="M20 18 h8 M32 18 h12" stroke="var(--sign-fg)" stroke-width="2" stroke-linecap="round" opacity=".9"/>';
+  s+='<path d="M0 0 H150 V100 H0 Z" fill="none" stroke="var(--sign-line)" stroke-width="4"/>';
+  s+=gL("M100 1 V99")+gT(56,16,"neon in a corner")+gT(96,32,"face on a third","end")+gT(146,96,"reflections over the glass","end");
+  return s; };
+IDEA_ART2["les-mood"]=dWindowNeon(false);
+IDEA_ART2["ktown-mood"]=dWindowNeon(false);
+// Stacked languages: shop signs square-on filling the frame like a page of text, one walker small at the bottom centre
+(()=>{ let s='<rect width="150" height="100" class="d-bg"/>';
+  const rows=[[4,[[4,40],[48,30],[82,64]]],[22,[[4,56],[64,38],[106,40]]],[40,[[4,30],[38,50],[92,54]]],[58,[[4,46],[54,44],[102,44]]]];
+  rows.forEach(([y,cells],r)=>cells.forEach(([x,w],k)=>{ s+='<rect x="'+x+'" y="'+y+'" width="'+w+'" height="15" rx="1" class="'+((r+k)%2?'d-mu':'d-fg')+'"/>';
+    for(let i=0;i<Math.floor(w/9);i++) s+='<rect x="'+(x+4+i*9)+'" y="'+(y+5)+'" width="'+(5+((i*7+r)%3))+'" height="5" rx="1" class="d-hole" opacity=".75"/>'; }));
+  s+='<rect x="0" y="76" width="150" height="24" class="d-hole"/>';
+  s+=dW(75,96,18,"d-fg",1);
+  s+=gT(4,86,"signs fill the frame, square-on")+gT(84,95,"walker: small");
+  IDEA_ART2["jh-odd"]=s; })();
+
+// Caviar and kitsch: the display edge to edge, shelves level, one doll on a third where the eye lands
+(()=>{ let s='<rect width="150" height="100" class="d-bg"/>';
+  for(const y of [32,64,96]) s+='<rect x="0" y="'+y+'" width="150" height="3" class="d-mu"/>';
+  for(let x=4;x<150;x+=14) s+='<rect x="'+x+'" y="20" width="11" height="12" rx="2" class="d-mu"/><rect x="'+x+'" y="24" width="11" height="3" class="d-hole" opacity=".6"/>';
+  for(let x=6;x<150;x+=18){ if(x>40&&x<62) continue; s+='<ellipse cx="'+(x+6)+'" cy="58" rx="6" ry="5" class="d-mu"/><rect x="'+x+'" y="46" width="12" height="8" rx="3" class="d-mu" opacity=".8"/>'; }
+  const doll=(x,y,h,c)=>'<ellipse cx="'+x+'" cy="'+(y-h*0.32)+'" rx="'+(h*0.3)+'" ry="'+(h*0.34)+'" class="'+c+'"/><circle cx="'+x+'" cy="'+(y-h*0.78)+'" r="'+(h*0.2)+'" class="'+c+'"/><circle cx="'+x+'" cy="'+(y-h*0.78)+'" r="'+(h*0.12)+'" class="d-hole" opacity=".5"/>';
+  s+=doll(50,64,30,"d-fg");
+  for(let x=10;x<150;x+=16) if(x<40||x>66) s+=doll(x,94,22,"d-mu");
+  s+=gL("M50 1 V99")+gT(58,44,"one doll on a third")+gT(146,12,"shelves level, edge to edge","end");
+  IDEA_ART2["brighton-odd"]=s; })();
+
+// The drop: the first two rows of faces filling the frame, the track a diagonal behind them
+(()=>{ let s='<rect width="150" height="100" class="d-hole"/>';
+  s+='<path d="M0 64 L150 4" class="d-ln" style="stroke:var(--sign-line);stroke-width:7"/>'; for(let x=6;x<150;x+=12) s+='<path d="M'+x+' '+n1(64-x*0.4+5)+' L'+(x+4)+' '+n1(64-(x+4)*0.4-5)+'" class="d-ln" style="stroke:var(--sign-line);stroke-width:2"/>';
+  const face=(x,y,r,c)=>'<circle cx="'+x+'" cy="'+y+'" r="'+r+'" class="'+c+'"/><ellipse cx="'+x+'" cy="'+(y+r*0.42)+'" rx="'+(r*0.3)+'" ry="'+(r*0.24)+'" class="d-hole"/><circle cx="'+(x-r*0.35)+'" cy="'+(y-r*0.15)+'" r="'+(r*0.12)+'" class="d-hole"/><circle cx="'+(x+r*0.35)+'" cy="'+(y-r*0.15)+'" r="'+(r*0.12)+'" class="d-hole"/>';
+  s+=face(52,40,13,"d-mu")+face(98,40,13,"d-mu");
+  s+='<path d="M14 26 l-6 -14 M90 26 l-4 -16" class="d-ln" style="stroke:var(--sign-muted);stroke-width:4;stroke-linecap:round"/>';
+  s+='<rect x="0" y="58" width="150" height="10" class="d-bg"/>';
+  s+=face(38,76,17,"d-fg")+face(110,76,17,"d-fg");
+  s+='<path d="M20 70 l-10 -26 M128 70 l10 -26" class="d-ln" style="stroke:var(--sign-fg);stroke-width:5;stroke-linecap:round"/>';
+  s+='<rect x="0" y="94" width="150" height="6" class="d-bg"/>';
+  s+=gT(146,12,"track: a diagonal behind","end")+gT(75,56,"two rows of faces fill the frame","middle");
+  IDEA_ART2["coney-moment"]=s; })();
+Object.assign(IDEA_ART, IDEA_ART2);
+
+
 const STANCE_OF = {};
 Object.assign(COMPOSE, {"cpark-mood-s":["frame","The canopy closes over the path and frames the figure. Keep the path running to the far end."],"cpark-moment-s":["space","Leave the top half of the frame to falling leaves and sky; the reaching hands sit low."],
  "wsp-mood-s":["layers","Leaves near and above, the player in the middle, the far side of the square behind."],"harlem-place-s":["lines","The stoop railings and the kerb lead down the block under the orange canopy. Put the one person on a stoop or the pavement on a third, a few houses in."],
