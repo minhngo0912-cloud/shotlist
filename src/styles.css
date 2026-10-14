@@ -458,7 +458,7 @@ body.mapview .app{padding-bottom:8px}
 .mgrab{flex:none;height:20px;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none}
 .mgrab i{width:40px;height:5px;border-radius:3px;background:var(--line)}
 .msheet .sunbar{flex:none;margin:0;padding:0 12px 6px;border:0;background:none}
-.mstatus{margin:2px 2px 0;font-size:14px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;touch-action:none;cursor:grab}
+.mstatus{margin:2px 2px 0;font-size:14px;color:var(--muted);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;touch-action:none;cursor:grab}
 .mstatus b{color:var(--fg)} .mslive{color:#1e9e48;font-weight:700}
 .mbody{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:4px 12px calc(16px + env(safe-area-inset-bottom,0px));touch-action:pan-y}
 .msec{margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
@@ -790,3 +790,36 @@ body.streetmode{overflow:hidden}
 .mplanhead .mapselx{position:static;background:var(--line);color:var(--fg)}
 #map.planopen #mapPanel,#map.planopen #mapPlan,#map.planopen .msec,#map.planopen #mapLegend{display:none}
 .planhint{display:flex;flex-direction:column;gap:8px;align-items:flex-start} .planhint .hint{margin:0}
+/* Light down the street */
+.m-run{fill:none;stroke:#f0a020;opacity:.6;stroke-linecap:round;pointer-events:none} .m-run.on,.m-run.sel{opacity:1} .m-runcase{fill:none;stroke:#6b2f00;opacity:.8;stroke-linecap:round;pointer-events:none} .m-runcase.on{opacity:1}
+.m-run.on{stroke:#fff27a} .m-runglow{fill:none;stroke:#ffb400;opacity:.35;stroke-linecap:round;pointer-events:none;animation:runpulse 2.4s ease-in-out infinite}
+.m-run.sel{stroke:#ff7a00;opacity:1}
+@keyframes runpulse{50%{opacity:.12}} @media (prefers-reduced-motion:reduce){.m-runglow{animation:none}}
+.m-runhit{fill:none;stroke:transparent;pointer-events:stroke;cursor:pointer}
+.m-runlab{cursor:pointer} .m-runlab rect{fill:#14161a;opacity:.86} .m-runlab text{fill:#ffcf3a;font-weight:800}
+.maplegend .lg.henge,.mlayer .lg.henge{width:18px;height:0;border:0;border-top:3px solid #ffb400;border-radius:0;background:none;box-shadow:0 0 6px #ffb400}
+.lk.henge{background:linear-gradient(90deg,#ffcf3a,#e8930c);height:4px;width:14px;border-radius:2px}
+/* Ferries */
+.m-ferry{fill:none;stroke:#0e8fa6;stroke-linecap:round;stroke-linejoin:round;opacity:.85;pointer-events:none}
+.m-ferry.sif{stroke:#f26b1d} .m-ferry.on{opacity:1} .m-ferry.off{opacity:.25}
+#map[data-sky="night"] .m-ferry{stroke:#4fd1e6} #map[data-sky="night"] .m-ferry.sif{stroke:#ff9a52}
+.m-hitline{fill:none;stroke:transparent;pointer-events:stroke}
+.m-ferryg{cursor:pointer;outline:none}
+.m-fstop{fill:#fff;stroke:#0e8fa6;pointer-events:none} .m-fstop.sif{stroke:#f26b1d}
+.m-fstoplab{fill:#0b5f6e;font-weight:700;paint-order:stroke;stroke:#fff;stroke-width:.25em;stroke-linejoin:round;pointer-events:none}
+.m-ferrylab{fill:#0b6f80;font-weight:800;font-style:italic;paint-order:stroke;stroke:#fff;stroke-width:.3em;stroke-linejoin:round;pointer-events:none} .m-ferrylab.sif{fill:#c4500e}
+#map[data-sky="night"] .m-fstoplab,#map[data-sky="night"] .m-ferrylab{fill:#9fe8f4;stroke:#0d1020} #map[data-sky="night"] .m-ferrylab.sif{fill:#ffb27c}
+.maplegend .lg.ferry,.mlayer .lg.ferry{width:18px;height:0;border:0;border-top:3px dashed #0e8fa6;border-radius:0;background:none}
+.maplegend .lg.ferry.sif{border-top-color:#f26b1d}
+.fbadge{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:6px;background:#0e8fa6;color:#fff;font-size:13px;vertical-align:-3px} .fbadge.sif{background:#f26b1d}
+.fleg{display:flex;flex-direction:column;gap:1px;padding:7px 0;border-top:1px solid var(--line);font-size:14px} .fleg span{color:var(--muted);font-size:13px}
+.fside{font-weight:700;color:var(--fg)} .fside.ahead{color:#c46a00} .fside.behind{color:#1f7a3a}
+/* The sky over the map, and the hour-by-hour forecast under the time bar */
+.m-wx{pointer-events:none} .m-wx.rain{fill:rgba(40,70,120,.1)} .m-wx.snow{fill:rgba(230,236,245,.22)} .m-wx.cloud{fill:rgba(110,115,125,.16)} .m-wx.fog{fill:rgba(225,228,232,.35)}
+.m-rainr{pointer-events:none} .m-rainl{stroke:#5f86d6;opacity:.32;stroke-linecap:round} .m-snowd{fill:#fff;opacity:.85}
+.slidecol .wxbar.wxhr{display:flex;align-items:flex-end;height:14px;padding:0;background:transparent;position:relative;overflow:visible}
+.wxhr i{flex:1;min-width:0;border-radius:1px 1px 0 0} .wxhr i.clear{background:rgba(252,204,10,.3)} .wxhr i.cloud{background:rgba(140,145,155,.65)} .wxhr i.rain{background:rgba(70,120,230,.9)} .wxhr i.snow{background:rgba(160,190,240,.95)} .wxhr i.none{background:transparent}
+.wxdrop{position:absolute;top:-1px;width:7px;height:9px;margin-left:-3.5px;background:#fff;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;clip-path:polygon(50% 0,100% 62%,88% 92%,50% 100%,12% 92%,0 62%);pointer-events:none}
+.wxhrs{position:relative;height:12px;margin:1px 13px 0;font-size:10px;color:var(--muted)} .wxhrs span{position:absolute;transform:translateX(-50%);white-space:nowrap}
+.lk.rain{background:rgba(70,120,230,.9)}
+.flegs{padding:0 16px} .flegs .hint{margin:8px 0 4px}
