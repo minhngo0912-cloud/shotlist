@@ -788,6 +788,13 @@ body.streetmode{overflow:hidden}
 .wstar{position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;background:var(--yellow);color:#111;padding:1px 5px;border-radius:6px}
 .wi-sun{fill:#f2ad3a} .wi-ray{stroke:#f2ad3a;stroke-width:1.6;stroke-linecap:round;fill:none} .wi-cloud{fill:#c9ccd3} .wi-cloud.dark{fill:#8d929c} .wi-rain{stroke:#4a7be0;stroke-width:1.6;stroke-linecap:round} .wi-none{fill:var(--line)}
 .wdet{margin-top:8px;padding-top:8px;border-top:1px solid var(--line)} .wdet p{margin:0 0 6px} .wdet .callinks{margin-top:6px}
+/* Learn: exposure simulator and crop frames */
+.xprow{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px} .xprow .chip{min-height:34px;font-size:13px;padding:0 11px}
+.xp .demo-svg,.cropw .demo-svg{max-width:none;border-radius:6px}
+.xgrid{grid-template-columns:repeat(2,1fr);margin-top:10px} .xgrid label:first-child{grid-column:1/-1}
+.xout{margin:10px 0 8px;padding-left:18px;font-size:15px;line-height:1.45} .xout li{margin:0 0 4px}
+.xout .ok{color:#1e9e48} .xout .over{color:#d9822b} .xout .under{color:#4a7be0}
+.cropw .dofrow{grid-template-columns:1fr;margin-bottom:10px}
 </style>
 
 <div class="app">
@@ -2641,7 +2648,7 @@ function workDetails(x){
   const W=WORKX[x.id]; if(!W) return "";
   const cam=CAMERAS[state.camera], row=(k,v)=>'<div class="wkrow"><span class="label">'+k+'</span><p>'+v+'</p></div>';
   return '<div class="wk">'+row("Keep sharp",esc(W[0].charAt(0).toUpperCase()+W[0].slice(1))+'.')+row("Distance","About "+esc(mText(W[2]))+(W[2]>=50?', far enough that everything beyond is sharp too':'')+'.')+row("Camera height",esc(W[1])+'.')+
-    row("How to focus · "+esc(cam.name),esc(workFocus(x,state.camera)))+row("Press",esc(W[3])+'.')+'</div>'+workTips(x);
+    row("How to focus · "+esc(cam.name),esc(workFocus(x,state.camera))+(W[4]&&cam.setup==="leica"&&W[4]>(CAM_FL[state.camera]||35)*1.2&&!((CAM_FL[state.camera]||35)===43&&W[4]<60)?' <button type="button" class="linkbtn" data-learncrop="'+W[4]+'">See the '+W[4]+' mm frame</button>':''))+row("Press",esc(W[3])+'.')+'</div>'+workTips(x);
 }
 /* Spots: numbers that match the map, Street View, walking to a spot, and the spots near you. */
 const spotNum = id => +String(id).split(":")[1]+1;
@@ -3939,6 +3946,81 @@ const DRILLS = [["one-block", "One block, one hour", "Stay on one block for an h
 const LIGHT_NOTES = [["am", "Morning", "Soft, clean light from a low angle, and streets that are still quiet. Good for shop owners opening up, commuters, and long shadows on east-west streets."], ["mid", "Midday sun", "Hard light from overhead and deep shadows. Use it for graphic pictures: shadows as shapes, people stepping out of shade into sun, and the narrow slots of light between towers."], ["gold", "Late afternoon", "Warm, low light that rakes along cross streets and lights faces from the side. Manhattan's grid lines up with the sun for a few minutes at a time. The best all-round light for people."], ["night", "Night", "Neon, shop windows and screens become the light. Expose for the lights, shoot wide open, and let the shadows go black."], ["rain", "Rain or overcast", "Soft, even light with no shadows, which flatters faces. Rain adds reflections, umbrellas and people hurrying. Shoot from doorways and keep the lens hood on."]];
 function dofCalc(f,N,s){ const c=0.03, H=(f*f)/(N*c)+f, d=s*1000, near=H*d/(H+d-f), far=d<H? H*d/(H-(d-f)) : Infinity; return [near/1000, far/1000]; }
 const mFmt = m => m===Infinity||m>50 ? "infinity" : (m<10? m.toFixed(1) : Math.round(m))+" m";
+/* Exposure simulator: aperture, shutter and ISO over a drawn street. Brightness follows the stops; the walker (1.4 m/s, 4 m away) blurs with
+   the shutter; the far buildings (30 m, focus at 4 m) soften with the aperture; grain rises with ISO. Simplified, but the numbers are real. */
+const XL = {sun:["Bright sun",15],shade:["Open shade",12.5],cloud:["Overcast",12],gold:["Golden hour",11],inside:["Grand Central inside",7],blue:["Blue hour",8],night:["Lit street at night",6]};
+const XSH = [1/4000,1/2000,1/1000,1/500,1/250,1/125,1/60,1/30,1/15,1/8,1/4], XISO=[100,200,400,800,1600,3200,6400,12500];
+const shText = t => t>=0.25&&t<1 ? '1/'+Math.round(1/t)+' s' : t>=1 ? t+' s' : '1/'+Math.round(1/t)+' s';
+const XPRE = [["Sunny 16",{L:"sun",N:16,t:1/125,iso:100}],["Freeze a gesture",{L:"sun",N:4,t:1/2000,iso:0}],["Zone focus",{L:"cloud",N:8,t:1/500,iso:0}],
+  ["Drag at golden hour",{L:"gold",N:11,t:1/15,iso:0}],["Shallow portrait",{L:"shade",N:0,t:1/2000,iso:0}],["Night street",{L:"night",N:0,t:1/125,iso:0}]];
+// How each scene looks when it is exposed correctly: sky, four building tones, windows, street, the walker's coat, lamp lit or not
+const XPAL = {sun:["#9fc3e8",["#b4a48c","#c2b49c","#a8987e","#bba98f"],"#6f7f92","#7d7a74","#3c4250",0],
+  shade:["#a9c1da",["#8f8a82","#9a948b","#857f77","#948e85"],"#5f6670","#66655f","#3c4250",0],
+  cloud:["#b9bec6",["#7e828a","#8a8e96","#747880","#83878f"],"#5d636d","#5e6168","#2f343d",0],
+  gold:["#f2c48a",["#c98f5e","#d6a171","#b97f52","#cc9466"],"#f6d9a0","#8a6a52","#3a2f2a",0],
+  inside:["#4a5d68",["#b89f72","#c4ab7e","#ad9468","#bda478"],"#e9d9a8","#8c7b5e","#2e2a26",1],
+  blue:["#3d5a9e",["#2b3550","#334060","#28314a","#303a58"],"#f3d27a","#2a2f40","#d8d2c4",1],
+  night:["#0d1220",["#1a1e28","#20252f","#171a22","#1d212b"],"#f0c860","#1f2229","#cfc9bc",1]};
+function expoState(){ if(!state.xp) state.xp={L:"cloud",f:CAM_FL[state.camera]===28?28:43,N:8,t:1/250,iso:0}; return state.xp; }
+function expoCalc(){ const X=expoState(), f=X.f, Nmin=f===28?1.7:2, N=Math.max(Nmin,X.N||Nmin), t=X.t, EV=XL[X.L][1];
+  const need=100*Math.pow(2,Math.log2(N*N/t)-EV), auto=!X.iso, iso=auto?Math.min(6400,Math.max(100,need)):X.iso, stops=EV+Math.log2(iso/100)-Math.log2(N*N/t);
+  const walk=1.4*t/(4*36/f)*150, s=4000, d=30000, bg=(f*f/(N*(s-f)))*((d-s)/d)/36*150;
+  return {f,N,t,EV,iso,auto,need,stops,walk,bg}; }
+function expoScene(C){ const k=Math.pow(2,Math.max(-5,Math.min(5,C.stops))/2.2), P=XPAL[expoState().L]||XPAL.cloud, n=Math.min(14,Math.round(C.walk/0.9)), noise=C.iso<=800?0:Math.min(0.55,0.09*Math.log2(C.iso/800)+0.06);
+  let ghosts=''; if(n<1) ghosts=dW(84,82,30,""); else for(let i=0;i<=n;i++){ const x=84-C.walk/2+C.walk*i/n; ghosts+='<g opacity="'+Math.min(1,1.6/(n+1)+0.05).toFixed(2)+'">'+dW(x,82,30,"")+'</g>'; }
+  ghosts='<g fill="'+P[4]+'">'+ghosts+'</g>';
+  const bgBlur=Math.min(4,C.bg*1.4);
+  return '<svg class="demo-svg xsvg" viewBox="0 0 150 100" role="img" aria-label="Simulated street scene"><defs>'+
+    '<filter id="xExp" x="0" y="0" width="1" height="1" color-interpolation-filters="sRGB"><feComponentTransfer><feFuncR type="linear" slope="'+k.toFixed(3)+'"/><feFuncG type="linear" slope="'+k.toFixed(3)+'"/><feFuncB type="linear" slope="'+k.toFixed(3)+'"/></feComponentTransfer></filter>'+
+    '<filter id="xBg" x="-5%" y="-5%" width="110%" height="110%"><feGaussianBlur stdDeviation="'+bgBlur.toFixed(2)+'"/></filter>'+
+    '<filter id="xNoise" x="0" y="0" width="1" height="1"><feTurbulence type="fractalNoise" baseFrequency="1.6" numOctaves="1" seed="4"/><feColorMatrix type="saturate" values="0"/></filter></defs>'+
+    '<g filter="url(#xExp)"><rect width="150" height="100" fill="'+P[0]+'"/>'+
+    '<g filter="url(#xBg)"><rect x="0" y="10" width="34" height="58" fill="'+P[1][0]+'"/><rect x="38" y="22" width="26" height="46" fill="'+P[1][1]+'"/><rect x="92" y="4" width="22" height="64" fill="'+P[1][2]+'"/><rect x="118" y="16" width="32" height="52" fill="'+P[1][3]+'"/>'+
+      [[4,16],[14,16],[24,16],[4,30],[14,30],[24,30],[4,44],[24,44],[42,28],[52,28],[42,40],[96,10],[104,10],[96,24],[104,38],[122,22],[132,22],[142,22],[122,36],[142,36]].map(([x,y])=>'<rect x="'+x+'" y="'+y+'" width="6" height="7" fill="'+P[2]+'"/>').join("")+'</g>'+
+    '<rect x="0" y="68" width="150" height="32" fill="'+P[3]+'"/><path d="M0 76 H150" stroke="#9a9ea6" stroke-width="1" opacity=".6"/><path d="M60 90 h14 M86 90 h14 M112 90 h14" stroke="#d8d8d0" stroke-width="2" opacity=".8"/>'+
+    (P[5]?'<circle cx="23.3" cy="31" r="12" fill="#f3e3a8" opacity=".18"/><ellipse cx="24" cy="90" rx="16" ry="4" fill="#f3e3a8" opacity=".14"/>':'')+
+    '<rect x="22" y="30" width="2.6" height="62" fill="#2a2d33"/><path d="M18 30 h11 l-2 -4 h-7 Z" fill="#2a2d33"/><circle cx="23.3" cy="31" r="1.6" fill="'+(P[5]?'#fff6d0':'#8a8a80')+'"/>'+
+    '<rect x="40" y="62" width="9" height="12" fill="#3b3f47"/><path d="M38 62 h13" stroke="#2a2d33" stroke-width="1.4"/>'+
+    ghosts+'</g>'+
+    (noise?'<rect width="150" height="100" filter="url(#xNoise)" opacity="'+noise.toFixed(2)+'" style="mix-blend-mode:overlay"/>':'')+
+    '<rect x="1" y="1" width="148" height="98" class="d-frame"/></svg>'; }
+function learnExpo(){ const X=expoState(), C=expoCalc(), sel=(key,opts,cur)=>'<select data-xp="'+key+'">'+opts.map(([v,l])=>'<option value="'+v+'"'+(String(v)===String(cur)?' selected':'')+'>'+l+'</option>').join("")+'</select>';
+  const st=C.stops, expTxt=Math.abs(st)<0.34?'<b class="ok">Correct</b>':st>0?'<b class="over">'+st.toFixed(1)+' stops too bright</b>'+(st>1.5?': the sky and pale walls blow out':''):'<b class="under">'+(-st).toFixed(1)+' stops too dark</b>'+(st<-1.5?': shadows block up':'');
+  const walkTxt=C.walk<0.4?'sharp':C.walk<1.5?'nearly sharp; fine for a walking figure':C.walk<5?'blurred: the movement shows':'streaked across the frame';
+  const bgTxt=C.bg<0.25?'sharp':C.bg<0.8?'slightly soft':C.bg<2?'soft, the walker stands out':'very soft';
+  const grain=C.iso<=800?'clean':C.iso<=3200?'fine grain in the shadows':C.iso<=6400?'visible grain':'heavy grain';
+  const Ns=(C.f===28?[1.7]:[2]).concat([2.8,4,5.6,8,11,16]);
+  return '<div class="dof xp"><div class="xprow">'+XPRE.map(([n],i)=>'<button type="button" class="chip" data-xpre="'+i+'">'+n+'</button>').join("")+'</div>'+expoScene(C)+
+    '<div class="dofrow xgrid"><label>Light'+sel("L",Object.entries(XL).map(([k,v])=>[k,v[0]]),X.L)+'</label><label>Lens'+sel("f",[[28,"28 mm"],[43,"43 mm"]],C.f)+'</label>'+
+    '<label>Aperture'+sel("N",Ns.map(v=>[v,"f/"+v]),C.N)+'</label><label>Shutter'+sel("t",XSH.map(v=>[v,shText(v)]),X.t)+'</label><label>ISO'+sel("iso",[[0,"Auto (to 6400)"]].concat(XISO.map(v=>[v,String(v)])),X.iso)+'</label></div>'+
+    '<ul class="xout"><li>Exposure: '+expTxt+(C.auto?' · Auto ISO picks <b>'+Math.round(C.iso/10)*10+'</b>'+(C.need>6400&&st<-0.34?' (it needs '+Math.round(C.need/100)*100+', past the 6400 limit: open up or slow down)':C.need<100&&st>0.34?' (it would need to go below 100: use a faster shutter or a smaller aperture)':''):'')+'</li>'+
+      '<li>The walker: '+walkTxt+'</li><li>The far buildings: '+bgTxt+'</li><li>Grain: '+grain+'</li></ul>'+
+    '<p class="hint">The walker is 4 m away at walking pace and in focus; the buildings are 30 m away. Light levels are typical values for each scene. The picture is a simplification: it shows which way each setting pushes the photo, not exactly how it will look.</p></div>'; }
+
+/* Crop frames: one scene through the native lens and each crop frame, with what is left of the 60 MP and how far to stand. */
+const CROP_SET = {q328:{n:"Leica Q3",f:28,crops:[35,50,75,90]},q343:{n:"Leica Q3 43",f:43,crops:[60,75,90,120,150]}};
+function cropScene(native){ const z=native/28; let s='<rect width="150" height="100" class="d-hole"/>';
+  let g='<rect x="-60" y="-40" width="270" height="180" fill="#2c3038"/>';
+  g+='<path d="M-60 -40 H44 V60 L-60 120 Z" class="d-bg"/><path d="M210 -40 H106 V58 L210 116 Z" class="d-bg"/>';
+  for(const y0 of [-20,0,20,40]) g+='<path d="M-60 '+y0+' L44 '+(y0+(52-y0)*0.25)+'" class="d-feat" style="stroke-width:.6"/>';
+  for(const y0 of [-20,0,20,40]) g+='<path d="M210 '+y0+' L106 '+(y0+(52-y0)*0.25)+'" class="d-feat" style="stroke-width:.6"/>';
+  g+='<rect x="66" y="12" width="18" height="44" class="d-mu" opacity=".45"/><rect x="72" y="4" width="6" height="10" class="d-mu" opacity=".45"/>';
+  g+='<path d="M-60 120 L44 60 H106 L210 116 V140 H-60 Z" class="d-mu" opacity=".16"/>';
+  g+='<rect x="30" y="34" width="2" height="34" class="d-mu"/><rect x="118" y="30" width="2" height="38" class="d-mu"/>';
+  g+=dW(48,70,12,"d-mu")+dW(104,68,10,"d-mu",-1)+dW(14,92,22,"d-mu")+dW(136,94,24,"d-mu",-1)+dStand(75,74,20,"d-fg");
+  s+='<g transform="translate(75 50) scale('+z.toFixed(4)+') translate(-75 -50)">'+g+'</g>';
+  return s; }
+function learnCrop(){ const body=CROP_SET[state.lcBody]?state.lcBody:(state.camera==="q328"?"q328":"q343"), B=CROP_SET[body], frames=[B.f].concat(B.crops), F=frames.includes(+state.lcF)?+state.lcF:B.f;
+  let lines=''; frames.slice(1).forEach(c=>{ const w=150*B.f/c, h=100*B.f/c, x=75-w/2, y=50-h/2; lines+='<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+w.toFixed(1)+'" height="'+h.toFixed(1)+'" fill="none" stroke="var(--sign-fg)" stroke-width=".6" stroke-dasharray="2 1.5" opacity=".7"/><text x="'+(x+1.5).toFixed(1)+'" y="'+(y+5.5).toFixed(1)+'" class="d-tx" style="font-size:4.6px;fill:var(--sign-fg)">'+c+'</text>'; });
+  const w=150*B.f/F, h=100*B.f/F, x=75-w/2, y=50-h/2, sel=F===B.f?'':'<path d="M0 0 H150 V100 H0 Z M'+x.toFixed(1)+' '+y.toFixed(1)+' v'+h.toFixed(1)+' h'+w.toFixed(1)+' v'+(-h).toFixed(1)+' Z" fill="#000" opacity=".55" fill-rule="evenodd"/><rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+w.toFixed(1)+'" height="'+h.toFixed(1)+'" fill="none" stroke="var(--yellow)" stroke-width="1.2"/>';
+  const r=B.f/F, mp=60.3*r*r, px=Math.round(9520*r/10)*10+' × '+Math.round(6336*r/10)*10, full=F*1.8/24, half=F*0.6/24;
+  return '<div class="dof cropw"><div class="dofrow"><label>Camera<select data-lc="lcBody">'+Object.entries(CROP_SET).map(([k,v])=>'<option value="'+k+'"'+(k===body?' selected':'')+'>'+v.n+'</option>').join("")+'</select></label></div>'+
+    '<div class="xprow">'+frames.map(c=>'<button type="button" class="chip" data-lcf="'+c+'" aria-pressed="'+(c===F)+'">'+c+' mm'+(c===B.f?'':'')+'</button>').join("")+'</div>'+
+    '<svg class="demo-svg" viewBox="0 0 150 100" role="img" aria-label="'+F+' mm frame on the '+esc(B.n)+'">'+cropScene(B.f)+lines+sel+'<rect x="1" y="1" width="148" height="98" class="d-frame"/></svg>'+
+    '<ul class="xout"><li><b>'+F+' mm'+(F===B.f?' (the lens, no crop)':' crop')+'</b>: '+(F===B.f?'60 MP, 9520 × 6336 pixels.':mp.toFixed(mp<10?1:0)+' MP left, about '+px+' pixels.'+(mp<8?' Fine for a phone or a small print, thin for a large one.':mp<20?' Plenty for prints up to about 30 cm.':' Plenty for large prints.'))+'</li>'+
+      '<li>To fit a standing person top to toe across the short side: about <b>'+mFmt(full)+'</b> away. Head and shoulders: about <b>'+mFmt(half)+'</b>.</li></ul>'+
+    '<p class="hint">A crop frame is the same as cropping later: it keeps the middle of the picture and throws the rest away, so the perspective does not change. Only where you stand changes how the background stacks up behind your subject. The DNG keeps the whole frame, so you can undo a crop at home.</p></div>'; }
+function openLearn(id,sel){ state.view="learn"; render(); const d=document.querySelector('#learn details.lesson[data-id="'+id+'"]'); if(d){ d.open=true; requestAnimationFrame(()=>{ const t=sel&&d.querySelector(sel)||d; t.scrollIntoView({block:"start"}); }); } }
 function learnDof(){ const f=+state.lfF, N=+state.lfN, s=+state.lfS, [a,b]=dofCalc(f,N,s), H=(f*f)/(N*0.03)/1000;
   const pct=x=>Math.min(100,Math.max(0,x/15*100)), bar='<div class="dofbar"><span style="left:'+pct(a)+'%;width:'+Math.max(1.5,pct(b===Infinity?99:b)-pct(a))+'%"></span><i style="left:'+pct(s)+'%"></i></div><div class="dofscale"><span>0</span><span>5 m</span><span>10 m</span><span>15 m+</span></div>';
   return '<div class="dof"><div class="dofrow"><label>Lens<select data-lf="lfF">'+[28,43].map(v=>'<option'+(v==f?" selected":"")+' value="'+v+'">'+v+' mm</option>').join("")+'</select></label>'+
@@ -3976,7 +4058,7 @@ function renderLearn(){
   box.innerHTML='<p class="lead">Short lessons for street photography, written for the Leica Q3 and New York. Each ends with something to try, and links back into the app.</p>'+
     LEARN.map(L=>'<details class="lesson" data-id="'+L.id+'"'+((first&&L.id==="exposure")||open.has(L.id)?" open":"")+'><summary><span class="lnum">'+L.n+'</span><span class="t"><b>'+esc(L.title)+'</b><span>'+esc(L.sub)+'</span></span></summary><div class="lessonbody">'+
       L.body.map(p=>'<p>'+esc(p)+'</p>').join("")+
-      (L.widget==="cams"?learnCams():L.widget==="dof"?learnDof():L.widget==="tech"?learnTech():L.widget==="light"?learnLight():L.widget==="drills"?learnDrills():'')+
+      (L.id==="exposure"?learnExpo():'')+(L.id==="camera"?learnCrop():'')+(L.widget==="cams"?learnCams():L.widget==="dof"?learnDof():L.widget==="tech"?learnTech():L.widget==="light"?learnLight():L.widget==="drills"?learnDrills():'')+
       (L.points.length?'<ul class="lpoints">'+L.points.map(p=>'<li>'+esc(p)+'</li>').join("")+'</ul>':'')+
       (L.try?'<div class="ltry"><span class="label">Try this</span><p>'+esc(L.try)+'</p></div>':'')+
       (L.link?'<button type="button" class="chip" data-recipe="'+L.link[1]+'">'+esc(L.link[0])+' ›</button>':'')+'</div></details>').join("");
@@ -4303,11 +4385,15 @@ $("map").addEventListener("keydown",e=>{ if(e.key!=="Enter"&&e.key!==" ") return
   if(p){ e.preventDefault(); mapSelect(p.dataset.p); const n=document.querySelector('.m-pin[data-p="'+p.dataset.p+'"]'); if(n) n.focus(); } });
 window.addEventListener("resize",()=>{ if(state.view==="map") mapLayout(); });
 $("learn").addEventListener("click",e=>{
+  const xpr=e.target.closest("[data-xpre]"); if(xpr){ const P=XPRE[+xpr.dataset.xpre][1], X=expoState(); Object.assign(X,P); e.target.closest(".xp").outerHTML=learnExpo(); return; }
+  const lcf=e.target.closest("[data-lcf]"); if(lcf){ state.lcF=+lcf.dataset.lcf; e.target.closest(".cropw").outerHTML=learnCrop(); return; }
   const r=e.target.closest(".row"); if(r){ show(r.dataset.id); state.view="shoot"; render(); window.scrollTo({top:0}); return; }
   const rc=e.target.closest("[data-recipe]"); if(rc){ const pick=cityIdeas().filter(x=>x.r===rc.dataset.recipe); if(pick.length){ show(pick[Math.floor(Math.random()*pick.length)].id); state.view="shoot"; state.tab="settings"; render(); window.scrollTo({top:0}); } return; }
   const lt=e.target.closest("[data-light]"); if(lt){ state.when=lt.dataset.light; store.set("when",state.when); $("when").value=state.when; state.view="browse"; refilter(); window.scrollTo({top:0}); return; }
 });
 $("learn").addEventListener("change",e=>{
+  const xs=e.target.closest("[data-xp]"); if(xs){ const X=expoState(), k=xs.dataset.xp; X[k]=k==="L"?xs.value:+xs.value; if(k==="f"&&X.N&&X.N<(X.f===28?1.7:2)) X.N=X.f===28?1.7:2; e.target.closest(".xp").outerHTML=learnExpo(); return; }
+  const lcs=e.target.closest("[data-lc]"); if(lcs){ state.lcBody=lcs.value; state.lcF=null; e.target.closest(".cropw").outerHTML=learnCrop(); return; }
   const sel=e.target.closest("[data-lf]"); if(sel){ state[sel.dataset.lf]=+sel.value; const w=e.target.closest(".dof"); w.outerHTML=learnDof(); return; }
   const cs=e.target.closest("[data-cam]"); if(cs){ state.camCmp[+cs.dataset.cam]=cs.value; store.set("camCmp",state.camCmp); const w=e.target.closest(".camcmp"); w.outerHTML=learnCams(); return; }
   const cb=e.target.closest("[data-drill]"); if(cb){ cb.checked?state.drills.add(cb.dataset.drill):state.drills.delete(cb.dataset.drill); store.set("drills",[...state.drills]); const h=cb.closest(".drills").nextElementSibling; if(h) h.textContent=state.drills.size+" of "+DRILLS.length+" done."; }
@@ -4354,6 +4440,7 @@ $("list").addEventListener("click",e=>{
 $("card").addEventListener("click",e=>{
   if(e.target.closest("[data-stay]")){ const x=IDEAS.find(y=>y.id===state.current); if(x) toggleStay(x.p); return; }
   if(e.target.closest("[data-street]")){ streetOpen(); return; }
+  const lc=e.target.closest("[data-learncrop]"); if(lc){ state.lcBody=state.camera==="q328"?"q328":"q343"; state.lcF=+lc.dataset.learncrop; openLearn("camera",".cropw"); return; }
   const wd=e.target.closest("[data-widen]"); if(wd){ widen(wd.dataset.widen); return; }
   const rt=e.target.closest("[data-rate]"); if(rt&&state.current){ rateShot(state.current,rt.dataset.rate); state.justShot=null; renderCard(); return; }
   if(e.target.closest("[data-undoshot]")&&state.current){ undoShot(state.current); render(); return; }

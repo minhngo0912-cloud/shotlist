@@ -770,3 +770,10 @@ body.streetmode{overflow:hidden}
 .wstar{position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;background:var(--yellow);color:#111;padding:1px 5px;border-radius:6px}
 .wi-sun{fill:#f2ad3a} .wi-ray{stroke:#f2ad3a;stroke-width:1.6;stroke-linecap:round;fill:none} .wi-cloud{fill:#c9ccd3} .wi-cloud.dark{fill:#8d929c} .wi-rain{stroke:#4a7be0;stroke-width:1.6;stroke-linecap:round} .wi-none{fill:var(--line)}
 .wdet{margin-top:8px;padding-top:8px;border-top:1px solid var(--line)} .wdet p{margin:0 0 6px} .wdet .callinks{margin-top:6px}
+/* Learn: exposure simulator and crop frames */
+.xprow{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px} .xprow .chip{min-height:34px;font-size:13px;padding:0 11px}
+.xp .demo-svg,.cropw .demo-svg{max-width:none;border-radius:6px}
+.xgrid{grid-template-columns:repeat(2,1fr);margin-top:10px} .xgrid label:first-child{grid-column:1/-1}
+.xout{margin:10px 0 8px;padding-left:18px;font-size:15px;line-height:1.45} .xout li{margin:0 0 4px}
+.xout .ok{color:#1e9e48} .xout .over{color:#d9822b} .xout .under{color:#4a7be0}
+.cropw .dofrow{grid-template-columns:1fr;margin-bottom:10px}
