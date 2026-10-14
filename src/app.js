@@ -1367,7 +1367,8 @@ const store = {
 const state = {
   city: store.get("city","nyc"), intent: store.get("intent","all"), place: store.get("place","all"), when: store.get("when","all"),
   camera: store.get("camera","q343"), view:"today", tab:"idea", cond:"auto", camCmp:store.get("camCmp",["q343","x100vi","griv"]), lfF:43, lfN:8, lfS:3, drills:new Set(store.get("drills",[])), evType:"all", mapZoom:store.get("mapZoom","city"), mapSel:null, mapEv:null, mapT:null, mapD:0, mapHead:false, heading:null, mapIntent:"all", mapShowEv:store.get("mapShowEv",true)!==false, mapShowLm:store.get("mapShowLm",true)!==false, mapShowSub:store.get("mapShowSub",true)!==false, mapShowStn:store.get("mapShowStn",true)!==false, mapShowSunny:store.get("mapShowSunny",true)!==false, mapShowSpots:store.get("mapShowSpots",true)!==false, mapShowNames:store.get("mapShowNames",true)!==false, sheet:"peek", mapLm:null, mapSpot:null, notes: store.get("notes",{}) || {}, pos:null, plan:null,
-  saved: new Set(store.get("saved",[])), done: new Set(store.get("done",[])), current:null, history:[]
+  saved: new Set(store.get("saved",[])), done: new Set(store.get("done",[])), current:null, history:[],
+  log: (o=>o&&typeof o==="object"&&!Array.isArray(o)?o:{})(store.get("log",{})), justShot:null, street:false, stayPrev:null
 };
 if(!CAMERAS[state.camera]) state.camera="q343";
 if(!CITIES[state.city]) state.city=Object.keys(CITIES)[0];
@@ -1427,16 +1428,28 @@ function matches(savedOnly){
 }
 function show(id){
   if(state.current && state.current!==id){ state.history.push(state.current); if(state.history.length>40) state.history.shift(); }
-  state.current=id; state.tab="idea";
+  state.current=id; state.tab="idea"; state.justShot=null;
   const c=document.getElementById("card"); if(c){ c.classList.remove("swap"); void c.offsetWidth; c.classList.add("swap"); }
 }
+/* Another idea: not a plain random pick. Each idea that passes the filters is scored on the light and forecast now, whether it is on
+   (days, hours, weather), how far it is from you, whether you have shot it (a "try again" comes back when the light suits it) and
+   whether it came up a moment ago. A little randomness keeps it from showing the same few. Lower is better. */
+function shootScore(x,t,key,sky){ let s=0; const fit=x.w.includes(key), last=lastShot(x.id);
+  if(!fit) s+=2.2;
+  if(!ideaOpen(x,t,sky)) s+=4;
+  if(state.done.has(x.id)) s+= last&&last.r==="again" ? (fit?-0.3:0.9) : last&&last.r==="keep" ? 2.4 : 1.8;
+  if(state.pos){ const mi=milesTo(PLACES[x.p]); if(mi!==null) s+=Math.min(mi,10)*0.22; }
+  const k=state.history.lastIndexOf(x.id); if(k>=0&&k>=state.history.length-20) s+=2.5;
+  return s; }
 function pick(){
   const m = matches(false); if(!m.length){ state.current=null; return; }
-  let pool = m.filter(x=>!state.done.has(x.id) && x.id!==state.current);
-  if(!pool.length) pool = m.filter(x=>x.id!==state.current);
-  if(!pool.length) pool = m;
-  show(pool[Math.floor(Math.random()*pool.length)].id);
+  let pool = m.filter(x=>x.id!==state.current); if(!pool.length) pool = m;
+  const t=new Date(), key=state.when!=="all"?state.when:lightAt(t), sky=skyAt(t);
+  const best=pool.map(x=>({x,s:shootScore(x,t,key,sky)+Math.random()*1.2})).sort((a,b)=>a.s-b.s)[0];
+  show(best.x.id);
 }
+function goNext(){ pick(); render(); if(!state.street) cardToTop(); }
+function goBack(){ const id=state.history.pop(); if(!id) return; state.current=id; state.tab="idea"; state.justShot=null; render(); if(!state.street) cardToTop(); }
 function bullets(lines, cityId){
   const map = CITIES[cityId].lines || {};
   return [...(lines||"")].map(l=>{const c=map[l]||"gray"; const bg=c.charAt(0)==="#"?c:"var(--"+c+")";
@@ -1757,7 +1770,7 @@ function renderCard(){
       (su ? '<div class="setup">'+SETUP_LABELS.map((l,n)=>{ const [mv,nt]=splitVal(su[n]); return '<button type="button" data-tip="'+n+'" aria-haspopup="dialog" aria-expanded="'+(openTip===String(n))+'"><span class="label">'+l+'</span><span class="sv"><b>'+esc(mv)+'</b>'+(nt?'<small>'+esc(nt)+'</small>':'')+'</span><span class="si" aria-hidden="true">i</span></button>'; }).join("")+'</div>'+
         '<p class="hint">Tap a setting to see what it does and the other options.</p>' : '');
   } else {
-    pane='<div class="part"><span class="label">Look for</span><p>'+esc(x.look)+'</p></div>'+standBlock(x)+
+    pane=shotLogHtml(x)+'<div class="part"><span class="label">Look for</span><p>'+esc(x.look)+'</p></div>'+standBlock(x)+
       '<div class="part"><span class="label">Your rule</span><p>'+esc(x.rule)+'</p></div>'+
       '<div class="part"><span class="label">Best light</span><div class="times">'+x.w.map(w=>'<span class="time">'+WHEN[w]+'</span>').join("")+(x.m?'<span class="time season">'+seasonText(x)+'</span>':'')+(availText(x)?'<span class="time avail">'+esc(availText(x))+'</span>':'')+'</div></div>'+
       '<div class="part"><label class="label" for="note">Your notes</label><textarea id="note" rows="2" placeholder="What worked, what was different, what to try next time">'+esc(state.notes[x.id]||"")+'</textarea></div>'+followIdea(x.i)+igRow(x)+
@@ -1769,19 +1782,98 @@ function renderCard(){
   card.innerHTML =
     '<div class="band" style="background:'+it.color+'"></div>'+
     '<div class="sign-head"><div class="sign-top"><span class="intent-tag"><span class="dot" style="background:'+it.color+'"></span>'+esc(it.name)+'</span>'+
-    '<span class="where">'+esc(pl.name)+' · '+esc(pl.stop||"")+' '+bullets(pl.lines, pl.city)+'</span></div><h2>'+esc(x.t)+'</h2>'+startHtml(x.p)+'</div>'+
+    '<span class="where">'+esc(pl.name)+' · '+esc(pl.stop||"")+' '+bullets(pl.lines, pl.city)+'</span></div><h2>'+esc(x.t)+'</h2><p class="why">'+shootWhy(x)+'</p>'+startHtml(x.p)+
+    '<div class="cardacts"><button type="button" class="chip" data-stay="1" aria-pressed="'+(state.place===x.p)+'">'+(state.place===x.p?'Staying at '+esc(pl.name)+' ✓':'Stay here')+'</button><button type="button" class="chip" data-street="1">Street mode</button></div></div>'+
     '<div class="tabs" role="tablist">'+tabs.map(t=>'<button type="button" role="tab" data-tab="'+t[0]+'" aria-selected="'+(state.tab===t[0])+'">'+t[1]+'</button>').join("")+'</div>'+
     '<div class="pane">'+pane+'</div>';
   const s=state.saved.has(x.id), d=state.done.has(x.id);
   $("save").setAttribute("aria-pressed",s); $("save").textContent = s?"Saved ✓":"Save";
-  $("done").setAttribute("aria-pressed",d); $("done").textContent = d?"Shot ✓":"Shot it";
+  const n=shotLog(x.id).length;
+  $("done").setAttribute("aria-pressed",d); $("done").textContent = d?"Shot ✓"+(n>1?" "+n+"×":""):"Shot it"; $("done").setAttribute("aria-label",d?"Shot it again: log another time":"Shot it: log it");
 }
+/* Why this idea came up: the light, whether it is on now, and how far it is. */
+function shootWhy(x){ const t=new Date(), key=lightAt(t), sky=skyAt(t), a=AVAIL[x.id], out=[];
+  out.push(x.w.includes(key)?'<span class="ok">Suits the light now</span>':'Best in '+x.w.slice(0,2).map(w=>WHEN[w].toLowerCase()).join(" or "));
+  if(!ideaOpen(x,t,sky)) out.push('<span class="off">Not on now: '+esc(availText(x))+'</span>');
+  else if(a&&a.h){ const hr=t.getHours()+t.getMinutes()/60, on=a.h.find(([s0,e0])=>s0<e0?(hr>=s0&&hr<e0):(hr>=s0||hr<e0)); if(on) out.push('On until '+hourText(on[1])); }
+  if(state.pos&&typeof PLACES[x.p].lat==="number"){ const km=kmBetween(state.pos,PLACES[x.p]); out.push(km<=2.4?walkMin(km)+' min walk':milesText(km/1.609)+' away'); }
+  const l=lastShot(x.id); if(l&&l.r==="again") out.push('<span class="again">You marked it try again</span>');
+  return out.join(' · '); }
+/* The shot log: each Shot it records when, and in what light; the last one can be rated keeper or try again. Kept on the device. */
+const shotLog = id => state.log[id]||[];
+const lastShot = id => { const l=state.log[id]; return l&&l.length?l[l.length-1]:null; };
+function saveLog(){ store.set("log",state.log); store.set("done",[...state.done]); }
+function logShot(id){ const t=new Date(), i=nowInfo(), l=state.log[id]=state.log[id]||[]; l.push({t:+t,k:lightAt(t),s:i.sky||null}); if(l.length>50) l.shift(); state.done.add(id); state.justShot=id; saveLog(); }
+function rateShot(id,r){ const e=lastShot(id); if(!e) return; if(e.r===r) delete e.r; else e.r=r; saveLog(); }
+function undoShot(id){ const l=state.log[id]; if(l&&l.length) l.pop(); if(!l||!l.length){ delete state.log[id]; state.done.delete(id); } state.justShot=null; saveLog(); }
+const shotWhen = e => { const d=new Date(e.t), today=new Date(); today.setHours(0,0,0,0); const tm=hmText(d.getHours()*60+d.getMinutes());
+  return d>=today?'today at '+tm:d>=new Date(+today-864e5)?'yesterday at '+tm:d.toLocaleDateString("en-US",{month:"short",day:"numeric"})+(d.getFullYear()!==today.getFullYear()?', '+d.getFullYear():''); };
+const SHOT_LIGHT = {am:"morning light",mid:"midday light",gold:"late afternoon light",night:"after dark",rain:"rain or overcast"};
+const shotLight = e => e.s&&SKY_NAME[e.s] ? SKY_NAME[e.s].toLowerCase() : SHOT_LIGHT[e.k]||"";
+function shotLogHtml(x){ if(!state.done.has(x.id)) return ""; const l=shotLog(x.id), e=lastShot(x.id), just=state.justShot===x.id;
+  const line=!e ? 'Marked as shot.' : just ? 'Logged '+shotWhen(e).replace(/^today at /,'')+(shotLight(e)?', '+shotLight(e):'')+'. How did it go?' :
+    'Shot '+(l.length>1?l.length+' times, last ':'')+shotWhen(e)+(shotLight(e)?', '+shotLight(e):'')+'.'+(e.r==="keep"?' A keeper.':e.r==="again"?' Try again.':'');
+  return '<div class="shotlog'+(just?' just':'')+'"><p>'+line+'</p>'+(e?'<div class="intents"><button type="button" class="chip" data-rate="keep" aria-pressed="'+(e.r==="keep")+'">Keeper</button><button type="button" class="chip" data-rate="again" aria-pressed="'+(e.r==="again")+'">Try again</button><button type="button" class="chip" data-undoshot="1">Undo'+(l.length>1?' last':'')+'</button></div>':'<div class="intents"><button type="button" class="chip" data-undoshot="1">Unmark</button></div>')+'</div>'; }
+/* Street mode: the card for glancing at with the camera in hand. Exposure in large type, how to focus, height and when to press, the rule,
+   which way to face (with the compass, how far to turn), Next and Shot it within thumb reach. The screen is kept awake while it is open. */
+const FOCUS_SHORT = {"tsq-mood":"{s} on the reflection of the screens, not the wet ground · f/4 to f/5.6"};
+function shortFocus(x,camKey){ const W=WORKX[x.id], cam=CAMERAS[camKey], r=x.r; if(!W||!cam) return "";
+  if(camKey==="iphone") return r==="drag"||!["zone","freeze","shallow","detail"].includes(r)?"Tap the subject, hold for AE/AF Lock":r==="shallow"?"Portrait mode, tap the nearest eye":r==="detail"?"Tap the detail; macro switches on by itself":"Tap where they will be, hold the shutter for a burst";
+  const leica=cam.setup==="leica", fl=CAM_FL[camKey]||35, N=REC_F[r]||(fl===28?1.7:2), d=W[2], T=leica?{s:"AFs",c:"AFc",m:"MF"}:{s:"Single AF",c:"Continuous AF",m:"Manual focus"};
+  if(FOCUS_SHORT[x.id]) return FOCUS_SHORT[x.id].replace(/\{s\}/g,T.s);
+  const glass=STANCE_OF[x.id]==="glass";
+  if(r==="zone"){ const [a,b]=dofCalc(fl,N,Math.min(d,200)); return T.m+" at "+mText(d)+(glass?" (glass plus their distance from it)":"")+" · sharp "+mText(a)+" to "+mText(b)+" at f/8"; }
+  if(r==="freeze") return T.c+" with face detection · half-press as they enter · short burst";
+  if(r==="drag") return T.s+" on the still subject · keep the half-press held";
+  if(r==="shallow") return T.s+" with eye detection · box on the nearest eye";
+  if(r==="detail") return T.s+", small box"+(leica?" · macro ring under "+(fl===43?"60":"30")+" cm":"");
+  if(r==="night") return T.s+" on a lit edge · hold the half-press if it hunts";
+  if(r==="silhouette") return T.s+" on the outline against the light";
+  return T.s+" on "+(W[0].length>40?"the subject":W[0]); }
+let WAKE=null;
+async function wakeOn(){ try{ if(state.street&&navigator.wakeLock&&!document.hidden&&!WAKE){ WAKE=await navigator.wakeLock.request("screen"); WAKE.addEventListener("release",()=>{ WAKE=null; }); } }catch(e){ WAKE=null; } }
+function wakeOff(){ try{ if(WAKE) WAKE.release(); }catch(e){} WAKE=null; }
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden&&state.street) wakeOn(); });
+function streetOpen(){ if(!state.current) return; state.street=true; const el=$("street"); el.hidden=false; document.body.classList.add("streetmode"); renderStreet(); wakeOn(); headingStart();
+  try{ if(!state.pos&&navigator.permissions) navigator.permissions.query({name:"geolocation"}).then(r=>{ if(r.state==="granted"&&state.street) navigator.geolocation.getCurrentPosition(p=>{ state.pos={lat:p.coords.latitude,lon:p.coords.longitude}; if(state.street) renderStreet(); },()=>{},{timeout:10000,maximumAge:60000}); }).catch(()=>{}); }catch(e){}
+  const c=el.querySelector("[data-st=next]"); if(c) c.focus(); }
+function streetClose(quiet){ if(!state.street) return; state.street=false; $("street").hidden=true; $("street").innerHTML=""; document.body.classList.remove("streetmode"); wakeOff(); if(!state.mapHead&&!state.guide) headingStop(); if(!quiet){ render(); const s=document.querySelector('#card [data-street]'); if(s) s.focus(); } }
+function renderStreet(){ const el=$("street"); if(!el||!state.street) return; const x=IDEAS.find(y=>y.id===state.current); if(!x){ streetClose(); return; }
+  const it=INTENTS[x.i], pl=PLACES[x.p], cam=CAMERAS[state.camera], rec=cam.recipes[x.r], su=setupFor(cam,x.r), ni=nowInfo(), adv=su?adjustFor(x.r,ni,cam.setup==="leica",x.id):[], W=WORKX[x.id], sp=spotFor(x), t=new Date();
+  const row=(k,v)=>v?'<div class="strow"><span class="stk">'+k+'</span><span class="stv">'+v+'</span></div>':'';
+  let face=""; if(sp){ const S=sp.S, lf=lightFacing(S[2],t), km=state.pos?kmBetween(state.pos,{lat:S[0],lon:S[1]}):null;
+    face='<b>'+esc(spotShort(S))+'</b> · face '+compass(S[2])+' · <span class="sdk '+lf.k+'">'+lf.txt+' now</span>'+(km!==null?' · '+(km*1000<40?'you are here':mDist(km)+' away'):'')+'<span class="turnhint" data-face="'+S[2]+'">'+turnText(S[2])+'</span>'; }
+  const d=state.done.has(x.id), n=shotLog(x.id).length;
+  el.innerHTML='<div class="st-in"><div class="st-top"><span class="intent-tag"><span class="dot" style="background:'+it.color+'"></span>'+esc(it.name)+'</span><span class="st-where">'+esc(pl.name)+'</span>'+
+      '<button type="button" class="chip st-stay" data-st="stay" aria-pressed="'+(state.place===x.p)+'">'+(state.place===x.p?'Staying ✓':'Stay here')+'</button><button type="button" class="st-x" data-st="close" aria-label="Leave street mode">×</button></div>'+
+    '<h2>'+esc(x.t)+'</h2><p class="why">'+shootWhy(x)+'</p>'+
+    '<div class="st-exp"><span class="stk">'+esc(cam.name)+'</span><b>'+esc(rec[0])+'</b>'+(adv.length?'<span class="st-adj">Now: '+esc(adv[0])+'</span>':'')+'</div>'+
+    row("Focus",esc(shortFocus(x,state.camera))+(W?' · about '+esc(mText(W[2])):''))+
+    row("Height",W?esc(W[1]):"")+row("Press",W?esc(W[3]):"")+row("Rule",esc(x.rule))+row("Stand",face)+
+    (d?'<div class="st-log">'+shotLogHtml(x)+'</div>':'')+
+    '</div><div class="st-bar"><button type="button" class="btn" data-st="back" aria-label="Previous idea"'+(state.history.length?'':' disabled')+'>‹</button><button type="button" class="btn primary" data-st="next">Next idea</button><button type="button" class="btn" data-st="shot" aria-pressed="'+d+'">'+(d?'Shot ✓'+(n>1?' '+n+'×':''):'Shot it')+'</button></div>'; }
+$("street").addEventListener("click",e=>{ const b=e.target.closest("[data-st],[data-rate],[data-undoshot]"); if(!b) return; const x=state.current, k=b.dataset.st;
+  if(k==="close"){ streetClose(); return; } if(k==="next"){ goNext(); return; } if(k==="back"){ goBack(); return; }
+  if(k==="shot"&&x){ logShot(x); render(); return; } if(k==="stay"&&x){ toggleStay(IDEAS.find(y=>y.id===x).p); return; }
+  if(b.dataset.rate&&x){ rateShot(x,b.dataset.rate); state.justShot=null; renderStreet(); renderCard(); return; }
+  if(b.dataset.undoshot!==undefined&&x){ undoShot(x); render(); } });
+document.addEventListener("keydown",e=>{ if(!state.street) return; if(e.key==="Escape") streetClose(); else if(e.key==="ArrowRight") goNext(); else if(e.key==="ArrowLeft") goBack(); });
+/* Stay here: lock Another idea to the place on the card, and back to the previous choice when tapped again. */
+function toggleStay(pid){ if(state.place===pid){ state.place=state.stayPrev&&state.stayPrev!==pid?state.stayPrev:"all"; state.stayPrev=null; } else { state.stayPrev=state.place; state.place=pid; }
+  store.set("place",state.place); const sel=$("place"); if(sel){ sel.value=state.place; if(sel.value!==state.place) sel.value="all"; } render(); }
+/* Swipe a card: left for another idea, right for the one before. Taps, vertical scrolling and the controls inside are left alone. */
+function swipeable(el,left,right){ let st=null;
+  el.addEventListener("pointerdown",e=>{ st=null; if(e.pointerType==="mouse") return; if(e.target.closest("textarea,select,input,.setup,.intents,svg,.tipbtn")) return; st={x:e.clientX,y:e.clientY,t:Date.now()}; });
+  el.addEventListener("pointerup",e=>{ if(!st) return; const dx=e.clientX-st.x, dy=e.clientY-st.y, dt=Date.now()-st.t; st=null; if(Math.abs(dx)>64&&Math.abs(dx)>Math.abs(dy)*1.8&&dt<800){ (dx<0?left:right)(); } });
+  el.addEventListener("pointercancel",()=>{ st=null; }); }
 function renderList(){
-  const saved=state.view==="saved", m=matches(saved), box=$("list");
-  if(!m.length){ box.innerHTML='<div class="intents savedswitch"><button type="button" class="chip" data-listv="browse" aria-pressed="'+!saved+'">All ideas</button><button type="button" class="chip" data-listv="saved" aria-pressed="'+saved+'">Saved</button></div><p class="empty">'+(saved?"Nothing saved here yet. Tap Save on an idea in Shoot to keep it in this list.":"No ideas fit these filters. Choose Any, or widen the place or the light.")+'</p>'; return; }
+  const again=state.view==="again", saved=state.view==="saved"||again, box=$("list"), m=again?matches(false).filter(x=>(lastShot(x.id)||{}).r==="again"):matches(state.view==="saved");
+  const nAgain=cityIdeas().filter(x=>(lastShot(x.id)||{}).r==="again").length, nSaved0=cityIdeas().filter(x=>state.saved.has(x.id)).length;
+  const sw='<div class="intents savedswitch"><button type="button" class="chip" data-listv="browse" aria-pressed="'+!saved+'">All ideas</button><button type="button" class="chip" data-listv="saved" aria-pressed="'+(state.view==="saved")+'">Saved ('+nSaved0+')</button>'+(nAgain||again?'<button type="button" class="chip" data-listv="again" aria-pressed="'+again+'">Try again ('+nAgain+')</button>':'')+'</div>';
+  if(!m.length){ box.innerHTML=sw+'<p class="empty">'+(again?"Nothing marked try again here. After Shot it, tap Try again on the card to bring an idea back when the light suits it.":saved?"Nothing saved here yet. Tap Save on an idea in Shoot to keep it in this list.":"No ideas fit these filters. Choose Any, or widen the place or the light.")+'</p>'; return; }
   const noted=cityIdeas().filter(x=>state.notes[x.id]);
   const nSaved=cityIdeas().filter(x=>state.saved.has(x.id)).length;
-  box.innerHTML = '<div class="intents savedswitch"><button type="button" class="chip" data-listv="browse" aria-pressed="'+!saved+'">All ideas</button><button type="button" class="chip" data-listv="saved" aria-pressed="'+saved+'">Saved ('+nSaved+')</button></div>'+
+  box.innerHTML = sw+
     '<div class="notesbar"><span class="msg">'+m.length+' idea'+(m.length===1?'':'s')+(state.pos?', nearest first':'')+'</span>'+
     (noted.length?'<button type="button" class="chip" id="copyNotes">Copy my notes ('+noted.length+')</button>':'')+'</div>'+
   (state.pos||state.place!=="all"?"":'<div class="intents areajump">'+Object.keys(AREAS).filter(a=>placeOrder().some(pid=>areaOf(pid)===a&&m.some(x=>x.p===pid))).map(a=>'<a class="chip" href="#area-'+a+'">'+AREAS[a]+'</a>').join("")+'</div>')+
@@ -1792,7 +1884,7 @@ function renderList(){
       '<button type="button" class="row'+(state.done.has(x.id)?" done":"")+'" data-id="'+x.id+'">'+
       '<span class="dot" style="background:'+INTENTS[x.i].color+'"></span>'+
       '<span class="t"><b>'+esc(x.t)+'</b><span>'+esc(INTENTS[x.i].name)+(COMPOSE[x.id]?' · '+esc(TECH[COMPOSE[x.id][0]][0]):'')+'</span></span>'+
-      '<span class="marks">'+(state.saved.has(x.id)?'<span class="pill">Saved</span>':'')+(state.done.has(x.id)?'<span class="pill">Shot</span>':'')+(state.notes[x.id]?'<span class="pill">Note</span>':'')+'</span>'+
+      '<span class="marks">'+(state.saved.has(x.id)?'<span class="pill">Saved</span>':'')+(state.done.has(x.id)?'<span class="pill">'+((lastShot(x.id)||{}).r==="keep"?'Keeper':(lastShot(x.id)||{}).r==="again"?'Try again':'Shot')+'</span>':'')+(state.notes[x.id]?'<span class="pill">Note</span>':'')+'</span>'+
       '<span class="go" aria-hidden="true">›</span></button>').join("")+'</section>';
   }).join("")+(saved?"":followAll());
 }
@@ -2842,10 +2934,11 @@ function render(){
   $("viewLearn").hidden=!ln; if(ln) renderLearn();
   $("viewMap").hidden=!mp; if(mp) renderMap();
   $("viewShoot").hidden=!shoot; $("viewList").hidden=shoot||ev||pl||mp||ln||td; $("viewPlan").hidden=!pl; $("viewEvents").hidden=!ev; $("bar").hidden=!shoot; $("filters").hidden=ev||pl||mp||ln||td; $("now").hidden=ev||pl||ln||mp||td; document.body.classList.toggle("mapview",mp); $("syncbox").hidden=mp; document.querySelector("footer").hidden=mp; renderNow();
-  document.querySelectorAll("#views button").forEach(b=>b.setAttribute("aria-selected",b.dataset.v===state.view||(b.dataset.v==="browse"&&state.view==="saved")));
+  document.querySelectorAll("#views button").forEach(b=>b.setAttribute("aria-selected",b.dataset.v===state.view||(b.dataset.v==="browse"&&(state.view==="saved"||state.view==="again"))));
   const all=cityIdeas(), n=all.filter(x=>state.done.has(x.id)).length;
   $("progress").textContent=n+"/"+all.length; $("progress").setAttribute("aria-label",n+" of "+all.length+" ideas shot"); $("fill").style.width=(all.length?100*n/all.length:0)+"%";
-  if(shoot) renderCard(); else if(ev) renderEvents(); else if(pl) renderPlan(); else if(!mp&&!ln&&!td) renderList();
+  if(!shoot&&state.street) streetClose(true);
+  if(shoot){ renderCard(); if(state.street) renderStreet(); } else if(ev) renderEvents(); else if(pl) renderPlan(); else if(!mp&&!ln&&!td) renderList();
 }
 function refilter(){ if(!matches(false).some(x=>x.id===state.current)) pick(); render(); }
 function cardToTop(){ const r=$("card").getBoundingClientRect(); if(r.top<0) window.scrollTo({top:window.scrollY+r.top-12,behavior:"smooth"}); }
@@ -2920,7 +3013,7 @@ $("plan").addEventListener("click",e=>{
 state.plan=loadPlan();
 syncNear();
 // Move marks between devices with a copy-and-paste code. Import merges: it only ever adds.
-function syncEncode(){ const j=JSON.stringify({v:1,s:[...state.saved],d:[...state.done],n:state.notes});
+function syncEncode(){ const j=JSON.stringify({v:1,s:[...state.saved],d:[...state.done],n:state.notes,l:state.log});
   return "SL1."+btoa(unescape(encodeURIComponent(j))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); }
 function syncDecode(code){ const m=/SL1\.([A-Za-z0-9_-]+)/.exec(String(code||"").replace(/\s+/g,"")); if(!m) return null;
   try{ const b=m[1].replace(/-/g,"+").replace(/_/g,"/"); const j=JSON.parse(decodeURIComponent(escape(atob(b+"===".slice((b.length+3)%4)))));
@@ -2929,9 +3022,12 @@ function syncImport(code){ const j=syncDecode(code); if(!j) return null;
   const known=new Set(IDEAS.map(x=>x.id)), ok=a=>(Array.isArray(a)?a:[]).filter(id=>typeof id==="string"&&known.has(id)); let s=0,d=0,n=0;
   ok(j.s).forEach(id=>{ if(!state.saved.has(id)){ state.saved.add(id); s++; } });
   ok(j.d).forEach(id=>{ if(!state.done.has(id)){ state.done.add(id); d++; } });
+  if(j.l&&typeof j.l==="object") Object.entries(j.l).forEach(([id,list])=>{ if(!known.has(id)||!Array.isArray(list)) return; const cur=state.log[id]=state.log[id]||[], have=new Set(cur.map(e=>e.t));
+    list.forEach(e=>{ if(!e||typeof e.t!=="number"||have.has(e.t)) return; const v={t:e.t,k:WHEN[e.k]?e.k:null,s:SKY_NAME[e.s]?e.s:null}; if(e.r==="keep"||e.r==="again") v.r=e.r; cur.push(v); have.add(e.t); });
+    cur.sort((a,b)=>a.t-b.t); if(cur.length>50) cur.splice(0,cur.length-50); if(!cur.length) delete state.log[id]; else state.done.add(id); });
   Object.entries(j.n&&typeof j.n==="object"?j.n:{}).forEach(([id,t])=>{ if(!known.has(id)||typeof t!=="string"||!t.trim()) return; t=t.slice(0,2000);
     const cur=state.notes[id]; if(!cur){ state.notes[id]=t; n++; } else if(cur.trim()!==t.trim() && !cur.includes(t.trim())){ state.notes[id]=cur.trim()+"\n"+t.trim(); n++; } });
-  store.set("saved",[...state.saved]); store.set("done",[...state.done]); store.set("notes",state.notes);
+  store.set("saved",[...state.saved]); store.set("done",[...state.done]); store.set("notes",state.notes); store.set("log",state.log);
   return {s,d,n}; }
 $("syncCopy").addEventListener("click",()=>{ const code=syncEncode(), msg=$("syncMsg"), total=state.saved.size+state.done.size+Object.keys(state.notes).length;
   const shown=()=>{ $("syncCode").value=code; $("syncCode").focus(); $("syncCode").select(); msg.textContent="Copying isn't available here. The code is in the box: select it and copy it."; };
@@ -3008,11 +3104,11 @@ $("today").addEventListener("click",e=>{
 });
 setInterval(()=>{ try{ if(state.view==="today"&&!document.hidden) renderToday(); }catch(e){} }, 60000);
 $("views").addEventListener("click",e=>{const b=e.target.closest("button"); if(!b) return; state.view=b.dataset.v; render();});
-$("next").addEventListener("click",()=>{pick();render();cardToTop();});
-$("back").addEventListener("click",()=>{ const id=state.history.pop(); if(!id) return; state.current=id; state.tab="idea"; render(); cardToTop(); });
+$("next").addEventListener("click",goNext);
+$("back").addEventListener("click",goBack);
 function toggle(set,key){ if(!state.current) return; set.has(state.current)?set.delete(state.current):set.add(state.current); store.set(key,[...set]); render(); }
 $("save").addEventListener("click",()=>toggle(state.saved,"saved"));
-$("done").addEventListener("click",()=>toggle(state.done,"done"));
+$("done").addEventListener("click",()=>{ if(!state.current) return; logShot(state.current); render(); });
 function notesText(){ return cityIdeas().filter(x=>state.notes[x.id]).map(x=>PLACES[x.p].name+" · "+x.t+" ["+x.id+"]: "+state.notes[x.id].trim()).join("\n"); }
 $("list").addEventListener("click",e=>{
   const lv=e.target.closest("[data-listv]"); if(lv){ state.view=lv.dataset.listv; render(); return; }
@@ -3022,6 +3118,10 @@ $("list").addEventListener("click",e=>{
     return; }
   const r=e.target.closest(".row"); if(!r) return; show(r.dataset.id); state.view="shoot"; render(); window.scrollTo({top:0});});
 $("card").addEventListener("click",e=>{
+  if(e.target.closest("[data-stay]")){ const x=IDEAS.find(y=>y.id===state.current); if(x) toggleStay(x.p); return; }
+  if(e.target.closest("[data-street]")){ streetOpen(); return; }
+  const rt=e.target.closest("[data-rate]"); if(rt&&state.current){ rateShot(state.current,rt.dataset.rate); state.justShot=null; renderCard(); return; }
+  if(e.target.closest("[data-undoshot]")&&state.current){ undoShot(state.current); render(); return; }
   const pe=e.target.closest("[data-planev]"); if(pe){ planEvent(pe.dataset.planev); return; }
   const gg=e.target.closest("[data-guidego]"); if(gg){ const id=gg.dataset.guidego; state.mapT=null; state.view="map"; render(); guideStart(id); requestAnimationFrame(()=>requestAnimationFrame(()=>{ mapSelectSpot(id); guideRender(); })); return; }
   const sm=e.target.closest("[data-spotmap]"); if(sm){ const id=sm.dataset.spotmap; state.mapT=null; state.view="map"; render(); requestAnimationFrame(()=>requestAnimationFrame(()=>mapSelectSpot(id))); return; }
@@ -3033,4 +3133,5 @@ $("card").addEventListener("input",e=>{ if(e.target.id!=="note"||!state.current)
   const v=e.target.value.trim(); if(v) state.notes[state.current]=e.target.value; else delete state.notes[state.current]; store.set("notes",state.notes); });
 $("card").addEventListener("change",e=>{ if(e.target.id==="camera"){ state.camera=e.target.value; store.set("camera",state.camera); openTip=null; renderCard(); } });
 
+swipeable($("card"),goNext,goBack); swipeable($("street"),goNext,goBack);
 syncChips(); pick(); state.history=[]; render();

@@ -721,3 +721,34 @@ body.tipopen{overflow:hidden}
 .lstrip-h{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:2px;padding:0 1px} .lstrip-h b{font-weight:600}
 .lstrip-runs{margin-top:6px}
 .turn{display:block;margin-top:4px;color:var(--blue)}
+/* Shoot: why this idea, card actions, the shot log */
+.sign .why{margin:-4px 0 0;font-size:14px;line-height:1.4;color:var(--sign-muted)} .why .ok{color:#7fd88f;font-weight:700} .why .off{color:#ff9a7a} .why .again{color:var(--yellow)}
+.cardacts{display:flex;gap:8px;flex-wrap:wrap}
+.sign .chip{background:transparent;color:var(--sign-fg);border-color:var(--sign-line);min-height:38px;font-size:14px}
+.sign .chip[aria-pressed="true"]{background:var(--sign-fg);color:var(--sign);border-color:var(--sign-fg)}
+#card{touch-action:pan-y}
+.shotlog{margin:0 0 14px;padding:10px 12px;border:1px solid var(--sign-line);border-radius:10px}
+.shotlog.just{border-color:var(--yellow)}
+.shotlog p{margin:0 0 8px;font-size:15px} .shotlog .intents{margin:0;padding:0;gap:6px;flex-wrap:wrap;overflow:visible}
+/* Street mode: full screen, large type, buttons within thumb reach */
+.street{position:fixed;inset:0;z-index:50;background:#000;color:#fff;display:flex;flex-direction:column;touch-action:pan-y;
+  --sign:#000;--sign-fg:#fff;--sign-muted:#b4b6bc;--sign-line:#3a3c42}
+.street[hidden]{display:none}
+body.streetmode{overflow:hidden}
+.st-in{flex:1;overflow-y:auto;padding:calc(12px + env(safe-area-inset-top,0px)) 18px 12px;max-width:728px;width:100%;margin:0 auto;box-sizing:border-box}
+.st-top{display:flex;align-items:center;gap:10px}
+.st-top .intent-tag{font-size:12px} .st-where{flex:1;min-width:0;font-size:14px;color:#b4b6bc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.street .chip{background:transparent;color:#fff;border-color:#3a3c42;min-height:38px;font-size:14px} .street .chip[aria-pressed="true"]{background:#fff;color:#000;border-color:#fff}
+.st-x{flex:none;width:44px;height:44px;border-radius:50%;border:1.5px solid #3a3c42;background:transparent;color:#fff;font-size:26px;line-height:1;cursor:pointer}
+.street h2{margin:12px 0 6px;font-size:28px;line-height:1.15}
+.street .why{margin:0 0 14px;font-size:14px;color:#b4b6bc}
+.st-exp{margin:0 0 12px;padding:12px 14px;border-radius:12px;background:#15171b;border:1px solid #2b2e34}
+.st-exp b{display:block;font-family:var(--mono,ui-monospace,monospace);font-size:clamp(22px,7vw,34px);line-height:1.15;letter-spacing:-.01em;color:var(--yellow)}
+.stk{display:block;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#8d9097;margin-bottom:3px}
+.st-adj{display:block;margin-top:6px;font-size:14px;color:#dfe3ec}
+.strow{padding:9px 0;border-top:1px solid #23262b} .stv{display:block;font-size:18px;line-height:1.35}
+.stv .turn{color:#7fb2ff;font-size:18px}
+.st-log{margin-top:12px} .st-log .shotlog{margin:0}
+.st-bar{flex:none;display:grid;grid-template-columns:60px 1fr 1fr;gap:10px;padding:10px 16px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid #23262b;max-width:728px;width:100%;margin:0 auto;box-sizing:border-box}
+.st-bar .btn{min-height:64px;font-size:18px;background:#000;color:#fff;border-color:#fff} .st-bar .btn.primary{background:var(--yellow);color:#111;border-color:var(--yellow)}
+.st-bar .btn[aria-pressed="true"]{background:#2b2e34;border-color:#2b2e34}
