@@ -37,7 +37,7 @@ h1{font-size:26px;font-weight:700;letter-spacing:-.02em;margin:0;white-space:now
 .themebtn{flex:none;width:44px;height:44px;border:1.5px solid var(--line);border-radius:22px;background:var(--panel);color:var(--fg);font-size:19px;line-height:1;cursor:pointer;padding:0}
 @media (min-width:481px){#progress::after{content:" shot"}}
 @media (max-width:480px){.track{display:none}}
-.views{display:grid;grid-template-columns:repeat(7,auto);justify-content:space-between;gap:3px;padding:3px;background:var(--line);border-radius:10px}
+.views{display:grid;grid-template-columns:repeat(5,1fr);justify-content:space-between;gap:3px;padding:3px;background:var(--line);border-radius:10px}
 .views button{min-width:0;padding:0 2px;min-height:42px;border:0;border-radius:8px;background:transparent;color:var(--fg);font-weight:600;font-size:15px;cursor:pointer;font-variant-numeric:tabular-nums}
 .views button[aria-selected="true"]{background:var(--panel)}
 
@@ -63,7 +63,7 @@ h1{font-size:26px;font-weight:700;letter-spacing:-.02em;margin:0;white-space:now
 .dist{font-size:13px;color:var(--muted);font-weight:400;margin-left:6px;font-variant-numeric:tabular-nums}
 .planctl{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
 .planctl .field:first-child{grid-column:1/-1}
-#viewPlan .btn{width:100%;margin-bottom:14px}
+#viewPlan .btn,#mapPlanBody #pGo{width:100%;margin-bottom:14px}
 .leg{margin:0;padding-left:14px;font-size:14px;color:var(--muted)}
 .field{display:flex;flex-direction:column;gap:4px;min-width:0}
 select{width:100%;min-height:44px;padding:0 10px;border:1.5px solid var(--line);border-radius:8px;background:var(--panel);color:var(--fg);font-weight:500;font-size:16px}
@@ -780,3 +780,13 @@ body.streetmode{overflow:hidden}
 .cropw .dofrow{grid-template-columns:1fr;margin-bottom:10px}
 .mnote{position:absolute;left:10px;right:62px;top:108px;z-index:4;padding:10px 12px;border-radius:12px;background:var(--bg);color:var(--fg);font-size:14px;line-height:1.4;box-shadow:0 2px 12px rgba(0,0,0,.35);cursor:pointer}
 .mnote[hidden]{display:none} #map.full .mnote{top:calc(max(10px,env(safe-area-inset-top,0px)) + 96px)} #map.headup .mnote{left:58px}
+
+/* Ideas: one at a time or as a list */
+.ideamode{display:grid;grid-template-columns:1fr 1fr;gap:3px;padding:3px;margin:0 0 10px;background:var(--line);border-radius:10px}
+.ideamode button{min-height:38px;border:0;border-radius:8px;background:transparent;color:var(--fg);font:inherit;font-weight:700;font-size:14px;cursor:pointer}
+.ideamode button[aria-pressed="true"]{background:var(--panel);box-shadow:0 1px 2px rgba(0,0,0,.15)}
+/* Plan an outing inside the map's sheet */
+.mplansheet{padding:4px 14px 18px} .mplanhead{display:flex;align-items:center;justify-content:space-between;margin:4px 0 10px} .mplanhead b{font-size:18px}
+.mplanhead .mapselx{position:static;background:var(--line);color:var(--fg)}
+#map.planopen #mapPanel,#map.planopen #mapPlan,#map.planopen .msec,#map.planopen #mapLegend{display:none}
+.planhint{display:flex;flex-direction:column;gap:8px;align-items:flex-start} .planhint .hint{margin:0}

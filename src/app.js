@@ -1607,7 +1607,7 @@ const store = {
 };
 const state = {
   city: store.get("city","nyc"), intent: store.get("intent","all"), place: store.get("place","all"), when: store.get("when","all"),
-  camera: store.get("camera","q343"), view:"today", tab:"idea", cond:"auto", camCmp:store.get("camCmp",["q343","x100vi","griv"]), lfF:43, lfN:8, lfS:3, drills:new Set(store.get("drills",[])), evType:"all", mapZoom:store.get("mapZoom","city"), home:(h=>h&&typeof h.lat==="number"&&typeof h.lon==="number"?h:null)(store.get("home",null)), homeEdit:false, weekSel:null, mapSel:null, mapEv:null, mapT:null, mapD:0, mapHead:false, heading:null, mapIntent:"all", mapShowEv:store.get("mapShowEv",true)!==false, mapShowLm:store.get("mapShowLm",true)!==false, mapShowSub:store.get("mapShowSub",true)!==false, mapShowStn:store.get("mapShowStn",true)!==false, mapShowSunny:store.get("mapShowSunny",true)!==false, mapShowSpots:store.get("mapShowSpots",true)!==false, mapShowNames:store.get("mapShowNames",true)!==false, sheet:"peek", mapLm:null, mapSpot:null, notes: store.get("notes",{}) || {}, pos:null, plan:null,
+  camera: store.get("camera","q343"), view:"today", tab:"idea", cond:"auto", camCmp:store.get("camCmp",["q343","x100vi","griv"]), lfF:43, lfN:8, lfS:3, drills:new Set(store.get("drills",[])), evType:"all", mapZoom:store.get("mapZoom","city"), ideasMode:store.get("ideasMode","card")==="list"?"list":"card", listView:"browse", home:(h=>h&&typeof h.lat==="number"&&typeof h.lon==="number"?h:null)(store.get("home",null)), homeEdit:false, weekSel:null, mapSel:null, mapEv:null, mapT:null, mapD:0, mapHead:false, heading:null, mapIntent:"all", mapShowEv:store.get("mapShowEv",true)!==false, mapShowLm:store.get("mapShowLm",true)!==false, mapShowSub:store.get("mapShowSub",true)!==false, mapShowStn:store.get("mapShowStn",true)!==false, mapShowSunny:store.get("mapShowSunny",true)!==false, mapShowSpots:store.get("mapShowSpots",true)!==false, mapShowNames:store.get("mapShowNames",true)!==false, sheet:"peek", mapLm:null, mapSpot:null, notes: store.get("notes",{}) || {}, pos:null, plan:null,
   saved: new Set(store.get("saved",[])), done: new Set(store.get("done",[])), current:null, history:[],
   log: (o=>o&&typeof o==="object"&&!Array.isArray(o)?o:{})(store.get("log",{})), justShot:null, street:false, stayPrev:null
 };
@@ -2339,7 +2339,7 @@ function makePlan(){
   const openHere=(id,tt)=>cityIdeas().filter(x=>x.p===id&&ideaOpen(x,tt,skyFor(tt)));
   while(t<end && stops.length<5){
     const key=lightAt(t), sky=skyFor(t), all=cityIdeas().filter(x=>x.p===cur), here=all.filter(x=>ideaOpen(x,t,sky));
-    all.forEach(x=>{ if(!here.includes(x)&&AVAIL[x.id]) skipped.add(x.id); });
+    all.forEach(x=>{ const a=AVAIL[x.id]; if(!here.includes(x)&&a&&!a.ev&&!a.span&&a.wx!=="snow") skipped.add(x.id); });   // one-day and seasonal ideas are not worth a note
     const base=here.length?here:all;
     if(!here.length&&all.length) notes.push("Nothing at "+PLACES[cur].name+" is on at "+hmText(t.getHours()*60+t.getMinutes())+" on a "+DAY_NAMES[t.getDay()]+", so these ideas are out of their hours.");
     // ideas that suit the light first, not yet shot first, then luck
@@ -2588,7 +2588,7 @@ function mapShell(box){
     '<div class="mapscale" id="mapScale"></div>'+
     '<section class="msheet" id="mapSheet" aria-label="Map details"><div class="mgrab" id="mapGrab" role="button" tabindex="0" aria-label="Show more or less"><i></i></div>'+
       '<div class="sunbar"><div class="sunrow"><div class="slidecol"><input type="range" id="mapTime" min="0" max="1435" step="5" aria-label="Time of day on the map"><div id="lightTicks" class="lticks"></div><div id="wxStrip"></div></div><button type="button" class="chip" id="mapTimeNow">Now</button></div><div class="intents mdays" id="mapDays"></div><p id="mapStatus" class="mstatus"></p></div>'+
-      '<div class="mbody" id="mapBody"><div id="mapPanel"></div><div id="mapPlan"></div><div class="msec"><div id="lightMarks" class="intents lmarks"></div><div id="wxBar"></div><p id="sunLine" class="sunline"></p></div><div id="mapLegend" class="msec"></div></div></section>';
+      '<div class="mbody" id="mapBody"><div id="mapPlanSheet" class="mplansheet" hidden><div class="mplanhead"><b>Plan an outing</b><button type="button" class="mapselx" data-closeplan="1" aria-label="Close the plan">×</button></div><div id="mapPlanBody"></div></div><div id="mapPanel"></div><div id="mapPlan"></div><div class="msec"><div id="lightMarks" class="intents lmarks"></div><div id="wxBar"></div><p id="sunLine" class="sunline"></p></div><div id="mapLegend" class="msec"></div></div></section>';
   mapGestures($("mapSvg")); sheetGestures();
 }
 /* A photograph for each place, shown in its pin (installed app only; the Claude version cannot load outside images). Wikimedia Commons, credited in the place panel. */
@@ -2759,9 +2759,9 @@ function planLinks(){ const p=state.plan; if(!p) return ""; const nx=Math.max(0,
     whole='<a class="chip" href="'+whole+'" target="_blank" rel="noopener">Whole outing on foot ↗</a>'+(allWalk?'':'<span class="hint maplinkhint">Google Maps cannot do multi-stop routes by subway, so this shows the walk. Use the stop link for the subway legs.</span>'); }
   return '<div class="callinks planlinks"><a class="chip primary" href="'+one+'" target="_blank" rel="noopener">Directions to stop '+(nx+1)+' '+(mode==="transit"?"by subway":"on foot")+' ↗</a>'+whole+'</div>'; }
 function mapPlanBar(){ const p=state.plan, tf=d=>d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}).toLowerCase();
-  if(!p) return '<p class="hint planhint">Tap a pin and choose Add to today to build an outing on the map, or make one in Plan.</p>';
+  if(!p) return '<div class="planhint"><p class="hint">Tap a pin and choose Add to today to build an outing on the map, or let the app plan one.</p><button type="button" class="chip primary" data-openplan="1">Plan an outing</button></div>';
   const nx=nextStopIndex();
-  return '<div class="planbar"><div class="planbar-head"><b>Today\u2019s outing</b><span>'+tf(p.start)+' to about '+tf(p.end)+'</span><button type="button" class="chip primary" data-nextstop="1">Next stop ›</button><button type="button" class="chip" data-clearplan="1">Clear</button></div>'+
+  return '<div class="planbar"><div class="planbar-head"><b>Today\u2019s outing</b><span>'+tf(p.start)+' to about '+tf(p.end)+'</span><button type="button" class="chip primary" data-nextstop="1">Next stop ›</button><button type="button" class="chip" data-openplan="1">Details</button><button type="button" class="chip" data-clearplan="1">Clear</button></div>'+
     '<div class="intents planstops">'+p.stops.map((s,n)=>'<button type="button" class="chip stopchip'+(n===nx?" next":"")+'" data-stop="'+n+'"><span class="stopn">'+(n+1)+'</span>'+esc(s.ev?(EVENTS.find(x=>x.id===s.ev)||{name:s.ev}).name:PLACES[s.place].name)+' · '+tf(s.at)+'</button>').join("")+'</div>'+planLinks()+'</div>'; }
 function mapPts(){ const key=lightAt(mapNow()), ideas=cityIdeas().filter(i=>state.mapIntent==="all"||i.i===state.mapIntent);
   return Object.keys(CITIES[state.city].places).filter(id=>typeof PLACES[id].lat==="number").map(id=>{ const [x,y]=mapXY(PLACES[id].lat,PLACES[id].lon), mine=ideas.filter(i=>i.p===id);
@@ -3054,6 +3054,12 @@ function mapGestures(svg){
   svg.addEventListener("pointerup",end); svg.addEventListener("pointercancel",end);
   svg.addEventListener("wheel",e=>{ e.preventDefault(); zoomAt(e,Math.exp(Math.max(-60,Math.min(60,e.deltaY))*0.004),false); },{passive:false});
 }
+/* Plan an outing lives in the map's sheet: the controls and the plan are moved there from the old Plan page, so the route stays in view. */
+function planSheet(open){ const m=$("map"), box=$("mapPlanSheet"); if(!m||!box) return; const vp=$("viewPlan"), body=$("mapPlanBody");
+  if(vp&&vp.firstElementChild&&body){ while(vp.firstChild) body.appendChild(vp.firstChild); }
+  const was=m.classList.contains("planopen"); m.classList.toggle("planopen",!!open); box.hidden=!open;
+  if(open&&!was){ requestAnimationFrame(()=>{ setSheet("full"); if($("mapBody")) $("mapBody").scrollTop=0; }); }
+  if(!open&&was) requestAnimationFrame(()=>setSheet(state.mapSel||state.mapSpot||state.mapEv?"half":"peek")); }
 function renderMap(){ const box=$("map"); if(!$("mapSvg")) mapShell(box); requestAnimationFrame(mapLayout); const tm=$("mapTime"), nn=new Date(); if(tm) tm.value=state.mapT===null? nn.getHours()*60+nn.getMinutes() : state.mapT; if(!mapV) mapV=mapPreset(state.mapZoom==="man"?"man":"city"); mapPanel(); mapDraw(); }
 /* Learn: short lessons, linked to the ideas and tools in the app. */
 const LEARN_EXTRA = [{"id": "cameras", "n": "9", "title": "Cameras for street photography", "sub": "What matters, and the popular choices compared side by side", "widget": "cams", "body": ["Almost any camera can take street photographs. What matters is how quickly it lets you react, how much attention it draws, and whether you will carry it every day. Compare up to three cameras below; the outlines are drawn to the same scale."], "points": ["Focal length shapes your style more than any other choice. 28 mm puts you in the scene and forgives focus. 35 mm is the all-rounder. 40 to 43 mm isolates more and asks you to judge distance.", "Size and noise decide whether people notice you. A pocket camera with a quiet leaf shutter disappears; a large body with a big lens does not.", "A fixed-lens camera removes a decision and keeps the camera small. Interchangeable lenses give flexibility at the cost of size and the urge to change lens.", "A viewfinder steadies the camera and works in bright sun. A screen-only camera is easier to shoot from the hip.", "Sensor size matters less than it seems for street. APS-C at ISO 3200 is clean enough for night work.", "The best street camera is the one you have with you. If it stays at home because it is heavy, a smaller one will take more pictures."], "try": "For one week, carry the camera everywhere, even when you do not plan to shoot. Note how often it was in your hand when something happened."}];
@@ -3350,15 +3356,19 @@ function planToday(h){ renderPlan(); const t=new Date(), best=todayPicks(atMin(M
   $("pDay").value="0"; renderPlan(); $("pTime").value=(+h*60<=dayMin(new Date()))?"now":String(h); if(!$("pTime").value) $("pTime").selectedIndex=0; $("pLen").value="150"; state.plan=makePlan(); savePlan(); state.view="map"; render(); }
 function render(){
   openTip=null; tipSheet(); if(state.view!=="map"&&state.mapFull) mapFull(false); if(state.view!=="map"&&state.guide) guideStop(true);
-  const shoot=state.view==="shoot", ev=state.view==="events", pl=state.view==="plan", mp=state.view==="map", ln=state.view==="learn", td=state.view==="today";
+  const shoot=state.view==="shoot", ev=state.view==="events", pl=state.view==="plan", mp=state.view==="map"||pl, ln=state.view==="learn", td=state.view==="today";
   $("viewToday").hidden=!td; if(td) renderToday();
   $("viewLearn").hidden=!ln; if(ln) renderLearn();
   $("viewMap").hidden=!mp; if(mp) renderMap();
-  $("viewShoot").hidden=!shoot; $("viewList").hidden=shoot||ev||pl||mp||ln||td; $("viewPlan").hidden=!pl; $("viewEvents").hidden=!ev; $("bar").hidden=!shoot; $("filters").hidden=ev||pl||mp||ln||td; $("now").hidden=ev||pl||ln||mp||td; document.body.classList.toggle("mapview",mp); $("syncbox").hidden=mp; document.querySelector("footer").hidden=mp; renderNow();
-  document.querySelectorAll("#views button").forEach(b=>b.setAttribute("aria-selected",b.dataset.v===state.view||(b.dataset.v==="browse"&&(state.view==="saved"||state.view==="again"))));
+  $("viewShoot").hidden=!shoot; $("viewList").hidden=shoot||ev||pl||mp||ln||td; $("viewPlan").hidden=true; $("viewEvents").hidden=!ev; $("bar").hidden=!shoot; $("filters").hidden=ev||pl||mp||ln||td; $("now").hidden=ev||pl||ln||mp||td; document.body.classList.toggle("mapview",mp); $("syncbox").hidden=mp; document.querySelector("footer").hidden=mp; renderNow();
+  const tab = ["shoot","browse","saved","again"].includes(state.view) ? "ideas" : state.view==="plan" ? "map" : state.view;
+  document.querySelectorAll("#views button").forEach(b=>b.setAttribute("aria-selected",b.dataset.v===tab));
+  if(["browse","saved","again"].includes(state.view)) state.listView=state.view;
+  if(tab==="ideas"){ state.ideasMode=state.view==="shoot"?"card":"list"; document.querySelectorAll("#ideaMode [data-im]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.im===state.ideasMode))); }
   const all=cityIdeas(), n=all.filter(x=>state.done.has(x.id)).length;
   $("progress").textContent=n+"/"+all.length; $("progress").setAttribute("aria-label",n+" of "+all.length+" ideas shot"); $("fill").style.width=(all.length?100*n/all.length:0)+"%";
   if(!shoot&&state.street) streetClose(true);
+  if(mp) planSheet(pl);
   if(shoot){ renderCard(); if(state.street) renderStreet(); } else if(ev) renderEvents(); else if(pl) renderPlan(); else if(!mp&&!ln&&!td) renderList();
 }
 function refilter(){ if(!matches(false).some(x=>x.id===state.current)) pick(); render(); }
@@ -3425,7 +3435,9 @@ $("events").addEventListener("click",e=>{
   const pe=e.target.closest("[data-planev]"); if(pe){ planEvent(pe.dataset.planev); return; }
   const me=e.target.closest("[data-mapev]"); if(me){ const id=me.dataset.mapev, g=eventGeo(id); state.mapT=null; state.view="map"; render(); requestAnimationFrame(()=>requestAnimationFrame(()=>{ state.mapShowEv=true; state.mapEv=id; state.mapSel=null; state.mapSpot=null; state.mapLm=null; mapPanel(); mapDraw(); if(g){ const [x,y]=mapXY(g[0],g[1]); mapFly(mapAim({cx:x,cy:y,w:Math.min(mapV.w,30)})); } setSheet("half"); })); return; }
   const c=e.target.closest("#evTypes .chip"); if(!c) return; state.evType=c.dataset.t; renderEvents(); });
-$("pGo").addEventListener("click",()=>{ state.plan=makePlan(); savePlan(); renderPlan(); });
+$("pGo").addEventListener("click",()=>{ state.plan=makePlan(); savePlan(); renderPlan(); if(state.view==="plan"){ mapPanel(); mapDraw(); if($("mapBody")) $("mapBody").scrollTop=0; const p=state.plan;
+    if(p&&p.stops.length&&!state.mapHead){ const xs=p.stops.map(st=>mapXY(PLACES[st.place].lat,PLACES[st.place].lon)), x0=Math.min(...xs.map(v=>v[0])), x1=Math.max(...xs.map(v=>v[0])), y0=Math.min(...xs.map(v=>v[1])), y1=Math.max(...xs.map(v=>v[1]));
+      mapV=mapClamp(mapAim({cx:(x0+x1)/2,cy:(y0+y1)/2,w:Math.max(40,(x1-x0)*1.8,(y1-y0)*1.8/MAP_ASPECT)})); mapDraw(); } } });
 $("pDay").addEventListener("change",()=>{ const keep=$("pTime").value; renderPlan(); if([...$("pTime").options].some(o=>o.value===keep)) $("pTime").value=keep; });
 $("plan").addEventListener("click",e=>{
   const me=e.target.closest("[data-mapev]"); if(me){ const id=me.dataset.mapev, g=eventGeo(id); state.mapT=null; state.view="map"; render(); requestAnimationFrame(()=>requestAnimationFrame(()=>{ state.mapShowEv=true; state.mapEv=id; state.mapSel=null; state.mapSpot=null; state.mapLm=null; mapPanel(); mapDraw(); if(g){ const [x,y]=mapXY(g[0],g[1]); mapFly(mapAim({cx:x,cy:y,w:Math.min(mapV.w,30)})); } setSheet("half"); })); return; }
@@ -3458,6 +3470,8 @@ $("syncImport").addEventListener("click",()=>{ const r=syncImport($("syncCode").
   msg.textContent=(r.s+r.d+r.n) ? "Imported: "+r.s+" saved, "+r.d+" shot and "+r.n+" notes added." : "Nothing new: this device already has everything in that code.";
   $("syncCode").value=""; render(); });
 $("map").addEventListener("click",e=>{
+  if(e.target.closest("[data-openplan]")){ state.view="plan"; render(); return; }
+  if(e.target.closest("[data-closeplan]")){ state.view="map"; render(); return; }
   if(e.target.closest("[data-full]")){ mapFull(!state.mapFull); return; }
   if(e.target.closest("[data-unsel]")){ const back=state.mapNear&&state.mapSpot; mapSelect(null); if(back){ mapPanel(); } return; }
   const gd=e.target.closest("[data-guide]"); if(gd){ guideStart(gd.dataset.guide); return; }
@@ -3542,7 +3556,10 @@ $("today").addEventListener("click",e=>{
   const r=e.target.closest(".row[data-id]"); if(r){ show(r.dataset.id); state.view="shoot"; render(); window.scrollTo({top:0}); }
 });
 setInterval(()=>{ try{ if(state.view==="today"&&!document.hidden) renderToday(); }catch(e){} }, 60000);
-$("views").addEventListener("click",e=>{const b=e.target.closest("button"); if(!b) return; state.view=b.dataset.v; render();});
+$("views").addEventListener("click",e=>{const b=e.target.closest("button"); if(!b) return; const v=b.dataset.v;
+  state.view = v==="ideas" ? (state.ideasMode==="list" ? (state.listView||"browse") : "shoot") : v; render(); window.scrollTo({top:0}); });
+$("ideaMode").addEventListener("click",e=>{ const b=e.target.closest("[data-im]"); if(!b) return; state.ideasMode=b.dataset.im; store.set("ideasMode",state.ideasMode);
+  state.view = state.ideasMode==="list" ? (state.listView||"browse") : "shoot"; render(); });
 $("next").addEventListener("click",goNext);
 $("back").addEventListener("click",goBack);
 function toggle(set,key){ if(!state.current) return; set.has(state.current)?set.delete(state.current):set.add(state.current); store.set(key,[...set]); render(); }

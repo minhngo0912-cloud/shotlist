@@ -13,11 +13,9 @@
 
   <nav class="views" id="views" role="tablist" aria-label="View">
     <button type="button" role="tab" data-v="today" id="vToday">Today</button>
-    <button type="button" role="tab" data-v="shoot" id="vShoot">Shoot</button>
-    <button type="button" role="tab" data-v="browse" id="vBrowse">Browse</button>
-    <button type="button" role="tab" data-v="plan" id="vPlan">Plan</button>
-    <button type="button" role="tab" data-v="events" id="vEvents">Events</button>
+    <button type="button" role="tab" data-v="ideas" id="vIdeas">Ideas</button>
     <button type="button" role="tab" data-v="map" id="vMap">Map</button>
+    <button type="button" role="tab" data-v="events" id="vEvents">Events</button>
     <button type="button" role="tab" data-v="learn" id="vLearn">Learn</button>
   </nav>
   </div>
@@ -35,6 +33,7 @@
   </section>
 
   <section class="filters" id="filters" aria-label="Filters">
+    <div class="ideamode" id="ideaMode" role="group" aria-label="Show ideas as"><button type="button" data-im="card">One at a time</button><button type="button" data-im="list">List</button></div>
     <div class="intents" id="intents"></div>
     <div class="selects">
       <div class="field"><label class="label" for="place">Place</label><select id="place"></select></div>
