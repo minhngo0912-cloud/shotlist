@@ -2906,7 +2906,7 @@ function renderCard(){
     pane=shotLogHtml(x)+'<div class="part"><span class="label">Look for</span><p>'+esc(x.look)+'</p></div>'+standBlock(x)+
       '<div class="part"><span class="label">Your rule</span><p>'+esc(x.rule)+'</p></div>'+
       '<div class="part"><span class="label">Best light</span><div class="times">'+x.w.map(w=>'<span class="time">'+WHEN[w]+'</span>').join("")+(x.m?'<span class="time season">'+seasonText(x)+'</span>':'')+(availText(x)?'<span class="time avail">'+esc(availText(x))+'</span>':'')+'</div></div>'+
-      '<div class="part"><label class="label" for="note">Your notes</label><textarea id="note" rows="2" placeholder="What worked, what was different, what to try next time">'+esc(state.notes[x.id]||"")+'</textarea></div>'+followIdea(x.i)+igRow(x)+
+      '<div class="part"><label class="label" for="note">Your notes</label><textarea id="note" rows="2" placeholder="What worked, what was different, what to try next time">'+esc(state.notes[x.id]||"")+'</textarea></div>'+followIdea(x.i,x.p)+igRow(x)+
       '<div class="jumps">'+
       (st ? '<button type="button" class="jump" data-tab="work"><span><small>Work it</small>'+esc(st[1])+'</span><span class="go" aria-hidden="true">›</span></button>' : '')+
       (co ? '<button type="button" class="jump" data-tab="compose"><span><small>Compose</small>'+esc(TECH[co[0]][0])+'</span><span class="go" aria-hidden="true">›</span></button>' : '')+
@@ -3028,46 +3028,50 @@ function renderList(){
 /* Accounts to follow for inspiration. Links only: the photos belong to the photographers, so the app sends you to them.
    [name, link, what to look for, intents it helps with ("" = general)] */
 const IG = h => "https://www.instagram.com/"+h+"/";
+/* Photographers to follow, checked October 2026: each mainly photographs New York streets and people, and each handle was confirmed on the
+   photographer's own site, a gallery or a published interview. [name, link, what to look for, intents ("daily" for daily life, "" for feeds),
+   places in this app they are known for]. Links only: the photos belong to the photographers. */
 const FOLLOW = [
- ["Daniel Arnold",IG("arnold_daniel"),"Close, funny, unposed Manhattan crowds.","moment odd"],
- ["Andre D. Wagner",IG("photodre"),"Black-and-white Brooklyn and subway life. Watch the hands and gestures.","moment mood"],
- ["Melissa O'Shaughnessy",IG("melissaoshaughnessy"),"Fifth Avenue and Midtown pavements in layered colour.","energy place"],
- ["Phil Penman",IG("philpenman"),"Black-and-white New York in snow, steam and rain, shot on Leica.","mood place"],
- ["Joe Greer",IG("ioegreer"),"Saturated colour, hard light and deep shadow in Manhattan.","mood place"],
- ["Jonathan Higbee","https://www.jonathanhigbee.com","His Coincidences series lines passers-by up with billboards and murals in Manhattan.","odd place"],
- ["Dina Litovsky",IG("dina_litovsky"),"New York social life in colour and flash.","energy"],
- ["Nina Welch-Kling",IG("ninakling"),"Graphic shadows and bold blocks of colour in Manhattan.","odd mood"],
- ["Aaron Berger",IG("aaronbergerfoto"),"Tight, close colour frames on New York pavements.","moment energy"],
- ["Paulie B",IG("paulie.b"),"Everyday New York at close range, by the maker of Walkie Talkie.","moment energy"],
- ["Faizal Westcott",IG("westcott"),"Cinematic colour in New York. He explains his process on YouTube.","place mood"],
- ["Craig Whitehead",IG("sixstreetunder"),"Colour and layers, shot through glass, gaps and reflections.","mood"],
- ["Pau Buscató",IG("paubuscato"),"Visual puns and coincidences.","odd"],
- ["Shin Noguchi",IG("shinnoguchiphotos"),"Quiet, funny everyday moments in Tokyo.","moment odd"],
- ["Alan Schaller",IG("alan_schaller"),"High-contrast graphic black-and-white on Leica, strong on geometry and scale.","place"],
- ["Subway Hands",IG("subwayhands"),"Nothing but riders' hands on the subway. Shows how small a subject can be.","daily"],
- ["Mathias Wasik",IG("mathiaswasik"),"Colourful, crowded New York pavements and the ordinary people on them.","daily"],
- ["Lanna Apisukh",IG("apisukh"),"Neighbourhood life in Chinatown and Queens: shopkeepers, elders, skaters.","daily"],
- ["An Rong Xu",IG("anrizzy"),"Chinatown and Asian American daily life, warm and cinematic.","daily"],
- ["Janice Chung",IG("janicekaramchung"),"Korean community life in Flushing and Koreatown.","daily"],
- ["New York Nico",IG("newyorknico"),"The city's regulars, shop owners and characters.","daily"],
- ["Sam Youkilis",IG("samyoukilis"),"Short videos of small daily rituals: coffee, markets, gestures.","daily"],
- ["Everyday Africa",IG("everydayafrica"),"Daily life by local photographers. Its sister account Everyday Everywhere collects the same from other regions.","daily"],
- ["NYC Street Photography Collective",IG("nycspc"),"Work by local members, plus their shows and walks.",""],
- ["Women Street Photographers",IG("womenstreetphotographers"),"Curated daily, with a yearly New York exhibition.",""],
- ["Street Photography International",IG("streetphotographyinternational"),"Broad daily curation from around the world.",""],
- ["Walkie Talkie by Paulie B (YouTube)","https://www.youtube.com/@PaulieB","He walks New York with a different street photographer each episode while they shoot.",""]
+ ["Daniel Arnold",IG("arnold_daniel"),"Fast, funny, unposed Manhattan crowds, mostly in colour.","moment odd","midtown union soho"],
+ ["Jeff Mermelstein",IG("jeffmermelstein"),"Absurd details at close range; his #nyc series photographs strangers' phone screens on the pavement.","odd moment","midtown ktown"],
+ ["Melissa O'Shaughnessy",IG("melissaoshaughnessy"),"Layered colour crowds on Fifth Avenue and Midtown pavements.","energy place","midtown ktown"],
+ ["Joel Meyerowitz",IG("joel_meyerowitz"),"A pioneer of colour street photography; his 1960s and 70s Fifth Avenue work is the reference for crowds in light.","place energy","midtown gct"],
+ ["Andre D. Wagner",IG("photodre"),"Black-and-white Brooklyn and subway life. Watch the hands and gestures.","moment mood","subway wburg bushwick"],
+ ["Gus Powell",IG("dirtywhitebucks"),"Lyrical colour from Manhattan lunch hours and street corners; books The Company of Strangers and The Lonely Ones.","moment mood","midtown fidi"],
+ ["Matt Weber",IG("matt.weber.photos"),"A former cab driver photographing the city since the 1970s, including decades of the subway.","energy moment","subway tsq"],
+ ["Jamel Shabazz",IG("jamelshabazz"),"Warm street portraits of Brooklyn and New York style since the 1980s.","moment","harlem bushwick"],
+ ["Phil Penman",IG("philpenman"),"Classic black-and-white Manhattan in snow, steam and rain, shot on Leica.","mood place","midtown fidi gct"],
+ ["Nina Welch-Kling",IG("ninakling"),"Hard light, deep shadow and paired pictures; she holds a compact camera low.","odd mood","soho midtown"],
+ ["Jonathan Higbee",IG("aliveisthecity"),"His Coincidences series lines passers-by up with billboards and murals.","odd place","tsq midtown"],
+ ["Mathias Wasik",IG("mathiaswasik"),"Colourful, well-timed humour on crowded pavements: commuters, dogs, basketball.","odd energy","wburg union"],
+ ["Paulie B",IG("paulie.b"),"A daily New York project on film since 2015: commuters, fairs, the ordinary day.","moment energy","subway coney"],
+ ["Bruce Gilden",IG("bruce_gilden"),"In-your-face flash close-ups, made famous on Fifth Avenue.","energy","midtown"],
+ ["Aaron Berger",IG("aaronbergerfoto"),"Colour film from Manhattan pavements: small dramas between strangers.","moment energy","midtown les"],
+ ["Ruddy Roye",IG("ruddyroye"),"Brooklyn street portraits with long captions about the people in them.","moment","bushwick"],
+ ["Ruben Natal-San Miguel",IG("rubennatalsanmiguel"),"Colour street and portraits of Harlem and El Barrio: people, storefronts, murals.","place moment","harlem"],
+ ["Martha Cooper",IG("marthacoopergram"),"Street culture in colour since the 1970s: children at play, graffiti, breakdancing.","energy odd","bushwick les"],
+ ["Meryl Meisler",IG("merylmeisler"),"Black-and-white 1970s and 80s New York, from disco nights to Bushwick blocks.","mood","bushwick"],
+ ["Boogie",IG("boogiephotographer"),"Raw black-and-white Brooklyn street and its margins.","mood energy","wburg bushwick"],
+ ["Dina Litovsky",IG("dina_litovsky"),"New York social life and leisure in colour and flash.","energy","chelsea brighton"],
+ ["Lanna Apisukh",IG("apisukh"),"Neighbourhood life in Chinatown and Queens: shopkeepers, elders, skaters.","daily","chinatown jh flushing"],
+ ["An Rong Xu",IG("anrizzy"),"Chinatown and Chinese American daily life, warm and cinematic.","daily","chinatown flushing"],
+ ["Humans of New York",IG("humansofny"),"Street portraits of strangers, each with their own story in the caption.","daily",""],
+ ["NYC Street Photography Collective",IG("nycspc"),"Work by local members, plus their shows, walks and zine.","",""],
+ ["Walkie Talkie by Paulie B (YouTube)","https://www.youtube.com/@PaulieB","He walks New York with a different street photographer each episode while they shoot.","",""]
 ];
 /* Instagram hashtag links: the place (or a narrower tag for one idea) and a street-photography tag for the intent. */
 const IG_PLACE = {"chinatown":"chinatownnyc","gct":"grandcentralterminal","tsq":"timessquare","wsp":"washingtonsquarepark","dumbo":"dumbobrooklyn","coney":"coneyisland","soho":"sohonyc","jh":"jacksonheights","ferry":"statenislandferry","harlem":"harlemnyc","les":"lowereastside","flushing":"flushingqueens","wburg":"williamsburgbrooklyn","midtown":"midtownmanhattan","cpark":"centralpark","rockaway":"rockaways","arthur":"arthuravenue","union":"unionsquarenyc","fidi":"financialdistrictnyc","ktown":"koreatownnyc","bushwick":"bushwickbrooklyn","chelsea":"highlinenyc","brighton":"brightonbeachbrooklyn","subway":"nycsubway"}, IG_IDEA = {"chinatown-place":"doyersstreet","chinatown-moment":"mottstreet","coney-place":"wonderwheel","coney-moment":"coneyislandcyclone","dumbo-place":"manhattanbridge","dumbo-mood":"brooklynbridgepark","les-place":"orchardstreet","les-moment":"essexmarket","flushing-moment":"newworldmall","wburg-place":"dominopark","wburg-moment":"mccarrenpark","wburg-mood":"williamsburgbridge","midtown-moment":"paleypark","midtown-odd":"halalguys","cpark-place":"bethesdaterrace","cpark-moment":"bowbridge","cpark-odd":"bethesdaterrace","harlem-place":"apollotheater","harlem-mood":"harlembrownstones","union-place":"unionsquaregreenmarket","fidi-place":"federalhall","fidi-moment":"stonestreet","fidi-energy":"oculus","fidi-odd":"chargingbull","ktown-moment":"heraldsquare","ktown-energy":"heraldsquare","ktown-odd":"empirestatebuilding","bushwick-place":"bushwickcollective","bushwick-moment":"bushwickcollective","bushwick-odd":"bushwickcollective","chelsea-moment":"chelseagalleries","chelsea-energy":"chelseamarket","chelsea-mood":"littleisland","chelsea-odd":"vesselnyc"}, IG_INTENT = {"place":"streetsofnewyork","moment":"nycstreetphotography","energy":"nycstreets","mood":"streetphotographynyc","odd":"streetphotographynyc"};
 const igTags = x => [IG_IDEA[x.id.replace(/-s$/,"")]&&!x.m?IG_IDEA[x.id]:IG_PLACE[x.p], x.m?"nycfoliage":IG_INTENT[x.i]].filter(Boolean);
 const igRow = x => { const t=igTags(x); return t.length ? '<div class="part"><span class="label">See it on Instagram</span><div class="callinks">'+t.map(h=>'<a class="chip" href="https://www.instagram.com/explore/tags/'+h+'/" target="_blank" rel="noopener">#'+h+' ↗</a>').join("")+'</div><p class="hint igh">Hashtags show everyone\u2019s posts, so expect tourists alongside street work.</p></div>' : ""; };
-const followFor = i => FOLLOW.filter(f=>f[3].split(" ").includes(i));
+// For an idea: photographers known for this place and intent first, then the place, then the intent
+const followFor = (i,pid) => { const has=(f,k,v)=>(f[k]||"").split(" ").includes(v), sc=f=>(pid&&has(f,4,pid)?2:0)+(has(f,3,i)?1:0)+(pid&&has(f,4,pid)&&f[3]==="daily"?0.5:0);
+  return FOLLOW.map((f,n)=>({f,n,s:sc(f)})).filter(o=>o.s>0&&o.f[3]).sort((a,b)=>b.s-a.s||a.n-b.n).map(o=>o.f); };
 const followLink = f => '<a class="chip" href="'+esc(f[1])+'" target="_blank" rel="noopener">'+esc(f[0])+' ↗</a>';
-const followIdea = i => { const l=followFor(i).slice(0,3); return l.length ? '<div class="part"><span class="label">See how others do it</span><div class="callinks">'+l.map(followLink).join("")+'</div></div>' : ""; };
+const followIdea = (i,pid) => { const l=followFor(i,pid).slice(0,3); return l.length ? '<div class="part"><span class="label">See how others do it</span><div class="callinks">'+l.map(followLink).join("")+'</div></div>' : ""; };
 const followItem = f => '<li><a href="'+esc(f[1])+'" target="_blank" rel="noopener"><b>'+esc(f[0])+' ↗</b></a><span>'+esc(f[2])+'</span>'+
     (f[3]&&f[3]!=="daily"?'<span class="tags">'+f[3].split(" ").map(i=>'<span class="tag"><span class="dot" style="background:'+INTENTS[i].color+'"></span>'+INTENTS[i].name+'</span>').join("")+'</span>':'')+'</li>';
 const followGroup = (title,list) => '<h3 class="label followhead">'+title+'</h3><ul class="follow">'+list.map(followItem).join("")+'</ul>';
-const followAll = () => '<details class="syncbox followbox"><summary>Photographers to follow</summary><div class="syncbody"><p class="hint">These open Instagram, YouTube or their own site. The photos stay with the photographers.</p>'+
+const followAll = () => '<details class="syncbox followbox"><summary>Photographers to follow</summary><div class="syncbody"><p class="hint">New York street photographers, checked October 2026. These open Instagram or YouTube; the photos stay with the photographers.</p>'+
   followGroup("Street photography",FOLLOW.filter(f=>f[3]&&f[3]!=="daily"))+followGroup("Daily life",FOLLOW.filter(f=>f[3]==="daily"))+followGroup("Feeds and video",FOLLOW.filter(f=>!f[3]))+'</div></details>';
 /* Live event updates. A weekly scheduled task writes confirmed dates and newly found events to the
    artifact database (collection "events"); the page merges them over the built-in pattern dates.

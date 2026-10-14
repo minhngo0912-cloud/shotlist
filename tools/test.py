@@ -72,6 +72,9 @@ def run(path, name):
         check("every place has five ideas", not d["placeIdeas"], d["placeIdeas"])
         check("every built-in event is typed, mapped and placed", not d["events"], d["events"])
         check("every camera has a recipe for every idea", not d["cameras"], d["cameras"])
+        fl=pg.evaluate("""(()=>{ const bad=FOLLOW.filter(f=>!/^https:\/\//.test(f[1])||(f[4]||'').split(' ').filter(Boolean).some(p=>!PLACES[p])||(f[3]||'').split(' ').filter(Boolean).some(i=>i!=='daily'&&!INTENTS[i])).map(f=>f[0]);
+          const first=(i,p)=>followFor(i,p)[0][0]; return [bad, first('place','harlem'), followFor('energy','subway').slice(0,2).map(f=>f[0]), IDEAS.filter(x=>followFor(x.i,x.p).length<2).map(x=>x.id)]; })()""")
+        check("Photographers to follow: links valid, places and intents known, matched to the place first", not fl[0] and fl[1]=="Ruben Natal-San Miguel" and "Matt Weber" in fl[2] and not fl[3], fl)
         check("depth of field: 43 mm f/8 at 3 m is 2.2 to 4.9 m", d["dof"] == [2.2, 4.9], d["dof"])
         check("camera comparison data complete", not d["streetCams"], d["streetCams"])
 

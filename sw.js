@@ -1,5 +1,5 @@
 // Offline support. The app files are cached on first visit; each later visit refreshes them in the background.
-const CACHE="shotlist-cdf48c54de";
+const CACHE="shotlist-48f45daab9";
 const SHELL=["./","index.html","manifest.webmanifest","icon-180.png","icon-192.png","icon-512.png"];
 self.addEventListener("install",e=>{ e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL.map(u=>new Request(u,{cache:"reload"})))).then(()=>self.skipWaiting())); });
 self.addEventListener("activate",e=>{ e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE&&k!=="shotlist-photos").map(k=>caches.delete(k)))).then(()=>self.clients.claim())); });
