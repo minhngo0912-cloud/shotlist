@@ -143,6 +143,14 @@ def run(path, name):
         check("Stay here locks Another idea to the place", st==["ktown","ktown","ktown"], st)
         pg.click("#card [data-stay]"); pg.wait_for_timeout(80)
         check("Tapping again goes back to anywhere", pg.evaluate("state.place")=="all")
+        # When the filters leave one idea, Another idea says so and offers to widen them
+        pg.evaluate("state.place='ktown'; state.intent='energy'; syncChips(); show('ktown-energy'); render()")
+        pg.click("#next"); pg.wait_for_timeout(80)
+        oo=pg.evaluate("[state.current, !!document.querySelector('#card .onlyone'), [...document.querySelectorAll('#card .onlyone [data-widen]')].map(b=>b.dataset.widen)]")
+        check("With one idea left, Another idea says so and offers to widen the filters", oo==["ktown-energy",True,["intent","place"]], oo)
+        pg.click("#card .onlyone [data-widen=intent]"); pg.wait_for_timeout(80)
+        check("Widening moves on to another idea", pg.evaluate("[state.intent, state.current!=='ktown-energy', !document.querySelector('#card .onlyone')]")==["all",True,True])
+        pg.evaluate("state.place='all'; $('place').value='all'; render()")
         # Swipe: left for another idea, right for the one before
         cur=pg.evaluate("state.current")
         swipe="(d)=>{ const h=document.querySelector('#card h2'); const ev=(t,x)=>h.dispatchEvent(new PointerEvent(t,{bubbles:true,clientX:x,clientY:200,pointerType:'touch',pointerId:3})); ev('pointerdown',d<0?300:100); ev('pointerup',d<0?120:290); }"

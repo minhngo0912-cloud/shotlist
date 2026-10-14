@@ -770,6 +770,8 @@ body.streetmode{overflow:hidden}
 .st-bar{flex:none;display:grid;grid-template-columns:60px 1fr 1fr;gap:10px;padding:10px 16px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid #23262b;max-width:728px;width:100%;margin:0 auto;box-sizing:border-box}
 .st-bar .btn{min-height:64px;font-size:18px;background:#000;color:#fff;border-color:#fff} .st-bar .btn.primary{background:var(--yellow);color:#111;border-color:var(--yellow)}
 .st-bar .btn[aria-pressed="true"]{background:#2b2e34;border-color:#2b2e34}
+.onlyone{padding:10px 12px;border:1px solid var(--yellow);border-radius:10px} .onlyone p{margin:0 0 8px;font-size:15px} .onlyone .intents{margin:0;padding:0;gap:6px;flex-wrap:wrap;overflow:visible}
+.street .onlyone{margin:0 0 12px}
 </style>
 
 <div class="app">
@@ -2298,7 +2300,7 @@ function matches(savedOnly){
 }
 function show(id){
   if(state.current && state.current!==id){ state.history.push(state.current); if(state.history.length>40) state.history.shift(); }
-  state.current=id; state.tab="idea"; state.justShot=null;
+  state.current=id; state.tab="idea"; state.justShot=null; state.onlyOne=false;
   const c=document.getElementById("card"); if(c){ c.classList.remove("swap"); void c.offsetWidth; c.classList.add("swap"); }
 }
 /* Another idea: not a plain random pick. Each idea that passes the filters is scored on the light and forecast now, whether it is on
@@ -2318,7 +2320,14 @@ function pick(){
   const best=pool.map(x=>({x,s:shootScore(x,t,key,sky)+Math.random()*1.2})).sort((a,b)=>a.s-b.s)[0];
   show(best.x.id);
 }
-function goNext(){ pick(); render(); if(!state.street) cardToTop(); }
+function goNext(){ const m=matches(false), before=state.current; state.onlyOne=m.length<=1&&!!before&&m.some(x=>x.id===before);
+  if(state.onlyOne){ render(); const c=$("card"); if(c){ c.classList.remove("swap"); void c.offsetWidth; c.classList.add("swap"); } return; }
+  pick(); render(); if(!state.street) cardToTop(); }
+/* When the filters leave only the idea on screen, say so and offer to widen them, rather than doing nothing. */
+function onlyOneHtml(x){ if(!state.onlyOne||!x) return ""; const bits=[];
+  if(state.intent!=="all") bits.push(['intent','Any intent']); if(state.place!=="all") bits.push(['place','Anywhere']); if(state.when!=="all") bits.push(['when','Any light']);
+  const what=[state.intent!=="all"?INTENTS[state.intent].name.toLowerCase():"", state.place==="near"?"near you":state.place!=="all"&&PLACES[state.place]?"at "+PLACES[state.place].name:"", state.when!=="all"?"in "+WHEN[state.when].toLowerCase():""].filter(Boolean).join(" ");
+  return '<div class="onlyone" role="status"><p>This is the only idea'+(what?' for '+esc(what):'')+'.'+(bits.length?' Widen the filters to see more:':'')+'</p>'+(bits.length?'<div class="intents">'+bits.map(([k,l])=>'<button type="button" class="chip" data-widen="'+k+'">'+l+'</button>').join("")+'</div>':'')+'</div>'; }
 function goBack(){ const id=state.history.pop(); if(!id) return; state.current=id; state.tab="idea"; state.justShot=null; render(); if(!state.street) cardToTop(); }
 function bullets(lines, cityId){
   const map = CITIES[cityId].lines || {};
@@ -2652,7 +2661,7 @@ function renderCard(){
   card.innerHTML =
     '<div class="band" style="background:'+it.color+'"></div>'+
     '<div class="sign-head"><div class="sign-top"><span class="intent-tag"><span class="dot" style="background:'+it.color+'"></span>'+esc(it.name)+'</span>'+
-    '<span class="where">'+esc(pl.name)+' · '+esc(pl.stop||"")+' '+bullets(pl.lines, pl.city)+'</span></div><h2>'+esc(x.t)+'</h2><p class="why">'+shootWhy(x)+'</p>'+startHtml(x.p)+
+    '<span class="where">'+esc(pl.name)+' · '+esc(pl.stop||"")+' '+bullets(pl.lines, pl.city)+'</span></div><h2>'+esc(x.t)+'</h2><p class="why">'+shootWhy(x)+'</p>'+onlyOneHtml(x)+startHtml(x.p)+
     '<div class="cardacts"><button type="button" class="chip" data-stay="1" aria-pressed="'+(state.place===x.p)+'">'+(state.place===x.p?'Staying at '+esc(pl.name)+' ✓':'Stay here')+'</button><button type="button" class="chip" data-street="1">Street mode</button></div></div>'+
     '<div class="tabs" role="tablist">'+tabs.map(t=>'<button type="button" role="tab" data-tab="'+t[0]+'" aria-selected="'+(state.tab===t[0])+'">'+t[1]+'</button>').join("")+'</div>'+
     '<div class="pane">'+pane+'</div>';
@@ -2716,18 +2725,22 @@ function renderStreet(){ const el=$("street"); if(!el||!state.street) return; co
   const d=state.done.has(x.id), n=shotLog(x.id).length;
   el.innerHTML='<div class="st-in"><div class="st-top"><span class="intent-tag"><span class="dot" style="background:'+it.color+'"></span>'+esc(it.name)+'</span><span class="st-where">'+esc(pl.name)+'</span>'+
       '<button type="button" class="chip st-stay" data-st="stay" aria-pressed="'+(state.place===x.p)+'">'+(state.place===x.p?'Staying ✓':'Stay here')+'</button><button type="button" class="st-x" data-st="close" aria-label="Leave street mode">×</button></div>'+
-    '<h2>'+esc(x.t)+'</h2><p class="why">'+shootWhy(x)+'</p>'+
+    '<h2>'+esc(x.t)+'</h2><p class="why">'+shootWhy(x)+'</p>'+onlyOneHtml(x)+
     '<div class="st-exp"><span class="stk">'+esc(cam.name)+'</span><b>'+esc(rec[0])+'</b>'+(adv.length?'<span class="st-adj">Now: '+esc(adv[0])+'</span>':'')+'</div>'+
     row("Focus",esc(shortFocus(x,state.camera))+(W?' · about '+esc(mText(W[2])):''))+
     row("Height",W?esc(W[1]):"")+row("Press",W?esc(W[3]):"")+row("Rule",esc(x.rule))+row("Stand",face)+
     (d?'<div class="st-log">'+shotLogHtml(x)+'</div>':'')+
     '</div><div class="st-bar"><button type="button" class="btn" data-st="back" aria-label="Previous idea"'+(state.history.length?'':' disabled')+'>‹</button><button type="button" class="btn primary" data-st="next">Next idea</button><button type="button" class="btn" data-st="shot" aria-pressed="'+d+'">'+(d?'Shot ✓'+(n>1?' '+n+'×':''):'Shot it')+'</button></div>'; }
-$("street").addEventListener("click",e=>{ const b=e.target.closest("[data-st],[data-rate],[data-undoshot]"); if(!b) return; const x=state.current, k=b.dataset.st;
+$("street").addEventListener("click",e=>{ const wd=e.target.closest("[data-widen]"); if(wd){ widen(wd.dataset.widen); return; } const b=e.target.closest("[data-st],[data-rate],[data-undoshot]"); if(!b) return; const x=state.current, k=b.dataset.st;
   if(k==="close"){ streetClose(); return; } if(k==="next"){ goNext(); return; } if(k==="back"){ goBack(); return; }
   if(k==="shot"&&x){ logShot(x); render(); return; } if(k==="stay"&&x){ toggleStay(IDEAS.find(y=>y.id===x).p); return; }
   if(b.dataset.rate&&x){ rateShot(x,b.dataset.rate); state.justShot=null; renderStreet(); renderCard(); return; }
   if(b.dataset.undoshot!==undefined&&x){ undoShot(x); render(); } });
 document.addEventListener("keydown",e=>{ if(!state.street) return; if(e.key==="Escape") streetClose(); else if(e.key==="ArrowRight") goNext(); else if(e.key==="ArrowLeft") goBack(); });
+function widen(k){ if(k==="intent"){ state.intent="all"; store.set("intent",state.intent); syncChips(); }
+  else if(k==="place"){ state.place="all"; state.stayPrev=null; store.set("place",state.place); const sel=$("place"); if(sel) sel.value="all"; }
+  else if(k==="when"){ state.when="all"; store.set("when",state.when); const sel=$("when"); if(sel) sel.value="all"; }
+  state.onlyOne=false; goNext(); }
 /* Stay here: lock Another idea to the place on the card, and back to the previous choice when tapped again. */
 function toggleStay(pid){ if(state.place===pid){ state.place=state.stayPrev&&state.stayPrev!==pid?state.stayPrev:"all"; state.stayPrev=null; } else { state.stayPrev=state.place; state.place=pid; }
   store.set("place",state.place); const sel=$("place"); if(sel){ sel.value=state.place; if(sel.value!==state.place) sel.value="all"; } render(); }
@@ -4021,6 +4034,7 @@ $("list").addEventListener("click",e=>{
 $("card").addEventListener("click",e=>{
   if(e.target.closest("[data-stay]")){ const x=IDEAS.find(y=>y.id===state.current); if(x) toggleStay(x.p); return; }
   if(e.target.closest("[data-street]")){ streetOpen(); return; }
+  const wd=e.target.closest("[data-widen]"); if(wd){ widen(wd.dataset.widen); return; }
   const rt=e.target.closest("[data-rate]"); if(rt&&state.current){ rateShot(state.current,rt.dataset.rate); state.justShot=null; renderCard(); return; }
   if(e.target.closest("[data-undoshot]")&&state.current){ undoShot(state.current); render(); return; }
   const pe=e.target.closest("[data-planev]"); if(pe){ planEvent(pe.dataset.planev); return; }

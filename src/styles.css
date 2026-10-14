@@ -752,3 +752,5 @@ body.streetmode{overflow:hidden}
 .st-bar{flex:none;display:grid;grid-template-columns:60px 1fr 1fr;gap:10px;padding:10px 16px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid #23262b;max-width:728px;width:100%;margin:0 auto;box-sizing:border-box}
 .st-bar .btn{min-height:64px;font-size:18px;background:#000;color:#fff;border-color:#fff} .st-bar .btn.primary{background:var(--yellow);color:#111;border-color:var(--yellow)}
 .st-bar .btn[aria-pressed="true"]{background:#2b2e34;border-color:#2b2e34}
+.onlyone{padding:10px 12px;border:1px solid var(--yellow);border-radius:10px} .onlyone p{margin:0 0 8px;font-size:15px} .onlyone .intents{margin:0;padding:0;gap:6px;flex-wrap:wrap;overflow:visible}
+.street .onlyone{margin:0 0 12px}
