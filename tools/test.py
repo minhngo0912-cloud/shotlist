@@ -63,6 +63,8 @@ def run(path, name):
         check("idea ids unique", d["uniqueIds"])
         check("every idea has place, intent, recipe and light", not d["ideaRefs"], d["ideaRefs"])
         check("every idea has a compose line", not d["compose"], d["compose"])
+        short=pg.evaluate("IDEAS.filter(x=>COMPOSE[x.id]&&COMPOSE[x.id][1].length<50).map(x=>x.id)")
+        check("every compose line says where things go, not just the technique", not short, short)
         check("every idea has a stance diagram", not d["stance"], d["stance"])
         check("every idea has two hashtags", not d["hashtags"], d["hashtags"])
         check("every technique has an illustration", not d["techArt"], d["techArt"])
@@ -151,6 +153,9 @@ def run(path, name):
         pg.click("#card .onlyone [data-widen=intent]"); pg.wait_for_timeout(80)
         check("Widening moves on to another idea", pg.evaluate("[state.intent, state.current!=='ktown-energy', !document.querySelector('#card .onlyone')]")==["all",True,True])
         pg.evaluate("state.place='all'; $('place').value='all'; render()")
+        # Compose: a drawing made for the idea says how the frame should look; the technique's own drawing and photo say they are general
+        cg=pg.evaluate("""(()=>{ const r=[]; for(const id of ['ktown-odd','union-energy']){ show(id); state.tab='compose'; renderCard(); r.push([document.querySelector('#card .demo figcaption').textContent, !!document.querySelector('#card .demo.generic'), document.querySelector('#card .refphoto .label')?.textContent||null]); } state.tab='idea'; renderCard(); return r; })()""")
+        check("Compose drawings and photos say whether they show this place or the technique in general", cg[0][0]=="How the frame should look." and not cg[0][1] and cg[0][2] is None and cg[1][1] and "not this place" in cg[1][0] and cg[1][2].startswith("Example photo of diagonals"), cg)
         # Swipe: left for another idea, right for the one before
         cur=pg.evaluate("state.current")
         swipe="(d)=>{ const h=document.querySelector('#card h2'); const ev=(t,x)=>h.dispatchEvent(new PointerEvent(t,{bubbles:true,clientX:x,clientY:200,pointerType:'touch',pointerId:3})); ev('pointerdown',d<0?300:100); ev('pointerup',d<0?120:290); }"
