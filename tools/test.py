@@ -72,7 +72,7 @@ def run(path, name):
         check("every place has five ideas", not d["placeIdeas"], d["placeIdeas"])
         check("every built-in event is typed, mapped and placed", not d["events"], d["events"])
         check("every camera has a recipe for every idea", not d["cameras"], d["cameras"])
-        fl=pg.evaluate("""(()=>{ const bad=FOLLOW.filter(f=>!/^https:\/\//.test(f[1])||(f[4]||'').split(' ').filter(Boolean).some(p=>!PLACES[p])||(f[3]||'').split(' ').filter(Boolean).some(i=>i!=='daily'&&!INTENTS[i])).map(f=>f[0]);
+        fl=pg.evaluate(r"""(()=>{ const bad=FOLLOW.filter(f=>!/^https:\/\//.test(f[1])||(f[4]||'').split(' ').filter(Boolean).some(p=>!PLACES[p])||(f[3]||'').split(' ').filter(Boolean).some(i=>i!=='daily'&&!INTENTS[i])).map(f=>f[0]);
           const first=(i,p)=>followFor(i,p)[0][0]; return [bad, first('place','harlem'), followFor('energy','subway').slice(0,2).map(f=>f[0]), IDEAS.filter(x=>followFor(x.i,x.p).length<2).map(x=>x.id)]; })()""")
         check("Photographers to follow: links valid, places and intents known, matched to the place first", not fl[0] and fl[1]=="Ruben Natal-San Miguel" and "Matt Weber" in fl[2] and not fl[3], fl)
         check("depth of field: 43 mm f/8 at 3 m is 2.2 to 4.9 m", d["dof"] == [2.2, 4.9], d["dof"])
@@ -234,6 +234,13 @@ def run(path, name):
         check("A start before first light moves to blue hour", dawn[0]==1 and dawn[1]>5*60+30 and dawn[2]!="night", dawn)
         pg.evaluate("$('pDay').value='1'; renderPlan(); $('pStart').value='midtown'; $('pTime').value='18'; $('pLen').value='90'; state.plan=makePlan()")
         check("An evening Midtown plan says the lunch ideas are out of hours", pg.evaluate("state.plan.notes.some(n=>n.startsWith('Nothing at Midtown'))"), pg.evaluate("state.plan.notes"))
+        se=pg.evaluate("""(()=>{ const X=id=>IDEAS.find(x=>x.id===id), o=(id,d)=>ideaOpen(X(id),d,undefined);
+          return [o('soho-halloween',new Date(2026,9,31,19,0)), o('soho-halloween',new Date(2026,9,30,19,0)), o('soho-halloween',new Date(2026,9,31,12,0)), availText(X('soho-halloween')),
+            o('midtown-rink',new Date(2026,11,20,18,0)), o('midtown-rink',new Date(2026,6,20,18,0)), o('wsp-snow',new Date(2027,0,10,12,0),'snow'), o('wsp-snow',new Date(2027,0,10,12,0),'rain'),
+            ideaOpen(X('wsp-snow'),new Date(2027,0,10,12,0),'snow'), cityIdeas().some(x=>x.id==='soho-halloween'), cityIdeas().some(x=>x.id==='chinatown-lunar'),
+            IDEAS.filter(x=>x.m&&/-(halloween|marathon|balloons|parade|windows|rink|market|snow|lunar)$/.test(x.id)&&(!spotFor(x)||!SV_PANO[spotFor(x).id]||!COMPOSE[x.id]||!WORKX[x.id]||igTags(x).length!==2)).map(x=>x.id)]; })()""")
+        check("Seasonal ideas: on only on the event's day and hours, within their dates, with snow; shown in their months; each has a spot, Street View and Compose",
+              se[0] and not se[1] and not se[2] and se[3].startswith("Oct 31 only (Village Halloween Parade)") and se[4] and not se[5] and se[8] and se[9] and not se[10] and not se[11], se)
         check("Availability shows on the card", pg.evaluate("availText(IDEAS.find(x=>x.id==='gct-energy'))")=="Weekdays · 5 pm to 6 pm")
         pg.evaluate("$('pDay').value='0'; renderPlan(); state.plan=makePlan(); savePlan(); renderPlan()")
         # Events
