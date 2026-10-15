@@ -329,6 +329,8 @@ def run(path, name):
             pg.evaluate("state.mapT=19*60; mapDraw(); mapPanel()")
             check("Dry evening is golden light again", pg.evaluate("lightAt(mapNow())")!="rain")
             check("No rain on the map once it has passed", pg.evaluate("!document.querySelector('.m-rainr')"))
+            al=pg.evaluate("shootAlerts().map(a=>[a.kind,a.k,hmText(a.at),a.place])")
+            check("Worth going out: rain clearing before golden hour today, with a place for wet streets", al and al[0][0]=="wet" and al[0][1]==0 and al[0][2]=="6 pm" and al[0][3], al)
         else:
             check("Explains where the hourly forecast is", "installed app" in pg.evaluate("document.getElementById('wxBar').textContent"))
         # Light down the street and ferries
@@ -492,6 +494,28 @@ def run(path, name):
         pg.evaluate("state.camera='q343'; state.view='shoot'; show('rockaway-energy'); state.tab='work'; render()"); pg.wait_for_timeout(80)
         pg.click("#card [data-learncrop]"); pg.wait_for_timeout(300)
         check("A card that recommends a crop frame opens it in Learn", pg.evaluate("[state.view, document.querySelector('#learn details[data-id=camera]').open, document.querySelector('.cropw [data-lcf][aria-pressed=true]').dataset.lcf]")==["learn",True,"90"])
+        # Why this frame works: every example photo is explained, and the explanation opens and closes
+        fw=pg.evaluate("""(()=>{ const keys=Object.keys(TECH_PHOTO).concat(Object.keys(IDEA_PHOTO).filter(k=>IDEA_PHOTO[k]));
+          const bad=keys.filter(k=>{ const W=FRAME_WHY[k]; return !W||W.why.length!==3||!W.marks.length||W.marks.some(m=>m[0]!=='t'&&m.slice(1,5).some(v=>typeof v==='number'&&(v<0||v>100))); }); return bad; })()""")
+        check("Every example and reference photo has a 'why this frame works' with marks inside the photo", not fw, fw)
+        pg.evaluate("state.view='learn'; render(); document.querySelector('#learn details[data-id=compose]').open=true"); pg.wait_for_timeout(100)
+        lw=pg.evaluate("[!!document.querySelector('.learnwhy figure.why'), document.querySelectorAll('.learnwhy .whylist li').length, document.querySelectorAll('.learnwhy [data-whysel]').length]")
+        pg.click(".learnwhy [data-whysel=juxta]"); pg.wait_for_timeout(80)
+        pg.click(".learnwhy [data-whyf]"); pg.wait_for_timeout(80)
+        lw2=pg.evaluate("[document.querySelector('.learnwhy [data-whysel][aria-pressed=true]').dataset.whysel, document.querySelector('.learnwhy figure').classList.contains('why'), document.querySelector('.learnwhy .whylist').hidden]")
+        check("Learn shows the example photos explained, one at a time, and the explanation toggles", lw[0] and lw[1]==3 and lw[2]==11 and lw2==["juxta",False,True], [lw,lw2])
+        # Assignments on location: start, count frames, finish, logged
+        pg.evaluate("state.drillRun=null; state.drillLog=[]; state.drills.delete('36'); document.querySelector('#learn details[data-id=practice]').open=true; renderLearn()"); pg.wait_for_timeout(80)
+        pg.evaluate("document.querySelector('#learn details[data-id=practice]').open=true"); pg.click("#learn [data-drillstart='36']"); pg.wait_for_timeout(80)
+        pg.click("#drillBar [data-drillfr]"); pg.click("#drillBar [data-drillfr]"); pg.wait_for_timeout(80)
+        db=pg.evaluate("[!document.getElementById('drillBar').hidden, document.querySelector('#drillBar .dr-fr').textContent, !!document.querySelector('#learn .drills2 .pill')]")
+        pg.evaluate("state.view='shoot'; show('tsq-mood'); render(); streetOpen()"); pg.wait_for_timeout(150)
+        st=pg.evaluate("!!document.querySelector('#street .st-drill [data-drilldone]')")
+        pg.click("#street [data-drilldone]"); pg.wait_for_timeout(80); pg.evaluate("streetClose(true)")
+        dl=pg.evaluate("[state.drillRun, state.drillLog.length, state.drillLog[0].frames, state.drills.has('36'), document.getElementById('drillBar').hidden, JSON.parse(localStorage.getItem(Object.keys(localStorage).find(k=>k.endsWith('drillLog'))||'null')||'[]').length]")
+        check("An assignment runs with a frame counter on every page and in Street mode, and Done logs it and ticks it", db==[True,"+1 · 2 of 36",True] and st and dl[:5]==[None,1,2,True,True], [db,st,dl])
+        pg.evaluate("state.view='learn'; render(); document.querySelector('#learn details[data-id=practice]').open=true; document.querySelector('[data-drillstart=\"same-place\"]').click()"); pg.wait_for_timeout(80)
+        check("Same place, three times logs a visit at once and counts the week", pg.evaluate("[state.drillRun, document.querySelector('#learn').textContent.includes('1 of 3 visits this week')]")==[None,True])
         # Dark theme renders too
         pg.evaluate("document.documentElement.dataset.theme='dark'; state.view='shoot'; render()"); pg.wait_for_timeout(80)
         check("no script errors", not errors, errors[:3])
@@ -500,6 +524,23 @@ def run(path, name):
 for path, name in [(os.path.join(ROOT, "build", "claude.html"), "Claude version"), (os.path.join(ROOT, "index.html"), "Installed app")]:
     if not os.path.exists(path): sys.exit("missing " + path + "; run tools/build.py first")
     run(path, name)
+
+# The alert tool used by the daily alert task: it runs the app's own alert logic on a forecast file
+print("\nAlert tool: tools/alerts.py")
+import json as _json, subprocess as _sp
+_times=["2026-10-%sT%02d:00"%(d,h) for d in ("14","15","16") for h in range(24)]
+_code=[61 if (i<24 and 14<=i<17) else 45 if (24+7<=i<24+9) else 2 for i in range(72)]
+_fc={"hourly":{"time":_times,"weather_code":_code,"precipitation_probability":[85 if c==61 else 5 for c in _code],"precipitation":[1.0 if c==61 else 0 for c in _code],"cloud_cover":[100 if c in (61,45) else 20 for c in _code],"temperature_2m":[14]*72}}
+with tempfile.TemporaryDirectory() as _td:
+    _f=os.path.join(_td,"fc.json"); _w=os.path.join(_td,"w.json"); _json.dump(_fc,open(_f,"w"))
+    _r=_sp.run([sys.executable,os.path.join(ROOT,"tools","alerts.py"),_f,"--now","2026-10-14T13:47:00","--weather-doc",_w],capture_output=True,text=True)
+    _a=_json.loads(_r.stdout) if _r.returncode==0 else []
+    check("Alert tool finds rain clearing at 5 pm today and fog tomorrow morning", [(x["kind"],x["date"],x["start"]) for x in _a if x["kind"] in ("wet","fog")]==[("wet","2026-10-14","17:00"),("fog","2026-10-15","07:00")], _r.stderr[-300:] or _a)
+    _wd=_json.load(open(_w)) if os.path.exists(_w) else {}
+    check("Alert tool writes the forecast for the Claude version", len(_wd.get("hourly",{}).get("time",[]))==72 and _wd.get("condition_text")=="Partly cloudy" and _wd.get("precip_chance_today")==85, {k:_wd.get(k) for k in ("condition_text","precip_chance_today")})
+    _fc["hourly"]["cloud_cover"]=_fc["hourly"]["cloud_cover"][:40]; _json.dump(_fc,open(_f,"w"))
+    _r=_sp.run([sys.executable,os.path.join(ROOT,"tools","alerts.py"),_f],capture_output=True,text=True)
+    check("Alert tool refuses a forecast cut short", _r.returncode!=0 and "wrong length" in _r.stderr, _r.stderr[-200:])
 
 print("\n" + ("All checks passed." if not failures else "%d check(s) failed: %s" % (len(failures), "; ".join(failures))))
 sys.exit(1 if failures else 0)
