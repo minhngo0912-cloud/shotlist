@@ -841,6 +841,11 @@ body.streetmode{overflow:hidden}
 .wxhrs{position:relative;height:12px;margin:1px 13px 0;font-size:10px;color:var(--muted)} .wxhrs span{position:absolute;transform:translateX(-50%);white-space:nowrap}
 .lk.rain{background:rgba(70,120,230,.9)}
 .flegs{padding:0 16px} .flegs .hint{margin:8px 0 4px}
+/* Worth going out */
+.talerts .talert{display:flex;gap:10px;padding:10px 0;border-top:1px solid var(--line)} .talerts .talert:first-of-type{border-top:0}
+.taico{flex:none;width:30px;height:30px;display:grid;place-items:center;border-radius:8px;background:var(--panel2,rgba(127,127,127,.12))} .taico svg{width:22px;height:22px}
+.talert .tab{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px} .talert .tab>b{font-size:15px;line-height:1.3} .talert .tab p.msg{margin:2px 0 4px}
+.talert.henge .taico{background:rgba(255,180,0,.22)} .talert.wet .taico,.talert.rain .taico{background:rgba(70,120,230,.18)}
 </style>
 
 <div class="app">
@@ -3263,6 +3268,12 @@ async function loadWeather(){
 loadWeather(); setInterval(loadWeather, 15*60*1000);
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ const w=WEATHER[state.city]; if(!w||Date.now()-new Date(w.updated)>10*60*1000) loadWeather(); } });
 $("city").addEventListener("change",loadWeather);
+/* Place photos for offline use: once per set of photos, a few seconds after opening and only when online, fetch each pin
+   photo in the background so the service worker keeps a copy. About 30 small images. */
+function warmPhotos(){ try{ if(!navigator.onLine||!navigator.serviceWorker||!navigator.serviceWorker.controller) return;
+  const list=Object.values(PLACE_PHOTO).map(p=>p.src), key=list.length+":"+list.join("").length; if(store.get("photosWarm","")===key) return;
+  let i=0; const next=()=>{ if(i>=list.length){ store.set("photosWarm",key); return; } fetch(list[i++],{mode:"no-cors"}).catch(()=>{}).finally(()=>setTimeout(next,150)); }; next(); }catch(e){} }
+window.addEventListener("load",()=>setTimeout(warmPhotos,6000));
 if("serviceWorker" in navigator){
   const hadSw=!!navigator.serviceWorker.controller; let reloaded=false;
   // When a new version takes over, reload once so it shows now rather than on the next launch
@@ -3584,7 +3595,10 @@ function setSheet(st,instant){ const m=$("map"); if(!m||!$("mapSheet")) return; 
   const sh=$("mapSheet"); if(instant) sh.classList.add("nomove"); m.style.setProperty("--sheetH",h+"px"); sh.dataset.state=st; if(instant) requestAnimationFrame(()=>sh.classList.remove("nomove")); if(state.mapHead){ headSize(); mapDraw(); }
   $("mapGrab").setAttribute("aria-expanded",st!=="peek"); }
 const sheetPx = () => { const m=$("map"); if(!m) return 0; const v=parseFloat(getComputedStyle(m).getPropertyValue("--sheetH")); return isNaN(v)?0:v; };
-const topPx = () => { const t=document.querySelector("#map .mtop"); return t?t.offsetTop+t.offsetHeight:0; };
+/* The search bar only moves when the screen changes size, so its height is read at most twice a second: reading it right after a redraw forces the browser to lay out the whole map again. */
+let TOP_PX={t:-1e9,v:0};
+const topPx = () => { const n=performance.now(); if(n-TOP_PX.t<500) return TOP_PX.v; const t=document.querySelector("#map .mtop"); TOP_PX={t:n,v:t?t.offsetTop+t.offsetHeight:0}; return TOP_PX.v; };
+window.addEventListener("resize",()=>{ TOP_PX.t=-1e9; });
 /* Aim the map so a point sits in the middle of the part you can see, between the search bar and the sheet. */
 function mapAim(to){ const svg=$("mapSvg"); if(!svg) return to; const k=to.w/(svg.clientWidth||360); return {cx:to.cx, cy:to.cy+(sheetPx()-topPx())/2*k, w:to.w}; }
 function sheetGestures(){ const g=$("mapGrab"), sh=$("mapSheet"), peek=sh.querySelector(".mstatus"); let d=null;
@@ -4011,18 +4025,24 @@ function streetGrid(){ if(STREET_GRID) return STREET_GRID; const seg=[], cells=n
 /* Light down the street: long straight streets (MAPD_RUNS, ~550 m or more) that line up with the low sun on the map's day.
    A street lights up when the sun, less than 10° up, sits within a narrow angle of its line: the longer the street, the narrower,
    about as wide as the slot of sky the street leaves open at its far end. Manhattanhenge is the famous case; every grid has its days. */
-let HENGE=null;
+let HENGE=null, RUNB=null;
+function runBearings(){ if(RUNB) return RUNB; const n=MAPD_RUNS.length, b=new Float32Array(n), len=new Float32Array(n), tol=new Float32Array(n);
+  for(let i=0;i<n;i++){ const R=MAPD_RUNS[i], dx=R[2]-R[0], dy=R[3]-R[1]; len[i]=Math.hypot(dx,dy)/10; b[i]=((Math.atan2(dx,-dy)*180/Math.PI)%180+180)%180; tol[i]=Math.max(0.5,Math.atan(0.4/len[i])*180/Math.PI); }
+  const order=Array.from({length:n},(_,i)=>i).sort((x,y)=>b[x]-b[y]); return RUNB={b,len,tol,order,sb:Float32Array.from(order,i=>b[i])}; }
 const mapLL = (x,y) => [40.95-y/2000, x/1516-74.30];
-function hengeDay(){ const c=CITIES[state.city], d=mapDay(); d.setHours(0,0,0,0); const key=state.city+":"+(+d);
+function hengeDay(day){ const c=CITIES[state.city], d=day?new Date(day):mapDay(); d.setHours(0,0,0,0); const key=state.city+":"+(+d);
   if(HENGE&&HENGE.key===key) return HENGE;
   const runs=[]; if(state.city!=="nyc"||typeof MAPD_RUNS==="undefined") return HENGE={key,runs,peaks:[]};
   const L=lightDay(d), samp=[];
   for(const [a,b] of [[L.rise-5,L.rise+160],[L.set-160,L.set+5]]) for(let m=a;m<=b;m++){ const p=sunPos(new Date(+d+m*6e4),c.lat,c.lon); if(p.alt>=-0.3&&p.alt<=10) samp.push([m,p.az,p.alt]); }
-  for(let i=0;i<MAPD_RUNS.length;i++){ const R=MAPD_RUNS[i], dx=R[2]-R[0], dy=R[3]-R[1], len=Math.hypot(dx,dy)/10, b=(Math.atan2(dx,-dy)*180/Math.PI+360)%360;
-    const tol=Math.max(0.5,Math.atan(0.4/len)*180/Math.PI); let best=null, first=null, last=null;
-    for(const s of samp){ const d1=Math.abs(((s[1]-b)%360+540)%360-180), dd=Math.min(d1,180-d1); if(dd>tol) continue;
-      if(first===null||s[0]<first) first=s[0]; if(last===null||s[0]>last) last=s[0]; if(!best||dd<best.dd) best={dd,m:s[0],az:s[1],alt:s[2]}; }
-    if(best) runs.push({i,m:best.m,az:best.az,alt:best.alt,len,from:first,to:last}); }
+  // streets sorted by bearing (0 to 180°), so each minute of low sun only looks at the few streets within 2.5° of it
+  const B=runBearings(), n=B.b.length, best=new Float32Array(n).fill(99), bm=new Int16Array(n), baz=new Float32Array(n), balt=new Float32Array(n), first=new Int16Array(n).fill(-1), last=new Int16Array(n);
+  const lower=x=>{ let lo=0, hi=n; while(lo<hi){ const mid=(lo+hi)>>1; if(B.sb[mid]<x) lo=mid+1; else hi=mid; } return lo; };
+  for(const s of samp){ const a=s[1]%180;
+    for(const [lo,hi] of [[a-2.5,a+2.5],[a-2.5+180,a+2.5+180],[a-2.5-180,a+2.5-180]]){ if(hi<0||lo>180) continue;
+      for(let k=lower(lo);k<n&&B.sb[k]<=hi;k++){ const i=B.order[k], d1=Math.abs(B.b[i]-a), dd=Math.min(d1,180-d1); if(dd>B.tol[i]) continue;
+        if(first[i]<0||s[0]<first[i]) first[i]=s[0]; if(s[0]>last[i]) last[i]=s[0]; if(dd<best[i]){ best[i]=dd; bm[i]=s[0]; baz[i]=s[1]; balt[i]=s[2]; } } } }
+  for(let i=0;i<n;i++) if(first[i]>=0) runs.push({i,m:bm[i],az:baz[i],alt:balt[i],len:B.len[i],from:first[i],to:last[i]});
   // the minute in the morning and in the evening when the most street length lines up: the chips under the time bar
   const peaks=[]; for(const am of [true,false]){ const tally=new Map(); for(const r of runs){ if((r.m<720)!==am) continue; for(let m=r.from;m<=r.to;m++) tally.set(m,(tally.get(m)||0)+r.len); }
     let best=null; tally.forEach((v,m)=>{ if(!best||v>best[1]) best=[m,v]; }); if(best&&best[1]>=25) peaks.push(best[0]); }
@@ -4357,6 +4377,56 @@ function weekPlan(k){ const D=weekDays().find(d=>d.k===+k); if(!D) return; const
   $("pDay").value=String(D.k); renderPlan(); if(best&&[...$("pStart").options].some(o=>o.value===best.id)) $("pStart").value=best.id;
   const h=Math.max(6,Math.floor((D.g.s-75)/60)); if([...$("pTime").options].some(o=>o.value===String(h))) $("pTime").value=String(h); $("pLen").value="150"; state.plan=makePlan(); savePlan(); renderPlan(); window.scrollTo({top:0}); }
 function weekMap(k){ const D=weekDays().find(d=>d.k===+k); if(!D) return; state.mapD=D.k; state.mapT=Math.round(D.g.s/5)*5; state.view="map"; render(); window.scrollTo({top:0}); }
+/* Worth going out: the moments in the next three days that the forecast and the sun make special — rain clearing at dusk,
+   rain on the neon, broken cloud at sunset, morning fog, snow, the sun lined up with Manhattan's streets, and street events
+   on a dry day. Shown on Today, and read each morning by the alert task (tools/alerts.py). */
+const ALERT_MANHATTAN = new Set(["Financial District","Tribeca","East Village","West Village","Chelsea","Hell's Kitchen","Lincoln Square","Upper West Side","Yorkville","Upper East Side","East Harlem","Morningside Heights","Hamilton Heights","Washington Heights","Inwood","Murray Hill","Stuyvesant Town","Gramercy","Midtown East"]);
+function alertPlace(pred){ const ids=Object.keys(CITIES[state.city].places).filter(id=>typeof PLACES[id].lat==="number");
+  const base=state.pos||state.home||{lat:40.754,lon:-73.984}, km=id=>kmBetween(base,PLACES[id]);   // nearer places first: from you, your home, or Midtown
+  return ids.map(id=>{ const m=cityIdeas().filter(x=>x.p===id&&pred(x)); return {id,n:m.length,fresh:m.filter(x=>!state.done.has(x.id)).length,ideas:m.sort((a,b)=>state.done.has(a.id)-state.done.has(b.id))}; })
+    .filter(o=>o.n).sort((a,b)=>(b.fresh+b.n*0.5+refl(b)-km(b.id)/6)-(a.fresh+a.n*0.5+refl(a)-km(a.id)/6))[0]||null; }
+const SKY_PLACES = new Set(["dumbo","ferry","wburg","coney","brighton","rockaway","chelsea","cpark","fidi"]);
+const refl = o => o.ideas.some(x=>COMPOSE[x.id]&&COMPOSE[x.id][0]==="reflect") ? 1 : 0;
+const wetOut = x => x.w.includes("rain")&&x.r!=="interior"&&x.p!=="subway";
+function shootAlerts(){ if(state.city!=="nyc") return []; const now=new Date(), t0=new Date(now.getFullYear(),now.getMonth(),now.getDate()), nm=dayMin(now), out=[];
+  const at=(day,m)=>new Date(+day+m*6e4), sk=(day,m)=>skyAt(at(day,m)), wet=s=>s==="rain"||s==="snow", hr=(day,m)=>hourlyAt(at(day,m));
+  const withPlace=(a,P)=>Object.assign(a,{place:P?P.id:null,ideas:P?P.ideas.slice(0,2).map(x=>x.id):[]});
+  const rows=eventRows(t0);
+  for(let k=0;k<3;k++){ const day=new Date(t0.getFullYear(),t0.getMonth(),t0.getDate()+k), {L,list}=todayWindows(day), g=list.find(x=>x.name==="Golden hour"), b=list.find(x=>x.name==="Blue hour"), mg=list.find(x=>x.name==="Morning golden hour");
+    const push=a=>{ if(!(k===0&&a.end<=nm)) out.push(Object.assign({day,k},a)); };
+    if(g&&b){ let clear=null, wetDusk=false;
+      for(let m=Math.ceil((g.s-120)/60)*60;m<=b.e+90;m+=60){ const s=sk(day,m); if(s===undefined) break;
+        if(!wet(s)&&(wet(sk(day,m-60))||wet(sk(day,m-120)))&&m>=g.s-90&&clear===null) clear=m;
+        if(wet(s)&&m>=b.s-60&&m<=b.e+60) wetDusk=true; }
+      if(clear!==null){ const key=clear<L.set?"gold":"night";
+        push(withPlace({kind:"wet",score:3.2,at:clear,end:Math.min(b.e+60,clear+120),title:"Rain clears about "+hmText(clear)+": wet streets for "+(clear<L.set?"golden hour":"blue hour"),why:"Puddles and wet pavement mirror the low light and the signs. The first hour after the rain stops is the best of it."},alertPlace(x=>wetOut(x)&&(x.w.includes(key)||x.w.includes("night"))))); }
+      else if(wetDusk) push(withPlace({kind:"rain",score:2.6,at:b.s,end:b.e+60,title:"Rain at dusk: neon and headlights on wet streets",why:"Rain from blue hour on turns every sign into a reflection. Shoot from cover, with a lens hood."},alertPlace(x=>wetOut(x)&&x.w.includes("night"))));
+      else { const f=hr(day,Math.floor(L.set/60)*60); if(f&&f.cc>=30&&f.cc<=75&&!wet(sk(day,L.set)))
+        push(withPlace({kind:"sky",score:2.2,at:L.set-20,end:L.set+25,title:"Broken cloud at sunset: a good chance of colour",why:"About "+f.cc+"% cloud: enough for the setting sun to light it from below, not so much that it hides the sun. The colour peaks 10 to 20 minutes after sunset."},alertPlace(x=>x.w.includes("gold")&&SKY_PLACES.has(x.p)))); } }
+    if(mg) for(let m=Math.floor(mg.s/60)*60;m<=mg.e+120;m+=60){ if(sk(day,m)==="fog"){
+      push(withPlace({kind:"fog",score:2.8,at:m,end:m+90,title:"Fog in the morning",why:"Fog strips out the background and turns people into shapes; the towers disappear into it. It usually burns off within an hour or two."},alertPlace(x=>x.w.includes("am")))); break; } }
+    for(let m=Math.ceil(L.rise/60)*60;m<L.set;m+=60){ if(sk(day,m)==="snow"){ const sn=cityIdeas().filter(x=>AVAIL[x.id]&&AVAIL[x.id].wx==="snow");
+      push({kind:"snow",score:3.4,at:m,end:Math.min(L.set,m+180),title:"Snow from "+hmText(m),why:"Falling snow softens everything and keeps people moving with their heads down. The first hour after it settles is the cleanest.",place:sn[0]?sn[0].p:null,ideas:sn.slice(0,2).map(x=>x.id)}); break; } }
+    // Manhattanhenge: the sun on the horizon at the end of the Midtown cross streets (about two days a year at each end of the day)
+    { const H=hengeDay(day), grid=H.runs.filter(r=>{ const off=((r.az-299)%180+180)%180; if(r.len<15||!(off<1.2||off>178.8)||r.alt>0.8) return false; const R=MAPD_RUNS[r.i], [la,lo]=mapLL((R[0]+R[2])/20,(R[1]+R[3])/20); return ALERT_MANHATTAN.has(nearestHood(la,lo)); });
+      if(grid.length>=300){ const byM=new Map(); grid.forEach(r=>byM.set(r.m,(byM.get(r.m)||0)+1)); const m=[...byM.entries()].sort((a,b)=>b[1]-a[1])[0][0], r0=grid.find(r=>r.m===m), eve=m>=720;
+        const f=hr(day,m), cloudy=!!f&&(f.cc>=70||wet(sk(day,m)));
+        if(!cloudy) push({kind:"henge",score:3.6,at:m,end:m+10,run:r0.i,place:null,ideas:[],title:(eve?"Manhattanhenge":"Manhattanhenge at sunrise")+": the sun lines up with the cross streets at "+hmText(m),why:"The "+(eve?"setting":"rising")+" sun sits right at the end of "+grid.length+" Midtown cross streets"+(f?", and the sky should be clear enough":"")+". 14th, 23rd, 34th, 42nd and 57th Streets have the clearest views; get there 30 minutes early and step into the crossing only on the walk signal."}); } }
+    for(const r of rows){ if(!r.o||r.cancelled||!(evDay(r.o[0])<=day&&evDay(r.o[1]||r.o[0])>=day)||!["parade","festival","holiday","cultural","light"].includes(r.e.type)) continue;
+      const w0=evWindow(r.e,day); if(!w0) continue; const s=sk(day,w0[0]); if(wet(s)) continue;
+      push({kind:"event",score:2.4,at:w0[0],end:Math.max(w0[1]||0,w0[0]+90),ev:r.e.id,place:null,ideas:[],title:evTitle(r)+(s===undefined?"":", and it should be dry"),why:r.e.why||((EVENT_TYPES[r.e.type]||"Event")+(r.e.where?" · "+r.e.where:""))}); } }
+  return out.sort((a,b)=>b.score-a.score||a.k-b.k||a.at-b.at).slice(0,6); }
+const ALERT_ICON = {wet:"rain",rain:"rain",sky:"cloud",fog:"overcast",snow:"overcast",henge:"clear",event:"clear"};
+function alertsHtml(){ const A=shootAlerts(), hasWx=!!(WEATHER[state.city]&&WEATHER[state.city].hourly); if(state.city!=="nyc") return "";
+  if(!A.length) return hasWx?'<section class="tcard talerts"><p class="tlabel">Worth going out</p><p class="msg">Nothing out of the ordinary in the next three days: no rain clearing at dusk, fog, snow, colourful sunset or sun down the Manhattan streets.</p></section>':'';
+  return '<section class="tcard talerts"><p class="tlabel">Worth going out · next three days</p>'+A.slice(0,4).map((a,n)=>{ const when=(a.k===0?'Today':a.k===1?'Tomorrow':DAY_NAMES[a.day.getDay()])+' · '+hmText(a.at);
+    const idea=a.ideas[0]&&IDEAS.find(x=>x.id===a.ideas[0]);
+    return '<div class="talert '+a.kind+'"><span class="taico">'+skyIcon(ALERT_ICON[a.kind])+'</span><div class="tab"><b>'+esc(a.title)+'</b><span class="msg">'+when+(a.place?' · '+esc(PLACES[a.place].name):'')+'</span><p class="msg">'+esc(a.why)+'</p>'+
+      (idea?'<button type="button" class="row" data-id="'+idea.id+'"><span class="dot" style="background:'+INTENTS[idea.i].color+'"></span><span class="t"><b>'+esc(idea.t)+'</b><span>'+esc(PLACES[idea.p].name)+'</span></span><span class="go" aria-hidden="true">›</span></button>':'')+
+      '<div class="callinks"><button type="button" class="chip" data-alert="'+n+'">See it on the map</button></div></div></div>'; }).join("")+
+    (hasWx?'':'<p class="msg">Rain, fog, snow and sunset alerts need the forecast, which the installed app has.</p>')+'</section>'; }
+function alertMap(n){ const a=shootAlerts()[+n]; if(!a) return; state.mapD=a.k; state.mapT=Math.round(a.at/5)*5; state.view="map"; render(); window.scrollTo({top:0});
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{ if(a.run!=null){ state.mapShowHenge=true; mapSelectRun(a.run); } else if(a.ev){ state.mapShowEv=true; mapSelectEv(a.ev); } else if(a.place) mapSelect(a.place); })); }
 function renderToday(){ const box=$("today"); if(!box) return;
   const now=new Date(), nm=dayMin(now), c=CITIES[state.city], {L,list}=todayWindows(), tf=hmText, w=WEATHER[state.city];
   const ph=sunPhase(sunPos(now,c.lat,c.lon).alt), next=list.find(x=>x.e>nm);
@@ -4373,7 +4443,10 @@ function renderToday(){ const box=$("today"); if(!box) return;
     '<button type="button" class="btn primary tshoot" data-shootnow="1">Shoot now</button></section>';
   // the light today, compact: bar with windows as labels, weather on one line
   const runs=rainRuns(), rainTxt = runs ? (runs.length ? 'Rain likely '+runs.map(r=>hmText(r.s*60)+' to '+hmText(r.e*60)).join(" and ")+'.' : 'No rain expected today.') : (w&&typeof w.precip_chance_today==="number" ? 'Chance of rain today '+w.precip_chance_today+'%.' : '');
-  const nowTxt = w&&w.condition_text ? esc(w.condition_text)+(typeof w.temp_c==="number"?', '+Math.round(w.temp_c*9/5+32)+'°F':'')+' now. ' : '';
+  // the weather now: from this hour's forecast when there is one, otherwise the last reading if it is recent
+  const fNow=hourlyAt(now), wAge=w&&w.updated?(now-new Date(w.updated))/36e5:99, skNow=fNow?skyAt(now):null;
+  const nowTxt = fNow ? (skNow?WX_WORD[skNow]:fNow.cc>=50?"Some cloud":"Clear")+(fNow.temp!=null?', '+Math.round(fNow.temp*9/5+32)+'°F':'')+' now. '
+    : w&&w.condition_text&&wAge<3 ? esc(w.condition_text)+(typeof w.temp_c==="number"?', '+Math.round(w.temp_c*9/5+32)+'°F':'')+' now. ' : '';
   const mo=moonPos(atMin(720),c.lat,c.lon), mt=moonTimes(atMin(720),c.lat,c.lon);
   const pos=m=>(Math.min(1435,Math.max(0,m))/1435*100).toFixed(2)+'%';
   const band='<div class="tband" style="background:'+lightBand(new Date()).replace(/calc\(13px \+ \(100% - 26px\) \* ([0-9.]+)\)/g,(_,p)=>(p*100).toFixed(2)+'%')+'"><i style="left:'+pos(nm)+'"></i></div>'+
@@ -4409,7 +4482,7 @@ function renderToday(){ const box=$("today"); if(!box) return;
     : (d=>d?'<p class="tlabel">Assignment for today</p><p><b>'+esc(d[1])+'</b>. '+esc(d[2])+'</p><button type="button" class="linkbtn" data-goview="learn">More assignments in Learn</button>':'')(DRILLS.filter(d=>!state.drills.has(d[0]))[dayN%Math.max(1,DRILLS.filter(d=>!state.drills.has(d[0])).length)]);
   box.innerHTML=
     '<header class="thead"><h2>'+now.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})+'</h2><span class="msg">'+esc(c.name)+'</span></header>'+
-    nowStrip+
+    nowStrip+alertsHtml()+
     '<section class="tcard tlight"><p class="tlabel">The light today</p>'+band+'<div class="twins">'+wins+'</div>'+(nowTxt||rainTxt?'<p class="msg">'+nowTxt+rainTxt+'</p>':'')+'</section>'+
     weekHtml()+
     dayCard+
@@ -4617,6 +4690,7 @@ $("today").addEventListener("click",e=>{
   const wk=e.target.closest("[data-week]"); if(wk){ const k=+wk.dataset.week; state.weekSel=state.weekSel===k?null:k; renderToday(); return; }
   const wp=e.target.closest("[data-weekplan]"); if(wp){ weekPlan(wp.dataset.weekplan); return; }
   const wm=e.target.closest("[data-weekmap]"); if(wm){ weekMap(wm.dataset.weekmap); return; }
+  const al=e.target.closest("[data-alert]"); if(al){ alertMap(al.dataset.alert); return; }
   if(e.target.closest("[data-homeedit]")){ state.homeEdit=true; renderToday(); return; }
   if(e.target.closest("[data-homedone]")){ state.homeEdit=false; renderToday(); return; }
   if(e.target.closest("[data-homeclear]")){ state.home=null; store.set("home",null); state.homeEdit=false; renderToday(); return; }

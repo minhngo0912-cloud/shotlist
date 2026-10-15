@@ -24,6 +24,12 @@ async function loadWeather(){
 loadWeather(); setInterval(loadWeather, 15*60*1000);
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ const w=WEATHER[state.city]; if(!w||Date.now()-new Date(w.updated)>10*60*1000) loadWeather(); } });
 $("city").addEventListener("change",loadWeather);
+/* Place photos for offline use: once per set of photos, a few seconds after opening and only when online, fetch each pin
+   photo in the background so the service worker keeps a copy. About 30 small images. */
+function warmPhotos(){ try{ if(!navigator.onLine||!navigator.serviceWorker||!navigator.serviceWorker.controller) return;
+  const list=Object.values(PLACE_PHOTO).map(p=>p.src), key=list.length+":"+list.join("").length; if(store.get("photosWarm","")===key) return;
+  let i=0; const next=()=>{ if(i>=list.length){ store.set("photosWarm",key); return; } fetch(list[i++],{mode:"no-cors"}).catch(()=>{}).finally(()=>setTimeout(next,150)); }; next(); }catch(e){} }
+window.addEventListener("load",()=>setTimeout(warmPhotos,6000));
 if("serviceWorker" in navigator){
   const hadSw=!!navigator.serviceWorker.controller; let reloaded=false;
   // When a new version takes over, reload once so it shows now rather than on the next launch

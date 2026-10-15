@@ -823,3 +823,8 @@ body.streetmode{overflow:hidden}
 .wxhrs{position:relative;height:12px;margin:1px 13px 0;font-size:10px;color:var(--muted)} .wxhrs span{position:absolute;transform:translateX(-50%);white-space:nowrap}
 .lk.rain{background:rgba(70,120,230,.9)}
 .flegs{padding:0 16px} .flegs .hint{margin:8px 0 4px}
+/* Worth going out */
+.talerts .talert{display:flex;gap:10px;padding:10px 0;border-top:1px solid var(--line)} .talerts .talert:first-of-type{border-top:0}
+.taico{flex:none;width:30px;height:30px;display:grid;place-items:center;border-radius:8px;background:var(--panel2,rgba(127,127,127,.12))} .taico svg{width:22px;height:22px}
+.talert .tab{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px} .talert .tab>b{font-size:15px;line-height:1.3} .talert .tab p.msg{margin:2px 0 4px}
+.talert.henge .taico{background:rgba(255,180,0,.22)} .talert.wet .taico,.talert.rain .taico{background:rgba(70,120,230,.18)}
