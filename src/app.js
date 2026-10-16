@@ -1961,7 +1961,7 @@ function headingStop(){ if(HEAD.on){ try{ removeEventListener("deviceorientation
 function headingSet(h){ const p=state.heading; if(p!==null){ const d=((h-p)%360+540)%360-180; h=(p+d*0.3+360)%360; } state.heading=h;
   if(!HEAD.raf) HEAD.raf=requestAnimationFrame(()=>{ HEAD.raf=0; headingApply(); }); }
 /* Move only what the heading changes: the cone at your position, the map's rotation, the north arrow and any "turn left" lines. */
-function headingApply(){ const h=state.heading, g=$("mapHeadG"), rot=$("mapRot"), nr=$("mapNorth"), now=performance.now();
+function headingApply(){ if(LF.open) lfHeading(); const h=state.heading, g=$("mapHeadG"), rot=$("mapRot"), nr=$("mapNorth"), now=performance.now();
   // the cone at your position is drawn with the map; the first reading after a draw needs one redraw to add it
   if(h!==null&&!g&&state.pos&&!HEAD.drawn&&$("mapSvg")){ HEAD.drawn=true; mapDraw(); }
   const g2=$("mapHeadG"); if(g2){ if(h===null) g2.remove(); else g2.setAttribute("transform","rotate("+h.toFixed(1)+" "+g2.dataset.x+" "+g2.dataset.y+")"); }
@@ -2593,7 +2593,7 @@ function mapShell(box){
     '<div class="mtop"><div class="mrow"><div class="mapgo"><select id="mapGo" aria-label="Go to a place"></select></div><button type="button" class="mlayersbtn" id="mapLayersBtn" aria-expanded="false" aria-controls="mapLayers" title="Map layers">'+LAYER_ICON+'<span>Layers</span><i id="mapLiveDot" hidden></i></button></div>'+
     '<div class="intents mchips" id="mapIntent"></div></div>'+
     '<div class="mlayers" id="mapLayers" hidden></div><div class="mguide" id="mapGuide" role="status" aria-live="polite" hidden></div>'+
-    '<div class="mapbtns"><button type="button" data-full="1" aria-label="Full screen map" title="Full screen"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="ico-open" d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/><path class="ico-close" d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5"/></svg></button><button type="button" data-zoom="0.6" aria-label="Zoom in">+</button><button type="button" data-zoom="1.6" aria-label="Zoom out">−</button><button type="button" data-fit="1" aria-label="Show the whole city" title="Whole city">⌂</button><button type="button" data-locate="1" aria-label="Find me on the map" title="Find me">◎</button><button type="button" data-head="1" aria-pressed="false" aria-label="Turn the map the way I am facing" title="Turn the map the way I am facing"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path class="nd-n" d="M12 3.5 14.6 12H9.4Z"/><path class="nd-s" d="M12 20.5 9.4 12h5.2Z"/></svg></button></div>'+
+    '<div class="mapbtns"><button type="button" data-full="1" aria-label="Full screen map" title="Full screen"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="ico-open" d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/><path class="ico-close" d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5"/></svg></button><button type="button" data-zoom="0.6" aria-label="Zoom in">+</button><button type="button" data-zoom="1.6" aria-label="Zoom out">−</button><button type="button" data-fit="1" aria-label="Show the whole city" title="Whole city">⌂</button><button type="button" data-locate="1" aria-label="Find me on the map" title="Find me">◎</button><button type="button" data-lightf="1" aria-label="Best light where I am: where to point the camera and the settings" title="Light here"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg></button><button type="button" data-head="1" aria-pressed="false" aria-label="Turn the map the way I am facing" title="Turn the map the way I am facing"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path class="nd-n" d="M12 3.5 14.6 12H9.4Z"/><path class="nd-s" d="M12 20.5 9.4 12h5.2Z"/></svg></button></div>'+
     '<div class="mnorth" id="mapNorth" hidden aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2 17 14H7Z" class="n"/><path d="M12 22 7 14h10Z" class="s"/></svg><span>N</span></div>'+
     '<div class="mapscale" id="mapScale"></div>'+
     '<section class="msheet" id="mapSheet" aria-label="Map details"><div class="mgrab" id="mapGrab" role="button" tabindex="0" aria-label="Show more or less"><i></i></div>'+
@@ -2709,6 +2709,124 @@ function lightHere(t){ const c=CITIES[state.city], sp=sunPos(t,c.lat,c.lon), tf=
   if(sp.alt<-0.8||sp.alt<=0){ const g=lightDay().runs.find(r=>r.ph==="gold"&&r.s>=720), at=g?Math.max(600,Math.round((g.s-90)/5)*5):960;
     return 'Light at '+tf+': the sun is down, so there is no sunny side to show. Light comes from windows, signs and street lamps.<br><button type="button" class="chip sunjump" data-jump="'+at+'">See the sunny side at '+hmText(at)+'</button>'; }
   return 'Light at '+tf+': orange lines on the map mark the sunny side of each street. Face <b>'+compass(sp.az)+'</b> for backlight, <b>'+compass(sp.az+90)+'</b> or <b>'+compass(sp.az-90)+'</b> for side light, <b>'+compass(sp.az+180)+'</b> for front light.'+(sp.alt>45?' The sun is high, so shadows are short and streets are in shade or full sun.':''); }
+/* Light here: where you are, which way to point the camera for the best light right now, and the settings for it.
+   Uses your position, the phone's compass when it gives one, the sun at your exact spot, the hourly forecast and the street you
+   are standing on. Opens full screen, keeps the screen awake, and updates as you turn and every minute. */
+const LF = {open:false, watch:null, sel:0, timer:0, wake:null, fallback:false};
+/* The sky now, in the words the camera advice uses: clear, partly, cloud, rain, fog, snow or unknown. */
+function lfSky(t){ const s=skyAt(t); if(s!==undefined){ if(s===null){ const f=hourlyAt(t); return f&&f.cc>=50?"partly":"clear"; } return s==="snow"?"snow":s; }
+  const i=nowInfo(); return i.sky==="sun"?"clear":i.sky==="partly"?"partly":i.sky==="storm"?"rain":i.sky||"unknown"; }
+/* Scene brightness as EV at ISO 100, from the sun's height and the sky (the sunny-16 rule and its relatives). */
+function lfEV(alt,sky){ let ev = alt>=40?15:alt>=20?14.5:alt>=10?14:alt>=6?13:alt>=0?12:alt>=-4?10:alt>=-6?8:7;
+  if(alt>=-4){ if(sky==="partly") ev-=0.5; else if(sky==="cloud"||sky==="fog") ev-=2; else if(sky==="rain"||sky==="snow") ev-=3; }
+  return ev; }
+/* What ISO the camera will pick for an aperture and shutter speed in that light, or the shutter speed for a fixed ISO. */
+const lfISO = (N,t,ev) => 100*Math.pow(2,Math.log2(N*N/t)-ev);
+const lfShutter = (N,iso,ev) => N*N/Math.pow(2,ev+Math.log2(iso/100));
+const lfShutterText = t => t>=0.5?Math.round(t)+" s":"1/"+[8,15,30,60,125,250,500,1000,2000,4000,8000,16000].reduce((a,b)=>Math.abs(Math.log2(b*t))<Math.abs(Math.log2(a*t))?b:a)+" s";
+const lfISOText = iso => { const steps=[50,100,200,400,800,1600,3200,6400,12500,25000]; return "ISO "+steps.reduce((a,b)=>Math.abs(Math.log2(b/iso))<Math.abs(Math.log2(a/iso))?b:a); };
+/* The street under your feet: the nearest street line within about 70 m, its direction, and which side is in sun. */
+function lfStreet(pos,sp){ if(state.city!=="nyc"||typeof MAPD_ROADS==="undefined") return null; const G=streetGrid(), [px,py]=mapXY(pos.lat,pos.lon), gx=Math.floor(px/10), gy=Math.floor(py/10); let best=null;
+  for(let x=gx-1;x<=gx+1;x++) for(let y=gy-1;y<=gy+1;y++){ const cell=G.cells.get(x+","+y); if(!cell) continue;
+    for(const k of cell){ const ax=G.seg[k], ay=G.seg[k+1], bx=G.seg[k+2], by=G.seg[k+3], L2=(bx-ax)**2+(by-ay)**2; if(L2<0.04) continue;
+      const u=Math.max(0,Math.min(1,((px-ax)*(bx-ax)+(py-ay)*(by-ay))/L2)), d=Math.hypot(ax+(bx-ax)*u-px,ay+(by-ay)*u-py); if(!best||d<best.d) best={d,ax,ay,bx,by}; } }
+  if(!best||best.d>1.3) return null;   // map units are about 55 m
+  const b=(Math.atan2(best.bx-best.ax,-(best.by-best.ay))*180/Math.PI+360)%180, out={b, dirs:[b,b+180]};
+  if(sp.alt>0){ const n1=(b+90)%360, sunFacing=Math.cos((sp.az-n1)*Math.PI/180); if(Math.abs(sunFacing)>0.12) out.sunny=sunFacing>0?(b+90+180)%360:(b+90)%360; // the side whose wall faces the sun
+    out.along=Math.min(angDiff(sp.az,b),angDiff(sp.az,b+180))<12; }
+  return out; }
+/* The ways to point the camera now, best first. Each has a bearing to face (or none), the light it gives, and the camera recipe. */
+function lfOptions(t,pos){ const sp=sunPos(t,pos.lat,pos.lon), sky=lfSky(t), az=sp.az, back=az, front=(az+180)%360, opts=[];
+  if(sp.alt<-6){
+    opts.push({k:"lights",face:null,title:"Point at the light, not the dark",why:"After dark the light comes from signs, shop windows and street lamps. Put people between you and a lit window or sign, or wait for them to step into a pool of light.",recipe:"night",ev:7,comp:"−0.7 EV, so signs keep their colour"});
+    if(sky==="rain") opts.push({k:"wet",face:null,title:"Get low over the wet pavement",why:"Rain turns the street into a mirror for every sign. Hold the camera a hand above a puddle and let the reflection fill the bottom of the frame.",recipe:"night",ev:7,comp:"−0.7 EV"});
+  } else if(sp.alt<-0.8){
+    opts.push({k:"glow",face:back,title:"Face "+compass(back)+", towards the afterglow",why:"The sky is brightest where the sun went down. People and street lamps go dark against it: silhouettes on deep blue.",recipe:"silhouette",ev:lfEV(sp.alt,sky)+1,comp:"−1 EV, metered on the sky"});
+    opts.push({k:"lit",face:front,title:"Turn round, to the "+compass(front)+": lit windows against blue",why:"Away from the glow the sky turns deep blue, and for about twenty minutes it balances the lit windows and signs.",recipe:"night",ev:lfEV(sp.alt,sky),comp:"−0.3 EV"});
+  } else if(sky==="cloud"||sky==="rain"||sky==="fog"||sky==="snow"){
+    opts.push({k:"soft",face:front,title:"Any direction works; keep the bright sky behind you",why:"Cloud spreads the light evenly, so faces have no harsh shadows and colours stay rich. The brightest part of the sky is towards the "+compass(back)+": with it behind you, faces are evenly lit.",recipe:"zone",ev:lfEV(sp.alt,sky),comp:"+0.3 EV, white balance Cloudy"});
+    if(sky==="rain") opts.push({k:"wet",face:back,title:"Face "+compass(back)+" for reflections",why:"Wet pavement mirrors the brightest part of the sky and every sign. Face that way and get low.",recipe:"zone",ev:lfEV(sp.alt,sky),comp:"0"});
+    if(sky==="fog") opts.push({k:"fog",face:back,title:"Face "+compass(back)+" into the glow",why:"Fog lights up where the sun is behind it. Figures walking towards you become soft grey shapes.",recipe:"silhouette",ev:lfEV(sp.alt,sky)+1,comp:"+0.7 EV, or fog turns grey"});
+  } else {
+    const side=[(az+90)%360,(az+270)%360], low=sp.alt<20, high=sp.alt>=45;
+    const sideO={k:"side",face:side[0],alt:side[1],title:"Face "+compass(side[0])+" or "+compass(side[1])+": side light",why:low?"Low sun from the side: long shadows, texture on faces and walls, and depth.":"Sun from the side gives faces shape and lets shadows draw lines across the street.",recipe:"zone",ev:lfEV(sp.alt,sky),comp:low?"0":"−0.3 EV"};
+    const backO={k:"back",face:back,title:"Face "+compass(back)+", into the sun",why:low?"Backlight: silhouettes, rim light on hair, glowing steam and breath. Expose for the bright part and let people go dark.":"Into the sun, shadows run towards you and people become graphic shapes. Keep the sun just outside the frame, or behind a person.",recipe:"silhouette",ev:lfEV(sp.alt,sky)+1,comp:"−1.3 EV"};
+    const frontO={k:"front",face:front,title:"Turn your back to the sun, to the "+compass(front),why:sp.alt<10?"Golden light falls full on faces and buildings: warm, even and saturated. Keep your own shadow out of the frame.":"The sun behind you gives clean colour and detail, but flat faces. Best for buildings and signs.",recipe:"deep",ev:lfEV(sp.alt,sky),comp:"−0.3 EV"};
+    if(high){ opts.push({k:"shade",face:null,title:"Find open shade",why:"The sun is high and hard. Stand people in the shade of a building or an awning, lit by the bright street in front of them: soft light on faces, a bright background behind.",recipe:"shallow",ev:lfEV(sp.alt,sky)-3,comp:"+0.3 EV for faces"}); opts.push(Object.assign(backO,{title:"Or face "+compass(back)+" and shoot the shadows",why:"With the sun high, shadows are short and black: look for people walking through slices of light between buildings.",comp:"−0.7 EV"})); opts.push(sideO); }
+    else { opts.push(sideO,backO,frontO); }
+  }
+  return {sp,sky,opts}; }
+/* Camera settings for an option: the recipe, the ISO Auto ISO will land on (or the shutter speed for a fixed ISO), and what to change now. */
+function lfSettings(o,sky,sp){ const cam=CAMERAS[state.camera]||CAMERAS.q343, rec=cam.recipes[o.recipe], su=setupFor(cam,o.recipe), ev=o.ev;
+  const m=/f\/([\d.]+)/.exec(rec[0]), s=/1\/(\d+)\s*s/.exec(rec[0]), N=m?+m[1]:8; let meter="";
+  if(/auto shutter/.test(rec[0])) meter="The shutter will land near "+lfShutterText(lfShutter(N,100,ev))+".";
+  else if(s){ const iso=lfISO(N,1/+s[1],ev); meter=iso<=100?"Auto ISO stays at its floor; "+(iso<50?"use a faster shutter, about "+lfShutterText(N*N/Math.pow(2,ev))+", or stop down.":"ISO 100."):iso>6400?"Too dark for this at "+rec[0].split(" · ").slice(0,2).join(" · ")+": open up and slow the shutter to 1/125 s.":"Auto ISO will sit near "+lfISOText(iso)+"."; }
+  const i={phase:sp.alt<-6?"night":sp.alt<6?"dusk":"mid",sky:sky==="clear"?(sp.alt>=20?"sun":null):sky==="partly"?"partly":sky==="cloud"||sky==="fog"?"cloud":sky==="rain"||sky==="snow"?"rain":null};
+  const adj=adjustFor(o.recipe,i,cam.setup==="leica").filter(a=>!/compensation as shown/.test(a)).slice(0,2);
+  return {cam,rec,su,meter,adj}; }
+function lfOpen(){ LF.open=true; LF.sel=0; const el=$("lightf"); el.hidden=false; document.body.classList.add("lfopen");
+  headingStart().then(()=>lfRender()); try{ if(navigator.wakeLock&&!LF.wake) navigator.wakeLock.request("screen").then(w=>{ LF.wake=w; }).catch(()=>{}); }catch(e){}
+  LF.fallback=false;
+  try{ if(navigator.geolocation&&LF.watch==null) LF.watch=navigator.geolocation.watchPosition(p=>{ const was=state.pos; state.pos={lat:p.coords.latitude,lon:p.coords.longitude}; LF.acc=p.coords.accuracy; LF.fallback=false; if(!was||kmBetween(was,state.pos)>0.02) lfRender(); },()=>{ if(!state.pos){ LF.fallback=true; lfRender(); } },{enableHighAccuracy:true,maximumAge:10000,timeout:20000}); }catch(e){ LF.fallback=true; }
+  clearInterval(LF.timer); LF.timer=setInterval(()=>{ if(LF.open&&!document.hidden) lfRender(); },60000); lfRender(); }
+function lfClose(){ LF.open=false; const el=$("lightf"); el.hidden=true; el.innerHTML=""; document.body.classList.remove("lfopen"); clearInterval(LF.timer);
+  try{ if(LF.watch!=null) navigator.geolocation.clearWatch(LF.watch); }catch(e){} LF.watch=null; try{ if(LF.wake) LF.wake.release(); }catch(e){} LF.wake=null;
+  if(!state.mapHead&&!state.street&&!state.guide) headingStop(); }
+/* The dial: north at the top, or the way you face at the top when the compass works. Sun on the rim, the light sectors around it,
+   and the direction to point the camera. */
+function lfDial(sp,face){ const R=104, C=120, P=(a,r)=>[C+Math.sin(a*Math.PI/180)*r,C-Math.cos(a*Math.PI/180)*r], f=n=>n.toFixed(1);
+  const arc=(a0,a1,r0,r1,cls)=>{ const [x0,y0]=P(a0,r1),[x1,y1]=P(a1,r1),[x2,y2]=P(a1,r0),[x3,y3]=P(a0,r0), big=((a1-a0+360)%360)>180?1:0; return '<path d="M'+f(x0)+' '+f(y0)+'A'+r1+' '+r1+' 0 '+big+' 1 '+f(x1)+' '+f(y1)+'L'+f(x2)+' '+f(y2)+'A'+r0+' '+r0+' 0 '+big+' 0 '+f(x3)+' '+f(y3)+'Z" class="'+cls+'"/>'; };
+  let g='';
+  if(sp.alt>-0.8){ g+=arc(sp.az-50,sp.az+50,R-26,R,"lf-sec back")+arc(sp.az+50,sp.az+130,R-26,R,"lf-sec side")+arc(sp.az+230,sp.az+310,R-26,R,"lf-sec side")+arc(sp.az+130,sp.az+230,R-26,R,"lf-sec front"); }
+  g+='<circle cx="'+C+'" cy="'+C+'" r="'+R+'" class="lf-ring"/>';
+  for(let a=0;a<360;a+=30){ const [x0,y0]=P(a,R-(a%90?6:10)),[x1,y1]=P(a,R); g+='<path d="M'+f(x0)+' '+f(y0)+'L'+f(x1)+' '+f(y1)+'" class="lf-tick"/>'; }
+  ["N","E","S","W"].forEach((t,n)=>{ const [x,y]=P(n*90,R+11); g+='<text x="'+f(x)+'" y="'+f(y+4)+'" text-anchor="middle" class="lf-card'+(n?'':' n')+'">'+t+'</text>'; });
+  if(sp.alt>-6){ const [sx,sy]=P(sp.az,R-13); g+='<g class="lf-sun'+(sp.alt<0?' low':'')+'"><circle cx="'+f(sx)+'" cy="'+f(sy)+'" r="8"/>'+[0,45,90,135,180,225,270,315].map(a=>{ const q=a*Math.PI/180; return '<path d="M'+f(sx+Math.cos(q)*10.5)+' '+f(sy+Math.sin(q)*10.5)+'L'+f(sx+Math.cos(q)*14)+' '+f(sy+Math.sin(q)*14)+'"/>'; }).join("")+'</g>'; }
+  if(face!=null){ const [tx,ty]=P(face,R-34), [ax,ay]=P(face,R-50); g+='<path d="M'+C+' '+C+'L'+f(ax)+' '+f(ay)+'" class="lf-aim"/><g class="lf-target" transform="translate('+f(tx)+' '+f(ty)+') rotate('+f(face)+')"><path d="M0 -13 L10 7 L-10 7Z"/></g>'; }
+  const you=state.heading!=null;
+  return '<svg viewBox="-6 -6 252 252" class="lf-dial" role="img" aria-label="Compass: sun to the '+compass(sp.az)+(face!=null?', point the camera '+compass(face):'')+'"><g id="lfRot" style="transform-origin:120px 120px;transform:rotate('+(you?-state.heading:0).toFixed(1)+'deg)">'+g+'</g>'+
+    '<g class="lf-you'+(you?'':' off')+'"><path d="M120 76 L131 104 L120 98 L109 104Z"/><circle cx="120" cy="120" r="5"/></g></svg>'; }
+function lfTurn(face){ if(face==null) return ""; const hd=state.heading; if(hd==null) return 'Point the camera <b>'+compass(face)+'</b>'+(state.pos?'':'')+'.';
+  const d=((face-hd)%360+540)%360-180, a=Math.abs(d); return a<=12?'<b class="lf-ok">You are facing it. Shoot.</b>':'Turn <b>'+(d>0?'right':'left')+' '+Math.round(a)+'°</b> to point the camera '+compass(face)+'.'; }
+function lfHeading(){ if(!LF.open) return; const r=$("lfRot"), y=document.querySelector("#lightf .lf-you"), t=$("lfTurn"); if(r) r.style.transform="rotate("+(state.heading!=null?-state.heading:0).toFixed(1)+"deg)";
+  if(y) y.classList.toggle("off",state.heading==null); if(t){ const o=LF.cur; const h=lfTurn(o?o.face:null); if(t.innerHTML!==h) t.innerHTML=h; } }
+function lfRender(){ const el=$("lightf"); if(!el||!LF.open) return; const t=new Date(), c=CITIES[state.city];
+  const pos=state.pos&&kmBetween(state.pos,c)<60?state.pos:{lat:c.lat,lon:c.lon}, here=pos!==state.pos;
+  const {sp,sky,opts}=lfOptions(t,pos); if(LF.sel>=opts.length) LF.sel=0; const o=opts[LF.sel]; LF.cur=o;
+  const st=lfStreet(pos,sp), S=lfSettings(o,sky,sp), ph=sunPhase(sp.alt), np=Object.keys(c.places).filter(id=>typeof PLACES[id].lat==="number").map(id=>[id,kmBetween(pos,PLACES[id])]).sort((a,b)=>a[1]-b[1])[0], hood=np&&np[1]<0.8?PLACES[np[0]].name:nearestHood(pos.lat,pos.lon);
+  const skyWord={clear:"Clear",partly:"Sun and cloud",cloud:"Overcast",rain:"Rain",fog:"Fog",snow:"Snow",unknown:""}[sky]||"";
+  // the street: which way along it gives this light, and which side is sunny
+  let street=""; if(st){ const kinds=st.dirs.map(d=>({d:(d+360)%360,k:lightFacing(d,t).k})), want=o.k==="side"||o.k==="back"||o.k==="front"?o.k:null, along=want&&kinds.find(x=>x.k===want);
+    street='<p class="lf-st">Your street runs '+compass(st.b)+' to '+compass(st.b+180)+'.'+(along?' Looking along it to the <b>'+compass(along.d)+'</b> gives '+({side:"side light",back:"backlight",front:"front light"})[want]+'.':want?' Looking along it gives '+kinds.map(x=>({side:"side light",back:"backlight",front:"front light",dark:"no sun"})[x.k]).join(" one way and ")+' the other; for '+({side:"side light",back:"backlight",front:"front light"})[want]+' shoot across it.':'')+
+      (st.along?' <b>The sun is lined up with this street right now:</b> light runs straight down it.':'')+(st.sunny!=null&&(sky==="clear"||sky==="partly"||sky==="unknown")?' The <b>'+compass(st.sunny)+'</b> side is in sun'+(sp.alt<15?', on the upper floors more than the sidewalk':'')+'.':'')+'</p>'; }
+  // a street nearby that lines up with the sun soon
+  let henge=""; if(state.city==="nyc"&&sp.alt>-1){ const H=hengeDay(new Date()), nm=t.getHours()*60+t.getMinutes(), near=H.runs.filter(r=>r.to>=nm&&r.from-nm<=90).map(r=>{ const R=MAPD_RUNS[r.i], [la,lo]=mapLL((R[0]+R[2])/20,(R[1]+R[3])/20); return {r,km:kmBetween(pos,{lat:la,lon:lo})}; }).filter(x=>x.km<1.2).sort((a,b)=>a.km-b.km)[0];
+    if(near) henge='<p class="lf-st">☀ A long street '+mDist(near.km)+' from you lines up with the sun at <b>'+hmText(near.r.m)+'</b>: light straight down it, looking '+compass(near.r.az)+'. <button type="button" class="linkbtn" data-lf="henge" data-run="'+near.r.i+'">Show it on the map</button></p>'; }
+  // the nearest idea for this light
+  const pick=todayPicks(t)[0], idea=pick&&pick.best;
+  const rows=S.su?[["Mode",S.su[4]],["Focus",S.su[0]+(S.su[1]&&!/Not used/.test(S.su[1])?' · '+S.su[1]:'')],["Metering",S.su[2]],["Exposure comp.",o.comp||S.su[3]],["White balance",S.su[7]]]:[["Exposure comp.",o.comp]];
+  el.innerHTML='<div class="st-in lf-in"><div class="st-top"><span class="st-where"><b>Light here</b> · '+hmText(t.getHours()*60+t.getMinutes())+(hood&&!here?' · '+esc(hood):'')+'</span><button type="button" class="st-x" data-lf="close" aria-label="Close">×</button></div>'+
+    (here?'<p class="lf-note">'+(LF.fallback?'Location is off, so this is for Midtown. Allow location for advice on the street you are on.':'Finding where you are… meanwhile this is for Midtown.')+'</p>':'')+
+    '<p class="lf-sky">'+(sp.alt>0?'Sun '+Math.round(sp.alt)+'° up in the '+compass(sp.az):sp.alt>-6?'Sun just below the horizon to the '+compass(sp.az):'Sun down')+' · '+SUN_PHASE[ph]+(skyWord?' · '+skyWord:'')+'</p>'+
+    '<div class="lf-dialw">'+lfDial(sp,o.face)+'</div>'+
+    '<p class="lf-turn" id="lfTurn">'+(o.face!=null?lfTurn(o.face):'')+'</p>'+
+    (state.heading==null&&o.face!=null?'<p class="lf-note">'+(HEAD.why||inFrame?esc(headMsg()||"The compass is not available here, so the dial shows north at the top."):'Hold the phone flat: the dial turns with you once the compass wakes up.')+'</p>':'')+
+    '<div class="lf-opts">'+opts.map((x,n)=>'<button type="button" class="chip" data-lfopt="'+n+'" aria-pressed="'+(n===LF.sel)+'">'+(n===0?'Best: ':'')+esc(({side:"Side light",back:"Into the sun",front:"Sun behind you",shade:"Open shade",lights:"Lights",wet:"Reflections",glow:"Afterglow",lit:"Lit windows",soft:"Soft light",fog:"Into the glow"})[x.k]||x.k)+'</button>').join("")+'</div>'+
+    '<h2 class="lf-h">'+esc(o.title)+'</h2><p class="why">'+esc(o.why)+'</p>'+street+henge+
+    '<div class="st-exp"><span class="stk">'+esc(S.cam.name)+'</span><b>'+esc(S.rec[0])+'</b><span class="st-adj">'+esc(S.meter)+'</span></div>'+
+    rows.filter(r=>r[1]).map(r=>'<div class="strow"><span class="stk">'+r[0]+'</span><span class="stv">'+esc(r[1])+'</span></div>').join("")+
+    '<p class="lf-adj">'+esc(S.rec[1])+(S.adj.length?' '+S.adj.map(esc).join(" "):'')+'</p>'+
+    (idea?'<p class="stk lf-ideah">Nearest idea for this light</p><button type="button" class="row lf-idea" data-lfidea="'+idea.id+'"><span class="dot" style="background:'+INTENTS[idea.i].color+'"></span><span class="t"><b>'+esc(idea.t)+'</b><span>'+esc(PLACES[idea.p].name)+(pick.mi!=null?' · '+milesText(pick.mi):'')+'</span></span><span class="go" aria-hidden="true">›</span></button>':'')+
+    '<p class="lf-foot">Settings are for the '+esc(S.cam.name)+'. Change the camera in an idea’s Settings tab.</p></div>'; }
+document.addEventListener("click",e=>{ const t=e.target.closest&&e.target.closest("[data-lightf],[data-lf],[data-lfopt],[data-lfidea]"); if(!t) return;
+  if(t.dataset.lightf){ e.stopPropagation(); lfOpen(); return; }
+  if(!LF.open) return; e.stopPropagation();
+  if(t.dataset.lfopt){ LF.sel=+t.dataset.lfopt; lfRender(); return; }
+  if(t.dataset.lfidea){ const id=t.dataset.lfidea; lfClose(); show(id); state.view="shoot"; render(); window.scrollTo({top:0}); return; }
+  if(t.dataset.lf==="close"){ lfClose(); return; }
+  if(t.dataset.lf==="henge"){ const i=+t.dataset.run; lfClose(); state.mapD=0; state.mapT=null; state.mapShowHenge=true; state.view="map"; render(); requestAnimationFrame(()=>requestAnimationFrame(()=>mapSelectRun(i))); } },true);
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&LF.open) lfClose(); });
+
 /* The day's light, minute by minute: night, blue hour, golden hour, daylight. Drawn as the slider track, with marks to jump to. */
 let LIGHT_DAY = null;
 function lightDay(day){ const c=CITIES[state.city], d=day?new Date(day):mapDay(); d.setHours(0,0,0,0); const key=state.city+":"+(+d);
@@ -3537,7 +3655,7 @@ function renderToday(){ const box=$("today"); if(!box) return;
   const nextTxt = cur ? cur.name+' until '+tf(cur.e) : upcoming ? upcoming.name+' in '+mins(upcoming.s-nm)+' ('+tf(upcoming.s)+')' : 'Next good light: blue hour tomorrow about '+tf(list[0]?list[0].s:L.rise-30);
   const sunTxt = NL.sp.alt>0 ? 'Sun to the '+compass(NL.sp.az)+', '+Math.round(NL.sp.alt)+'° up' : 'Sun down';
   const nowStrip='<section class="tnow '+NL.ph+'"><div class="tnowl"><span class="tlabel">Right now · '+tf(nm)+'</span><p class="tverdict">'+esc(NL.what)+'</p><p class="msg">'+esc(nextTxt)+' · '+esc(sunTxt)+'</p></div>'+
-    '<button type="button" class="btn primary tshoot" data-shootnow="1">Shoot now</button></section>';
+    '<div class="tnowb"><button type="button" class="btn primary tshoot" data-shootnow="1">Shoot now</button><button type="button" class="btn tlightf" data-lightf="1">Light here</button></div></section>';
   // the light today, compact: bar with windows as labels, weather on one line
   const runs=rainRuns(), rainTxt = runs ? (runs.length ? 'Rain likely '+runs.map(r=>hmText(r.s*60)+' to '+hmText(r.e*60)).join(" and ")+'.' : 'No rain expected today.') : (w&&typeof w.precip_chance_today==="number" ? 'Chance of rain today '+w.precip_chance_today+'%.' : '');
   // the weather now: from this hour's forecast when there is one, otherwise the last reading if it is recent

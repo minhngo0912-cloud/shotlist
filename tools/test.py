@@ -516,6 +516,23 @@ def run(path, name):
         check("An assignment runs with a frame counter on every page and in Street mode, and Done logs it and ticks it", db==[True,"+1 · 2 of 36",True] and st and dl[:5]==[None,1,2,True,True], [db,st,dl])
         pg.evaluate("state.view='learn'; render(); document.querySelector('#learn details[data-id=practice]').open=true; document.querySelector('[data-drillstart=\"same-place\"]').click()"); pg.wait_for_timeout(80)
         check("Same place, three times logs a visit at once and counts the week", pg.evaluate("[state.drillRun, document.querySelector('#learn').textContent.includes('1 of 3 visits this week')]")==[None,True])
+        # Light here: where to point the camera and the settings, from your position
+        pg.evaluate("state.view='today'; render()"); pg.wait_for_timeout(80)
+        pg.click("#today [data-lightf]"); pg.wait_for_timeout(400)
+        lf=pg.evaluate("""[!document.getElementById('lightf').hidden, !!document.querySelector('#lightf .lf-dial'), document.querySelectorAll('#lightf [data-lfopt]').length, document.querySelector('#lightf .lf-h').textContent,
+          /Auto ISO will sit near|shutter will land near|Auto ISO stays/.test(document.querySelector('#lightf .st-exp').textContent), (document.querySelector('#lightf .lf-st')||{textContent:''}).textContent, document.querySelector('#lightf .st-where').textContent]""")
+        check("Light here opens with a dial, the ways to point the camera, settings with the expected ISO, and your street", lf[0] and lf[1] and lf[2]>=1 and lf[3] and lf[4] and "Your street runs" in lf[5] and lf[6].count(" · ")==2, lf)
+        if name=="Installed app": check("In the rain it says the light is soft and points to reflections", lf[3].startswith("Any direction works") and pg.evaluate("[...document.querySelectorAll('#lightf [data-lfopt]')].map(b=>b.textContent).join('|')")=="Best: Soft light|Reflections", lf[3])
+        if pg.evaluate("document.querySelectorAll('#lightf [data-lfopt]').length")>1:
+            pg.click("#lightf [data-lfopt='1']"); pg.wait_for_timeout(80)
+            check("Choosing another way to point changes the advice", pg.evaluate("document.querySelector('#lightf [data-lfopt][aria-pressed=true]').dataset.lfopt")=="1" and pg.evaluate("document.querySelector('#lightf .lf-h').textContent")!=lf[3])
+        pg.evaluate("headingSet(10); headingSet(10); headingSet(10); headingApply()"); pg.wait_for_timeout(50)
+        hd=pg.evaluate("[document.getElementById('lfRot').style.transform, document.getElementById('lfTurn').textContent]")
+        check("With the compass, the dial turns with you and says which way to turn", "rotate(-" in hd[0] and (hd[1]=="" or "Turn" in hd[1] or "facing it" in hd[1]), hd)
+        pg.evaluate("state.heading=null"); pg.click("#lightf [data-lf=close]"); pg.wait_for_timeout(80)
+        check("Light here closes", pg.evaluate("[document.getElementById('lightf').hidden, LF.open]")==[True,False])
+        pg.evaluate("state.view='map'; render()"); pg.wait_for_timeout(200)
+        check("The map has a Light here button too", pg.evaluate("!!document.querySelector('#map .mapbtns [data-lightf]')"))
         # Dark theme renders too
         pg.evaluate("document.documentElement.dataset.theme='dark'; state.view='shoot'; render()"); pg.wait_for_timeout(80)
         check("no script errors", not errors, errors[:3])

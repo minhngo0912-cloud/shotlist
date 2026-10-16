@@ -847,3 +847,27 @@ body.streetmode{overflow:hidden}
 .st-drill .dr-t{flex:1;min-width:0;display:flex;flex-direction:column} .st-drill .chip{min-height:34px}
 .drills2 li{display:flex;align-items:flex-start;gap:8px} .drills2 li label{flex:1} .drills2 li>.chip,.drills2 li>.pill{flex:none;margin-top:2px}
 .drmeta{display:block;font-style:normal;font-size:12.5px;color:var(--muted);margin-top:3px}
+/* Light here */
+.tnowb{flex:none;display:flex;flex-direction:column;gap:6px} .tlightf{padding:9px 14px;white-space:nowrap;background:transparent;color:#fff;border:1px solid rgba(255,255,255,.45)}
+.mapbtns button[data-lightf] svg{width:22px;height:22px;fill:none;stroke:#ffd23f;stroke-width:2;stroke-linecap:round} .mapbtns button[data-lightf] svg circle{fill:#ffd23f}
+body.lfopen{overflow:hidden}
+.lightf{z-index:55} .lf-in{padding-bottom:28px}
+.lf-sky{margin:6px 0 2px;color:#d6d8de;font-size:15px}
+.lf-dialw{display:flex;justify-content:center;margin:4px 0 0} .lf-dial{width:min(78vw,300px);height:auto;overflow:visible}
+#lfRot{transition:transform .15s linear}
+.lf-ring{fill:none;stroke:#5a5d66;stroke-width:1.5} .lf-tick{stroke:#8a8d96;stroke-width:1.5}
+.lf-card{fill:#b4b6bc;font:700 13px system-ui,sans-serif} .lf-card.n{fill:#ff6b3d}
+.lf-sec{stroke:#000;stroke-width:1.5} .lf-sec.back{fill:#f28a28} .lf-sec.side{fill:#fccc0a} .lf-sec.front{fill:#fff3c4}
+.lf-sun circle{fill:#ffd23f;stroke:#000;stroke-width:1.5} .lf-sun path{stroke:#ffd23f;stroke-width:2;stroke-linecap:round} .lf-sun.low circle{fill:#f28a28}
+.lf-aim{stroke:#fff;stroke-width:3;stroke-dasharray:5 5;stroke-linecap:round}
+.lf-target path{fill:#fff;stroke:#000;stroke-width:2;stroke-linejoin:round}
+.lf-you path{fill:#4fd1e6;stroke:#000;stroke-width:1.5} .lf-you circle{fill:#4fd1e6} .lf-you.off{opacity:0}
+.lf-turn{text-align:center;font-size:17px;margin:6px 0 2px;min-height:1.4em} .lf-turn b{color:#ffd23f} .lf-turn .lf-ok{color:#3ddc84}
+.lf-note{font-size:13px;color:#b4b6bc;margin:4px 0;text-align:center}
+.lf-opts{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 4px}
+.lf-h{font-size:22px!important;margin:10px 0 6px!important}
+.lf-st{font-size:14px;color:#d6d8de;margin:0 0 10px;line-height:1.45} .lf-st b{color:#fff} .lf-st .linkbtn{color:#ffd23f}
+.lf-adj{font-size:13.5px;color:#d6d8de;margin:8px 0 4px;line-height:1.45}
+.lf-ideah{display:block;margin:16px 0 4px} .lightf .lf-idea{width:100%;background:#16181d;color:#fff;border:1px solid #2a2d33;border-radius:10px;padding:10px}
+.lightf .lf-idea .t span{color:#b4b6bc}
+.lf-foot{font-size:12px;color:#8a8d96;margin-top:14px}
