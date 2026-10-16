@@ -3960,7 +3960,7 @@ function lfbHtml(pos,t,st){ if(!lfbOn()) return ""; const T=lfbTile(pos);
   // the two sidewalks, about 9 m either side of the street's centre line
   if(st){ const n=(st.b+90)*Math.PI/180, kx=111320*Math.cos(pos.lat*Math.PI/180), side=s=>({lat:pos.lat+Math.cos(n)*9*s/110540,lon:pos.lon+Math.sin(n)*9*s/kx});
     const A=lfbSun(T,side(1),t), B=lfbSun(T,side(-1),t), nm=k=>compass(st.b+(k>0?90:270));
-    if(!A.down&&!B.down) out+=' On this street, the <b>'+nm(1)+'</b> sidewalk is in '+(A.sun?'sun':'shade')+' and the <b>'+nm(-1)+'</b> sidewalk in '+(B.sun?'sun':'shade')+'.'; }
+    if(!A.down&&!B.down) out+=A.sun===B.sun?' Both sidewalks of this street are in '+(A.sun?'sun':'shade')+'.':' On this street the <b>'+(A.sun?nm(1):nm(-1))+'</b> sidewalk is in sun; the '+(A.sun?nm(-1):nm(1))+' sidewalk is in shade.'; }
   LF.shadeNext=ch&&ch.txt!=="sunset"?{m:t.getHours()*60+t.getMinutes()+ch.m,txt:ch.txt==="arrives"?"Sun reaches your spot":"Sun leaves your spot"}:null;
   return '<p class="lf-st lf-shade">'+out+' <span class="lf-src">From the city’s building heights.</span></p>'; }
 
@@ -4018,12 +4018,14 @@ function lfRender(){ const el=$("lightf"); if(!el||!LF.open) return; const real=
   const {sp,sky,opts}=lfOptions(t,pos), mo=moonPos(t,pos.lat,pos.lon);
   // after dark with a bright moon up, the moon is one more way to point
   if(sp.alt<-0.8&&mo.alt>2&&mo.frac>0.45&&sky!=="cloud"&&sky!=="rain"&&sky!=="fog") opts.push({k:"moon",face:mo.az,title:"Face "+compass(mo.az)+": the moon "+(mo.alt<20?"low over the street":"above the rooftops"),why:(mo.alt<20?"A low moon between buildings is the shot: frame it at the end of a street or beside a water tower.":"The moon is high; it works small in a wide frame of lit windows.")+" Exposed for the street it turns into a white disc, a shape rather than detail. The 75 or 90 mm crop makes it bigger.",recipe:"night",ev:7,comp:"−0.7 EV"});
-  if(LF.sel>=opts.length) LF.sel=0; const o=opts[LF.sel]; LF.cur=o;
+  if(LF.sel>=opts.length) LF.sel=0; let o=opts[LF.sel]; LF.cur=o;
+  const T=lfbOn()&&sp.alt>0.5?lfbTile(pos):null, here0=T?lfbSun(T,pos,t):null, shaded=here0&&!here0.down&&here0.sun===false&&(sky==="clear"||sky==="partly"||sky==="unknown")&&o.k!=="shade";
+  if(shaded) o=Object.assign({},o,{ev:o.ev-3});   // in a building's shadow there is about three stops less light than in the open street
   const subj=LF.subj||"auto", st=lfStreet(pos,sp), S=lfSettings(o,sky,sp,subj), ph=sunPhase(sp.alt), np=Object.keys(c.places).filter(id=>typeof PLACES[id].lat==="number").map(id=>[id,kmBetween(pos,PLACES[id])]).sort((a,b)=>a[1]-b[1])[0], hood=np&&np[1]<0.8?PLACES[np[0]].name:nearestHood(pos.lat,pos.lon);
   const skyWord={clear:"Clear",partly:"Sun and cloud",cloud:"Overcast",rain:"Rain",fog:"Fog",snow:"Snow",unknown:""}[sky]||"";
   let street=""; if(st&&sp.alt>-0.8){ const kinds=st.dirs.map(d=>({d:(d+360)%360,k:lightFacing(d,t).k})), want=o.k==="side"||o.k==="back"||o.k==="front"?o.k:null, along=want&&kinds.find(x=>x.k===want);
     street='<p class="lf-st">Your street runs '+compass(st.b)+' to '+compass(st.b+180)+'.'+(along?' Looking along it to the <b>'+compass(along.d)+'</b> gives '+({side:"side light",back:"backlight",front:"front light"})[want]+'.':want?' Looking along it gives '+kinds.map(x=>({side:"side light",back:"backlight",front:"front light",dark:"no sun"})[x.k]).join(" one way and ")+' the other; for '+({side:"side light",back:"backlight",front:"front light"})[want]+' shoot across it.':'')+
-      (st.along?' <b>The sun is lined up with this street'+(LF.off?' then':' right now')+':</b> light runs straight down it.':'')+(st.sunny!=null&&(sky==="clear"||sky==="partly"||sky==="unknown")?' The <b>'+compass(st.sunny)+'</b> side is in sun'+(sp.alt<15?', on the upper floors more than the sidewalk':'')+'.':'')+'</p>'; }
+      (st.along?' <b>The sun is lined up with this street'+(LF.off?' then':' right now')+':</b> light runs straight down it.':'')+(st.sunny!=null&&!T&&(sky==="clear"||sky==="partly"||sky==="unknown")?' The <b>'+compass(st.sunny)+'</b> side is in sun'+(sp.alt<15?', on the upper floors more than the sidewalk':'')+'.':'')+'</p>'; }
   const lights=(o.k==="lights"||o.k==="lit"||o.k==="wet"||o.k==="moon")?lfLights(pos):"";
   LF.shadeNext=null; const shade=sp.alt>0.5?lfbHtml(pos,t,st):"";
   const next=lfNext(pos), nmReal=real.getHours()*60+real.getMinutes();
@@ -4044,7 +4046,7 @@ function lfRender(){ const el=$("lightf"); if(!el||!LF.open) return; const real=
     (next.length?'<p class="stk lf-ideah">Coming up here</p><div class="lf-next">'+next.map(x=>x.m===null?'<p class="lf-st">'+esc(x.txt)+'</p>':'<button type="button" class="lf-nx'+(LF.off&&nmReal+LF.off>=x.m-2&&nmReal+LF.off<=x.m+2?' on':'')+'" data-lfat="'+Math.max(0,Math.min(180,Math.round((x.m-nmReal)/5)*5))+'"><span class="lf-nxt">'+hmText(((x.m%1440)+1440)%1440)+'</span><span class="lk '+(x.k==="sun"?"rise":x.k==="moon"?"moon":x.k==="henge"?"henge":x.k==="rain"?"rain":x.k==="blue"?"blue":"gold")+'"></span><span class="lf-nxw">'+esc(x.txt)+'</span></button>').join("")+'</div>':'')+
     '<p class="stk lf-ideah">What are you shooting?</p><div class="lf-subj">'+Object.entries(LF_SUBJ).map(([k,v])=>'<button type="button" class="chip" data-lfsubj="'+k+'" aria-pressed="'+(subj===k)+'">'+esc(v.n)+'</button>').join("")+'</div>'+
     '<div class="lf-cams" role="group" aria-label="Camera">'+[["q328","Leica Q3"],["q343","Leica Q3 43"]].map(([k,n])=>'<button type="button" class="chip" data-lfcam="'+k+'" aria-pressed="'+(state.camera===k)+'">'+n+'</button>').join("")+'</div>'+
-    '<div class="st-exp"><span class="stk">'+esc(S.cam.name)+(subj!=="auto"?' · '+esc(LF_SUBJ[subj].n.toLowerCase()):'')+'</span><b>'+esc(S.line)+'</b><span class="st-adj">'+esc(S.meter)+'</span></div>'+
+    '<div class="st-exp"><span class="stk">'+esc(S.cam.name)+(subj!=="auto"?' · '+esc(LF_SUBJ[subj].n.toLowerCase()):'')+'</span><b>'+esc(S.line)+'</b><span class="st-adj">'+esc(S.meter)+(shaded?' You are in shade, so this allows for about three stops less light than the open street.':'')+'</span></div>'+
     rows.filter(r=>r[1]).map(r=>'<div class="strow"><span class="stk">'+r[0]+'</span><span class="stv">'+esc(r[1])+'</span></div>').join("")+
     '<p class="lf-adj">'+esc(S.note||S.rec[1])+(S.adj.length?' '+S.adj.map(esc).join(" "):'')+'</p>'+lfLogHtml()+
     (idea?'<p class="stk lf-ideah">Nearest idea for this light</p><button type="button" class="row lf-idea" data-lfidea="'+idea.id+'"><span class="dot" style="background:'+INTENTS[idea.i].color+'"></span><span class="t"><b>'+esc(idea.t)+'</b><span>'+esc(PLACES[idea.p].name)+(pick.mi!=null?' · '+milesText(pick.mi):'')+'</span></span><span class="go" aria-hidden="true">›</span></button>':'')+
