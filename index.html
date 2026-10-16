@@ -3920,7 +3920,7 @@ const LFB = {cache:new Map(), busy:false, err:"", key:""};
 const LFB_URL = "https://data.cityofnewyork.us/resource/5zhs-2jue.json";
 const lfbOn = () => typeof loadWeather==="function" && state.city==="nyc";   // the Claude version cannot reach the city's data
 const lfbKey = pos => (Math.round(pos.lat*500)/500).toFixed(4)+","+(Math.round(pos.lon*380)/380).toFixed(4);   // tiles of about 220 m
-async function lfbLoad(pos){ const key=lfbKey(pos); if(LFB.cache.has(key)||LFB.busy) return; LFB.busy=true; LFB.key=key;
+async function lfbLoad(pos){ const key=lfbKey(pos); if(LFB.cache.has(key)||LFB.busy||(LFB.err&&Date.now()-(LFB.errAt||0)<60000)) return; LFB.err=""; LFB.busy=true; LFB.key=key;
   try{ const [clat,clon]=key.split(",").map(Number), kx=111320*Math.cos(clat*Math.PI/180), ky=110540;
     const q=where=>fetch(LFB_URL+"?$select=height_roof,ground_elevation,the_geom&$limit=6000&$where="+encodeURIComponent(where)).then(r=>{ if(!r.ok) throw new Error("the city's building data answered "+r.status); return r.json(); });
     const [near,tall]=await Promise.all([q("within_circle(the_geom,"+clat+","+clon+",450) AND height_roof>15"),q("within_circle(the_geom,"+clat+","+clon+",1600) AND height_roof>300")]);
@@ -3930,7 +3930,7 @@ async function lfbLoad(pos){ const key=lfbKey(pos); if(LFB.cache.has(key)||LFB.b
         const xy=ring.map(p=>[(p[0]-clon)*kx,(p[1]-clat)*ky]); let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9; for(const [x,y] of xy){ if(x<x0)x0=x; if(y<y0)y0=y; if(x>x1)x1=x; if(y>y1)y1=y; }
         list.push({h,g,xy,bb:[x0,y0,x1,y1]}); } }
     LFB.cache.set(key,{clat,clon,kx,ky,list}); LFB.err="";
-  }catch(e){ LFB.err=String(e&&e.message||e); } finally{ LFB.busy=false; if(LF.open) lfRender(); } }
+  }catch(e){ LFB.err=e&&e.name==='TypeError'?'no connection':String(e&&e.message||e); LFB.errAt=Date.now(); } finally{ LFB.busy=false; if(LF.open) lfRender(); } }
 const lfbTile = pos => LFB.cache.get(lfbKey(pos))||null;
 const lfbXY = (T,p) => [(p.lon-T.clon)*T.kx,(p.lat-T.clat)*T.ky];
 function lfbInside(xy,x,y){ let c=false; for(let i=0,j=xy.length-1;i<xy.length;j=i++){ const [xi,yi]=xy[i],[xj,yj]=xy[j]; if(((yi>y)!==(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi)) c=!c; } return c; }
