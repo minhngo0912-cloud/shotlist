@@ -2756,15 +2756,47 @@ function lfOptions(t,pos){ const sp=sunPos(t,pos.lat,pos.lon), sky=lfSky(t), az=
     else { opts.push(sideO,backO,frontO); }
   }
   return {sp,sky,opts}; }
-/* Camera settings for an option: the recipe, the ISO Auto ISO will land on (or the shutter speed for a fixed ISO), and what to change now. */
-function lfSettings(o,sky,sp){ const cam=CAMERAS[state.camera]||CAMERAS.q343, rec=cam.recipes[o.recipe], su=setupFor(cam,o.recipe), ev=o.ev;
-  const m=/f\/([\d.]+)/.exec(rec[0]), s=/1\/(\d+)\s*s/.exec(rec[0]), N=m?+m[1]:8; let meter="";
-  if(/auto shutter/.test(rec[0])) meter="The shutter will land near "+lfShutterText(lfShutter(N,100,ev))+".";
-  else if(s){ const iso=lfISO(N,1/+s[1],ev); meter=iso<=100?"Auto ISO stays at its floor; "+(iso<50?"use a faster shutter, about "+lfShutterText(N*N/Math.pow(2,ev))+", or stop down.":"ISO 100."):iso>6400?"Too dark for this at "+rec[0].split(" · ").slice(0,2).join(" · ")+": open up and slow the shutter to 1/125 s.":"Auto ISO will sit near "+lfISOText(iso)+"."; }
-  const i={phase:sp.alt<-6?"night":sp.alt<6?"dusk":"mid",sky:sky==="clear"?(sp.alt>=20?"sun":null):sky==="partly"?"partly":sky==="cloud"||sky==="fog"?"cloud":sky==="rain"||sky==="snow"?"rain":null};
-  const adj=adjustFor(o.recipe,i,cam.setup==="leica").filter(a=>!/compensation as shown/.test(a)).slice(0,2);
-  return {cam,rec,su,meter,adj}; }
-function lfOpen(){ LF.open=true; LF.sel=0; const el=$("lightf"); el.hidden=false; document.body.classList.add("lfopen");
+/* What you are shooting changes the settings: each subject has a starting aperture and shutter, and the slowest shutter it can
+   take. In poor light the app opens the aperture first, then slows the shutter, to keep Auto ISO at or under 3200. */
+const LF_SUBJ = {
+  auto:{n:"For this light"},
+  walk:{n:"People walking",recipe:"zone",N:8,t:250,minT:125},
+  portrait:{n:"A portrait",recipe:"shallow",N:0,t:500,minT:125},
+  building:{n:"Buildings, signs",recipe:"deep",N:8,t:125,minT:30},
+  blur:{n:"Motion blur",recipe:"drag"},
+  silhouette:{n:"Silhouettes",recipe:"silhouette"}
+};
+const LF_WIDE = {q343:2,q328:1.7};
+/* Camera settings for an option and a subject: the exposure, what Auto ISO (or the shutter) will do in this light, and what to change. */
+function lfSettings(o,sky,sp,subj){ const cam=CAMERAS[state.camera]||CAMERAS.q343, S=LF_SUBJ[subj]||LF_SUBJ.auto, recipe=S.recipe||o.recipe, rec=cam.recipes[recipe], su=setupFor(cam,recipe);
+  const wide=LF_WIDE[state.camera]||2, stops=[1.7,2,2.8,4,5.6,8,11,16].filter(x=>x>=wide), fN=n=>"f/"+(Math.round(n*10)/10);
+  const backlit=o.k==="back"||o.k==="glow"||o.k==="fog";
+  // the light on the subject: backlit faces sit in their own shadow; silhouettes are metered on the bright part
+  let ev=o.ev; if(subj==="silhouette") ev=backlit?o.ev:o.ev+1; else if(subj!=="auto"&&backlit) ev=o.ev-2.5;
+  let line=rec[0], meter="", note="", comp=o.comp, adj=[];
+  if(subj==="auto"){ const m=/f\/([\d.]+)/.exec(rec[0]), s=/1\/(\d+)\s*s/.exec(rec[0]), N=m?+m[1]:8;
+    if(/auto shutter/.test(rec[0])) meter="The shutter will land near "+lfShutterText(lfShutter(N,100,ev))+".";
+    else if(s){ const iso=lfISO(N,1/+s[1],ev); meter=iso<=100?"Auto ISO stays at its floor; "+(iso<50?"use a faster shutter, about "+lfShutterText(N*N/Math.pow(2,ev))+", or stop down.":"ISO 100."):iso>6400?"Too dark for this at "+rec[0].split(" · ").slice(0,2).join(" · ")+": open up and slow the shutter to 1/125 s.":"Auto ISO will sit near "+lfISOText(iso)+"."; }
+    const i={phase:sp.alt<-6?"night":sp.alt<6?"dusk":"mid",sky:sky==="clear"?(sp.alt>=20?"sun":null):sky==="partly"?"partly":sky==="cloud"||sky==="fog"?"cloud":sky==="rain"||sky==="snow"?"rain":null};
+    adj=adjustFor(recipe,i,cam.setup==="leica").filter(a=>!/compensation as shown/.test(a)).slice(0,2); }
+  else if(subj==="blur"){ const t=1/15, N=Math.sqrt(t*Math.pow(2,ev)); comp="0";
+    if(N>16&&N/Math.SQRT2<=16.5){ line="f/16 · 1/15 s · ISO 50 · S mode"; meter="Just reachable: f/16 at ISO 50."; note="Set ISO 50 by hand; Auto ISO stops at 100. Brace on something and pan with a walker."; }
+    else if(N>16){ const tt=lfShutter(16,50,ev); line="f/16 · "+lfShutterText(tt)+" · ISO 50 · S mode"; meter="Too bright for 1/15 s here."; note="At f/16 and ISO 50 the camera only gets down to "+lfShutterText(tt)+", which blurs fast walkers a little. Step into shade, wait for dusk, or fit a 3-stop ND filter for real streaks."; }
+    else if(N<wide){ const iso=lfISO(wide,t,ev); line=fN(wide)+" · 1/15 s · Auto ISO · S mode"; meter="Wide open, Auto ISO will sit near "+lfISOText(iso)+"."; note="Brace on a pole or railing; stabilization steadies the street, the people still blur."; }
+    else { const n=stops.reduce((a,b)=>Math.abs(Math.log2(b/N))<Math.abs(Math.log2(a/N))?b:a); line="1/15 s · S mode · ISO 100"; meter="The camera will pick about "+fN(n)+"."; note="Elbows in, brace on something, and pan with a walker for a sharp face on a streaked street."; } }
+  else if(subj==="silhouette"){ const tt=lfShutter(5.6,100,ev); line="f/5.6 · "+lfShutterText(tt)+" · ISO 100"; comp="−1.3 EV, metered on the bright part"; meter="People go black against the light."; if(tt>1/60) note="There is not much light behind them now. Use a lit window, a screen or the afterglow as the bright part."; }
+  else { let N=S.N||wide, t=1/S.t, iso=lfISO(N,t,ev), opened=false, slowed=false, closed=false;
+    while(iso>3200&&stops.indexOf(N)>0){ N=stops[stops.indexOf(N)-1]; iso=lfISO(N,t,ev); opened=true; }
+    while(iso>3200&&1/t>S.minT){ t=Math.min(1/S.minT,t*2); iso=lfISO(N,t,ev); slowed=true; }
+    if(subj!=="portrait") while(iso<100&&stops.indexOf(N)<stops.length-1&&N<11){ N=stops[stops.indexOf(N)+1]; iso=lfISO(N,t,ev); closed=true; }
+    if(iso<100){ t=t*Math.max(iso,1)/100; iso=100; }
+    line=fN(N)+" · "+lfShutterText(t)+" · Auto ISO"; meter=iso>6400?"Even like this, ISO would climb past 6400.":"Auto ISO will sit near "+lfISOText(Math.max(100,iso))+".";
+    note=iso>6400?"Find more light: under a shop window or a street lamp, or wait for people to step into it.":opened&&slowed?"Opened up and slowed the shutter to hold ISO under 3200; that is the limit for this subject.":opened?"Opened up from "+fN(S.N||wide)+" to keep ISO under 3200.":closed?"Bright light: stopped down for more depth.":"";
+    if(subj==="walk") note=(note?note+" ":"")+"Focus by distance: "+(state.camera==="q328"?"set the ring to 3 m":"set the ring to 3 m for whole figures, 2 m from the waist up")+(N<5.6?" (depth is shallow at this aperture, so be exact)":"")+".";
+    if(subj==="portrait") comp=backlit?"+1 EV, so the face is not dark":o.comp;
+    if(subj==="building") comp=backlit?"−0.7 EV to hold the sky":"−0.3 EV"; }
+  return {cam,rec,su,line,meter,note,adj,comp,recipe}; }
+function lfOpen(){ LF.open=true; LF.sel=0; LF.off=0; LF.subj=store.get("lfSubj","auto")||"auto"; if(!LF_SUBJ[LF.subj]) LF.subj="auto"; const el=$("lightf"); el.hidden=false; document.body.classList.add("lfopen");
   headingStart().then(()=>lfRender()); try{ if(navigator.wakeLock&&!LF.wake) navigator.wakeLock.request("screen").then(w=>{ LF.wake=w; }).catch(()=>{}); }catch(e){}
   LF.fallback=false;
   try{ if(navigator.geolocation&&LF.watch==null) LF.watch=navigator.geolocation.watchPosition(p=>{ const was=state.pos; state.pos={lat:p.coords.latitude,lon:p.coords.longitude}; LF.acc=p.coords.accuracy; LF.fallback=false; if(!was||kmBetween(was,state.pos)>0.02) lfRender(); },()=>{ if(!state.pos){ LF.fallback=true; lfRender(); } },{enableHighAccuracy:true,maximumAge:10000,timeout:20000}); }catch(e){ LF.fallback=true; }
@@ -2774,7 +2806,7 @@ function lfClose(){ LF.open=false; const el=$("lightf"); el.hidden=true; el.inne
   if(!state.mapHead&&!state.street&&!state.guide) headingStop(); }
 /* The dial: north at the top, or the way you face at the top when the compass works. Sun on the rim, the light sectors around it,
    and the direction to point the camera. */
-function lfDial(sp,face){ const R=104, C=120, P=(a,r)=>[C+Math.sin(a*Math.PI/180)*r,C-Math.cos(a*Math.PI/180)*r], f=n=>n.toFixed(1);
+function lfDial(sp,face,mo){ const R=104, C=120, P=(a,r)=>[C+Math.sin(a*Math.PI/180)*r,C-Math.cos(a*Math.PI/180)*r], f=n=>n.toFixed(1);
   const arc=(a0,a1,r0,r1,cls)=>{ const [x0,y0]=P(a0,r1),[x1,y1]=P(a1,r1),[x2,y2]=P(a1,r0),[x3,y3]=P(a0,r0), big=((a1-a0+360)%360)>180?1:0; return '<path d="M'+f(x0)+' '+f(y0)+'A'+r1+' '+r1+' 0 '+big+' 1 '+f(x1)+' '+f(y1)+'L'+f(x2)+' '+f(y2)+'A'+r0+' '+r0+' 0 '+big+' 0 '+f(x3)+' '+f(y3)+'Z" class="'+cls+'"/>'; };
   let g='';
   if(sp.alt>-0.8){ g+=arc(sp.az-50,sp.az+50,R-26,R,"lf-sec back")+arc(sp.az+50,sp.az+130,R-26,R,"lf-sec side")+arc(sp.az+230,sp.az+310,R-26,R,"lf-sec side")+arc(sp.az+130,sp.az+230,R-26,R,"lf-sec front"); }
@@ -2782,6 +2814,8 @@ function lfDial(sp,face){ const R=104, C=120, P=(a,r)=>[C+Math.sin(a*Math.PI/180
   for(let a=0;a<360;a+=30){ const [x0,y0]=P(a,R-(a%90?6:10)),[x1,y1]=P(a,R); g+='<path d="M'+f(x0)+' '+f(y0)+'L'+f(x1)+' '+f(y1)+'" class="lf-tick"/>'; }
   ["N","E","S","W"].forEach((t,n)=>{ const [x,y]=P(n*90,R+11); g+='<text x="'+f(x)+'" y="'+f(y+4)+'" text-anchor="middle" class="lf-card'+(n?'':' n')+'">'+t+'</text>'; });
   if(sp.alt>-6){ const [sx,sy]=P(sp.az,R-13); g+='<g class="lf-sun'+(sp.alt<0?' low':'')+'"><circle cx="'+f(sx)+'" cy="'+f(sy)+'" r="8"/>'+[0,45,90,135,180,225,270,315].map(a=>{ const q=a*Math.PI/180; return '<path d="M'+f(sx+Math.cos(q)*10.5)+' '+f(sy+Math.sin(q)*10.5)+'L'+f(sx+Math.cos(q)*14)+' '+f(sy+Math.sin(q)*14)+'"/>'; }).join("")+'</g>'; }
+  if(mo&&mo.alt>-1&&mo.frac>0.03){ const [mx,my]=P(mo.az,R-13), sh=(mo.phase<0.5?-1:1)*16*mo.frac;
+    g+='<g class="lf-moon"><clipPath id="lfMoonC"><circle cx="'+f(mx)+'" cy="'+f(my)+'" r="7.5"/></clipPath><circle cx="'+f(mx)+'" cy="'+f(my)+'" r="7.5" class="lf-moonlit"/><circle cx="'+f(mx+sh)+'" cy="'+f(my)+'" r="7.5" class="lf-moondark" clip-path="url(#lfMoonC)"/><circle cx="'+f(mx)+'" cy="'+f(my)+'" r="7.5" class="lf-moonrim"/></g>'; }
   if(face!=null){ const [tx,ty]=P(face,R-34), [ax,ay]=P(face,R-50); g+='<path d="M'+C+' '+C+'L'+f(ax)+' '+f(ay)+'" class="lf-aim"/><g class="lf-target" transform="translate('+f(tx)+' '+f(ty)+') rotate('+f(face)+')"><path d="M0 -13 L10 7 L-10 7Z"/></g>'; }
   const you=state.heading!=null;
   return '<svg viewBox="-6 -6 252 252" class="lf-dial" role="img" aria-label="Compass: sun to the '+compass(sp.az)+(face!=null?', point the camera '+compass(face):'')+'"><g id="lfRot" style="transform-origin:120px 120px;transform:rotate('+(you?-state.heading:0).toFixed(1)+'deg)">'+g+'</g>'+
@@ -2790,44 +2824,85 @@ function lfTurn(face){ if(face==null) return ""; const hd=state.heading; if(hd==
   const d=((face-hd)%360+540)%360-180, a=Math.abs(d); return a<=12?'<b class="lf-ok">You are facing it. Shoot.</b>':'Turn <b>'+(d>0?'right':'left')+' '+Math.round(a)+'°</b> to point the camera '+compass(face)+'.'; }
 function lfHeading(){ if(!LF.open) return; const r=$("lfRot"), y=document.querySelector("#lightf .lf-you"), t=$("lfTurn"); if(r) r.style.transform="rotate("+(state.heading!=null?-state.heading:0).toFixed(1)+"deg)";
   if(y) y.classList.toggle("off",state.heading==null); const cn=document.querySelector("#lightf .lf-cmp"); if(cn) cn.hidden=state.heading!=null; if(t){ const o=LF.cur; const h=lfTurn(o?o.face:null); if(t.innerHTML!==h) t.innerHTML=h; } }
-function lfRender(){ const el=$("lightf"); if(!el||!LF.open) return; const t=new Date(), c=CITIES[state.city];
+/* The next three hours at your spot: golden and blue hour, sunset, when the sun gets too low for the sidewalks, a street that
+   lines up with it, the moon, and the rain. Each one moves the dial to that time. */
+function lfNext(pos){ const now=new Date(), nm=now.getHours()*60+now.getMinutes(), d0=new Date(now.getFullYear(),now.getMonth(),now.getDate()), out=[], add=(m,txt,k)=>{ if(m>nm&&m<=nm+180) out.push({m,txt,k}); };
+  const {L,list}=todayWindows(d0); list.forEach(x=>{ add(x.s,x.name+" starts",x.k); if(!list.some(y=>y!==x&&Math.abs(y.s-x.e)<=2)) add(x.e,x.name+" ends",x.k); }); add(L.rise,"Sunrise","sun"); add(L.set,"Sunset","sun");
+  // the sun getting too low for the sidewalks, on a street of five or six storeys
+  let prev=sunPos(now,pos.lat,pos.lon).alt; for(let m=nm+5;m<=nm+180;m+=5){ const a=sunPos(new Date(+d0+m*6e4),pos.lat,pos.lon).alt; if(prev>=15&&a<15){ add(m,"Sun below 15°: most sidewalks fall into shade, except along streets that face it","shade"); break; } if(prev<15&&a>=15){ add(m,"Sun above 15°: it clears the low buildings and reaches the sidewalks","sun"); break; } prev=a; }
+  // a long street near you lining up with the sun
+  if(state.city==="nyc"){ const H=hengeDay(new Date()), near=H.runs.filter(r=>r.m>nm&&r.m<=nm+180).map(r=>{ const R=MAPD_RUNS[r.i], [la,lo]=mapLL((R[0]+R[2])/20,(R[1]+R[3])/20); return {r,km:kmBetween(pos,{lat:la,lon:lo})}; }).filter(x=>x.km<1.2).sort((a,b)=>a.km-b.km)[0];
+    if(near) add(near.r.m,"A long street "+mDist(near.km)+" away lines up with the sun, looking "+compass(near.r.az),"henge"); }
+  // the moon
+  const mt=moonTimes(now,pos.lat,pos.lon), mo=moonPos(now,pos.lat,pos.lon); if(mo.frac>0.25){ if(mt.rise!==null) add(mt.rise,"Moonrise, "+Math.round(mo.frac*100)+"% lit, in the "+compass(moonPos(new Date(+d0+mt.rise*6e4),pos.lat,pos.lon).az),"moon"); if(mt.set!==null) add(mt.set,"Moonset","moon"); }
+  // the rain
+  const wx=wxNext(now); if(wx){ const mm=/(\d+)(?::(\d\d))?\s*(am|pm)/.exec(wx); if(mm){ let h=+mm[1]%12+(mm[3]==="pm"?12:0), m=h*60+(+mm[2]||0); if(m<nm) m+=1440; add(m,wx.charAt(0).toUpperCase()+wx.slice(1),"rain"); } }
+  out.sort((a,b)=>a.m-b.m);
+  if(!out.length){ const later=list.find(x=>x.s>nm); if(later) return [{m:null,txt:"Nothing changes in the next three hours. Next good light: "+later.name.toLowerCase()+" at "+hmText(later.s)+".",k:later.k}];
+    const n=todayWindows(new Date(+d0+864e5)).list[0]; if(n) return [{m:null,txt:"Next good light: "+n.name.toLowerCase()+" tomorrow at "+hmText(n.s)+".",k:n.k}]; }
+  return out; }
+/* Lit places near you after dark: the nearest avenue (shop fronts) and subway entrance, with the direction to walk. */
+let AVE_GRID=null;
+function aveGrid(){ if(AVE_GRID) return AVE_GRID; const seg=[], cells=new Map(), d=MAPD_ROADS.ave||"", re=/([Ml])([^Ml]*)/g; let m, x=0, y=0;
+  while((m=re.exec(d))){ const n=m[2].match(/-?\d+/g)||[]; if(m[1]==="M"){ x=+n[0]; y=+n[1]; } else for(let i=0;i+1<n.length;i+=2){ const nx=x+ +n[i], ny=y+ +n[i+1]; seg.push(x/10,y/10,nx/10,ny/10); x=nx; y=ny; } }
+  for(let k=0;k<seg.length;k+=4){ const key=Math.floor((seg[k]+seg[k+2])/20)+","+Math.floor((seg[k+1]+seg[k+3])/20); let c=cells.get(key); if(!c){ c=[]; cells.set(key,c); } c.push(k); }
+  return AVE_GRID={seg,cells}; }
+function lfLights(pos){ if(state.city!=="nyc"||typeof MAPD_ROADS==="undefined") return ""; const [px,py]=mapXY(pos.lat,pos.lon), brg=(x,y)=>(Math.atan2(x-px,-(y-py))*180/Math.PI+360)%360, out=[];
+  const G=aveGrid(), gx=Math.floor(px/10), gy=Math.floor(py/10); let best=null;
+  for(let a=gx-1;a<=gx+1;a++) for(let b=gy-1;b<=gy+1;b++){ const cell=G.cells.get(a+","+b); if(!cell) continue; for(const k of cell){ const ax=G.seg[k], ay=G.seg[k+1], bx=G.seg[k+2], by=G.seg[k+3], L2=(bx-ax)**2+(by-ay)**2||1e-9, u=Math.max(0,Math.min(1,((px-ax)*(bx-ax)+(py-ay)*(by-ay))/L2)), qx=ax+(bx-ax)*u, qy=ay+(by-ay)*u, d=Math.hypot(qx-px,qy-py); if(!best||d<best.d) best={d,qx,qy}; } }
+  if(best&&best.d<6){ const km=best.d*0.0556; out.push(km<0.03?"You are on an avenue: shop fronts and headlights light faces from the side.":"The nearest avenue is "+mDist(km)+" to the "+compass(brg(best.qx,best.qy))+": shop fronts, awnings and headlights."); }
+  let st=null; for(const [name,lat,lon] of MAPD_STATIONS){ const km=kmBetween(pos,{lat,lon}); if(!st||km<st.km) st={name,lat,lon,km}; }
+  if(st&&st.km<0.5){ const [sx,sy]=mapXY(st.lat,st.lon); out.push("The "+st.name+" subway entrance is "+mDist(st.km)+" to the "+compass(brg(sx,sy))+": lit globes and a steady stream of people."); }
+  return out.length?'<p class="lf-st">'+out.map(esc).join(" ")+'</p>':""; }
+const LF_KIND = {side:"Side light",back:"Into the sun",front:"Sun behind you",shade:"Open shade",lights:"Lights",wet:"Reflections",glow:"Afterglow",lit:"Lit windows",soft:"Soft light",fog:"Into the glow",moon:"The moon"};
+function lfRender(){ const el=$("lightf"); if(!el||!LF.open) return; const real=new Date(), t=new Date(+real+(LF.off||0)*6e4), c=CITIES[state.city];
   const pos=state.pos&&kmBetween(state.pos,c)<60?state.pos:{lat:c.lat,lon:c.lon}, here=pos!==state.pos;
-  const {sp,sky,opts}=lfOptions(t,pos); if(LF.sel>=opts.length) LF.sel=0; const o=opts[LF.sel]; LF.cur=o;
-  const st=lfStreet(pos,sp), S=lfSettings(o,sky,sp), ph=sunPhase(sp.alt), np=Object.keys(c.places).filter(id=>typeof PLACES[id].lat==="number").map(id=>[id,kmBetween(pos,PLACES[id])]).sort((a,b)=>a[1]-b[1])[0], hood=np&&np[1]<0.8?PLACES[np[0]].name:nearestHood(pos.lat,pos.lon);
+  const {sp,sky,opts}=lfOptions(t,pos), mo=moonPos(t,pos.lat,pos.lon);
+  // after dark with a bright moon up, the moon is one more way to point
+  if(sp.alt<-0.8&&mo.alt>2&&mo.frac>0.45&&sky!=="cloud"&&sky!=="rain"&&sky!=="fog") opts.push({k:"moon",face:mo.az,title:"Face "+compass(mo.az)+": the moon "+(mo.alt<20?"low over the street":"above the rooftops"),why:(mo.alt<20?"A low moon between buildings is the shot: frame it at the end of a street or beside a water tower.":"The moon is high; it works small in a wide frame of lit windows.")+" Exposed for the street it turns into a white disc, a shape rather than detail. The 75 or 90 mm crop makes it bigger.",recipe:"night",ev:7,comp:"−0.7 EV"});
+  if(LF.sel>=opts.length) LF.sel=0; const o=opts[LF.sel]; LF.cur=o;
+  const subj=LF.subj||"auto", st=lfStreet(pos,sp), S=lfSettings(o,sky,sp,subj), ph=sunPhase(sp.alt), np=Object.keys(c.places).filter(id=>typeof PLACES[id].lat==="number").map(id=>[id,kmBetween(pos,PLACES[id])]).sort((a,b)=>a[1]-b[1])[0], hood=np&&np[1]<0.8?PLACES[np[0]].name:nearestHood(pos.lat,pos.lon);
   const skyWord={clear:"Clear",partly:"Sun and cloud",cloud:"Overcast",rain:"Rain",fog:"Fog",snow:"Snow",unknown:""}[sky]||"";
-  // the street: which way along it gives this light, and which side is sunny
-  let street=""; if(st){ const kinds=st.dirs.map(d=>({d:(d+360)%360,k:lightFacing(d,t).k})), want=o.k==="side"||o.k==="back"||o.k==="front"?o.k:null, along=want&&kinds.find(x=>x.k===want);
+  let street=""; if(st&&sp.alt>-0.8){ const kinds=st.dirs.map(d=>({d:(d+360)%360,k:lightFacing(d,t).k})), want=o.k==="side"||o.k==="back"||o.k==="front"?o.k:null, along=want&&kinds.find(x=>x.k===want);
     street='<p class="lf-st">Your street runs '+compass(st.b)+' to '+compass(st.b+180)+'.'+(along?' Looking along it to the <b>'+compass(along.d)+'</b> gives '+({side:"side light",back:"backlight",front:"front light"})[want]+'.':want?' Looking along it gives '+kinds.map(x=>({side:"side light",back:"backlight",front:"front light",dark:"no sun"})[x.k]).join(" one way and ")+' the other; for '+({side:"side light",back:"backlight",front:"front light"})[want]+' shoot across it.':'')+
-      (st.along?' <b>The sun is lined up with this street right now:</b> light runs straight down it.':'')+(st.sunny!=null&&(sky==="clear"||sky==="partly"||sky==="unknown")?' The <b>'+compass(st.sunny)+'</b> side is in sun'+(sp.alt<15?', on the upper floors more than the sidewalk':'')+'.':'')+'</p>'; }
-  // a street nearby that lines up with the sun soon
-  let henge=""; if(state.city==="nyc"&&sp.alt>-1){ const H=hengeDay(new Date()), nm=t.getHours()*60+t.getMinutes(), near=H.runs.filter(r=>r.to>=nm&&r.from-nm<=90).map(r=>{ const R=MAPD_RUNS[r.i], [la,lo]=mapLL((R[0]+R[2])/20,(R[1]+R[3])/20); return {r,km:kmBetween(pos,{lat:la,lon:lo})}; }).filter(x=>x.km<1.2).sort((a,b)=>a.km-b.km)[0];
-    if(near) henge='<p class="lf-st">☀ A long street '+mDist(near.km)+' from you lines up with the sun at <b>'+hmText(near.r.m)+'</b>: light straight down it, looking '+compass(near.r.az)+'. <button type="button" class="linkbtn" data-lf="henge" data-run="'+near.r.i+'">Show it on the map</button></p>'; }
-  // the nearest idea for this light
+      (st.along?' <b>The sun is lined up with this street'+(LF.off?' then':' right now')+':</b> light runs straight down it.':'')+(st.sunny!=null&&(sky==="clear"||sky==="partly"||sky==="unknown")?' The <b>'+compass(st.sunny)+'</b> side is in sun'+(sp.alt<15?', on the upper floors more than the sidewalk':'')+'.':'')+'</p>'; }
+  const lights=(o.k==="lights"||o.k==="lit"||o.k==="wet"||o.k==="moon")?lfLights(pos):"";
+  const next=lfNext(pos), nmReal=real.getHours()*60+real.getMinutes();
+  const moonLine=mo.alt>-1&&mo.frac>0.05?' · Moon '+Math.round(mo.frac*100)+'% lit'+(mo.alt>0?', '+Math.round(mo.alt)+'° up in the '+compass(mo.az):', rising'):'';
   const pick=todayPicks(t)[0], idea=pick&&pick.best;
-  const rows=S.su?[["Mode",S.su[4]],["Focus",S.su[0]+(S.su[1]&&!/Not used/.test(S.su[1])?' · '+S.su[1]:'')],["Metering",S.su[2]],["Exposure comp.",o.comp||S.su[3]],["White balance",S.su[7]]]:[["Exposure comp.",o.comp]];
-  el.innerHTML='<div class="st-in lf-in"><div class="st-top"><span class="st-where"><b>Light here</b> · '+hmText(t.getHours()*60+t.getMinutes())+(hood&&!here?' · '+esc(hood):'')+'</span><button type="button" class="st-x" data-lf="close" aria-label="Close">×</button></div>'+
+  const rows=S.su?[["Mode",subj==="blur"?"PASM · S (shutter priority)":S.su[4]],["Focus",S.su[0]+(S.su[1]&&!/Not used/.test(S.su[1])?' · '+S.su[1]:'')],["Metering",S.su[2]],["Exposure comp.",S.comp||S.su[3]],["White balance",S.su[7]]]:[["Exposure comp.",S.comp]];
+  const sc=el.querySelector(".st-in"), keep=sc?sc.scrollTop:0; const rng=$("lfTime");   // the slider being dragged is kept, so the drag is not cut off by the redraw
+  el.innerHTML='<div class="st-in lf-in"><div class="st-top"><span class="st-where"><b>Light here</b> · '+hmText(t.getHours()*60+t.getMinutes())+(LF.off?' (in '+(LF.off>=60?Math.floor(LF.off/60)+' h '+(LF.off%60?LF.off%60+' min':''):LF.off+' min')+')':'')+(hood&&!here?' · '+esc(hood):'')+'</span><button type="button" class="st-x" data-lf="close" aria-label="Close">×</button></div>'+
     (here?'<p class="lf-note">'+(LF.fallback?'Location is off, so this is for Midtown. Allow location for advice on the street you are on.':'Finding where you are… meanwhile this is for Midtown.')+'</p>':'')+
-    '<p class="lf-sky">'+(sp.alt>0?'Sun '+Math.round(sp.alt)+'° up in the '+compass(sp.az):sp.alt>-6?'Sun just below the horizon to the '+compass(sp.az):'Sun down')+' · '+SUN_PHASE[ph]+(skyWord?' · '+skyWord:'')+'</p>'+
-    '<div class="lf-dialw">'+lfDial(sp,o.face)+'</div>'+
+    '<p class="lf-sky">'+(sp.alt>0?'Sun '+Math.round(sp.alt)+'° up in the '+compass(sp.az):sp.alt>-6?'Sun just below the horizon to the '+compass(sp.az):'Sun down')+' · '+SUN_PHASE[ph]+(skyWord?' · '+skyWord:'')+moonLine+'</p>'+
+    '<div class="lf-dialw">'+lfDial(sp,o.face,mo)+'</div>'+
+    '<div class="lf-time"><input type="range" id="lfTime" min="0" max="180" step="5" value="'+(LF.off||0)+'" aria-label="Look ahead: minutes from now"><div class="lf-timel"><span>Now</span><span>+1 h</span><span>+2 h</span><span>+3 h</span></div>'+(LF.off?'<button type="button" class="chip" data-lfat="0">Back to now</button>':'')+'</div>'+
     '<p class="lf-turn" id="lfTurn">'+(o.face!=null?lfTurn(o.face):'')+'</p>'+
     (state.heading==null&&o.face!=null?'<p class="lf-note lf-cmp">'+(HEAD.why||inFrame?esc(headMsg()||"The compass is not available here, so the dial shows north at the top."):'Hold the phone flat: the dial turns with you once the compass wakes up.')+'</p>':'')+
-    '<div class="lf-opts">'+opts.map((x,n)=>'<button type="button" class="chip" data-lfopt="'+n+'" aria-pressed="'+(n===LF.sel)+'">'+(n===0?'Best: ':'')+esc(({side:"Side light",back:"Into the sun",front:"Sun behind you",shade:"Open shade",lights:"Lights",wet:"Reflections",glow:"Afterglow",lit:"Lit windows",soft:"Soft light",fog:"Into the glow"})[x.k]||x.k)+'</button>').join("")+'</div>'+
-    '<h2 class="lf-h">'+esc(o.title)+'</h2><p class="why">'+esc(o.why)+'</p>'+street+henge+
+    '<div class="lf-opts">'+opts.map((x,n)=>'<button type="button" class="chip" data-lfopt="'+n+'" aria-pressed="'+(n===LF.sel)+'">'+(n===0?'Best: ':'')+esc(LF_KIND[x.k]||x.k)+'</button>').join("")+'</div>'+
+    '<h2 class="lf-h">'+esc(o.title)+'</h2><p class="why">'+esc(o.why)+'</p>'+street+lights+
+    (next.length?'<p class="stk lf-ideah">Coming up here</p><div class="lf-next">'+next.map(x=>x.m===null?'<p class="lf-st">'+esc(x.txt)+'</p>':'<button type="button" class="lf-nx'+(LF.off&&nmReal+LF.off>=x.m-2&&nmReal+LF.off<=x.m+2?' on':'')+'" data-lfat="'+Math.max(0,Math.min(180,Math.round((x.m-nmReal)/5)*5))+'"><span class="lf-nxt">'+hmText(((x.m%1440)+1440)%1440)+'</span><span class="lk '+(x.k==="sun"?"rise":x.k==="moon"?"moon":x.k==="henge"?"henge":x.k==="rain"?"rain":x.k==="blue"?"blue":"gold")+'"></span><span class="lf-nxw">'+esc(x.txt)+'</span></button>').join("")+'</div>':'')+
+    '<p class="stk lf-ideah">What are you shooting?</p><div class="lf-subj">'+Object.entries(LF_SUBJ).map(([k,v])=>'<button type="button" class="chip" data-lfsubj="'+k+'" aria-pressed="'+(subj===k)+'">'+esc(v.n)+'</button>').join("")+'</div>'+
     '<div class="lf-cams" role="group" aria-label="Camera">'+[["q328","Leica Q3"],["q343","Leica Q3 43"]].map(([k,n])=>'<button type="button" class="chip" data-lfcam="'+k+'" aria-pressed="'+(state.camera===k)+'">'+n+'</button>').join("")+'</div>'+
-    '<div class="st-exp"><span class="stk">'+esc(S.cam.name)+'</span><b>'+esc(S.rec[0])+'</b><span class="st-adj">'+esc(S.meter)+'</span></div>'+
+    '<div class="st-exp"><span class="stk">'+esc(S.cam.name)+(subj!=="auto"?' · '+esc(LF_SUBJ[subj].n.toLowerCase()):'')+'</span><b>'+esc(S.line)+'</b><span class="st-adj">'+esc(S.meter)+'</span></div>'+
     rows.filter(r=>r[1]).map(r=>'<div class="strow"><span class="stk">'+r[0]+'</span><span class="stv">'+esc(r[1])+'</span></div>').join("")+
-    '<p class="lf-adj">'+esc(S.rec[1])+(S.adj.length?' '+S.adj.map(esc).join(" "):'')+'</p>'+
+    '<p class="lf-adj">'+esc(S.note||S.rec[1])+(S.adj.length?' '+S.adj.map(esc).join(" "):'')+'</p>'+
     (idea?'<p class="stk lf-ideah">Nearest idea for this light</p><button type="button" class="row lf-idea" data-lfidea="'+idea.id+'"><span class="dot" style="background:'+INTENTS[idea.i].color+'"></span><span class="t"><b>'+esc(idea.t)+'</b><span>'+esc(PLACES[idea.p].name)+(pick.mi!=null?' · '+milesText(pick.mi):'')+'</span></span><span class="go" aria-hidden="true">›</span></button>':'')+
-    '<p class="lf-foot">Settings are for the '+esc(S.cam.name)+'. The switch above changes the camera everywhere in the app.</p></div>'; }
-document.addEventListener("click",e=>{ const t=e.target.closest&&e.target.closest("[data-lightf],[data-lf],[data-lfopt],[data-lfidea],[data-lfcam]"); if(!t) return;
+    '<p class="lf-foot">Settings are for the '+esc(S.cam.name)+'. The switch above changes the camera everywhere in the app. Exposure estimates assume open street light; under heavy cloud or deep in shade expect one or two stops less.</p></div>';
+  const nr=$("lfTime"); if(rng&&nr){ rng.value=String(LF.off||0); nr.replaceWith(rng); }
+  const sc2=el.querySelector(".st-in"); if(sc2&&keep) sc2.scrollTop=keep; }
+document.addEventListener("click",e=>{ const t=e.target.closest&&e.target.closest("[data-lightf],[data-lf],[data-lfopt],[data-lfidea],[data-lfcam],[data-lfat],[data-lfsubj]"); if(!t) return;
   if(t.dataset.lightf){ e.stopPropagation(); lfOpen(); return; }
   if(!LF.open) return; e.stopPropagation();
   if(t.dataset.lfopt){ LF.sel=+t.dataset.lfopt; lfRender(); return; }
-  if(t.dataset.lfcam){ const sc=document.querySelector('#lightf .st-in'), y=sc?sc.scrollTop:0; state.camera=t.dataset.lfcam; store.set("camera",state.camera); lfRender(); const sc2=document.querySelector('#lightf .st-in'); if(sc2) sc2.scrollTop=y; return; }
+  if(t.dataset.lfat!==undefined){ LF.off=+t.dataset.lfat; LF.sel=0; lfRender(); return; }
+  if(t.dataset.lfsubj){ LF.subj=t.dataset.lfsubj; store.set("lfSubj",LF.subj); lfRender(); return; }
+  if(t.dataset.lfcam){ state.camera=t.dataset.lfcam; store.set("camera",state.camera); lfRender(); return; }
   if(t.dataset.lfidea){ const id=t.dataset.lfidea; lfClose(); show(id); state.view="shoot"; render(); window.scrollTo({top:0}); return; }
   if(t.dataset.lf==="close"){ lfClose(); return; }
   if(t.dataset.lf==="henge"){ const i=+t.dataset.run; lfClose(); state.mapD=0; state.mapT=null; state.mapShowHenge=true; state.view="map"; render(); requestAnimationFrame(()=>requestAnimationFrame(()=>mapSelectRun(i))); } },true);
 document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&LF.open) lfClose(); });
+let lfRaf=0; document.addEventListener("input",e=>{ if(!LF.open||e.target.id!=="lfTime") return; LF.off=+e.target.value; if(!lfRaf) lfRaf=requestAnimationFrame(()=>{ lfRaf=0; lfRender(); }); });
 
 /* The day's light, minute by minute: night, blue hour, golden hour, daylight. Drawn as the slider track, with marks to jump to. */
 let LIGHT_DAY = null;

@@ -872,3 +872,9 @@ body.lfopen{overflow:hidden}
 .lightf .lf-idea .t span{color:#b4b6bc}
 .lf-foot{font-size:12px;color:#8a8d96;margin-top:14px}
 .lf-cams{display:flex;gap:6px;margin:14px 0 8px}
+.lf-moonlit{fill:#f4f1e2} .lf-moondark{fill:#1b1d24} .lf-moonrim{fill:none;stroke:#000;stroke-width:1.2}
+.lf-time{margin:6px auto 0;max-width:340px} .lf-time input{width:100%;accent-color:#ffd23f} .lf-timel{display:flex;justify-content:space-between;font-size:11px;color:#8a8d96;margin-top:-2px} .lf-time .chip{margin:6px auto 0;display:block}
+.lf-next{display:flex;flex-direction:column;gap:2px;margin-bottom:6px}
+.lf-nx{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:transparent;border:0;border-top:1px solid #23262c;color:#e8e9ec;padding:8px 2px;font:inherit;font-size:14px;cursor:pointer} .lf-nx.on{background:#1e2026}
+.lf-nxt{flex:none;width:62px;font-weight:700;color:#ffd23f;font-variant-numeric:tabular-nums} .lf-nx .lk{flex:none} .lf-nxw{flex:1}
+.lf-subj{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 4px}

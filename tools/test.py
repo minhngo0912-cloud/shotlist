@@ -533,6 +533,20 @@ def run(path, name):
         cs=pg.evaluate("[state.camera, document.querySelector('#lightf .st-exp .stk').textContent, document.querySelector('#lightf [data-lfcam=q328]').getAttribute('aria-pressed')]")
         pg.click("#lightf [data-lfcam=q343]"); pg.wait_for_timeout(80)
         check("Light here switches between the Leica Q3 and the Q3 43, and the settings follow", cs==["q328","Leica Q3 (28 mm)","true"] and pg.evaluate("[state.camera, document.querySelector('#lightf .st-exp .stk').textContent]")==["q343","Leica Q3 43"], cs)
+        # look ahead: the coming changes, the time slider, the subject and the moon
+        nx=pg.evaluate("[document.querySelectorAll('#lightf .lf-nx, #lightf .lf-next p').length, !!document.getElementById('lfTime')]")
+        pg.evaluate("LF.off=60; lfRender()"); pg.wait_for_timeout(50)
+        la=pg.evaluate("[document.querySelector('#lightf .st-where').textContent.includes('(in 1 h'), !!document.querySelector('#lightf [data-lfat=\"0\"]'), document.getElementById('lfTime').value]")
+        pg.click("#lightf [data-lfat='0']"); pg.wait_for_timeout(50)
+        check("Light here looks ahead: what changes in the next three hours, and a slider to see the light then", nx[0]>=1 and nx[1] and la==[True,True,"60"] and pg.evaluate("LF.off")==0, [nx,la])
+        sj={}
+        for k in ("walk","portrait","blur","silhouette"):
+            pg.evaluate("LF.subj='%s'; lfRender()" % k); sj[k]=pg.evaluate("document.querySelector('#lightf .st-exp b').textContent")
+        check("Settings follow the subject: walkers, a portrait wide open, motion blur at 1/15 s, silhouettes at ISO 100", "Auto ISO" in sj["walk"] and sj["portrait"].startswith("f/2 ") and "1/15 s" in sj["blur"] or "f/16" in sj["blur"], sj)
+        check("Silhouettes are metered at ISO 100", "ISO 100" in sj["silhouette"], sj)
+        pg.evaluate("LF.subj='auto'; store.set('lfSubj','auto'); lfRender()")
+        mn=pg.evaluate("(()=>{ const t=new Date(2026,9,20,21,30), m=moonPos(t,40.723,-73.999); return [Math.round(m.frac*100), lfDial(sunPos(t,40.723,-73.999),null,m).includes('lf-moonlit'), lfLights({lat:40.723,lon:-73.999}).includes('subway entrance')]; })()")
+        check("At night the dial shows the moon, and the nearest lit avenue and subway entrance are named", mn[0]>50 and mn[1] and mn[2], mn)
         pg.evaluate("state.heading=null"); pg.click("#lightf [data-lf=close]"); pg.wait_for_timeout(80)
         check("Light here closes", pg.evaluate("[document.getElementById('lightf').hidden, LF.open]")==[True,False])
         pg.evaluate("state.view='map'; render()"); pg.wait_for_timeout(200)
