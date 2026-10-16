@@ -2789,7 +2789,7 @@ function lfDial(sp,face){ const R=104, C=120, P=(a,r)=>[C+Math.sin(a*Math.PI/180
 function lfTurn(face){ if(face==null) return ""; const hd=state.heading; if(hd==null) return 'Point the camera <b>'+compass(face)+'</b>'+(state.pos?'':'')+'.';
   const d=((face-hd)%360+540)%360-180, a=Math.abs(d); return a<=12?'<b class="lf-ok">You are facing it. Shoot.</b>':'Turn <b>'+(d>0?'right':'left')+' '+Math.round(a)+'°</b> to point the camera '+compass(face)+'.'; }
 function lfHeading(){ if(!LF.open) return; const r=$("lfRot"), y=document.querySelector("#lightf .lf-you"), t=$("lfTurn"); if(r) r.style.transform="rotate("+(state.heading!=null?-state.heading:0).toFixed(1)+"deg)";
-  if(y) y.classList.toggle("off",state.heading==null); if(t){ const o=LF.cur; const h=lfTurn(o?o.face:null); if(t.innerHTML!==h) t.innerHTML=h; } }
+  if(y) y.classList.toggle("off",state.heading==null); const cn=document.querySelector("#lightf .lf-cmp"); if(cn) cn.hidden=state.heading!=null; if(t){ const o=LF.cur; const h=lfTurn(o?o.face:null); if(t.innerHTML!==h) t.innerHTML=h; } }
 function lfRender(){ const el=$("lightf"); if(!el||!LF.open) return; const t=new Date(), c=CITIES[state.city];
   const pos=state.pos&&kmBetween(state.pos,c)<60?state.pos:{lat:c.lat,lon:c.lon}, here=pos!==state.pos;
   const {sp,sky,opts}=lfOptions(t,pos); if(LF.sel>=opts.length) LF.sel=0; const o=opts[LF.sel]; LF.cur=o;
@@ -2810,7 +2810,7 @@ function lfRender(){ const el=$("lightf"); if(!el||!LF.open) return; const t=new
     '<p class="lf-sky">'+(sp.alt>0?'Sun '+Math.round(sp.alt)+'° up in the '+compass(sp.az):sp.alt>-6?'Sun just below the horizon to the '+compass(sp.az):'Sun down')+' · '+SUN_PHASE[ph]+(skyWord?' · '+skyWord:'')+'</p>'+
     '<div class="lf-dialw">'+lfDial(sp,o.face)+'</div>'+
     '<p class="lf-turn" id="lfTurn">'+(o.face!=null?lfTurn(o.face):'')+'</p>'+
-    (state.heading==null&&o.face!=null?'<p class="lf-note">'+(HEAD.why||inFrame?esc(headMsg()||"The compass is not available here, so the dial shows north at the top."):'Hold the phone flat: the dial turns with you once the compass wakes up.')+'</p>':'')+
+    (state.heading==null&&o.face!=null?'<p class="lf-note lf-cmp">'+(HEAD.why||inFrame?esc(headMsg()||"The compass is not available here, so the dial shows north at the top."):'Hold the phone flat: the dial turns with you once the compass wakes up.')+'</p>':'')+
     '<div class="lf-opts">'+opts.map((x,n)=>'<button type="button" class="chip" data-lfopt="'+n+'" aria-pressed="'+(n===LF.sel)+'">'+(n===0?'Best: ':'')+esc(({side:"Side light",back:"Into the sun",front:"Sun behind you",shade:"Open shade",lights:"Lights",wet:"Reflections",glow:"Afterglow",lit:"Lit windows",soft:"Soft light",fog:"Into the glow"})[x.k]||x.k)+'</button>').join("")+'</div>'+
     '<h2 class="lf-h">'+esc(o.title)+'</h2><p class="why">'+esc(o.why)+'</p>'+street+henge+
     '<div class="st-exp"><span class="stk">'+esc(S.cam.name)+'</span><b>'+esc(S.rec[0])+'</b><span class="st-adj">'+esc(S.meter)+'</span></div>'+
