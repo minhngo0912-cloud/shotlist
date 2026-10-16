@@ -3095,7 +3095,7 @@ function lfDayHtml(pos,name){ if(lfbOn()&&!lfbTile(pos)) lfbLoad(pos); const D=l
     (B?'<p class="lf-st lfd-bl">Best light here'+(D.tomorrow?' tomorrow':'')+': <b>'+hmSpan(B.s,B.e)+'</b>, '+esc(B.txt)+'.'+(D.sky?' Forecast: '+esc(D.sky)+'.':'')+'</p>':'')+
     '<p class="lf-st lfd-list">'+list.map(esc).join(" · ")+'.'+(!D.hasB&&lfbOn()?' <span class="lf-src">Checking the buildings for direct sun…</span>':'')+'</p>'+
     '<div class="lfd-act">'+(LF.spot||state.pos?'<button type="button" class="chip" data-lf="spot"'+(saved?' aria-pressed="true"':'')+'>'+(saved?'★ Saved spot':'☆ Save this spot')+'</button>':'')+
-    (B?'<button type="button" class="chip" data-lf="ics">📅 Calendar (.ics)</button><a class="chip" target="_blank" rel="noopener" href="'+esc(lfGcal(pos,name,D))+'">Google Calendar</a>':'')+'</div>'; }
+    (B?(typeof loadWeather==="function"?'<button type="button" class="chip" data-lf="ics">📅 Calendar (.ics)</button>':'')+'<a class="chip" target="_blank" rel="noopener" href="'+esc(lfGcal(pos,name,D))+'">Google Calendar</a>':'')+'</div>'; }
 function lfSpotNear(pos){ return state.lightSpots.find(x=>kmBetween(x,pos)<0.04)||null; }
 function lfSpotsHtml(){ const L=state.lightSpots; if(!L.length) return ""; const d0=new Date(); d0.setHours(0,0,0,0);
   return '<p class="stk lf-ideah">Your spots</p><div class="lfd-spots">'+L.map(x=>{ const b=x.best&&(x.best.day===+d0||x.best.day===+d0+864e5)?x.best:null;
