@@ -588,6 +588,35 @@ def run(path, name):
               if(real) navigator.mediaDevices.getUserMedia=real; return out; })()""")
             check("Camera view: the sun sits where the camera sees it, the horizon tilts with the phone, and the camera is let go when closed or in the background",
                   cv["open"]==1 and cv["center"]==[0,0] and cv["right"] and abs(cv["right"][0]-cv["rightWant"][0])<=1 and abs(cv["right"][1]-cv["rightWant"][1])<=1 and cv["hz"]==20 and cv["bg"]==0 and cv["back"]==1 and cv["closed"]==0 and cv["race"]==1 and cv["end"]==0 and "camera" in cv["denied"], cv)
+            # Leica frame lines and the contrast check, with an upright 4:3 picture from a canvas
+            fr=pg.evaluate("""(async()=>{ const c=document.createElement('canvas'); c.width=1440; c.height=1920; const g=c.getContext('2d'); const paint=()=>{ g.fillStyle='#fff'; g.fillRect(0,0,1440,960); g.fillStyle='#000'; g.fillRect(0,960,1440,960); }; paint(); const iv=setInterval(paint,100);
+              const real=navigator.mediaDevices.getUserMedia; navigator.mediaDevices.getUserMedia=async()=>c.captureStream(10); const wait=ms=>new Promise(r=>setTimeout(r,ms)), out={}, was=state.camera;
+              state.camera='q343'; store.set('lfcFrame_q343',43); await lfcOpen(); await wait(400); lfcDraw(); const W=LFC.W, H=LFC.H, F=LFC.frame;
+              out.f43=[LFC.fit, Math.round((F.x1-F.x0)/(F.y1-F.y0)*100), Math.round(F.x1-F.x0), Math.round(2*LFC.f*12/43), document.querySelectorAll('#lfcam .lfc-frs .chip').length, !!document.querySelector('#lfcFr .lfc-line')];
+              await wait(1500); out.cx=LFC.cxNow&&LFC.cxNow.k; out.cxShown=!document.getElementById('lfcCx').hidden;
+              document.querySelector('#lfcam [data-lfcfr="0"]').click(); await wait(50); out.off=[!document.querySelector('#lfcFr .lfc-line'), Math.round(LFC.frame.x1-LFC.frame.x0)===W];
+              lfcStop(); state.camera='q328'; store.set('lfcFrame_q328',28); await lfcOpen(); await wait(400); lfcDraw(); const G=LFC.frame;
+              out.f28=[LFC.fit, G.x0>=0&&G.x1<=LFC.W+0.5, Math.round((G.x1-G.x0)/(G.y1-G.y0)*100)];
+              lfcStop(); clearInterval(iv); navigator.mediaDevices.getUserMedia=real; state.camera=was; store.set('lfcFrame_q343',43); store.set('lfcFrame_q328',28);
+              const px=(f)=>{ const a=new Uint8ClampedArray(64*64*4); for(let i=0;i<64*64;i++){ const v=f(i%64,Math.floor(i/64)); a[i*4]=a[i*4+1]=a[i*4+2]=v; a[i*4+3]=255; } return a; };
+              out.adv=[lfcAdvice(lfcStats(px(()=>128))).k, lfcAdvice(lfcStats(px((x,y)=>y<32?255:3))).k, lfcAdvice(lfcStats(px((x,y)=>60+y*1.6))).k, lfcAdvice(lfcStats(px((x,y)=>y<32?200:45))).k];
+              return out; })()""")
+            check("Camera view: Leica frame lines (43 mm fills the screen, 28 mm shows the whole picture so it fits), and the contrast check reads the picture",
+                  fr["f43"][0]=="cover" and fr["f43"][1]==67 and abs(fr["f43"][2]-fr["f43"][3])<=1 and fr["f43"][4]==6 and fr["f43"][5] and fr["cx"]=="vhigh" and fr["cxShown"] and fr["off"]==[True,True]
+                  and fr["f28"][0]=="contain" and fr["f28"][1] and fr["f28"][2]==67 and fr["adv"]==["flat","vhigh","ok","high"], fr)
+            # the spot's day: direct sun past the buildings, the best window, saving the spot and adding it to a calendar
+            pg.evaluate("LFB.cache.clear(); LFB.err=''; lfRender()"); pg.wait_for_timeout(400)
+            dy=pg.evaluate("""(()=>{ const D=lfDay(LF.curPos); return [!!D, D&&D.hasB, D&&!!D.sun, D&&!!D.best, !!document.querySelector('#lightf .lfd .lfd-sky i'), (document.querySelector('#lightf .lfd-bl')||{textContent:''}).textContent]; })()""")
+            pg.click("#lightf [data-lf=spot]"); pg.wait_for_timeout(60)
+            sv=pg.evaluate("[state.lightSpots.length, document.querySelectorAll('#lightf .lfd-spot').length, (document.querySelector('#lightf [data-lf=spot]')||{}).textContent]")
+            pg.click("#lightf [data-lfspot]"); pg.wait_for_timeout(100)
+            vw=pg.evaluate("[LF.spot&&LF.spot.name, !!document.querySelector('#lightf [data-lf=unspot]'), !document.querySelector('#lightf [data-lf=cam]')]")
+            ics=pg.evaluate("(()=>{ const D=lfDay(LF.curPos); return [lfIcs(LF.curPos,'Test, spot',D), lfGcal(LF.curPos,'Test',D)]; })()")
+            pg.click("#lightf [data-lf=unspot]"); pg.wait_for_timeout(60); pg.click("#lightf [data-lfspotdel]"); pg.wait_for_timeout(60)
+            check("Light here: the spot's day (sun past the buildings, best window), save a spot, view it, add it to a calendar, remove it",
+                  dy[:5]==[True,True,True,True,True] and "Best light here" in dy[5] and sv[0]==1 and sv[1]==1 and "Saved" in sv[2] and vw[0] and vw[1] and vw[2]
+                  and "DTSTART:" in ics[0] and "BEGIN:VALARM" in ics[0] and "SUMMARY:Light: Test\\, spot" in ics[0] and "action=TEMPLATE" in ics[1] and "&dates=" in ics[1]
+                  and pg.evaluate("[state.lightSpots.length, LF.spot]")==[0,None], [dy,sv,vw,ics[0][:200]])
             # building shadows from the city's footprints (a made-up building stands in for the real data)
             sh=pg.evaluate("""(async()=>{ const pt={lat:40.7230,lon:-73.9990}; LFB.cache.clear(); LFB.err=""; await lfbLoad(pt); const T=lfbTile(pt); const r=lfbSun(T,pt,new Date()), far=lfbSun(T,{lat:40.7238,lon:-73.9970},new Date());
               return [!!T, T&&T.list.length, r.sun, r.by&&Math.round(r.by.h), far.sun, lfbHtml(pt,new Date(),null).includes('You are in shade')]; })()""")
