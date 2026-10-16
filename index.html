@@ -889,6 +889,7 @@ body.lfopen{overflow:hidden}
 .lf-ideah{display:block;margin:16px 0 4px} .lightf .lf-idea{width:100%;background:#16181d;color:#fff;border:1px solid #2a2d33;border-radius:10px;padding:10px}
 .lightf .lf-idea .t span{color:#b4b6bc}
 .lf-foot{font-size:12px;color:#8a8d96;margin-top:14px}
+.lf-cams{display:flex;gap:6px;margin:14px 0 8px}
 </style>
 
 <div class="app">
@@ -3843,15 +3844,17 @@ function lfRender(){ const el=$("lightf"); if(!el||!LF.open) return; const t=new
     (state.heading==null&&o.face!=null?'<p class="lf-note lf-cmp">'+(HEAD.why||inFrame?esc(headMsg()||"The compass is not available here, so the dial shows north at the top."):'Hold the phone flat: the dial turns with you once the compass wakes up.')+'</p>':'')+
     '<div class="lf-opts">'+opts.map((x,n)=>'<button type="button" class="chip" data-lfopt="'+n+'" aria-pressed="'+(n===LF.sel)+'">'+(n===0?'Best: ':'')+esc(({side:"Side light",back:"Into the sun",front:"Sun behind you",shade:"Open shade",lights:"Lights",wet:"Reflections",glow:"Afterglow",lit:"Lit windows",soft:"Soft light",fog:"Into the glow"})[x.k]||x.k)+'</button>').join("")+'</div>'+
     '<h2 class="lf-h">'+esc(o.title)+'</h2><p class="why">'+esc(o.why)+'</p>'+street+henge+
+    '<div class="lf-cams" role="group" aria-label="Camera">'+[["q328","Leica Q3"],["q343","Leica Q3 43"]].map(([k,n])=>'<button type="button" class="chip" data-lfcam="'+k+'" aria-pressed="'+(state.camera===k)+'">'+n+'</button>').join("")+'</div>'+
     '<div class="st-exp"><span class="stk">'+esc(S.cam.name)+'</span><b>'+esc(S.rec[0])+'</b><span class="st-adj">'+esc(S.meter)+'</span></div>'+
     rows.filter(r=>r[1]).map(r=>'<div class="strow"><span class="stk">'+r[0]+'</span><span class="stv">'+esc(r[1])+'</span></div>').join("")+
     '<p class="lf-adj">'+esc(S.rec[1])+(S.adj.length?' '+S.adj.map(esc).join(" "):'')+'</p>'+
     (idea?'<p class="stk lf-ideah">Nearest idea for this light</p><button type="button" class="row lf-idea" data-lfidea="'+idea.id+'"><span class="dot" style="background:'+INTENTS[idea.i].color+'"></span><span class="t"><b>'+esc(idea.t)+'</b><span>'+esc(PLACES[idea.p].name)+(pick.mi!=null?' · '+milesText(pick.mi):'')+'</span></span><span class="go" aria-hidden="true">›</span></button>':'')+
-    '<p class="lf-foot">Settings are for the '+esc(S.cam.name)+'. Change the camera in an idea’s Settings tab.</p></div>'; }
-document.addEventListener("click",e=>{ const t=e.target.closest&&e.target.closest("[data-lightf],[data-lf],[data-lfopt],[data-lfidea]"); if(!t) return;
+    '<p class="lf-foot">Settings are for the '+esc(S.cam.name)+'. The switch above changes the camera everywhere in the app.</p></div>'; }
+document.addEventListener("click",e=>{ const t=e.target.closest&&e.target.closest("[data-lightf],[data-lf],[data-lfopt],[data-lfidea],[data-lfcam]"); if(!t) return;
   if(t.dataset.lightf){ e.stopPropagation(); lfOpen(); return; }
   if(!LF.open) return; e.stopPropagation();
   if(t.dataset.lfopt){ LF.sel=+t.dataset.lfopt; lfRender(); return; }
+  if(t.dataset.lfcam){ const sc=document.querySelector('#lightf .st-in'), y=sc?sc.scrollTop:0; state.camera=t.dataset.lfcam; store.set("camera",state.camera); lfRender(); const sc2=document.querySelector('#lightf .st-in'); if(sc2) sc2.scrollTop=y; return; }
   if(t.dataset.lfidea){ const id=t.dataset.lfidea; lfClose(); show(id); state.view="shoot"; render(); window.scrollTo({top:0}); return; }
   if(t.dataset.lf==="close"){ lfClose(); return; }
   if(t.dataset.lf==="henge"){ const i=+t.dataset.run; lfClose(); state.mapD=0; state.mapT=null; state.mapShowHenge=true; state.view="map"; render(); requestAnimationFrame(()=>requestAnimationFrame(()=>mapSelectRun(i))); } },true);
