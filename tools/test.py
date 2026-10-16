@@ -616,7 +616,7 @@ def run(path, name):
             fr=pg.evaluate("""(async()=>{ const c=document.createElement('canvas'); c.width=1440; c.height=1920; const g=c.getContext('2d'); const paint=()=>{ g.fillStyle='#fff'; g.fillRect(0,0,1440,960); g.fillStyle='#000'; g.fillRect(0,960,1440,960); }; paint(); const iv=setInterval(paint,100);
               const real=navigator.mediaDevices.getUserMedia; navigator.mediaDevices.getUserMedia=async()=>c.captureStream(10); const wait=ms=>new Promise(r=>setTimeout(r,ms)), out={}, was=state.camera;
               state.camera='q343'; store.set('lfcFrame_q343',43); await lfcOpen(); await wait(400); lfcDraw(); const W=LFC.W, H=LFC.H, F=LFC.frame;
-              out.f43=[LFC.fit, Math.round((F.x1-F.x0)/(F.y1-F.y0)*100), Math.round(F.x1-F.x0), Math.round(2*LFC.f*12/43), document.querySelectorAll('#lfcam .lfc-frs .chip').length, !!document.querySelector('#lfcFr .lfc-line')];
+              out.f43=[LFC.fit, Math.round((F.x1-F.x0)/(F.y1-F.y0)*100), Math.round(F.x1-F.x0), Math.round(2*LFC.f*12/43), document.querySelectorAll('#lfcam .lfc-frs:not(.lfc-tools) .chip').length, !!document.querySelector('#lfcFr .lfc-line')];
               await wait(1500); out.cx=LFC.cxNow&&LFC.cxNow.k; out.cxShown=!document.getElementById('lfcCx').hidden;
               document.querySelector('#lfcam [data-lfcfr="0"]').click(); await wait(50); out.off=[!document.querySelector('#lfcFr .lfc-line'), Math.round(LFC.frame.x1-LFC.frame.x0)===W];
               lfcStop(); state.camera='q328'; store.set('lfcFrame_q328',28); await lfcOpen(); await wait(400); lfcDraw(); const G=LFC.frame;
@@ -628,6 +628,31 @@ def run(path, name):
             check("Camera view: Leica frame lines (43 mm fills the screen, 28 mm shows the whole picture so it fits), and the contrast check reads the picture",
                   fr["f43"][0]=="cover" and fr["f43"][1]==67 and abs(fr["f43"][2]-fr["f43"][3])<=1 and fr["f43"][4]==6 and fr["f43"][5] and fr["cx"]=="vhigh" and fr["cxShown"] and fr["off"]==[True,True]
                   and fr["f28"][0]=="contain" and fr["f28"][1] and fr["f28"][2]==67 and fr["adv"]==["flat","vhigh","ok","high"], fr)
+            # composition: guides in the frame, the level and leaning verticals, and the stage finder on known pictures
+            cp=pg.evaluate("""(async()=>{ const out={}, wait=ms=>new Promise(r=>setTimeout(r,ms)); const real=navigator.mediaDevices.getUserMedia; const c=document.createElement('canvas'); c.width=1440; c.height=1920; c.getContext('2d').fillRect(0,0,9,9);
+              navigator.mediaDevices.getUserMedia=async()=>c.captureStream(5); state.camera='q343'; store.set('lfcFrame_q343',43); await lfcOpen(); await wait(300);
+              const G=k=>{ store.set('lfcGuide',k); lfcDraw(); return document.querySelectorAll('#lfcGd line').length; }; out.guides=[G('thirds'),G('golden'),G('diag'),G('centre'),G('off')]; store.set('lfcGuide','thirds');
+              const F=LFC.full, gl=[...document.querySelectorAll('#lfcGd line')]; G('thirds'); const l=document.querySelector('#lfcGd line'); out.third=Math.abs(+l.getAttribute('x1')-(F.x0+(F.x1-F.x0)/3))<0.6;
+              ORI.cam=200; ORI.mode='raised'; ORI.roll=0; ORI.elev=0; lfcDraw(); out.level=[document.getElementById('lfcLv').classList.contains('ok'), document.getElementById('lfcLvT').hidden];
+              ORI.roll=4; ORI.elev=10; lfcDraw(); out.tilted=[document.getElementById('lfcLv').classList.contains('ok'), document.getElementById('lfcLvBar').style.transform, document.getElementById('lfcLvT').textContent, +LFC.lv.lean.toFixed(1)];
+              const half=Math.atan((F.x1-F.x0)/2/LFC.f); out.leanWant=+(Math.atan(Math.tan(half)*Math.tan(10*Math.PI/180))*180/Math.PI).toFixed(1);
+              document.querySelector('#lfcam [data-lfctool=level]').click(); await wait(30); out.levelOff=document.getElementById('lfcLv').hidden; document.querySelector('#lfcam [data-lfctool=level]').click();
+              lfcStop(); navigator.mediaDevices.getUserMedia=real;
+              const cw=96, ch=144, mk=d=>{ const k=document.createElement('canvas'); k.width=cw; k.height=ch; const g=k.getContext('2d'); d(g); return g.getImageData(0,0,cw,ch).data; }, R={x0:0,y0:0,x1:300,y1:450};
+              const vx=0.66*cw, vy=0.40*ch, st=mk(g=>{ g.fillStyle='#555'; g.fillRect(0,0,cw,ch); g.strokeStyle='#eee'; g.lineWidth=2; for(const [ex,ey] of [[0,ch*0.95],[cw*0.25,ch],[cw,ch*0.9],[0,ch*0.2],[cw,ch*0.15]]){ g.beginPath(); g.moveTo(vx,vy); g.lineTo(ex,ey); g.stroke(); } });
+              let S=lfsAnalyze(st,cw,ch,3,'thirds'); out.vp=S.vp&&[+S.vp.x.toFixed(2),+S.vp.y.toFixed(2)]; out.vpAdv=lfsAdvice(S,R,600,'thirds')[0].t; out.vpPool=!!S.pool;
+              const pl=mk(g=>{ g.fillStyle='#202020'; g.fillRect(0,0,cw,ch); g.fillStyle='#e8e0c8'; g.fillRect(cw*0.15,ch*0.62,cw*0.22,ch*0.12); });
+              S=lfsAnalyze(pl,cw,ch,5,'thirds'); out.pool=S.pool&&[+S.pool.x.toFixed(2),+S.pool.y.toFixed(2)]; out.poolTarget=S.target.why; out.poolAdv=lfsAdvice(S,R,600,'thirds')[0].t;
+              const sky=mk(g=>{ g.fillStyle='#303030'; g.fillRect(0,0,cw,ch); g.fillStyle='#f0f0f0'; g.beginPath(); g.moveTo(cw*0.2,0); g.lineTo(cw*0.8,0); g.lineTo(cw*0.55,ch*0.45); g.lineTo(cw*0.45,ch*0.45); g.fill(); });
+              out.skyPool=!!lfsAnalyze(sky,cw,ch,5,'thirds').pool;
+              const flat=mk(g=>{ g.fillStyle='#8a8a8a'; g.fillRect(0,0,cw,ch); }); S=lfsAnalyze(flat,cw,ch,0.5,'thirds'); out.flat=[S.vp,S.pool,lfsAdvice(S,R,600,'thirds')[0].k];
+              const ed=mk(g=>{ g.fillStyle='#606060'; g.fillRect(0,0,cw,ch); g.fillStyle='#fff'; g.fillRect(cw-6,ch*0.4,6,ch*0.25); }); S=lfsAnalyze(ed,cw,ch,4,'thirds'); out.edge=[S.edge, lfsAdvice(S,R,600,'thirds').map(m=>m.k)];
+              return out; })()""")
+            check("Camera view composition: guides in the frame, level and leaning verticals, and the stage finder (lines and where they meet, pools of light, flat scenes, bright edges)",
+                  cp["guides"]==[4,4,6,2,0] and cp["third"] and cp["level"]==[True,True] and cp["tilted"][0]==False and "rotate(4" in cp["tilted"][1] and "verticals lean" in cp["tilted"][2] and "tip down 10" in cp["tilted"][2] and abs(cp["tilted"][3]-cp["leanWant"])<0.05 and cp["levelOff"]
+                  and cp["vp"] and abs(cp["vp"][0]-0.66)<=0.03 and abs(cp["vp"][1]-0.40)<=0.03 and cp["vpAdv"].startswith("Lines meet") and not cp["vpPool"]
+                  and cp["pool"] and abs(cp["pool"][0]-0.26)<=0.02 and abs(cp["pool"][1]-0.68)<=0.02 and cp["poolTarget"]=="pool" and "turn 2° left" in cp["poolAdv"].lower()
+                  and not cp["skyPool"] and cp["flat"]==[None,None,"none"] and cp["edge"][0]=="right" and "edge" in cp["edge"][1], cp)
             # the spot's day: direct sun past the buildings, the best window, saving the spot and adding it to a calendar
             pg.evaluate("LFB.cache.clear(); LFB.err=''; lfRender()"); pg.wait_for_timeout(400)
             dy=pg.evaluate("""(()=>{ const D=lfDay(LF.curPos); return [!!D, D&&D.hasB, D&&!!D.sun, D&&!!D.best, !!document.querySelector('#lightf .lfd .lfd-sky i'), (document.querySelector('#lightf .lfd-bl')||{textContent:''}).textContent]; })()""")

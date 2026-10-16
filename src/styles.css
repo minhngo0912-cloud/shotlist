@@ -900,7 +900,8 @@ body.lfopen{overflow:hidden}
 .lfc-bot{position:absolute;left:0;right:0;bottom:0;padding:10px 14px calc(14px + env(safe-area-inset-bottom,0px));background:linear-gradient(transparent,rgba(0,0,0,.8) 30%);display:flex;flex-direction:column;gap:2px;font-size:14px} .lfc-bot b{font-size:16px} .lfc-bot span{color:#ffd23f;font-family:ui-monospace,Menlo,monospace}
 .lfc-fr{position:absolute;inset:0;width:100%;height:100%;pointer-events:none} .lfc-mask{fill:rgba(0,0,0,.45)} .lfc-line{fill:none;stroke:#fff;stroke-width:2;filter:drop-shadow(0 0 2px rgba(0,0,0,.8))} .lfc-frl{fill:#fff;font-size:13px;font-weight:700;paint-order:stroke;stroke:rgba(0,0,0,.6);stroke-width:3px}
 .lfc-frs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 6px} .lfc-frs .chip{background:rgba(0,0,0,.55);color:#fff;border-color:rgba(255,255,255,.35);min-height:34px;padding:4px 12px} .lfc-frs .chip[aria-pressed=true]{background:#fff;color:#000}
-.lfc-cx{position:absolute;left:12px;top:calc(62px + env(safe-area-inset-top,0px));max-width:min(78%,320px);background:rgba(0,0,0,.7);border-radius:10px;padding:8px 10px;display:grid;grid-template-columns:48px 1fr;gap:2px 10px;align-items:center;font-size:13px;pointer-events:none;border-left:3px solid #9aa0a6}
+.lfc-info{position:absolute;left:12px;top:calc(62px + env(safe-area-inset-top,0px));max-width:min(80%,330px);display:flex;flex-direction:column;gap:6px;pointer-events:none}
+.lfc-cx{background:rgba(0,0,0,.7);border-radius:10px;padding:8px 10px;display:grid;grid-template-columns:48px 1fr;gap:2px 10px;align-items:center;font-size:13px;pointer-events:none;border-left:3px solid #9aa0a6}
 .lfc-cx small{grid-column:1/-1;color:#ddd;font-size:12px;line-height:1.35} .lfc-hist{width:48px;height:20px} .lfc-hist rect{fill:#fff;opacity:.85}
 .lfc-cx.k-vhigh{border-left-color:#ff5a4f} .lfc-cx.k-high{border-left-color:#ffb020} .lfc-cx.k-flat{border-left-color:#7fb2ff} .lfc-cx.k-ok{border-left-color:#3ddc84}
 .lfc-err,.lfc-wait{position:relative;background:rgba(0,0,0,.75);padding:10px;border-radius:8px;margin:0 0 6px} .lfc-wait{position:absolute;top:40%;left:16px;right:16px;text-align:center}
@@ -929,3 +930,19 @@ body.lfopen{overflow:hidden}
 .notesbar{flex-wrap:wrap;gap:8px}
 .row .qsnip{display:block;font-size:12.5px;opacity:.8;margin-top:2px;line-height:1.35} .row mark{background:#ffe27a;color:#1a1a1a;border-radius:3px;padding:0 1px}
 .row .t .ok{color:#1e9e48;font-weight:600} :root[data-theme=dark] .row .t .ok{color:#7fd88f} @media (prefers-color-scheme:dark){:root:not([data-theme=light]) .row .t .ok{color:#7fd88f}} .row .t .off{opacity:.75} .group.flat{margin-top:6px}
+
+/* Camera view: composition guides, level, stage finder */
+.lfc-gd,.lfc-sg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.lfc-gd line{stroke:rgba(255,255,255,.55);stroke-width:1;filter:drop-shadow(0 0 1px rgba(0,0,0,.6))}
+.lfc-sg .sg-l{stroke:#6fe3ff;stroke-width:1.5;stroke-dasharray:6 5;opacity:.75}
+.lfc-sg .sg-vp{fill:none;stroke:#6fe3ff;stroke-width:2.5} .lfc-sg .sg-pool{fill:rgba(255,210,63,.08);stroke:#ffd23f;stroke-width:2;stroke-dasharray:5 4}
+.lfc-sg .sg-edge{stroke:#ff5a4f;stroke-width:5;opacity:.85} .lfc-sg .sg-tg circle{fill:none;stroke:#3ddc84;stroke-width:2.5} .lfc-sg .sg-tg circle+circle{fill:#3ddc84}
+.lfc-sg .sg-t{fill:#fff;font-size:12px;font-weight:700;paint-order:stroke;stroke:rgba(0,0,0,.7);stroke-width:3px} .lfc-sg .sg-tp{fill:#ffd23f} .lfc-sg .sg-tt{fill:#3ddc84}
+.lfc-sgt{background:rgba(0,0,0,.7);border-radius:10px;padding:8px 10px;font-size:12.5px;line-height:1.38;display:flex;flex-direction:column;gap:3px;border-left:3px solid #6fe3ff}
+.lfc-sgt b{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#6fe3ff}
+.lfc-lv{position:absolute;width:150px;height:0;transform:translate(-50%,0);pointer-events:none}
+.lfc-lv .lv-ref{position:absolute;top:-1px;left:0;width:22px;height:2px;background:rgba(255,255,255,.8);box-shadow:0 0 2px #000} .lfc-lv .lv-ref.r{left:auto;right:0}
+.lfc-lv .lv-bar{position:absolute;top:-1px;left:30px;width:90px;height:2px;background:#ffd23f;box-shadow:0 0 2px #000;transform-origin:50% 50%}
+.lfc-lv.ok .lv-bar,.lfc-lv.ok .lv-ref{background:#3ddc84}
+.lfc-lvt{background:rgba(0,0,0,.7);border-radius:10px;padding:6px 10px;font-size:12.5px;font-weight:700;border-left:3px solid #3ddc84} .lfc-lvt.warn{color:#ffb020;border-left-color:#ffb020} .lfc-tools{margin-top:-2px}
+.lfc-cx.short small{display:none}
