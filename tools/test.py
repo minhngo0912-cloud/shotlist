@@ -530,9 +530,13 @@ def run(path, name):
         if pg.evaluate("document.querySelectorAll('#lightf [data-lfopt]').length")>1:
             pg.click("#lightf [data-lfopt='1']"); pg.wait_for_timeout(80)
             check("Choosing another way to point changes the advice", pg.evaluate("document.querySelector('#lightf [data-lfopt][aria-pressed=true]').dataset.lfopt")=="1" and pg.evaluate("document.querySelector('#lightf .lf-h').textContent")!=lf[3])
-        pg.evaluate("headingSet(10); headingSet(10); headingSet(10); headingApply()"); pg.wait_for_timeout(50)
-        hd=pg.evaluate("[document.getElementById('lfRot').style.transform, document.getElementById('lfTurn').textContent]")
-        check("With the compass, the dial turns with you and says which way to turn", "rotate(-" in hd[0] and (hd[1]=="" or "Turn" in hd[1] or "facing it" in hd[1]), hd)
+        # the compass: a phone lying flat with its top to the east, then raised with the camera to the west-southwest and turned a little sideways
+        feed="(a,b,g)=>{ for(let i=0;i<40;i++) dispatchEvent(new DeviceOrientationEvent('deviceorientationabsolute',{alpha:a,beta:b,gamma:g,absolute:true})); }"
+        pg.evaluate("("+feed+")(270,0,0)"); pg.wait_for_timeout(60)
+        f1=pg.evaluate("[Math.round(oriHeading()), ORI.mode, document.getElementById('lfRot').style.transform, document.getElementById('lfTurn').textContent]")
+        pg.evaluate("("+feed+")(192.6,105.1,-82.3)"); pg.wait_for_timeout(60)
+        f2=pg.evaluate("[Math.round(oriHeading()), ORI.mode, Math.round(ORI.elev), Math.round(ORI.roll), document.querySelector('#lightf .lf-mode').textContent]")
+        check("The compass in Light here: flat, the dial follows the top of the phone; raised and tilted, it follows the camera", f1[:3]==[90,"flat","rotate(-90deg)"] and ("Turn" in f1[3] or "facing it" in f1[3]) and f2[:4]==[250,"raised",2,-15] and "camera" in f2[4], [f1,f2])
         pg.click("#lightf [data-lfcam=q328]"); pg.wait_for_timeout(80)
         cs=pg.evaluate("[state.camera, document.querySelector('#lightf .st-exp .stk').textContent, document.querySelector('#lightf [data-lfcam=q328]').getAttribute('aria-pressed')]")
         pg.click("#lightf [data-lfcam=q343]"); pg.wait_for_timeout(80)
@@ -560,7 +564,7 @@ def run(path, name):
         # camera view: opens over Light here, draws the sun and the way to point from the compass and tilt, and closes
         if name=="Installed app":
             pg.evaluate("lfcOpen()"); pg.wait_for_timeout(300)
-            pg.evaluate("LFC.hd=LF.cur&&LF.cur.face!=null?LF.cur.face:200; LFC.pitch=5; lfcDraw()"); pg.wait_for_timeout(50)
+            pg.evaluate("ORI.cam=LF.cur&&LF.cur.face!=null?LF.cur.face:200; ORI.elev=5; ORI.mode='raised'; lfcDraw()"); pg.wait_for_timeout(50)
             cm=pg.evaluate("[!!document.getElementById('lfcam'), document.querySelectorAll('#lfcOv .lfc-m.aim, #lfcOv .lfc-edge.aim').length, document.getElementById('lfcTurn').textContent, !!document.querySelector('#lfcBot b')]")
             pg.click("#lfcam [data-lf=camclose]"); pg.wait_for_timeout(60)
             check("Camera view draws where to point over the camera picture, and closes", cm[0] and cm[1]==1 and ("On it" in cm[2] or cm[2]) and cm[3] and pg.evaluate("[!!document.getElementById('lfcam'), LFC.on]")==[False,False], cm)
