@@ -228,6 +228,23 @@ def run(path, name):
         ag=pg.evaluate("[state.view, [...document.querySelectorAll('#list .row')].map(r=>r.dataset.id), document.querySelector('#list .row .pill')?.textContent]")
         check("Browse lists the try-agains", ag==["again",["ktown-energy"],"Try again"], ag)
         pg.evaluate("state.log={}; state.done.delete('ktown-energy'); saveLog(); state.view='browse'; render()")
+        # search, sort and On now
+        pg.fill("#q","steam"); pg.wait_for_timeout(300)
+        q1=pg.evaluate("[matches(false).map(x=>x.t), !!document.querySelector('#list .row mark'), !!document.querySelector('#list .qsnip mark')]")
+        pg.fill("#q","reflection"); pg.wait_for_timeout(300); q2=pg.evaluate("matches(false).some(x=>/reflections/i.test(x.look+x.work+x.t))")
+        pg.fill("#q","golden hour"); pg.wait_for_timeout(300); q3=pg.evaluate("matches(false).length>0&&matches(false).every(x=>x.w.includes('gold'))")
+        pg.fill("#q","zzzz"); pg.wait_for_timeout(300); q4=pg.evaluate("[matches(false).length, !!document.querySelector('#list [data-qclear=q]')]")
+        pg.click("#list [data-qclear=q]"); pg.wait_for_timeout(150); q5=pg.evaluate("[state.q, document.getElementById('q').value, document.querySelectorAll('#list .row').length>100]")
+        check("Ideas search: words match titles and text (plurals folded, golden hour finds late-afternoon ideas), with highlights and a way out when nothing matches",
+              "Steam and neon" in q1[0] and q1[1] and q1[2] and q2 and q3 and q4==[0,True] and q5==["","",True], [q1,q2,q3,q4,q5])
+        pg.select_option("#isort","now"); pg.wait_for_timeout(150)
+        so=pg.evaluate("""(()=>{ const ids=[...document.querySelectorAll('#list .row')].map(r=>r.dataset.id), t=new Date(), k=lightAt(t), sk=skyAt(t), r=ids.map(id=>nowRank(IDEAS.find(x=>x.id===id),t,k,sk));
+          return [r.every((v,i)=>i===0||r[i-1]<=v), !document.querySelector('#list .group-head'), store.get('isort')]; })()""")
+        pg.click("#onNow"); pg.wait_for_timeout(200)
+        on=pg.evaluate("[matches(false).length, cityIdeas().length, matches(false).every(x=>onNowIdea(x)), document.getElementById('onNow').getAttribute('aria-pressed')]")
+        pg.click("#onNow"); pg.select_option("#isort","place"); pg.wait_for_timeout(150)
+        check("Ideas list sorts by best right now (flat list, remembered), and On now keeps only ideas that are on and suit the light",
+              so==[True,True,"now"] and 0<on[0]<on[1] and on[2] and on[3]=="true" and pg.evaluate("!!document.querySelector('#list .group-head')"), [so,on])
         # Plan
         pg.evaluate("state.view='plan'; render()"); pg.wait_for_timeout(300); pg.click("#pGo"); pg.wait_for_timeout(150)
         check("Plan makes an outing", pg.evaluate("!!(state.plan&&state.plan.stops.length)")); no_overflow("Plan"); shot("plan")

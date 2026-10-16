@@ -939,6 +939,14 @@ body.lfopen{overflow:hidden}
 .lfd-spots{display:flex;flex-direction:column;margin-bottom:8px} .lfd-spot{display:flex;align-items:center;border-top:1px solid #23262c} .lfd-spot.on{background:#1e2026}
 .lfd-go{flex:1;display:flex;flex-direction:column;align-items:flex-start;gap:2px;background:transparent;border:0;color:#e8e9ec;font:inherit;text-align:left;padding:8px 2px;cursor:pointer} .lfd-go span{font-size:13px;color:#9aa0a6}
 .lfd-del{flex:none} .lf-spotn{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+
+/* Ideas: search, On now, sort */
+.isearch{display:flex;gap:8px;align-items:center} .isearch input{flex:1;min-width:0;min-height:44px;border-radius:12px;border:1.5px solid var(--line);background:var(--panel);color:var(--fg);font:inherit;font-size:16px;padding:0 14px}
+.isearch .chip{flex:none} .isearch-n{margin:-4px 0 0}
+.isort{display:inline-flex;align-items:center;gap:6px;font-size:13px;margin-left:auto} .isort select{min-height:36px;font-size:14px;padding:0 8px;border-radius:10px}
+.notesbar{flex-wrap:wrap;gap:8px}
+.row .qsnip{display:block;font-size:12.5px;opacity:.8;margin-top:2px;line-height:1.35} .row mark{background:#ffe27a;color:#1a1a1a;border-radius:3px;padding:0 1px}
+.row .t .ok{color:#1e9e48;font-weight:600} :root[data-theme=dark] .row .t .ok{color:#7fd88f} @media (prefers-color-scheme:dark){:root:not([data-theme=light]) .row .t .ok{color:#7fd88f}} .row .t .off{opacity:.75} .group.flat{margin-top:6px}
 </style>
 
 <div class="app">
@@ -976,6 +984,8 @@ body.lfopen{overflow:hidden}
 
   <section class="filters" id="filters" aria-label="Filters">
     <div class="ideamode" id="ideaMode" role="group" aria-label="Show ideas as"><button type="button" data-im="card">One at a time</button><button type="button" data-im="list">List</button></div>
+    <div class="isearch"><input type="search" id="q" placeholder="Search: steam, neon, shadows, dogs…" aria-label="Search ideas" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"><button type="button" class="chip" id="onNow" aria-pressed="false" title="Only ideas that are on and suit the light right now">On now</button></div>
+    <p class="msg isearch-n" id="qCount" hidden></p>
     <div class="intents" id="intents"></div>
     <div class="selects">
       <div class="field"><label class="label" for="place">Place</label><select id="place"></select></div>
@@ -2712,10 +2722,40 @@ function availText(x){ const a=AVAIL[x.id]; if(!a) return ""; const out=[], MO=[
   return out.join(" · "); }
 
 
-function matches(savedOnly){
+/* Search: every word typed must start a word somewhere in the idea (title, what to look for, how to work it, the rule, the place,
+   the intent, its light and the composition technique). Plurals and -ing/-ed endings are folded, so "reflection" finds
+   "reflections" and "steam" finds "steaming". */
+const qNorm = t => " "+String(t||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[’']/g,"").replace(/[^a-z0-9]+/g," ").trim().split(" ").map(qStem).join(" ")+" ";
+function qStem(w){ if(w.length>4){ if(/ies$/.test(w)) return w.slice(0,-3)+"y"; if(/(ches|shes|sses|xes)$/.test(w)) return w.slice(0,-2); if(/ing$/.test(w)&&w.length>5) return w.slice(0,-3); if(/ed$/.test(w)&&w.length>5) return w.slice(0,-2); if(/s$/.test(w)&&!/ss$/.test(w)) return w.slice(0,-1); } return w; }
+const QHAY = new Map();
+const QLIGHT = {am:"sunrise early dawn", mid:"noon harsh hard light", gold:"golden hour sunset low sun warm", night:"dark after dark evening", rain:"wet overcast cloudy grey gray umbrella puddle"};
+function ideaHay(x){ let h=QHAY.get(x.id); if(h) return h; const co=COMPOSE[x.id];
+  h=qNorm([x.t,x.look,x.work,x.rule,PLACES[x.p].name,INTENTS[x.i].name,x.w.map(w=>WHEN[w]+" "+(QLIGHT[w]||"")).join(" "),co?co.map(k=>TECH[k]?TECH[k][0]:"").join(" "):"",seasonText(x)].join(" ")); QHAY.set(x.id,h); return h; }
+const qTokens = () => qNorm(state.q).trim().split(" ").filter(Boolean);
+const qHit = x => { const T=qTokens(); if(!T.length) return true; const h=ideaHay(x); return T.every(t=>h.includes(" "+t)); };
+/* On now: the idea is open (days, hours, season, weather) and suits the light at this moment. */
+function onNowIdea(x,t,sky){ t=t||new Date(); return ideaOpen(x,t,sky===undefined?skyAt(t):sky)&&x.w.includes(lightAt(t)); }
+function matches(savedOnly){ const t=new Date(), sky=state.onNow?skyAt(t):undefined;
   return cityIdeas().filter(x => (state.intent==="all"||x.i===state.intent) && (state.place==="all"||(state.place==="near"?nearSet().has(x.p):x.p===state.place))
-    && (state.when==="all"||x.w.includes(state.when)) && (!savedOnly||state.saved.has(x.id)));
+    && (state.when==="all"||x.w.includes(state.when)) && (!savedOnly||state.saved.has(x.id)) && qHit(x) && (!state.onNow||onNowIdea(x,t,sky)));
 }
+/* What to say when search or On now leaves nothing, with a way out. */
+function qEmptyHtml(){ if(!state.q&&!state.onNow) return ""; const b=[];
+  if(state.q) b.push('<button type="button" class="chip" data-qclear="q">Clear the search</button>'); if(state.onNow) b.push('<button type="button" class="chip" data-qclear="now">Show all times</button>');
+  return '<p class="plain">Nothing'+(state.q?' matches “'+esc(state.q.trim())+'”':'')+(state.onNow?(state.q?' that is':'')+' on right now':'')+' with these filters.</p><div class="intents">'+b.join("")+'</div>'; }
+/* A short piece of the idea's text around the first search word, for list rows when the title alone does not show the match. */
+function qSnippet(x){ const T=qTokens(); if(!T.length) return ""; if(T.every(t=>qNorm(x.t).includes(" "+t))) return "";
+  for(const src of [x.look,x.work,x.rule]){ const words=String(src).split(/\s+/); for(let i=0;i<words.length;i++){ if(T.some(t=>qNorm(words[i]).includes(" "+t))){ const a=Math.max(0,i-5), z=Math.min(words.length,i+7);
+    return (a?"…":"")+words.slice(a,z).map(w=>T.some(t=>qNorm(w).includes(" "+t))?"<mark>"+esc(w)+"</mark>":esc(w)).join(" ")+(z<words.length?"…":""); } } }
+  return ""; }
+const qMarkTitle = x => { const T=qTokens(); if(!T.length) return esc(x.t); return x.t.split(/(\s+)/).map(w=>/\S/.test(w)&&T.some(t=>qNorm(w).includes(" "+t))?"<mark>"+esc(w)+"</mark>":esc(w)).join(""); };
+/* How well an idea fits right now, for the list's "Best right now" order: the card's score without the randomness or the repeats. */
+function nowRank(x,t,key,sky){ let s=0; const fit=x.w.includes(key), last=lastShot(x.id);
+  if(!fit) s+=2.2; if(!ideaOpen(x,t,sky)) s+=4;
+  if(state.done.has(x.id)) s+= last&&last.r==="again" ? (fit?-0.3:0.9) : last&&last.r==="keep" ? 2.4 : 1.8;
+  if(state.pos){ const mi=milesTo(PLACES[x.p]); if(mi!==null) s+=Math.min(mi,10)*0.22; } return s; }
+const agoText = t => { const d=Math.floor((new Date().setHours(0,0,0,0)-new Date(t).setHours(0,0,0,0))/864e5); return d<=0?"today":d===1?"yesterday":d<7?d+" days ago":d<60?Math.round(d/7)+" wk ago":new Date(t).toLocaleDateString("en-US",{month:"short",year:"numeric"}); };
+const ISORT = {place:"By place", now:"Best right now", near:"Nearest", fresh:"Not shot yet", recent:"Recently shot"};
 function show(id){
   if(state.current && state.current!==id){ state.history.push(state.current); if(state.history.length>40) state.history.shift(); }
   state.current=id; state.tab="idea"; state.justShot=null; state.onlyOne=false;
@@ -3058,10 +3098,10 @@ function standBlock(x){ const sp=spotFor(x), t=new Date(), pl=PLACES[x.p];
   const g=START_GEO[x.p], st=START[x.p];
   return '<div class="part stand"><span class="label">Where to stand</span><p>'+esc(x.work.split(/(?<=\.)\s/)[0])+'</p>'+(st?'<p class="hint">Start at '+esc(st[0])+'.</p>':'')+
     '<div class="callinks">'+(g?'<a class="chip" href="https://www.google.com/maps/dir/?api=1&destination='+g[0]+','+g[1]+'&travelmode=walking" target="_blank" rel="noopener">Walk to the start ↗</a>':'')+'<button type="button" class="chip" data-placemap="'+x.p+'">See it on the map</button></div></div>'; }
-function renderCard(){
+function renderCard(){ qCount();
   const x = IDEAS.find(y=>y.id===state.current), card=$("card");
   $("save").disabled=$("done").disabled=!x; $("back").disabled=!state.history.length;
-  if(!x){ card.innerHTML='<div class="pane"><h2>No idea fits these filters</h2><p class="plain">Choose Any, or widen the place or the light.</p></div>';
+  if(!x){ card.innerHTML='<div class="pane"><h2>No idea fits these filters</h2>'+(qEmptyHtml()||'<p class="plain">Choose Any, or widen the place or the light.</p>')+'</div>';
     $("save").textContent="Save"; $("done").textContent="Shot it"; return; }
   const it=INTENTS[x.i], pl=PLACES[x.p], cam=CAMERAS[state.camera], rec=cam.recipes[x.r], su=setupFor(cam,x.r), co=COMPOSE[x.id], st=STANCE[STANCE_OF[x.id]];
   const ni=nowInfo(), adv=su?adjustFor(x.r,ni,cam.setup==="leica",x.id):[];
@@ -3181,26 +3221,38 @@ function swipeable(el,left,right){ let st=null;
   el.addEventListener("pointerdown",e=>{ st=null; if(e.pointerType==="mouse") return; if(e.target.closest("textarea,select,input,.setup,.intents,svg,.tipbtn")) return; st={x:e.clientX,y:e.clientY,t:Date.now()}; });
   el.addEventListener("pointerup",e=>{ if(!st) return; const dx=e.clientX-st.x, dy=e.clientY-st.y, dt=Date.now()-st.t; st=null; if(Math.abs(dx)>64&&Math.abs(dx)>Math.abs(dy)*1.8&&dt<800){ (dx<0?left:right)(); } });
   el.addEventListener("pointercancel",()=>{ st=null; }); }
-function renderList(){
+function renderList(){ qCount();
   const again=state.view==="again", saved=state.view==="saved"||again, box=$("list"), m=again?matches(false).filter(x=>(lastShot(x.id)||{}).r==="again"):matches(state.view==="saved");
   const nAgain=cityIdeas().filter(x=>(lastShot(x.id)||{}).r==="again").length, nSaved0=cityIdeas().filter(x=>state.saved.has(x.id)).length;
   const sw='<div class="intents savedswitch"><button type="button" class="chip" data-listv="browse" aria-pressed="'+!saved+'">All ideas</button><button type="button" class="chip" data-listv="saved" aria-pressed="'+(state.view==="saved")+'">Saved ('+nSaved0+')</button>'+(nAgain||again?'<button type="button" class="chip" data-listv="again" aria-pressed="'+again+'">Try again ('+nAgain+')</button>':'')+'</div>';
+  if(!m.length&&!again&&!saved&&(state.q||state.onNow)){ box.innerHTML=sw+'<div class="empty">'+qEmptyHtml()+'</div>'; return; }
   if(!m.length){ box.innerHTML=sw+'<p class="empty">'+(again?"Nothing marked try again here. After Shot it, tap Try again on the card to bring an idea back when the light suits it.":saved?"Nothing saved here yet. Tap Save on an idea in Shoot to keep it in this list.":"No ideas fit these filters. Choose Any, or widen the place or the light.")+'</p>'; return; }
   const noted=cityIdeas().filter(x=>state.notes[x.id]);
   const nSaved=cityIdeas().filter(x=>state.saved.has(x.id)).length;
-  box.innerHTML = sw+
-    '<div class="notesbar"><span class="msg">'+m.length+' idea'+(m.length===1?'':'s')+(state.pos?', nearest first':'')+'</span>'+
-    (noted.length?'<button type="button" class="chip" id="copyNotes">Copy my notes ('+noted.length+')</button>':'')+'</div>'+
+  let sort=ISORT[state.sort]?state.sort:"place"; if(sort==="near"&&!state.pos) sort="place";
+  const sortSel='<label class="isort"><span>Sort</span><select id="isort">'+Object.entries(ISORT).filter(([k])=>k!=="near"||state.pos).map(([k,v])=>'<option value="'+k+'"'+(k===sort?' selected':'')+'>'+v+'</option>').join("")+'</select></label>';
+  const head = sw+'<div class="notesbar"><span class="msg">'+m.length+' idea'+(m.length===1?'':'s')+(sort==="place"&&state.pos?', nearest first':'')+'</span>'+sortSel+
+    (noted.length?'<button type="button" class="chip" id="copyNotes">Copy my notes ('+noted.length+')</button>':'')+'</div>';
+  const t0=new Date(), key0=lightAt(t0), sky0=skyAt(t0);
+  const rowHtml=(x,flat)=>{ const pl=PLACES[x.p], last=lastShot(x.id), open=ideaOpen(x,t0,sky0), fit=x.w.includes(key0), snip=qSnippet(x), mi=milesTo(pl);
+    const status=flat?(fit&&open?'<span class="ok">Suits the light now</span>':!open?'<span class="off">Not on now</span>':'Best: '+esc(x.w.slice(0,2).map(w=>WHEN[w].toLowerCase()).join(" or "))):'';
+    return '<button type="button" class="row'+(state.done.has(x.id)?" done":"")+'" data-id="'+x.id+'">'+
+      '<span class="dot" style="background:'+INTENTS[x.i].color+'"></span>'+
+      '<span class="t"><b>'+qMarkTitle(x)+'</b><span>'+(flat?esc(pl.name)+(mi!==null?' · '+milesText(mi):'')+' · '+status+(sort==="recent"&&last?' · shot '+esc(agoText(last.t)):''):esc(INTENTS[x.i].name)+(COMPOSE[x.id]?' · '+esc(TECH[COMPOSE[x.id][0]][0]):''))+'</span>'+(snip?'<span class="qsnip">'+snip+'</span>':'')+'</span>'+
+      '<span class="marks">'+(state.saved.has(x.id)?'<span class="pill">Saved</span>':'')+(state.done.has(x.id)?'<span class="pill">'+((last||{}).r==="keep"?'Keeper':(last||{}).r==="again"?'Try again':'Shot')+'</span>':'')+(state.notes[x.id]?'<span class="pill">Note</span>':'')+'</span>'+
+      '<span class="go" aria-hidden="true">›</span></button>'; };
+  if(sort!=="place"){ const R=m.map(x=>({x,n:nowRank(x,t0,key0,sky0),d:milesTo(PLACES[x.p]),l:lastShot(x.id)}));
+    if(sort==="now") R.sort((a,b)=>a.n-b.n);
+    if(sort==="near") R.sort((a,b)=>(a.d===null?1e9:a.d)-(b.d===null?1e9:b.d)||a.n-b.n);
+    if(sort==="fresh") R.sort((a,b)=>(state.done.has(a.x.id)?1:0)-(state.done.has(b.x.id)?1:0)||a.n-b.n);
+    if(sort==="recent") R.sort((a,b)=>(b.l?b.l.t:0)-(a.l?a.l.t:0)||a.n-b.n);
+    box.innerHTML=head+(sort==="recent"&&!R.some(r=>r.l)?'<p class="msg">Nothing shot yet: these are in order of how well they fit now.</p>':'')+'<section class="group flat">'+R.map(r=>rowHtml(r.x,true)).join("")+'</section>'+(saved?"":followAll()); return; }
+  box.innerHTML = head+
   (state.pos||state.place!=="all"?"":'<div class="intents areajump">'+Object.keys(AREAS).filter(a=>placeOrder().some(pid=>areaOf(pid)===a&&m.some(x=>x.p===pid))).map(a=>'<a class="chip" href="#area-'+a+'">'+AREAS[a]+'</a>').join("")+'</div>')+
   placeOrder().map((pid,n,arr)=>{ const p=PLACES[pid];
     const rows=m.filter(x=>x.p===pid); if(!rows.length) return "";
     const first=!state.pos && !arr.slice(0,n).some(q=>areaOf(q)===areaOf(pid)&&m.some(x=>x.p===q));
-    return (first?'<h3 class="label areahead" id="area-'+areaOf(pid)+'">'+AREAS[areaOf(pid)]+'</h3>':'')+'<section class="group"><div class="group-head"><b>'+esc(p.name)+(milesTo(p)!==null?'<span class="dist">'+milesText(milesTo(p))+'</span>':'')+'</b>'+whereHtml(PLACES[pid])+startLink(pid)+'</div>'+rows.map(x=>
-      '<button type="button" class="row'+(state.done.has(x.id)?" done":"")+'" data-id="'+x.id+'">'+
-      '<span class="dot" style="background:'+INTENTS[x.i].color+'"></span>'+
-      '<span class="t"><b>'+esc(x.t)+'</b><span>'+esc(INTENTS[x.i].name)+(COMPOSE[x.id]?' · '+esc(TECH[COMPOSE[x.id][0]][0]):'')+'</span></span>'+
-      '<span class="marks">'+(state.saved.has(x.id)?'<span class="pill">Saved</span>':'')+(state.done.has(x.id)?'<span class="pill">'+((lastShot(x.id)||{}).r==="keep"?'Keeper':(lastShot(x.id)||{}).r==="again"?'Try again':'Shot')+'</span>':'')+(state.notes[x.id]?'<span class="pill">Note</span>':'')+'</span>'+
-      '<span class="go" aria-hidden="true">›</span></button>').join("")+'</section>';
+    return (first?'<h3 class="label areahead" id="area-'+areaOf(pid)+'">'+AREAS[areaOf(pid)]+'</h3>':'')+'<section class="group"><div class="group-head"><b>'+esc(p.name)+(milesTo(p)!==null?'<span class="dist">'+milesText(milesTo(p))+'</span>':'')+'</b>'+whereHtml(PLACES[pid])+startLink(pid)+'</div>'+rows.map(x=>rowHtml(x,false)).join("")+'</section>';
   }).join("")+(saved?"":followAll());
 }
 /* Accounts to follow for inspiration. Links only: the photos belong to the photographers, so the app sends you to them.
@@ -5173,7 +5225,16 @@ function render(){
   if(mp) planSheet(pl);
   if(shoot){ renderCard(); if(state.street) renderStreet(); } else if(ev) renderEvents(); else if(pl) renderPlan(); else if(!mp&&!ln&&!td) renderList();
 }
-function refilter(){ if(!matches(false).some(x=>x.id===state.current)) pick(); render(); }
+function refilter(){ if(!matches(false).some(x=>x.id===state.current)) pick(); render(); qCount(); }
+state.q=""; state.onNow=!!store.get("onNow",false); state.sort=store.get("isort","place")||"place";
+function qCount(){ const el=$("qCount"); if(!el) return; if((!state.q&&!state.onNow)||state.view!=="shoot"){ el.hidden=true; return; } const n=matches(false).length; el.hidden=false; el.textContent=n?n+" idea"+(n===1?"":"s")+(state.q?(n===1?" matches":" match"):"")+(state.onNow?(state.q?", on now":" on now"):"")+".":""; if(!n) el.hidden=true; }
+function syncOnNow(){ const b=$("onNow"); if(!b) return; b.setAttribute("aria-pressed",String(state.onNow)); b.textContent=state.onNow?"On now ✓":"On now"; }
+let qT=0; $("q").addEventListener("input",e=>{ state.q=e.target.value; clearTimeout(qT); qT=setTimeout(refilter,160); });
+$("q").addEventListener("keydown",e=>{ if(e.key==="Enter") e.target.blur(); if(e.key==="Escape"){ e.target.value=""; state.q=""; refilter(); } });
+$("onNow").addEventListener("click",()=>{ state.onNow=!state.onNow; store.set("onNow",state.onNow); syncOnNow(); refilter(); });
+document.addEventListener("change",e=>{ if(e.target.id!=="isort") return; state.sort=e.target.value; store.set("isort",state.sort); render(); });
+document.addEventListener("click",e=>{ const b=e.target.closest&&e.target.closest("[data-qclear]"); if(!b) return; if(b.dataset.qclear==="q"){ state.q=""; $("q").value=""; } else { state.onNow=false; store.set("onNow",false); syncOnNow(); } refilter(); });
+syncOnNow();
 function cardToTop(){ const r=$("card").getBoundingClientRect(); if(r.top<0) window.scrollTo({top:window.scrollY+r.top-12,behavior:"smooth"}); }
 
 // Controls

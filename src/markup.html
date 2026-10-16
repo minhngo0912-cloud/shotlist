@@ -35,6 +35,8 @@
 
   <section class="filters" id="filters" aria-label="Filters">
     <div class="ideamode" id="ideaMode" role="group" aria-label="Show ideas as"><button type="button" data-im="card">One at a time</button><button type="button" data-im="list">List</button></div>
+    <div class="isearch"><input type="search" id="q" placeholder="Search: steam, neon, shadows, dogs…" aria-label="Search ideas" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"><button type="button" class="chip" id="onNow" aria-pressed="false" title="Only ideas that are on and suit the light right now">On now</button></div>
+    <p class="msg isearch-n" id="qCount" hidden></p>
     <div class="intents" id="intents"></div>
     <div class="selects">
       <div class="field"><label class="label" for="place">Place</label><select id="place"></select></div>
