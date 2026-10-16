@@ -906,7 +906,7 @@ body.lfopen{overflow:hidden}
 .lfcam{position:fixed;inset:0;z-index:70;background:#000;overflow:hidden;color:#fff}
 .lfcam video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .lfc-ov{position:absolute;inset:0;pointer-events:none;transform-origin:50% 50%}
-.lfc-hz{position:absolute;left:-20%;right:-20%;height:0;border-top:1.5px dashed rgba(255,255,255,.55)}
+.lfc-hz{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible} .lfc-hz line{stroke:rgba(255,255,255,.55);stroke-width:1.5;stroke-dasharray:6 5}
 .lfc-m{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:4px}
 .lfc-m i{display:block;width:34px;height:34px;border-radius:50%;border:3px solid #ffd23f;box-shadow:0 0 0 2px rgba(0,0,0,.5),0 0 18px #ffd23f}
 .lfc-m.moon i{border-color:#f4f1e2;box-shadow:0 0 0 2px rgba(0,0,0,.5)} .lfc-m.aim i{width:44px;height:44px;border-radius:8px;border-color:#fff;box-shadow:0 0 0 2px rgba(0,0,0,.6)}
@@ -3880,7 +3880,7 @@ function oriStart(){ if(ORI.on) return; ORI.on=true;
   ORI.fn=e=>{ if(e.alpha==null||e.beta==null||e.gamma==null) return; const ios=typeof e.webkitCompassHeading==="number"&&!isNaN(e.webkitCompassHeading)&&e.webkitCompassHeading>=0;
     if(e.type==="deviceorientationabsolute") ORI.gotAbs=true; else if(ORI.gotAbs&&!ios) return;   // Android sends both: use the absolute one
     if(!ios&&!(e.type==="deviceorientationabsolute"||e.absolute===true)) return;                       // a reading not tied to north is no use
-    const F=devFrame(e.alpha,e.beta,e.gamma); ORI.ios=ios; ORI.elev=ORI.elev==null?F.elev:ORI.elev*0.7+F.elev*0.3; ORI.roll=ORI.roll*0.7+F.roll*0.3;
+    const F=devFrame(e.alpha,e.beta,e.gamma); ORI.ios=ios; ORI.elev=ORI.elev==null?F.elev:ORI.elev*0.7+F.elev*0.3; ORI.roll=((oriMix(ORI.roll+180,F.roll+180,0.3))-180);
     // flat or raised, with a little hysteresis so it does not flicker between the two
     if(ORI.mode==="flat"&&Math.abs(F.elev)<40) ORI.mode="raised"; else if(ORI.mode==="raised"&&Math.abs(F.elev)>55) ORI.mode="flat";
     let off=0;
@@ -4018,36 +4018,53 @@ function lfLogHtml(){ const L=state.lightLog, last=L[L.length-1], recent=last&&D
 
 /* Camera view: the phone's camera with the sun, the moon, the way to point and the light around you drawn over the picture.
    Uses the compass for direction and the tilt sensor for up and down. Installed app only: Claude's page blocks the camera. */
-const LFC = {on:false, stream:null, fn:null, raf:0, hd:null, pitch:0, roll:0};
-function camHeading(a,b,g){ const d=Math.PI/180, x=b*d, y=g*d, z=a*d, cX=Math.cos(x), cY=Math.cos(y), cZ=Math.cos(z), sX=Math.sin(x), sY=Math.sin(y), sZ=Math.sin(z);
-  const Vx=-cZ*sY-sZ*sX*cY, Vy=-sZ*sY+cZ*sX*cY; let h=Math.atan(Vx/Vy); if(Vy<0) h+=Math.PI; else if(Vx<0) h+=2*Math.PI; return h/d; }
+const LFC = {on:false, stream:null, raf:0, tok:0, f:null, hf:null};
+/* A phone's main camera sees about 67° along the long side of the picture (a 24-26 mm equivalent lens); the short side
+   follows from the shape of the video (4:3 or 16:9), and the picture is cropped to fill the screen. */
+const LFC_LONG = 67;
+async function lfcStream(){ const tok=++LFC.tok; let st=null;
+  try{ st=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1920}},audio:false}); }
+  catch(e){ if(tok!==LFC.tok||!LFC.on) return; const b=$("lfcBot"); if(b&&!b.querySelector(".lfc-err")) b.insertAdjacentHTML("afterbegin",'<p class="lfc-err">'+(inFrame||!navigator.mediaDevices?'The camera is blocked inside Claude. Open Shot List from your home screen to use the camera view.':'The camera could not start. Allow camera access for Shot List in Settings and try again.')+'</p>'); return; }
+  const v=$("lfcVid"); if(tok!==LFC.tok||!LFC.on||!v||document.hidden){ st.getTracks().forEach(t=>t.stop()); return; }   // closed or replaced while the camera was starting
+  LFC.stream=st; v.srcObject=st; v.onloadedmetadata=()=>lfcDraw(); await v.play().catch(()=>{}); lfcDraw(); }
+function lfcRelease(){ LFC.tok++; try{ if(LFC.stream) LFC.stream.getTracks().forEach(t=>t.stop()); }catch(e){} LFC.stream=null; const v=$("lfcVid"); if(v) v.srcObject=null; }
 async function lfcOpen(){ if(LFC.on) return; const el=document.createElement("div"); el.id="lfcam"; el.className="lfcam"; el.setAttribute("role","dialog"); el.setAttribute("aria-label","Camera view");
-  el.innerHTML='<video id="lfcVid" playsinline autoplay muted></video><div class="lfc-ov" id="lfcOv"></div><div class="lfc-top"><span id="lfcTurn" class="lfc-turn"></span><button type="button" class="st-x" data-lf="camclose" aria-label="Close the camera view">×</button></div><div class="lfc-tape" id="lfcTape"></div><div class="lfc-bot" id="lfcBot"></div>';
-  document.body.appendChild(el); LFC.on=true; LFC.hd=null; lfcBottom();
-  headingStart();
-  oriStart();
-  try{ LFC.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1920}},audio:false}); const v=$("lfcVid"); if(!v){ lfcStop(); return; } v.srcObject=LFC.stream; await v.play().catch(()=>{}); }
-  catch(e){ const b=$("lfcBot"); if(b) b.insertAdjacentHTML("afterbegin",'<p class="lfc-err">'+(inFrame||!navigator.mediaDevices?'The camera is blocked inside Claude. Open Shot List from your home screen to use the camera view.':'The camera could not start. Allow camera access for Shot List in Settings and try again.')+'</p>'); }
-  lfcDraw(); }
-function lfcStop(){ try{ if(LFC.stream) LFC.stream.getTracks().forEach(t=>t.stop()); }catch(e){} LFC.stream=null;   const el=$("lfcam"); if(el) el.remove(); LFC.on=false; }
-function lfcBottom(){ const b=$("lfcBot"); if(!b||!LF.cur) return; const o=LF.cur; b.innerHTML='<b>'+esc(o.title)+'</b><span>'+esc(LF.curLine||"")+'</span>'; }
-function lfcDraw(){ LFC.raf=0; if(!LFC.on) return; const ov=$("lfcOv"), v=$("lfcVid"); if(!ov) return; const W=ov.clientWidth, H=ov.clientHeight, c=CITIES[state.city];
+  el.innerHTML='<video id="lfcVid" playsinline autoplay muted></video><svg class="lfc-hz" id="lfcHz" aria-hidden="true"></svg><div class="lfc-ov" id="lfcOv"></div><div class="lfc-top"><span id="lfcTurn" class="lfc-turn"></span><button type="button" class="st-x" data-lf="camclose" aria-label="Close the camera view">×</button></div><div class="lfc-tape" id="lfcTape"></div><div class="lfc-bot" id="lfcBot"></div>';
+  document.body.appendChild(el); LFC.on=true; lfcBottom();
+  headingStart(); oriStart(); lfcDraw(); await lfcStream(); }
+function lfcStop(){ lfcRelease(); const el=$("lfcam"); if(el) el.remove(); LFC.on=false; }
+// the camera stops when the app goes to the background (iOS stops it anyway); start it again on return
+document.addEventListener("visibilitychange",()=>{ if(!LFC.on) return; if(document.hidden) lfcRelease(); else lfcStream(); });
+addEventListener("resize",()=>{ if(LFC.on) lfcDraw(); });
+function lfcBottom(){ const b=$("lfcBot"); if(!b||!LF.cur) return; const o=LF.cur, e=b.querySelector(".lfc-err"); b.innerHTML=(e?e.outerHTML:'')+'<b>'+esc(o.title)+'</b><span>'+esc(LF.curLine||"")+'</span>'; }
+/* Where a direction in the sky lands on the screen: a pinhole camera turned the way the phone is (where the camera points, how far
+   up, how far it is rolled), then the screen's own rotation when the phone is held sideways. Null when it is behind the camera. */
+function lfcProject(hd,el,roll,ang,f,W,H){ const d=Math.PI/180, rho=-roll*d;
+  const c=[Math.sin(hd*d)*Math.cos(el*d),Math.cos(hd*d)*Math.cos(el*d),Math.sin(el*d)], u0=[-Math.sin(hd*d)*Math.sin(el*d),-Math.cos(hd*d)*Math.sin(el*d),Math.cos(el*d)], r0=[c[1]*u0[2]-c[2]*u0[1],c[2]*u0[0]-c[0]*u0[2],c[0]*u0[1]-c[1]*u0[0]];
+  const up=u0.map((v,i)=>v*Math.cos(rho)+r0[i]*Math.sin(rho)), rt=r0.map((v,i)=>v*Math.cos(rho)-u0[i]*Math.sin(rho)), sa=Math.sin(ang*d), ca=Math.cos(ang*d), dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+  return (az,alt)=>{ const w=[Math.sin(az*d)*Math.cos(alt*d),Math.cos(az*d)*Math.cos(alt*d),Math.sin(alt*d)], z=dot(w,c), x=dot(w,rt), y=dot(w,up), sx=x*ca-y*sa, sy=x*sa+y*ca;
+    return {x:W/2+f*sx/Math.max(z,1e-3), y:H/2-f*sy/Math.max(z,1e-3), front:z>0.02, sx, sy}; }; }
+function lfcDraw(){ LFC.raf=0; if(!LFC.on) return; const ov=$("lfcOv"), v=$("lfcVid"), hzEl=$("lfcHz"); if(!ov) return; const W=ov.clientWidth, H=ov.clientHeight, c=CITIES[state.city];
   const pos=state.pos&&kmBetween(state.pos,c)<60?state.pos:{lat:c.lat,lon:c.lon}, t=new Date(Date.now()+(LF.off||0)*6e4), sp=sunPos(t,pos.lat,pos.lon), mo=moonPos(t,pos.lat,pos.lon), o=LF.cur;
-  // field of view as shown: a phone's main camera sees about 51° across and 65° up and down when held upright; the picture is cropped to fill the screen
-  const vw=(v&&v.videoWidth)||3, vh=(v&&v.videoHeight)||4, s=Math.max(W/vw,H/vh), fx=W/(vw*s), fy=H/(vh*s), d=Math.PI/180, hf=2*Math.atan(Math.tan(25.5*d)*fx), vf=2*Math.atan(Math.tan(32.5*d)*fy);
-  const hd=ORI.cam, pitch=ORI.elev||0; if(hd==null){ ov.innerHTML='<p class="lfc-wait">'+esc(headMsg()||"Waiting for the compass. Hold the phone upright and turn slowly.")+'</p>'; return; }
-  const proj=(az,alt)=>{ const dx=((az-hd)%360+540)%360-180, dy=alt-pitch; return {x:W/2+W/2*Math.tan(dx*d)/Math.tan(hf/2), y:H/2-H/2*Math.tan(dy*d)/Math.tan(vf/2), vis:Math.abs(dx)<80, dx}; };
-  let h=''; const hz=proj(hd,0); h+='<div class="lfc-hz" style="top:'+hz.y.toFixed(0)+'px"></div>';
-  const mark=(az,alt,cls,lab)=>{ const p=proj(az,alt); if(p.vis&&p.x>-30&&p.x<W+30&&p.y>-30&&p.y<H+30) return '<div class="lfc-m '+cls+'" style="left:'+p.x.toFixed(0)+'px;top:'+p.y.toFixed(0)+'px"><i></i><span>'+lab+'</span></div>';
-    const side=p.dx>0?'r':'l'; return '<div class="lfc-edge '+cls+' '+side+'" style="top:'+Math.max(70,Math.min(H-140,p.vis?p.y:H/2)).toFixed(0)+'px">'+(side==='r'?'':'‹ ')+lab+(side==='r'?' ›':'')+'</div>'; };
+  // focal length in screen pixels, from the video's shape and how much of it is cropped to fill the screen
+  let vw=v&&v.videoWidth, vh=v&&v.videoHeight; if(!vw||!vh){ vw=W<H?3:4; vh=W<H?4:3; }
+  const s=Math.max(W/vw,H/vh), d=Math.PI/180, f=s*(Math.max(vw,vh)/2)/Math.tan(LFC_LONG/2*d), hf=2*Math.atan(W/2/f); LFC.f=f; LFC.hf=hf/d;
+  const hd=ORI.cam, pitch=ORI.elev||0; if(hd==null){ if(hzEl) hzEl.innerHTML=""; ov.innerHTML='<p class="lfc-wait">'+esc(headMsg()||"Waiting for the compass. Hold the phone upright and turn slowly.")+'</p>'; return; }
+  let ang=0; try{ ang=((screen.orientation&&screen.orientation.angle)||window.orientation||0); }catch(x){}
+  const proj=lfcProject(hd,pitch,ORI.roll||0,ang,f,W,H);
+  // the horizon: a straight line through two points on it in front of the camera
+  if(hzEl){ const a=proj(hd-30,0), b=proj(hd+30,0); hzEl.setAttribute("viewBox","0 0 "+W+" "+H); hzEl.innerHTML=a.front&&b.front?'<line x1="'+(a.x+(a.x-b.x)*20).toFixed(1)+'" y1="'+(a.y+(a.y-b.y)*20).toFixed(1)+'" x2="'+(b.x+(b.x-a.x)*20).toFixed(1)+'" y2="'+(b.y+(b.y-a.y)*20).toFixed(1)+'"/>':''; }
+  let h='';
+  const mark=(az,alt,cls,lab)=>{ const p=proj(az,alt); if(p.front&&p.x>-30&&p.x<W+30&&p.y>-30&&p.y<H+30) return '<div class="lfc-m '+cls+'" style="left:'+p.x.toFixed(0)+'px;top:'+p.y.toFixed(0)+'px"><i></i><span>'+lab+'</span></div>';
+    const side=(p.front?p.sx:((az-hd)%360+540)%360-180)>0?'r':'l'; return '<div class="lfc-edge '+cls+' '+side+'" style="top:'+Math.max(70,Math.min(H-140,p.front?p.y:H/2)).toFixed(0)+'px">'+(side==='r'?'':'‹ ')+lab+(side==='r'?' ›':'')+'</div>'; };
   if(sp.alt>-4) h+=mark(sp.az,sp.alt,'sun','Sun '+Math.max(0,Math.round(sp.alt))+'°');
   if(mo.alt>-1&&mo.frac>0.05) h+=mark(mo.az,mo.alt,'moon','Moon');
   if(o&&o.face!=null) h+=mark(o.face,Math.max(0,Math.min(20,pitch)),'aim','Point here');
   if(ORI.uncal) h+='<p class="lfc-wait lfc-cal">Lay the phone flat for a second so the compass can set itself, then raise it again.</p>';
   else if(Math.abs(pitch)>60) h+='<p class="lfc-wait lfc-cal">Raise the phone so the camera looks at the street.</p>';
-  ov.style.transform='rotate('+(ORI.roll||0).toFixed(1)+'deg)'; ov.innerHTML=h;
+  ov.innerHTML=h;
   // the light along the bottom: what you get facing each direction across the picture
-  const tape=$("lfcTape"); if(tape&&sp.alt>-0.8){ const col={back:"#f28a28",side:"#fccc0a",front:"#fff3c4",dark:"#1c2340"}, stops=[]; for(let i=0;i<=12;i++){ const b=hd+(i/12-0.5)*hf/d; stops.push(col[lightFacing(b,t).k]+' '+(i/12*100).toFixed(1)+'%'); } tape.style.background='linear-gradient(to right,'+stops.join(",")+')'; tape.hidden=false; } else if(tape) tape.hidden=true;
+  const tape=$("lfcTape"); if(tape&&sp.alt>-0.8){ const col={back:"#f28a28",side:"#fccc0a",front:"#fff3c4",dark:"#1c2340"}, stops=[]; for(let i=0;i<=12;i++){ const b=hd+Math.atan((i/12-0.5)*W/f)/d; stops.push(col[lightFacing(b,t).k]+' '+(i/12*100).toFixed(1)+'%'); } tape.style.background='linear-gradient(to right,'+stops.join(",")+')'; tape.hidden=false; } else if(tape) tape.hidden=true;
   const tu=$("lfcTurn"); if(tu&&o){ const dd=o.face==null?null:((o.face-hd)%360+540)%360-180; tu.innerHTML=dd==null?esc(o.title):Math.abs(dd)<=8?'<b class="lf-ok">On it. Shoot.</b>':'Turn '+(dd>0?'right':'left')+' <b>'+Math.round(Math.abs(dd))+'°</b>'; } }
 function lfRender(){ const el=$("lightf"); if(!el||!LF.open) return; const real=new Date(), t=new Date(+real+(LF.off||0)*6e4), c=CITIES[state.city];
   const pos=state.pos&&kmBetween(state.pos,c)<60?state.pos:{lat:c.lat,lon:c.lon}, here=pos!==state.pos;

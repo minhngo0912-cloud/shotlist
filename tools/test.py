@@ -568,6 +568,26 @@ def run(path, name):
             cm=pg.evaluate("[!!document.getElementById('lfcam'), document.querySelectorAll('#lfcOv .lfc-m.aim, #lfcOv .lfc-edge.aim').length, document.getElementById('lfcTurn').textContent, !!document.querySelector('#lfcBot b')]")
             pg.click("#lfcam [data-lf=camclose]"); pg.wait_for_timeout(60)
             check("Camera view draws where to point over the camera picture, and closes", cm[0] and cm[1]==1 and ("On it" in cm[2] or cm[2]) and cm[3] and pg.evaluate("[!!document.getElementById('lfcam'), LFC.on]")==[False,False], cm)
+            # with a camera (a canvas stands in for it): markers land where a pinhole camera puts them, the horizon tilts with the phone,
+            # and the camera is let go on close, in the background and when opened and closed quickly
+            cv=pg.evaluate("""(async()=>{ const live=[]; const fake=()=>{ const c=document.createElement('canvas'); c.width=1080; c.height=1920; c.getContext('2d').fillRect(0,0,9,9); const st=c.captureStream(5); live.push(st.getVideoTracks()[0]); return st; };
+              const real=navigator.mediaDevices&&navigator.mediaDevices.getUserMedia; if(!navigator.mediaDevices) Object.defineProperty(navigator,'mediaDevices',{value:{},configurable:true});
+              navigator.mediaDevices.getUserMedia=async()=>{ await new Promise(r=>setTimeout(r,40)); return fake(); };
+              const n=()=>live.filter(t=>t.readyState==='live').length, wait=ms=>new Promise(r=>setTimeout(r,ms)), out={};
+              await lfcOpen(); await wait(150); out.open=n();
+              const sp=sunPos(new Date(Date.now()+(LF.off||0)*6e4),40.7230,-73.9990); ORI.cam=sp.az; ORI.elev=sp.alt; ORI.roll=0; ORI.mode='raised'; ORI.uncal=false; lfcDraw();
+              const ov=document.getElementById('lfcOv'), m=()=>{ const e=document.querySelector('#lfcOv .lfc-m.sun'); return e?[Math.round(parseFloat(e.style.left)-ov.clientWidth/2),Math.round(parseFloat(e.style.top)-ov.clientHeight/2)]:null; };
+              out.center=m(); ORI.cam=sp.az-10; lfcDraw(); out.right=m(); const f=LFC.f; const d=Math.PI/180, D=(az,al)=>[Math.sin(az*d)*Math.cos(al*d),Math.cos(az*d)*Math.cos(al*d),Math.sin(al*d)], w=D(sp.az,sp.alt), c=D(sp.az-10,sp.alt), u=D(sp.az-10,sp.alt+90), rt=[Math.cos((sp.az-10)*d),-Math.sin((sp.az-10)*d),0], dt=(p,q)=>p[0]*q[0]+p[1]*q[1]+p[2]*q[2];
+              out.rightWant=[Math.round(f*dt(w,rt)/dt(w,c)), Math.round(-f*dt(w,u)/dt(w,c))];
+              ORI.cam=sp.az; ORI.roll=20; lfcDraw(); const l=document.querySelector('#lfcHz line'); out.hz=l?Math.round(Math.atan2(l.getAttribute('y2')-l.getAttribute('y1'),l.getAttribute('x2')-l.getAttribute('x1'))*180/Math.PI):null; ORI.roll=0;
+              Object.defineProperty(document,'hidden',{value:true,configurable:true}); document.dispatchEvent(new Event('visibilitychange')); await wait(20); out.bg=n();
+              Object.defineProperty(document,'hidden',{value:false,configurable:true}); document.dispatchEvent(new Event('visibilitychange')); await wait(150); out.back=n();
+              lfcStop(); await wait(20); out.closed=n();
+              lfcOpen(); lfcStop(); lfcOpen(); await wait(200); out.race=n(); lfcStop(); await wait(20); out.end=n();
+              navigator.mediaDevices.getUserMedia=async()=>{ throw new Error('NotAllowedError'); }; await lfcOpen(); out.denied=(document.querySelector('#lfcBot .lfc-err')||{}).textContent||''; lfcStop();
+              if(real) navigator.mediaDevices.getUserMedia=real; return out; })()""")
+            check("Camera view: the sun sits where the camera sees it, the horizon tilts with the phone, and the camera is let go when closed or in the background",
+                  cv["open"]==1 and cv["center"]==[0,0] and cv["right"] and abs(cv["right"][0]-cv["rightWant"][0])<=1 and abs(cv["right"][1]-cv["rightWant"][1])<=1 and cv["hz"]==20 and cv["bg"]==0 and cv["back"]==1 and cv["closed"]==0 and cv["race"]==1 and cv["end"]==0 and "camera" in cv["denied"], cv)
             # building shadows from the city's footprints (a made-up building stands in for the real data)
             sh=pg.evaluate("""(async()=>{ const pt={lat:40.7230,lon:-73.9990}; LFB.cache.clear(); LFB.err=""; await lfbLoad(pt); const T=lfbTile(pt); const r=lfbSun(T,pt,new Date()), far=lfbSun(T,{lat:40.7238,lon:-73.9970},new Date());
               return [!!T, T&&T.list.length, r.sun, r.by&&Math.round(r.by.h), far.sun, lfbHtml(pt,new Date(),null).includes('You are in shade')]; })()""")
