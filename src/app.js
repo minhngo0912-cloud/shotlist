@@ -3293,6 +3293,43 @@ function mapPlanBar(){ const p=state.plan, tf=d=>d.toLocaleTimeString("en-US",{h
 function mapPts(){ const key=lightAt(mapNow()), ideas=cityIdeas().filter(i=>state.mapIntent==="all"||i.i===state.mapIntent);
   return Object.keys(CITIES[state.city].places).filter(id=>typeof PLACES[id].lat==="number").map(id=>{ const [x,y]=mapXY(PLACES[id].lat,PLACES[id].lon), mine=ideas.filter(i=>i.p===id);
     return {id,x,y,n:mine.length,fit:mine.filter(i=>i.w.includes(key)).length,done:mine.filter(i=>state.done.has(i.id)).length,empty:!mine.length}; }); }
+/* Street names when zoomed in. MAPD_SN (tools/make_streetnames.py) holds every named street's centreline from the Census
+   TIGER data; it is unpacked the first time it is needed and indexed in squares of 20 map units (about 1.1 km). Each street
+   in view gets one label at the middle of its longest visible stretch, turned to lie along it, if the name fits there.
+   Longer stretches are labelled first, so avenues and long streets win when labels would collide. */
+const SN_W = 48;
+let SN = null;
+function snLoad(){ if(SN) return SN; const b=atob(MAPD_SN.d), n=b.length; let i=0; const vi=()=>{ let r=0, s=0, c; do{ c=b.charCodeAt(i++); r+=(c&0x7f)*Math.pow(2,s); s+=7; }while(c&0x80); return r; }, zz=v=>v%2?-(v+1)/2:v/2;
+  const lines=[], grid=new Map();
+  while(i<n){ const name=vi(), k=vi(), xs=new Float32Array(k), ys=new Float32Array(k); let x=vi(), y=vi(); xs[0]=x/8; ys[0]=y/8;
+    for(let j=1;j<k;j++){ x+=zz(vi()); y+=zz(vi()); xs[j]=x/8; ys[j]=y/8; }
+    let a=1e9,c=1e9,bx=-1e9,d=-1e9; for(let j=0;j<k;j++){ if(xs[j]<a)a=xs[j]; if(xs[j]>bx)bx=xs[j]; if(ys[j]<c)c=ys[j]; if(ys[j]>d)d=ys[j]; }
+    const L={name,xs,ys,bb:[a,c,bx,d]}, id=lines.push(L)-1;
+    for(let gx=Math.floor(a/20);gx<=Math.floor(bx/20);gx++) for(let gy=Math.floor(c/20);gy<=Math.floor(d/20);gy++){ const key=gx+","+gy; let g=grid.get(key); if(!g){ g=[]; grid.set(key,g); } g.push(id); } }
+  return SN={lines,grid}; }
+function snLabels(x0,y0,x1,y1,w,u,f,free,taken){ const S=snLoad(), seen=new Set(), cand=[], m=6*u, X0=x0+m, Y0=y0+m, X1=x1-54*u, Y1=y1-m;   // not under the zoom buttons on the right
+  for(let gx=Math.floor(X0/20);gx<=Math.floor(X1/20);gx++) for(let gy=Math.floor(Y0/20);gy<=Math.floor(Y1/20);gy++){ const g=S.grid.get(gx+","+gy); if(!g) continue;
+    for(const id of g){ if(seen.has(id)) continue; seen.add(id); const L=S.lines[id], bb=L.bb; if(bb[2]<X0||bb[0]>X1||bb[3]<Y0||bb[1]>Y1) continue;
+      // the visible stretches: each segment clipped to the view, joined while they stay connected
+      let run=null, best=null; const close=()=>{ if(run&&(!best||run.len>best.len)) best=run; run=null; };
+      for(let j=0;j<L.xs.length-1;j++){ let ax=L.xs[j], ay=L.ys[j], bx=L.xs[j+1], by=L.ys[j+1], t0=0, t1=1; const dx=bx-ax, dy=by-ay;
+        let out=false; for(const [p,q] of [[-dx,ax-X0],[dx,X1-ax],[-dy,ay-Y0],[dy,Y1-ay]]){ if(p===0){ if(q<0){ out=true; break; } continue; } const r=q/p; if(p<0){ if(r>t1){ out=true; break; } if(r>t0) t0=r; } else { if(r<t0){ out=true; break; } if(r<t1) t1=r; } }
+        if(out||t1<=t0){ close(); continue; }
+        const sx=ax+dx*t0, sy=ay+dy*t0, ex=ax+dx*t1, ey=ay+dy*t1, len=Math.hypot(ex-sx,ey-sy);
+        if(!run||t0>1e-6) { close(); run={len:0,segs:[]}; }
+        run.segs.push([sx,sy,ex,ey,len]); run.len+=len; if(t1<1-1e-6) close(); }
+      close(); if(best) cand.push({name:MAPD_SN.n[L.name],run:best}); } }
+  cand.sort((a,b)=>b.run.len-a.run.len);
+  const fl=(w<14?9.5:8.5)*u, placed=[], maxN=w<14?60:w<28?48:36; let out="", nLab=0;
+  for(const c of cand){ if(nLab>=maxN) break; const tw=c.name.length*fl*0.56; if(c.run.len<tw*1.15) continue;
+    // the middle of the stretch, measured along it
+    let half=c.run.len/2, px=0, py=0, ang=0; for(const [sx,sy,ex,ey,len] of c.run.segs){ if(half<=len){ const k=len?half/len:0; px=sx+(ex-sx)*k; py=sy+(ey-sy)*k; ang=Math.atan2(ey-sy,ex-sx)*180/Math.PI; break; } half-=len; }
+    if(placed.some(p=>p.name===c.name&&Math.hypot(p.x-px,p.y-py)<w*0.45)) continue;   // the same street in pieces: one label is enough
+    if(ang>90) ang-=180; if(ang<-90) ang+=180; const ca=Math.abs(Math.cos(ang*Math.PI/180)), sa=Math.abs(Math.sin(ang*Math.PI/180)), hx=tw/2*ca+fl*0.55*sa, hy=tw/2*sa+fl*0.55*ca, rect=[px-hx,py-hy,px+hx,py+hy];
+    if(!free(rect)) continue; taken.push(rect); placed.push({name:c.name,x:px,y:py}); nLab++;
+    out+='<text x="'+f(px)+'" y="'+f(py+fl*0.35)+'" text-anchor="middle" font-size="'+f(fl)+'" class="m-st m-sn" transform="rotate('+f(ang)+' '+f(px)+' '+f(py)+')">'+esc(c.name)+'</text>'; }
+  return out; }
+setTimeout(()=>{ const go=()=>{ try{ if(typeof MAPD_SN!=="undefined") snLoad(); }catch(e){} }; if(window.requestIdleCallback) requestIdleCallback(go,{timeout:4000}); else go(); },2500);
 function mapDraw(){
   const svg=$("mapSvg"); if(!svg||!mapV) return; const cw=($("mapWrap")&&$("mapWrap").clientWidth)||svg.clientWidth||360, zf=state.mapHead?Math.max(1,(svg.clientWidth||cw)/cw):1, ar=svg.clientHeight/svg.clientWidth; if(!state.mapHead&&ar>0.3&&ar<4) MAP_ASPECT=ar;
   // w is the width you see across the screen; in heading-up the drawn square (wb) is wider so the corners stay filled as it turns
@@ -3369,7 +3406,9 @@ function mapDraw(){
   if(state.mapShowNames&&w<420) for(const [name,lat,lon] of MAP_HOODS){ const [x,y]=mapXY(lat,lon); if(!inside(x,y,0)) continue; const fh=9*u, tw=name.length*fh*0.68, rect=[x-tw/2,y-fh*0.7,x+tw/2,y+fh*0.6]; if(!free(rect)) continue; taken.push(rect);
     detail+='<text x="'+f(x)+'" y="'+f(y+fh*0.35)+'" text-anchor="middle" font-size="'+f(fh)+'" class="m-hood">'+esc(name.toUpperCase())+'</text>'; }
   let stLab=0; const stMax=w<22?34:w<45?22:w<110?14:8;
-  if(state.mapShowNames&&w<260) for(const [name,seg,line] of MAP_STREETS){ if(seg<0||stLab>=stMax) continue; const a=mapXY(line[seg][0],line[seg][1]), b=mapXY(line[seg+1][0],line[seg+1][1]), x=(a[0]+b[0])/2, y=(a[1]+b[1])/2; if(!inside(x,y,10*u)) continue;
+  // zoomed in: every street, labelled on the middle of the part you can see
+  if(state.mapShowNames&&w<=SN_W&&typeof MAPD_SN!=="undefined") detail+=snLabels(x0,y0+topPx()*u,x1,y1-sheetPx()*u,w,u,f,free,taken);
+  else if(state.mapShowNames&&w<260) for(const [name,seg,line] of MAP_STREETS){ if(seg<0||stLab>=stMax) continue; const a=mapXY(line[seg][0],line[seg][1]), b=mapXY(line[seg+1][0],line[seg+1][1]), x=(a[0]+b[0])/2, y=(a[1]+b[1])/2; if(!inside(x,y,10*u)) continue;
     let ang=Math.atan2(b[1]-a[1],b[0]-a[0])*180/Math.PI; if(ang>90) ang-=180; if(ang<-90) ang+=180; const fl=8.5*u, tw=name.length*fl*0.55, half=Math.max(tw/2*Math.abs(Math.cos(ang*Math.PI/180)),fl), halfy=Math.max(tw/2*Math.abs(Math.sin(ang*Math.PI/180)),fl*0.7), rect=[x-half,y-halfy,x+half,y+halfy];
     if(!free(rect)) continue; taken.push(rect); stLab++; detail+='<text x="'+f(x)+'" y="'+f(y-1.5*u)+'" text-anchor="middle" font-size="'+f(fl)+'" class="m-st" transform="rotate('+f(ang)+' '+f(x)+' '+f(y)+')">'+esc(name)+'</text>'; }
   // scale bar, with the walking time it stands for

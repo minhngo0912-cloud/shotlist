@@ -1,3 +1,4 @@
+import re
 #!/usr/bin/env python3
 """Test Shot List: data integrity, then a smoke test of every view in a phone-sized browser.
 
@@ -228,6 +229,12 @@ def run(path, name):
         ag=pg.evaluate("[state.view, [...document.querySelectorAll('#list .row')].map(r=>r.dataset.id), document.querySelector('#list .row .pill')?.textContent]")
         check("Browse lists the try-agains", ag==["again",["ktown-energy"],"Try again"], ag)
         pg.evaluate("state.log={}; state.done.delete('ktown-energy'); saveLog(); state.view='browse'; render()")
+        # street names on the map when zoomed in
+        sn=pg.evaluate("""(()=>{ const was=state.view; state.view='map'; render(); const [x,y]=mapXY(40.7215,-73.9990); const out=[];
+          for(const w of [10,30,120]){ mapV=mapClamp({cx:x,cy:y,w}); mapDraw(); out.push([...document.querySelectorAll('#mapDyn .m-sn')].map(e=>e.textContent)); }
+          state.mapShowNames=false; mapV=mapClamp({cx:x,cy:y,w:10}); mapDraw(); out.push(document.querySelectorAll('#mapDyn .m-sn').length); state.mapShowNames=true; state.view=was; render(); return out; })()""")
+        check("Map: zoomed in, every street gets its name along it (none when zoomed out or with names off)",
+              len(sn[0])>=6 and "Broome St" in sn[0] and "Mercer St" in sn[0] and not any(re.match(r"^(W |E )?\d+ (St|Av)$",n) for n in sn[1]) and len(sn[1])>=10 and len(set(sn[1]))==len(sn[1]) and sn[2]==[] and sn[3]==0, sn)
         # search, sort and On now
         pg.fill("#q","steam"); pg.wait_for_timeout(300)
         q1=pg.evaluate("[matches(false).map(x=>x.t), !!document.querySelector('#list .row mark'), !!document.querySelector('#list .qsnip mark')]")
