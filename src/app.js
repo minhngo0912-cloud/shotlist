@@ -2784,7 +2784,9 @@ function lfSettings(o,sky,sp,subj){ const cam=CAMERAS[state.camera]||CAMERAS.q34
     else if(N>16){ const tt=lfShutter(16,50,ev); line="f/16 · "+lfShutterText(tt)+" · ISO 50 · S mode"; meter="Too bright for 1/15 s here."; note="At f/16 and ISO 50 the camera only gets down to "+lfShutterText(tt)+", which blurs fast walkers a little. Step into shade, wait for dusk, or fit a 3-stop ND filter for real streaks."; }
     else if(N<wide){ const iso=lfISO(wide,t,ev); line=fN(wide)+" · 1/15 s · Auto ISO · S mode"; meter="Wide open, Auto ISO will sit near "+lfISOText(iso)+"."; note="Brace on a pole or railing; stabilization steadies the street, the people still blur."; }
     else { const n=stops.reduce((a,b)=>Math.abs(Math.log2(b/N))<Math.abs(Math.log2(a/N))?b:a); line="1/15 s · S mode · ISO 100"; meter="The camera will pick about "+fN(n)+"."; note="Elbows in, brace on something, and pan with a walker for a sharp face on a streaked street."; } }
-  else if(subj==="silhouette"){ const tt=lfShutter(5.6,100,ev); line="f/5.6 · "+lfShutterText(tt)+" · ISO 100"; comp="−1.3 EV, metered on the bright part"; meter="People go black against the light."; if(tt>1/60) note="There is not much light behind them now. Use a lit window, a screen or the afterglow as the bright part."; }
+  else if(subj==="silhouette"){ const tt=lfShutter(5.6,100,ev); line="f/5.6 · "+lfShutterText(tt)+" · ISO 100"; comp="−1.3 EV, metered on the bright part"; meter="People go black against the light.";
+    // in dim light a slow shutter blurs the walkers: hold 1/125 s and let Auto ISO climb, opening up if it has to
+    if(tt>1/60){ let N=5.6, iso=lfISO(N,1/125,ev); if(iso>3200){ N=wide; iso=lfISO(N,1/125,ev); } line=fN(N)+" · 1/125 s · Auto ISO"; meter="Auto ISO will sit near "+lfISOText(Math.max(100,iso))+". People go black against the light."; } if(tt>1/60) note="There is not much light behind them now. Use a lit window, a screen or the afterglow as the bright part."; }
   else { let N=S.N||wide, t=1/S.t, iso=lfISO(N,t,ev), opened=false, slowed=false, closed=false;
     while(iso>3200&&stops.indexOf(N)>0){ N=stops[stops.indexOf(N)-1]; iso=lfISO(N,t,ev); opened=true; }
     while(iso>3200&&1/t>S.minT){ t=Math.min(1/S.minT,t*2); iso=lfISO(N,t,ev); slowed=true; }
@@ -3007,7 +3009,7 @@ function lfcDraw(){ LFC.raf=0; if(!LFC.on) return; const ov=$("lfcOv"), v=$("lfc
   ov.innerHTML=h;
   // the light along the bottom: what you get facing each direction across the picture
   const tape=$("lfcTape"); if(tape&&sp.alt>-0.8){ const col={back:"#f28a28",side:"#fccc0a",front:"#fff3c4",dark:"#1c2340"}, stops=[]; for(let i=0;i<=12;i++){ const b=hd+Math.atan((i/12-0.5)*W/f)/d; stops.push(col[lightFacing(b,t).k]+' '+(i/12*100).toFixed(1)+'%'); } tape.style.background='linear-gradient(to right,'+stops.join(",")+')'; tape.hidden=false; } else if(tape) tape.hidden=true;
-  const tu=$("lfcTurn"); if(tu&&o){ const dd=o.face==null?null:((o.face-hd)%360+540)%360-180; tu.innerHTML=dd==null?esc(o.title):Math.abs(dd)<=8?'<b class="lf-ok">On it. Shoot.</b>':'Turn '+(dd>0?'right':'left')+' <b>'+Math.round(Math.abs(dd))+'°</b>'; } }
+  const tu=$("lfcTurn"); if(tu&&o){ const dd=o.face==null?null:((o.face-hd)%360+540)%360-180; tu.innerHTML=dd==null?'Facing '+esc(compass(hd))+' <b>'+Math.round(hd)+'°</b>':Math.abs(dd)<=8?'<b class="lf-ok">On it. Shoot.</b>':'Turn '+(dd>0?'right':'left')+' <b>'+Math.round(Math.abs(dd))+'°</b>'; } }
 function lfRender(){ const el=$("lightf"); if(!el||!LF.open) return; const real=new Date(), t=new Date(+real+(LF.off||0)*6e4), c=CITIES[state.city];
   const pos=state.pos&&kmBetween(state.pos,c)<60?state.pos:{lat:c.lat,lon:c.lon}, here=pos!==state.pos;
   const {sp,sky,opts}=lfOptions(t,pos), mo=moonPos(t,pos.lat,pos.lon);
