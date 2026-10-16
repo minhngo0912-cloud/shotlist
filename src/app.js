@@ -2894,7 +2894,7 @@ function lfbSun(T,pt,t){ const sp=sunPos(t,pt.lat,pt.lon); if(sp.alt<=0.5) retur
 function lfbChange(T,pt,t){ const now=lfbSun(T,pt,t); if(now.down) return null; for(let m=2;m<=180;m+=2){ const r=lfbSun(T,pt,new Date(+t+m*6e4)); if(r.down) return now.sun?{m,txt:"sunset"}:null; if(r.sun!==now.sun) return {m,txt:r.sun?"arrives":"leaves"}; } return null; }
 const storeys = h => Math.max(1,Math.round(h/3.3));
 function lfbHtml(pos,t,st){ if(!lfbOn()) return ""; const T=lfbTile(pos);
-  if(!T){ if(LFB.err) return '<p class="lf-st lf-shade">Building shadows could not load ('+esc(LFB.err)+'). The sunny side above is worked out from the street direction only.</p>'; lfbLoad(pos); return '<p class="lf-st lf-shade">Checking the buildings around you…</p>'; }
+  if(!T){ lfbLoad(pos); if(LFB.err) return '<p class="lf-st lf-shade">Building shadows could not load ('+esc(LFB.err)+'). The sunny side above is worked out from the street direction only.</p>'; return '<p class="lf-st lf-shade">Checking the buildings around you…</p>'; }
   const here=lfbSun(T,pos,t); if(here.down) return "";
   const ch=lfbChange(T,pos,t), at=ch?hmText(((t.getHours()*60+t.getMinutes()+ch.m)%1440)):"";
   let out=here.sun?'<b>You are in direct sun.</b>'+(ch&&ch.txt==="leaves"?' It leaves this spot at <b>'+at+'</b>.':ch&&ch.txt==="sunset"?' It stays until sunset.':'')
