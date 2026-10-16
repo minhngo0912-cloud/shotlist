@@ -878,3 +878,24 @@ body.lfopen{overflow:hidden}
 .lf-nx{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:transparent;border:0;border-top:1px solid #23262c;color:#e8e9ec;padding:8px 2px;font:inherit;font-size:14px;cursor:pointer} .lf-nx.on{background:#1e2026}
 .lf-nxt{flex:none;width:62px;font-weight:700;color:#ffd23f;font-variant-numeric:tabular-nums} .lf-nx .lk{flex:none} .lf-nxw{flex:1}
 .lf-subj{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 4px}
+/* Building shadows, the light log and the camera view */
+.lf-shade{background:#16181d;border:1px solid #2a2d33;border-radius:10px;padding:10px 12px} .lf-src{display:block;font-size:11.5px;color:#8a8d96;margin-top:4px}
+.lf-camw{display:flex;justify-content:center;margin:4px 0 2px}
+.lf-log{margin-top:16px} .lf-shot{width:100%;padding:12px;font-size:16px}
+.lf-bars{display:flex;flex-direction:column;gap:6px;margin:6px 0 8px} .lf-bar{display:grid;grid-template-columns:110px 1fr auto;align-items:center;gap:8px;font-size:13px}
+.lf-bar i{display:block;height:10px;background:#3a3d45;border-radius:5px;overflow:hidden} .lf-bar i b{display:block;height:100%;background:#3ddc84} .lf-bar em{font-style:normal;color:#b4b6bc;white-space:nowrap}
+.lf-recent summary{cursor:pointer;color:#ffd23f;font-size:14px;margin:4px 0}
+.lfcam{position:fixed;inset:0;z-index:70;background:#000;overflow:hidden;color:#fff}
+.lfcam video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.lfc-ov{position:absolute;inset:0;pointer-events:none;transform-origin:50% 50%}
+.lfc-hz{position:absolute;left:-20%;right:-20%;height:0;border-top:1.5px dashed rgba(255,255,255,.55)}
+.lfc-m{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:4px}
+.lfc-m i{display:block;width:34px;height:34px;border-radius:50%;border:3px solid #ffd23f;box-shadow:0 0 0 2px rgba(0,0,0,.5),0 0 18px #ffd23f}
+.lfc-m.moon i{border-color:#f4f1e2;box-shadow:0 0 0 2px rgba(0,0,0,.5)} .lfc-m.aim i{width:44px;height:44px;border-radius:8px;border-color:#fff;box-shadow:0 0 0 2px rgba(0,0,0,.6)}
+.lfc-m span{background:rgba(0,0,0,.7);padding:2px 8px;border-radius:6px;font-size:13px;font-weight:700;white-space:nowrap}
+.lfc-edge{position:absolute;background:rgba(0,0,0,.7);padding:4px 10px;border-radius:8px;font-size:14px;font-weight:700} .lfc-edge.r{right:8px} .lfc-edge.l{left:8px} .lfc-edge.sun{color:#ffd23f} .lfc-edge.aim{color:#fff}
+.lfc-top{position:absolute;left:0;right:0;top:0;display:flex;align-items:center;justify-content:space-between;padding:calc(10px + env(safe-area-inset-top,0px)) 14px 10px;background:linear-gradient(rgba(0,0,0,.65),transparent)}
+.lfc-turn{font-size:20px} .lfc-turn b{color:#ffd23f} .lfc-turn .lf-ok{color:#3ddc84}
+.lfc-tape{position:absolute;left:0;right:0;bottom:calc(86px + env(safe-area-inset-bottom,0px));height:10px;opacity:.9}
+.lfc-bot{position:absolute;left:0;right:0;bottom:0;padding:10px 14px calc(14px + env(safe-area-inset-bottom,0px));background:linear-gradient(transparent,rgba(0,0,0,.8) 30%);display:flex;flex-direction:column;gap:2px;font-size:14px} .lfc-bot b{font-size:16px} .lfc-bot span{color:#ffd23f;font-family:ui-monospace,Menlo,monospace}
+.lfc-err,.lfc-wait{position:relative;background:rgba(0,0,0,.75);padding:10px;border-radius:8px;margin:0 0 6px} .lfc-wait{position:absolute;top:40%;left:16px;right:16px;text-align:center}

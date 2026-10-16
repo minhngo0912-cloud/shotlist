@@ -2801,7 +2801,7 @@ function lfOpen(){ LF.open=true; LF.sel=0; LF.off=0; LF.subj=store.get("lfSubj",
   LF.fallback=false;
   try{ if(navigator.geolocation&&LF.watch==null) LF.watch=navigator.geolocation.watchPosition(p=>{ const was=state.pos; state.pos={lat:p.coords.latitude,lon:p.coords.longitude}; LF.acc=p.coords.accuracy; LF.fallback=false; if(!was||kmBetween(was,state.pos)>0.02) lfRender(); },()=>{ if(!state.pos){ LF.fallback=true; lfRender(); } },{enableHighAccuracy:true,maximumAge:10000,timeout:20000}); }catch(e){ LF.fallback=true; }
   clearInterval(LF.timer); LF.timer=setInterval(()=>{ if(LF.open&&!document.hidden) lfRender(); },60000); lfRender(); }
-function lfClose(){ LF.open=false; const el=$("lightf"); el.hidden=true; el.innerHTML=""; document.body.classList.remove("lfopen"); clearInterval(LF.timer);
+function lfClose(){ if(LFC.on) lfcStop(); LF.open=false; LF.justLogged=false; const el=$("lightf"); el.hidden=true; el.innerHTML=""; document.body.classList.remove("lfopen"); clearInterval(LF.timer);
   try{ if(LF.watch!=null) navigator.geolocation.clearWatch(LF.watch); }catch(e){} LF.watch=null; try{ if(LF.wake) LF.wake.release(); }catch(e){} LF.wake=null;
   if(!state.mapHead&&!state.street&&!state.guide) headingStop(); }
 /* The dial: north at the top, or the way you face at the top when the compass works. Sun on the rim, the light sectors around it,
@@ -2837,6 +2837,7 @@ function lfNext(pos){ const now=new Date(), nm=now.getHours()*60+now.getMinutes(
   const mt=moonTimes(now,pos.lat,pos.lon), mo=moonPos(now,pos.lat,pos.lon); if(mo.frac>0.25){ if(mt.rise!==null) add(mt.rise,"Moonrise, "+Math.round(mo.frac*100)+"% lit, in the "+compass(moonPos(new Date(+d0+mt.rise*6e4),pos.lat,pos.lon).az),"moon"); if(mt.set!==null) add(mt.set,"Moonset","moon"); }
   // the rain
   const wx=wxNext(now); if(wx){ const mm=/(\d+)(?::(\d\d))?\s*(am|pm)/.exec(wx); if(mm){ let h=+mm[1]%12+(mm[3]==="pm"?12:0), m=h*60+(+mm[2]||0); if(m<nm) m+=1440; add(m,wx.charAt(0).toUpperCase()+wx.slice(1),"rain"); } }
+  if(LF.shadeNext) add(LF.shadeNext.m,LF.shadeNext.txt,"sun");
   out.sort((a,b)=>a.m-b.m);
   if(!out.length){ const later=list.find(x=>x.s>nm); if(later) return [{m:null,txt:"Nothing changes in the next three hours. Next good light: "+later.name.toLowerCase()+" at "+hmText(later.s)+".",k:later.k}];
     const n=todayWindows(new Date(+d0+864e5)).list[0]; if(n) return [{m:null,txt:"Next good light: "+n.name.toLowerCase()+" tomorrow at "+hmText(n.s)+".",k:n.k}]; }
@@ -2855,6 +2856,105 @@ function lfLights(pos){ if(state.city!=="nyc"||typeof MAPD_ROADS==="undefined") 
   if(st&&st.km<0.5){ const [sx,sy]=mapXY(st.lat,st.lon); out.push("The "+st.name+" subway entrance is "+mDist(st.km)+" to the "+compass(brg(sx,sy))+": lit globes and a steady stream of people."); }
   return out.length?'<p class="lf-st">'+out.map(esc).join(" ")+'</p>':""; }
 const LF_KIND = {side:"Side light",back:"Into the sun",front:"Sun behind you",shade:"Open shade",lights:"Lights",wet:"Reflections",glow:"Afterglow",lit:"Lit windows",soft:"Soft light",fog:"Into the glow",moon:"The moon"};
+/* Building shadows (installed app): the city's building footprints and roof heights (NYC Open Data), fetched for the blocks
+   around you, say whether your spot and each sidewalk are in direct sun, which building is in the way, and when that changes. */
+const LFB = {cache:new Map(), busy:false, err:"", key:""};
+const LFB_URL = "https://data.cityofnewyork.us/resource/5zhs-2jue.json";
+const lfbOn = () => typeof loadWeather==="function" && state.city==="nyc";   // the Claude version cannot reach the city's data
+const lfbKey = pos => (Math.round(pos.lat*500)/500).toFixed(4)+","+(Math.round(pos.lon*380)/380).toFixed(4);   // tiles of about 220 m
+async function lfbLoad(pos){ const key=lfbKey(pos); if(LFB.cache.has(key)||LFB.busy) return; LFB.busy=true; LFB.key=key;
+  try{ const [clat,clon]=key.split(",").map(Number), kx=111320*Math.cos(clat*Math.PI/180), ky=110540;
+    const q=where=>fetch(LFB_URL+"?$select=height_roof,ground_elevation,the_geom&$limit=6000&$where="+encodeURIComponent(where)).then(r=>{ if(!r.ok) throw new Error("the city's building data answered "+r.status); return r.json(); });
+    const [near,tall]=await Promise.all([q("within_circle(the_geom,"+clat+","+clon+",450) AND height_roof>15"),q("within_circle(the_geom,"+clat+","+clon+",1600) AND height_roof>300")]);
+    const seen=new Set(), list=[];
+    for(const b of near.concat(tall)){ const h=+b.height_roof*0.3048, g=(+b.ground_elevation||0)*0.3048, poly=b.the_geom&&b.the_geom.coordinates; if(!(h>4)||!poly) continue;
+      for(const part of poly){ const ring=part&&part[0]; if(!ring||ring.length<4) continue; const id=ring[0].join(); if(seen.has(id)) continue; seen.add(id);
+        const xy=ring.map(p=>[(p[0]-clon)*kx,(p[1]-clat)*ky]); let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9; for(const [x,y] of xy){ if(x<x0)x0=x; if(y<y0)y0=y; if(x>x1)x1=x; if(y>y1)y1=y; }
+        list.push({h,g,xy,bb:[x0,y0,x1,y1]}); } }
+    LFB.cache.set(key,{clat,clon,kx,ky,list}); LFB.err="";
+  }catch(e){ LFB.err=String(e&&e.message||e); } finally{ LFB.busy=false; if(LF.open) lfRender(); } }
+const lfbTile = pos => LFB.cache.get(lfbKey(pos))||null;
+const lfbXY = (T,p) => [(p.lon-T.clon)*T.kx,(p.lat-T.clat)*T.ky];
+function lfbInside(xy,x,y){ let c=false; for(let i=0,j=xy.length-1;i<xy.length;j=i++){ const [xi,yi]=xy[i],[xj,yj]=xy[j]; if(((yi>y)!==(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi)) c=!c; } return c; }
+/* Is this point in direct sun at time t? The ray towards the sun is tested against every footprint near it; a building blocks
+   it when its roof is higher than the ray at the point where the ray enters it. */
+function lfbSun(T,pt,t){ const sp=sunPos(t,pt.lat,pt.lon); if(sp.alt<=0.5) return {down:true,alt:sp.alt};
+  const [px,py]=lfbXY(T,pt), a=sp.az*Math.PI/180, dx=Math.sin(a), dy=Math.cos(a), tn=Math.tan(sp.alt*Math.PI/180);
+  let g0=null, gd=1e9; for(const b of T.list){ const cx=(b.bb[0]+b.bb[2])/2, cy=(b.bb[1]+b.bb[3])/2, d=Math.hypot(cx-px,cy-py); if(d<gd){ gd=d; g0=b.g; } } g0=g0||0;
+  let best=null;
+  for(const b of T.list){ const [x0,y0,x1,y1]=b.bb;
+    // the ray against the box first: most buildings are nowhere near it
+    let tmin=0, tmax=1e9; for(const [o,d,lo,hi] of [[px,dx,x0,x1],[py,dy,y0,y1]]){ if(Math.abs(d)<1e-9){ if(o<lo||o>hi){ tmin=1e9; break; } continue; } let t1=(lo-o)/d, t2=(hi-o)/d; if(t1>t2) [t1,t2]=[t2,t1]; tmin=Math.max(tmin,t1); tmax=Math.min(tmax,t2); if(tmin>tmax) break; }
+    if(tmin>tmax||tmin>=1e9) continue; const top=b.h+b.g-g0-1.6; if(top<=0||top<tmin*tn) continue;
+    if(lfbInside(b.xy,px,py)) continue;   // a position inside a footprint is the GPS being off by a few metres
+    let s=1e9; const xy=b.xy; for(let i=0;i<xy.length-1;i++){ const [ax,ay]=xy[i],[bx,by]=xy[i+1], ex=bx-ax, ey=by-ay, den=dx*ey-dy*ex; if(Math.abs(den)<1e-12) continue; const u=((ax-px)*ey-(ay-py)*ex)/den, v=((ax-px)*dy-(ay-py)*dx)/den; if(u>0.3&&v>=0&&v<=1&&u<s) s=u; }
+    if(s<1e9&&top>s*tn&&(!best||s<best.d)) best={d:s,h:b.h}; }
+  return best?{sun:false,by:best,alt:sp.alt,az:sp.az}:{sun:true,alt:sp.alt,az:sp.az}; }
+/* When the sun arrives at or leaves a point, looking ahead up to three hours. */
+function lfbChange(T,pt,t){ const now=lfbSun(T,pt,t); if(now.down) return null; for(let m=2;m<=180;m+=2){ const r=lfbSun(T,pt,new Date(+t+m*6e4)); if(r.down) return now.sun?{m,txt:"sunset"}:null; if(r.sun!==now.sun) return {m,txt:r.sun?"arrives":"leaves"}; } return null; }
+const storeys = h => Math.max(1,Math.round(h/3.3));
+function lfbHtml(pos,t,st){ if(!lfbOn()) return ""; const T=lfbTile(pos);
+  if(!T){ if(LFB.err) return '<p class="lf-st lf-shade">Building shadows could not load ('+esc(LFB.err)+'). The sunny side above is worked out from the street direction only.</p>'; lfbLoad(pos); return '<p class="lf-st lf-shade">Checking the buildings around you…</p>'; }
+  const here=lfbSun(T,pos,t); if(here.down) return "";
+  const ch=lfbChange(T,pos,t), at=ch?hmText(((t.getHours()*60+t.getMinutes()+ch.m)%1440)):"";
+  let out=here.sun?'<b>You are in direct sun.</b>'+(ch&&ch.txt==="leaves"?' It leaves this spot at <b>'+at+'</b>.':ch&&ch.txt==="sunset"?' It stays until sunset.':'')
+    :'<b>You are in shade</b>, from a '+storeys(here.by.h)+'-storey building '+Math.round(here.by.d)+' m to the '+compass(here.az)+'.'+(ch&&ch.txt==="arrives"?' The sun reaches this spot at <b>'+at+'</b>.':' No direct sun here in the next three hours.');
+  // the two sidewalks, about 9 m either side of the street's centre line
+  if(st){ const n=(st.b+90)*Math.PI/180, kx=111320*Math.cos(pos.lat*Math.PI/180), side=s=>({lat:pos.lat+Math.cos(n)*9*s/110540,lon:pos.lon+Math.sin(n)*9*s/kx});
+    const A=lfbSun(T,side(1),t), B=lfbSun(T,side(-1),t), nm=k=>compass(st.b+(k>0?90:270));
+    if(!A.down&&!B.down) out+=' On this street, the <b>'+nm(1)+'</b> sidewalk is in '+(A.sun?'sun':'shade')+' and the <b>'+nm(-1)+'</b> sidewalk in '+(B.sun?'sun':'shade')+'.'; }
+  LF.shadeNext=ch&&ch.txt!=="sunset"?{m:t.getHours()*60+t.getMinutes()+ch.m,txt:ch.txt==="arrives"?"Sun reaches your spot":"Sun leaves your spot"}:null;
+  return '<p class="lf-st lf-shade">'+out+' <span class="lf-src">From the city’s building heights.</span></p>'; }
+
+/* The light log: tap "I shot this" in Light here and the light, direction, subject and settings are kept with the time and place.
+   Rate it, and the log shows which light your keepers come from. */
+state.lightLog=store.get("lightLog",[])||[];
+function lfLog(o,S,sky,sp,pos,place){ state.lightLog.push({t:Date.now(),lat:+pos.lat.toFixed(4),lon:+pos.lon.toFixed(4),place:place||"",k:o.k,face:o.face==null?null:Math.round(o.face),subj:LF.subj||"auto",cam:state.camera,line:S.line,sky,alt:Math.round(sp.alt)}); if(state.lightLog.length>500) state.lightLog.shift(); store.set("lightLog",state.lightLog); LF.justLogged=true; }
+function lfLogHtml(){ const L=state.lightLog, last=L[L.length-1], recent=last&&Date.now()-last.t<3*36e5;
+  let h='<div class="lf-log"><button type="button" class="btn primary lf-shot" data-lf="log">I shot this</button>';
+  if(recent&&LF.justLogged) h+='<p class="lf-st">Logged at '+hmText(new Date(last.t).getHours()*60+new Date(last.t).getMinutes())+': '+esc((LF_KIND[last.k]||last.k).toLowerCase())+', '+esc(last.line)+'.</p><div class="lf-subj"><button type="button" class="chip" data-lf="rate" data-r="keep" aria-pressed="'+(last.r==="keep")+'">Keeper</button><button type="button" class="chip" data-lf="rate" data-r="again" aria-pressed="'+(last.r==="again")+'">Try again</button><button type="button" class="chip" data-lf="undo">Undo</button></div>';
+  if(L.length){ const by={}; for(const e of L){ const k=e.k; by[k]=by[k]||{n:0,keep:0}; by[k].n++; if(e.r==="keep") by[k].keep++; }
+    const rows=Object.entries(by).sort((a,b)=>b[1].keep-a[1].keep||b[1].n-a[1].n), keeps=L.filter(e=>e.r==="keep").length, top=rows[0];
+    h+='<p class="stk lf-ideah">Your light</p><p class="lf-st">'+L.length+' shot'+(L.length>1?'s':'')+' logged'+(keeps?', '+keeps+' keeper'+(keeps>1?'s':''):'')+'.'+(keeps>=3&&top[1].keep?' Most of your keepers come from <b>'+esc((LF_KIND[top[0]]||top[0]).toLowerCase())+'</b> ('+top[1].keep+' of '+keeps+').':'')+'</p>'+
+      '<div class="lf-bars">'+rows.map(([k,v])=>'<div class="lf-bar"><span>'+esc(LF_KIND[k]||k)+'</span><i style="width:'+Math.max(4,Math.round(v.n/L.length*100))+'%"><b style="width:'+Math.round(v.keep/v.n*100)+'%"></b></i><em>'+v.n+(v.keep?' · '+v.keep+' kept':'')+'</em></div>').join("")+'</div>'+
+      '<details class="lf-recent"><summary>Recent</summary>'+L.slice(-8).reverse().map(e=>{ const d=new Date(e.t); return '<p class="lf-st"><b>'+d.toLocaleDateString("en-US",{month:"short",day:"numeric"})+' '+hmText(d.getHours()*60+d.getMinutes())+'</b> · '+esc(e.place||"")+' · '+esc((LF_KIND[e.k]||e.k).toLowerCase())+(e.face!=null?' facing '+compass(e.face):'')+' · '+esc(e.line)+(e.r==="keep"?' · <b>keeper</b>':e.r==="again"?' · try again':'')+'</p>'; }).join("")+'</details>'; }
+  return h+'</div>'; }
+
+/* Camera view: the phone's camera with the sun, the moon, the way to point and the light around you drawn over the picture.
+   Uses the compass for direction and the tilt sensor for up and down. Installed app only: Claude's page blocks the camera. */
+const LFC = {on:false, stream:null, fn:null, raf:0, hd:null, pitch:0, roll:0};
+function camHeading(a,b,g){ const d=Math.PI/180, x=b*d, y=g*d, z=a*d, cX=Math.cos(x), cY=Math.cos(y), cZ=Math.cos(z), sX=Math.sin(x), sY=Math.sin(y), sZ=Math.sin(z);
+  const Vx=-cZ*sY-sZ*sX*cY, Vy=-sZ*sY+cZ*sX*cY; let h=Math.atan(Vx/Vy); if(Vy<0) h+=Math.PI; else if(Vx<0) h+=2*Math.PI; return h/d; }
+async function lfcOpen(){ if(LFC.on) return; const el=document.createElement("div"); el.id="lfcam"; el.className="lfcam"; el.setAttribute("role","dialog"); el.setAttribute("aria-label","Camera view");
+  el.innerHTML='<video id="lfcVid" playsinline autoplay muted></video><div class="lfc-ov" id="lfcOv"></div><div class="lfc-top"><span id="lfcTurn" class="lfc-turn"></span><button type="button" class="st-x" data-lf="camclose" aria-label="Close the camera view">×</button></div><div class="lfc-tape" id="lfcTape"></div><div class="lfc-bot" id="lfcBot"></div>';
+  document.body.appendChild(el); LFC.on=true; LFC.hd=null; lfcBottom();
+  headingStart();
+  LFC.fn=e=>{ let h=null; if(typeof e.webkitCompassHeading==="number"&&!isNaN(e.webkitCompassHeading)) h=e.webkitCompassHeading; else if(e.absolute&&e.alpha!=null&&e.beta!=null&&e.gamma!=null) h=camHeading(e.alpha,e.beta,e.gamma);
+    if(h!=null){ if(LFC.hd==null) LFC.hd=h; else { const dd=((h-LFC.hd)%360+540)%360-180; LFC.hd=(LFC.hd+dd*0.25+360)%360; } }
+    if(e.beta!=null){ LFC.pitch=LFC.pitch*0.7+(e.beta-90)*0.3; LFC.roll=LFC.roll*0.7+(e.gamma||0)*0.3; } if(!LFC.raf) LFC.raf=requestAnimationFrame(lfcDraw); };
+  try{ addEventListener("deviceorientationabsolute",LFC.fn); addEventListener("deviceorientation",LFC.fn); }catch(e){}
+  try{ LFC.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1920}},audio:false}); const v=$("lfcVid"); if(!v){ lfcStop(); return; } v.srcObject=LFC.stream; await v.play().catch(()=>{}); }
+  catch(e){ const b=$("lfcBot"); if(b) b.insertAdjacentHTML("afterbegin",'<p class="lfc-err">'+(inFrame||!navigator.mediaDevices?'The camera is blocked inside Claude. Open Shot List from your home screen to use the camera view.':'The camera could not start. Allow camera access for Shot List in Settings and try again.')+'</p>'); }
+  lfcDraw(); }
+function lfcStop(){ try{ if(LFC.stream) LFC.stream.getTracks().forEach(t=>t.stop()); }catch(e){} LFC.stream=null; try{ removeEventListener("deviceorientationabsolute",LFC.fn); removeEventListener("deviceorientation",LFC.fn); }catch(e){}
+  const el=$("lfcam"); if(el) el.remove(); LFC.on=false; }
+function lfcBottom(){ const b=$("lfcBot"); if(!b||!LF.cur) return; const o=LF.cur; b.innerHTML='<b>'+esc(o.title)+'</b><span>'+esc(LF.curLine||"")+'</span>'; }
+function lfcDraw(){ LFC.raf=0; if(!LFC.on) return; const ov=$("lfcOv"), v=$("lfcVid"); if(!ov) return; const W=ov.clientWidth, H=ov.clientHeight, c=CITIES[state.city];
+  const pos=state.pos&&kmBetween(state.pos,c)<60?state.pos:{lat:c.lat,lon:c.lon}, t=new Date(Date.now()+(LF.off||0)*6e4), sp=sunPos(t,pos.lat,pos.lon), mo=moonPos(t,pos.lat,pos.lon), o=LF.cur;
+  // field of view as shown: a phone's main camera sees about 51° across and 65° up and down when held upright; the picture is cropped to fill the screen
+  const vw=(v&&v.videoWidth)||3, vh=(v&&v.videoHeight)||4, s=Math.max(W/vw,H/vh), fx=W/(vw*s), fy=H/(vh*s), d=Math.PI/180, hf=2*Math.atan(Math.tan(25.5*d)*fx), vf=2*Math.atan(Math.tan(32.5*d)*fy);
+  const hd=LFC.hd; if(hd==null){ ov.innerHTML='<p class="lfc-wait">'+esc(headMsg()||"Waiting for the compass. Hold the phone upright and turn slowly.")+'</p>'; return; }
+  const proj=(az,alt)=>{ const dx=((az-hd)%360+540)%360-180, dy=alt-LFC.pitch; return {x:W/2+W/2*Math.tan(dx*d)/Math.tan(hf/2), y:H/2-H/2*Math.tan(dy*d)/Math.tan(vf/2), vis:Math.abs(dx)<80, dx}; };
+  let h=''; const hz=proj(hd,0); h+='<div class="lfc-hz" style="top:'+hz.y.toFixed(0)+'px"></div>';
+  const mark=(az,alt,cls,lab)=>{ const p=proj(az,alt); if(p.vis&&p.x>-30&&p.x<W+30&&p.y>-30&&p.y<H+30) return '<div class="lfc-m '+cls+'" style="left:'+p.x.toFixed(0)+'px;top:'+p.y.toFixed(0)+'px"><i></i><span>'+lab+'</span></div>';
+    const side=p.dx>0?'r':'l'; return '<div class="lfc-edge '+cls+' '+side+'" style="top:'+Math.max(70,Math.min(H-140,p.vis?p.y:H/2)).toFixed(0)+'px">'+(side==='r'?'':'‹ ')+lab+(side==='r'?' ›':'')+'</div>'; };
+  if(sp.alt>-4) h+=mark(sp.az,sp.alt,'sun','Sun '+Math.max(0,Math.round(sp.alt))+'°');
+  if(mo.alt>-1&&mo.frac>0.05) h+=mark(mo.az,mo.alt,'moon','Moon');
+  if(o&&o.face!=null) h+=mark(o.face,Math.max(0,Math.min(20,LFC.pitch)),'aim','Point here');
+  ov.style.transform='rotate('+(-LFC.roll).toFixed(1)+'deg)'; ov.innerHTML=h;
+  // the light along the bottom: what you get facing each direction across the picture
+  const tape=$("lfcTape"); if(tape&&sp.alt>-0.8){ const col={back:"#f28a28",side:"#fccc0a",front:"#fff3c4",dark:"#1c2340"}, stops=[]; for(let i=0;i<=12;i++){ const b=hd+(i/12-0.5)*hf/d; stops.push(col[lightFacing(b,t).k]+' '+(i/12*100).toFixed(1)+'%'); } tape.style.background='linear-gradient(to right,'+stops.join(",")+')'; tape.hidden=false; } else if(tape) tape.hidden=true;
+  const tu=$("lfcTurn"); if(tu&&o){ const dd=o.face==null?null:((o.face-hd)%360+540)%360-180; tu.innerHTML=dd==null?esc(o.title):Math.abs(dd)<=8?'<b class="lf-ok">On it. Shoot.</b>':'Turn '+(dd>0?'right':'left')+' <b>'+Math.round(Math.abs(dd))+'°</b>'; } }
 function lfRender(){ const el=$("lightf"); if(!el||!LF.open) return; const real=new Date(), t=new Date(+real+(LF.off||0)*6e4), c=CITIES[state.city];
   const pos=state.pos&&kmBetween(state.pos,c)<60?state.pos:{lat:c.lat,lon:c.lon}, here=pos!==state.pos;
   const {sp,sky,opts}=lfOptions(t,pos), mo=moonPos(t,pos.lat,pos.lon);
@@ -2867,7 +2967,9 @@ function lfRender(){ const el=$("lightf"); if(!el||!LF.open) return; const real=
     street='<p class="lf-st">Your street runs '+compass(st.b)+' to '+compass(st.b+180)+'.'+(along?' Looking along it to the <b>'+compass(along.d)+'</b> gives '+({side:"side light",back:"backlight",front:"front light"})[want]+'.':want?' Looking along it gives '+kinds.map(x=>({side:"side light",back:"backlight",front:"front light",dark:"no sun"})[x.k]).join(" one way and ")+' the other; for '+({side:"side light",back:"backlight",front:"front light"})[want]+' shoot across it.':'')+
       (st.along?' <b>The sun is lined up with this street'+(LF.off?' then':' right now')+':</b> light runs straight down it.':'')+(st.sunny!=null&&(sky==="clear"||sky==="partly"||sky==="unknown")?' The <b>'+compass(st.sunny)+'</b> side is in sun'+(sp.alt<15?', on the upper floors more than the sidewalk':'')+'.':'')+'</p>'; }
   const lights=(o.k==="lights"||o.k==="lit"||o.k==="wet"||o.k==="moon")?lfLights(pos):"";
+  LF.shadeNext=null; const shade=sp.alt>0.5?lfbHtml(pos,t,st):"";
   const next=lfNext(pos), nmReal=real.getHours()*60+real.getMinutes();
+  Object.assign(LF,{curS:S,curSky:sky,curSp:sp,curPos:pos,curPlace:hood,curLine:S.line+(S.comp?' · '+S.comp:'')}); if(LFC.on){ lfcBottom(); lfcDraw(); }
   const moonLine=mo.alt>-1&&mo.frac>0.05?' · Moon '+Math.round(mo.frac*100)+'% lit'+(mo.alt>0?', '+Math.round(mo.alt)+'° up in the '+compass(mo.az):', rising'):'';
   const pick=todayPicks(t)[0], idea=pick&&pick.best;
   const rows=S.su?[["Mode",subj==="blur"?"PASM · S (shutter priority)":S.su[4]],["Focus",S.su[0]+(S.su[1]&&!/Not used/.test(S.su[1])?' · '+S.su[1]:'')],["Metering",S.su[2]],["Exposure comp.",S.comp||S.su[3]],["White balance",S.su[7]]]:[["Exposure comp.",S.comp]];
@@ -2877,16 +2979,16 @@ function lfRender(){ const el=$("lightf"); if(!el||!LF.open) return; const real=
     '<p class="lf-sky">'+(sp.alt>0?'Sun '+Math.round(sp.alt)+'° up in the '+compass(sp.az):sp.alt>-6?'Sun just below the horizon to the '+compass(sp.az):'Sun down')+' · '+SUN_PHASE[ph]+(skyWord?' · '+skyWord:'')+moonLine+'</p>'+
     '<div class="lf-dialw">'+lfDial(sp,o.face,mo)+'</div>'+
     '<div class="lf-time"><input type="range" id="lfTime" min="0" max="180" step="5" value="'+(LF.off||0)+'" aria-label="Look ahead: minutes from now"><div class="lf-timel"><span>Now</span><span>+1 h</span><span>+2 h</span><span>+3 h</span></div>'+(LF.off?'<button type="button" class="chip" data-lfat="0">Back to now</button>':'')+'</div>'+
-    '<p class="lf-turn" id="lfTurn">'+(o.face!=null?lfTurn(o.face):'')+'</p>'+
+    '<p class="lf-turn" id="lfTurn">'+(o.face!=null?lfTurn(o.face):'')+'</p>'+(typeof loadWeather==="function"?'<div class="lf-camw"><button type="button" class="chip" data-lf="cam">📷 Camera view</button></div>':'')+
     (state.heading==null&&o.face!=null?'<p class="lf-note lf-cmp">'+(HEAD.why||inFrame?esc(headMsg()||"The compass is not available here, so the dial shows north at the top."):'Hold the phone flat: the dial turns with you once the compass wakes up.')+'</p>':'')+
     '<div class="lf-opts">'+opts.map((x,n)=>'<button type="button" class="chip" data-lfopt="'+n+'" aria-pressed="'+(n===LF.sel)+'">'+(n===0?'Best: ':'')+esc(LF_KIND[x.k]||x.k)+'</button>').join("")+'</div>'+
-    '<h2 class="lf-h">'+esc(o.title)+'</h2><p class="why">'+esc(o.why)+'</p>'+street+lights+
+    '<h2 class="lf-h">'+esc(o.title)+'</h2><p class="why">'+esc(o.why)+'</p>'+street+shade+lights+
     (next.length?'<p class="stk lf-ideah">Coming up here</p><div class="lf-next">'+next.map(x=>x.m===null?'<p class="lf-st">'+esc(x.txt)+'</p>':'<button type="button" class="lf-nx'+(LF.off&&nmReal+LF.off>=x.m-2&&nmReal+LF.off<=x.m+2?' on':'')+'" data-lfat="'+Math.max(0,Math.min(180,Math.round((x.m-nmReal)/5)*5))+'"><span class="lf-nxt">'+hmText(((x.m%1440)+1440)%1440)+'</span><span class="lk '+(x.k==="sun"?"rise":x.k==="moon"?"moon":x.k==="henge"?"henge":x.k==="rain"?"rain":x.k==="blue"?"blue":"gold")+'"></span><span class="lf-nxw">'+esc(x.txt)+'</span></button>').join("")+'</div>':'')+
     '<p class="stk lf-ideah">What are you shooting?</p><div class="lf-subj">'+Object.entries(LF_SUBJ).map(([k,v])=>'<button type="button" class="chip" data-lfsubj="'+k+'" aria-pressed="'+(subj===k)+'">'+esc(v.n)+'</button>').join("")+'</div>'+
     '<div class="lf-cams" role="group" aria-label="Camera">'+[["q328","Leica Q3"],["q343","Leica Q3 43"]].map(([k,n])=>'<button type="button" class="chip" data-lfcam="'+k+'" aria-pressed="'+(state.camera===k)+'">'+n+'</button>').join("")+'</div>'+
     '<div class="st-exp"><span class="stk">'+esc(S.cam.name)+(subj!=="auto"?' · '+esc(LF_SUBJ[subj].n.toLowerCase()):'')+'</span><b>'+esc(S.line)+'</b><span class="st-adj">'+esc(S.meter)+'</span></div>'+
     rows.filter(r=>r[1]).map(r=>'<div class="strow"><span class="stk">'+r[0]+'</span><span class="stv">'+esc(r[1])+'</span></div>').join("")+
-    '<p class="lf-adj">'+esc(S.note||S.rec[1])+(S.adj.length?' '+S.adj.map(esc).join(" "):'')+'</p>'+
+    '<p class="lf-adj">'+esc(S.note||S.rec[1])+(S.adj.length?' '+S.adj.map(esc).join(" "):'')+'</p>'+lfLogHtml()+
     (idea?'<p class="stk lf-ideah">Nearest idea for this light</p><button type="button" class="row lf-idea" data-lfidea="'+idea.id+'"><span class="dot" style="background:'+INTENTS[idea.i].color+'"></span><span class="t"><b>'+esc(idea.t)+'</b><span>'+esc(PLACES[idea.p].name)+(pick.mi!=null?' · '+milesText(pick.mi):'')+'</span></span><span class="go" aria-hidden="true">›</span></button>':'')+
     '<p class="lf-foot">Settings are for the '+esc(S.cam.name)+'. The switch above changes the camera everywhere in the app. Exposure estimates assume open street light; under heavy cloud or deep in shade expect one or two stops less.</p></div>';
   const nr=$("lfTime"); if(rng&&nr){ rng.value=String(LF.off||0); nr.replaceWith(rng); }
@@ -2900,8 +3002,13 @@ document.addEventListener("click",e=>{ const t=e.target.closest&&e.target.closes
   if(t.dataset.lfcam){ state.camera=t.dataset.lfcam; store.set("camera",state.camera); lfRender(); return; }
   if(t.dataset.lfidea){ const id=t.dataset.lfidea; lfClose(); show(id); state.view="shoot"; render(); window.scrollTo({top:0}); return; }
   if(t.dataset.lf==="close"){ lfClose(); return; }
+  if(t.dataset.lf==="cam"){ lfcOpen(); return; }
+  if(t.dataset.lf==="camclose"){ lfcStop(); return; }
+  if(t.dataset.lf==="log"){ lfLog(LF.cur,LF.curS,LF.curSky,LF.curSp,LF.curPos,LF.curPlace); lfRender(); return; }
+  if(t.dataset.lf==="rate"){ const e=state.lightLog[state.lightLog.length-1]; if(e){ if(e.r===t.dataset.r) delete e.r; else e.r=t.dataset.r; store.set("lightLog",state.lightLog); } lfRender(); return; }
+  if(t.dataset.lf==="undo"){ state.lightLog.pop(); store.set("lightLog",state.lightLog); LF.justLogged=false; lfRender(); return; }
   if(t.dataset.lf==="henge"){ const i=+t.dataset.run; lfClose(); state.mapD=0; state.mapT=null; state.mapShowHenge=true; state.view="map"; render(); requestAnimationFrame(()=>requestAnimationFrame(()=>mapSelectRun(i))); } },true);
-document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&LF.open) lfClose(); });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&LFC.on){ lfcStop(); return; } if(e.key==="Escape"&&LF.open) lfClose(); });
 let lfRaf=0; document.addEventListener("input",e=>{ if(!LF.open||e.target.id!=="lfTime") return; LF.off=+e.target.value; if(!lfRaf) lfRaf=requestAnimationFrame(()=>{ lfRaf=0; lfRender(); }); });
 
 /* The day's light, minute by minute: night, blue hour, golden hour, daylight. Drawn as the slider track, with marks to jump to. */

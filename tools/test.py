@@ -57,6 +57,10 @@ def run(path, name):
         png=_b.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==")
         pg.route("**/upload.wikimedia.org/**", lambda r: r.fulfill(status=200, content_type="image/png", body=png))   # stand-in for the place photos
         pg.route("**/api.open-meteo.com/**", lambda r: r.fulfill(status=200, content_type="application/json", body=_j.dumps(fake)))
+        import math as _m
+        _kx=111320*_m.cos(40.723*_m.pi/180); _ll=lambda x,y:[-73.999+x/_kx, 40.723+y/110540]
+        _bld=[{"height_roof":"200","ground_elevation":"30","the_geom":{"type":"MultiPolygon","coordinates":[[[_ll(-40,-40),_ll(-15,-40),_ll(-15,-15),_ll(-40,-15),_ll(-40,-40)]]]}}]
+        pg.route("**/data.cityofnewyork.us/**", lambda r: r.fulfill(status=200, content_type="application/json", body=_j.dumps(_bld)))
         pg.goto("file://" + path); pg.wait_for_timeout(700)
 
         d = pg.evaluate(INTEGRITY)
@@ -547,6 +551,23 @@ def run(path, name):
         pg.evaluate("LF.subj='auto'; store.set('lfSubj','auto'); lfRender()")
         mn=pg.evaluate("(()=>{ const t=new Date(2026,9,20,21,30), m=moonPos(t,40.723,-73.999); return [Math.round(m.frac*100), lfDial(sunPos(t,40.723,-73.999),null,m).includes('lf-moonlit'), lfLights({lat:40.723,lon:-73.999}).includes('subway entrance')]; })()")
         check("At night the dial shows the moon, and the nearest lit avenue and subway entrance are named", mn[0]>50 and mn[1] and mn[2], mn)
+        # the light log: I shot this, rate it, and the summary by light
+        pg.evaluate("state.lightLog=[]; LF.justLogged=false; lfRender()")
+        pg.click("#lightf [data-lf=log]"); pg.wait_for_timeout(60); pg.click("#lightf [data-lf=rate][data-r=keep]"); pg.wait_for_timeout(60)
+        lg=pg.evaluate("[state.lightLog.length, state.lightLog[0].r, !!state.lightLog[0].line, document.querySelector('#lightf .lf-log').textContent.includes('Your light'), document.querySelectorAll('#lightf .lf-bar').length]")
+        pg.click("#lightf [data-lf=undo]"); pg.wait_for_timeout(60)
+        check("I shot this logs the light, direction and settings; rating and undo work; Your light sums it up", lg==[1,"keep",True,True,1] and pg.evaluate("state.lightLog.length")==0, lg)
+        # camera view: opens over Light here, draws the sun and the way to point from the compass and tilt, and closes
+        if name=="Installed app":
+            pg.evaluate("lfcOpen()"); pg.wait_for_timeout(300)
+            pg.evaluate("LFC.hd=LF.cur&&LF.cur.face!=null?LF.cur.face:200; LFC.pitch=5; lfcDraw()"); pg.wait_for_timeout(50)
+            cm=pg.evaluate("[!!document.getElementById('lfcam'), document.querySelectorAll('#lfcOv .lfc-m.aim, #lfcOv .lfc-edge.aim').length, document.getElementById('lfcTurn').textContent, !!document.querySelector('#lfcBot b')]")
+            pg.click("#lfcam [data-lf=camclose]"); pg.wait_for_timeout(60)
+            check("Camera view draws where to point over the camera picture, and closes", cm[0] and cm[1]==1 and ("On it" in cm[2] or cm[2]) and cm[3] and pg.evaluate("[!!document.getElementById('lfcam'), LFC.on]")==[False,False], cm)
+            # building shadows from the city's footprints (a made-up building stands in for the real data)
+            sh=pg.evaluate("""(async()=>{ const pt={lat:40.7230,lon:-73.9990}; LFB.cache.clear(); LFB.err=""; await lfbLoad(pt); const T=lfbTile(pt); const r=lfbSun(T,pt,new Date()), far=lfbSun(T,{lat:40.7238,lon:-73.9970},new Date());
+              return [!!T, T&&T.list.length, r.sun, r.by&&Math.round(r.by.h), far.sun, lfbHtml(pt,new Date(),null).includes('You are in shade')]; })()""")
+            check("Building shadows: a tall building to the sun's side puts your spot in shade; a clear spot is in sun", sh[:6]==[True,1,False,61,True,True], sh)
         pg.evaluate("state.heading=null"); pg.click("#lightf [data-lf=close]"); pg.wait_for_timeout(80)
         check("Light here closes", pg.evaluate("[document.getElementById('lightf').hidden, LF.open]")==[True,False])
         pg.evaluate("state.view='map'; render()"); pg.wait_for_timeout(200)
