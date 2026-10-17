@@ -93,7 +93,7 @@ function splitVal(v){ const m=/^(.*?)(?: \((.*)\)|, (or .*))$/.exec(v); return m
 /* The explanation for a setting, as a sheet over the page: this idea's value first, then the options, with this idea's one marked. */
 function tipSheet(){ const box=$("tipSheet"); if(!box) return; const T=openTip!==null&&openTip!=="c"&&TIPS[openTip];
   if(!T||state.view!=="shoot"||state.tab!=="settings"){ box.hidden=true; document.body.classList.remove("tipopen"); return; }
-  const x=IDEAS.find(i=>i.id===state.current), cam=CAMERAS[state.camera], su=x&&setupFor(cam,x.r), val=openTip==="exp" ? (cam.recipes[x.r]||[])[0] : su&&su[+openTip], [main,note]=splitVal(val||"");
+  const x=IDEAS.find(i=>i.id===state.current), R=x?ideaRec(x,state.camera):{}, cam=CAMERAS[state.camera], su=R.su, val=openTip==="exp" ? (R.rec||[])[0] : su&&su[+openTip], [main,note]=splitVal(val||"");
   const isOn=name=>{ const n=name.split(" (")[0]; return main.startsWith(n+" ")||main===n||main.startsWith(n+" ·")||(openTip==="4"&&main.includes("· "+n)); };
   const list=opts=>'<ul class="tsopts">'+opts.map(([n,d])=>'<li'+(isOn(n)?' class="on"':'')+'><b>'+esc(n)+(isOn(n)?' <span class="pill">This idea</span>':'')+'</b><span>'+esc(d)+'</span></li>').join("")+'</ul>';
   const alt=openTip==="4"&&cam.setup==="leica" ? (SCENE_ALT[x.r]?'<p class="tsalt"><b>Shortcut for this idea:</b> '+esc(SCENE_ALT[x.r])+'. Use it only when there is no time to set the dials.</p>':'<p class="tsalt">No scene mode matches this idea. Stay on PASM.</p>') : '';
@@ -104,6 +104,29 @@ function tipSheet(){ const box=$("tipSheet"); if(!box) return; const T=openTip!=
   box.hidden=false; document.body.classList.add("tipopen"); const c=box.querySelector("header .mapselx"); if(c) c.focus({preventScroll:true}); }
 let openTip = null;
 const GENERIC_TERMS =[["PASM · ","Mode dial: "],["AFs","Single AF"],["AFc","Continuous AF"],["MF","Manual focus"],["Multi-Field","Evaluative / matrix"],["Field","Single point"],["Spot","Small single point"],["Hybrid","Auto (mechanical + electronic)"]];
+/* Other places to stand for an idea, with what changes: the exposure line per camera, settings that differ from the recipe
+   (by SETUP_LABELS index, in Leica terms; other cameras get the generic words), the steps for focusing, and the short focus line
+   for street mode. The card remembers which one you chose. */
+const VARIANTS = {
+  "ktown-energy":{base:"At the corner", name:"From across the street", dist:15,
+    where:"Stand on the far side of 34th Street, 10 to 20 m from your still person, with the crossing between you.",
+    cams:{
+      q343:["1/6 s · S mode · Auto ISO · 60 or 75 crop","From across the street the walkers are about five times smaller in the frame than from the corner, so 1/15 s barely blurs them: slow to 1/6 s, or 1/4 s for long streaks, braced on the pole. After dark the camera opens to about f/2; focused at 12 m that still keeps roughly 8.5 to 20 m sharp, so focus only has to avoid the crowd, not be exact. At 43 mm a standing person fills about a fifth of the frame height: the 60 or 75 crop makes them the subject."],
+      q328:["1/6 s · S mode · Auto ISO · 50 or 75 crop","From across the street the walkers are about five times smaller in the frame than from the corner, so 1/15 s barely blurs them: slow to 1/6 s, or 1/4 s for long streaks, braced on the pole. After dark the camera opens to about f/1.7; focused at 12 m that keeps roughly 7 to 55 m sharp, so focus only has to avoid the crowd. At 28 mm a standing person fills only about an eighth of the frame height: the 50 or 75 crop makes them the subject."],
+      iphone:["Live Photo → Long Exposure · 2× or 3×","Zoom to 2× or 3× so the still person is not tiny. Tap and hold on them until AE/AF Lock shows, so the focus stays on them while the crowd passes, then turn the Live Photo into a Long Exposure in Photos. Brace on the pole."],
+      other:["1/6 s · S mode · Auto ISO","From across the street the walkers are about five times smaller in the frame, so slow to 1/6 s, or 1/4 s for long streaks, braced on a pole. At 10 to 20 m the depth of field is deep even wide open, so focus only has to avoid the crowd."]},
+    setup:{0:"MF · focus peaking and magnifier on",1:"None: set the ring once on the still person, in a gap in the crowd"},
+    steps:["Turn the lens to MF and switch on focus peaking and the automatic magnifier.","Wait for a gap in the crowd, then turn the ring until the still person's outline lights up.","Leave it there: the focus stays put while the crowd streams past. Check again only if they move or you do.","Prefer autofocus? Put a Spot field on the person, focus in a gap, and hold it with AF-L."],
+    stepsIphone:["Zoom to 2× or 3×.","Wait for a gap in the crowd, then tap and hold on the still person until AE/AF Lock shows.","Shoot a Live Photo as the crowd crosses; choose Long Exposure in Photos afterwards."],
+    short:"MF, peaking on the still person, set once in a gap"}
+};
+function ideaVariant(x){ const V=VARIANTS[x.id]; if(!V) return null; const m=store.get("ideaVariant",{})||{}; return m[x.id]?V:null; }
+/* The exposure line and settings for an idea on this camera, with the chosen place to stand applied. */
+function ideaRec(x,camKey){ const cam=CAMERAS[camKey], V=ideaVariant(x); let rec=cam.recipes[x.r], su=setupFor(cam,x.r);
+  if(V){ rec=V.cams[camKey]||V.cams.other||rec; if(su){ su=su.slice(); for(const [k,v] of Object.entries(V.setup)){ let t=v; if(cam.setup!=="leica") for(const [a,b] of GENERIC_TERMS){ if(t.startsWith(a)){ t=b+t.slice(a.length); break; } } su[+k]=t; } } }
+  return {cam,rec,su,V}; }
+function variantSwitch(x){ const V=VARIANTS[x.id]; if(!V) return ""; const on=!!ideaVariant(x);
+  return '<div class="vsw" role="group" aria-label="Where you stand"><button type="button" data-variant="0" aria-pressed="'+!on+'">'+esc(V.base)+'</button><button type="button" data-variant="1" aria-pressed="'+on+'">'+esc(V.name)+'</button></div>'+(on?'<p class="note vwhere">'+esc(V.where)+'</p>':''); }
 function setupFor(cam, recipe){
   if(!cam.setup) return null;
   const s = SETUP[recipe];
@@ -2050,7 +2073,7 @@ function renderCard(){ qCount();
   $("save").disabled=$("done").disabled=!x; $("back").disabled=!state.history.length;
   if(!x){ card.innerHTML='<div class="pane"><h2>No idea fits these filters</h2>'+(qEmptyHtml()||'<p class="plain">Choose Any, or widen the place or the light.</p>')+'</div>';
     $("save").textContent="Save"; $("done").textContent="Shot it"; return; }
-  const it=INTENTS[x.i], pl=PLACES[x.p], cam=CAMERAS[state.camera], rec=cam.recipes[x.r], su=setupFor(cam,x.r), co=COMPOSE[x.id], st=STANCE[STANCE_OF[x.id]];
+  const it=INTENTS[x.i], pl=PLACES[x.p], {cam,rec,su,V:vr}=ideaRec(x,state.camera), co=COMPOSE[x.id], st=STANCE[STANCE_OF[x.id]];
   const ni=nowInfo(), adv=su?adjustFor(x.r,ni,cam.setup==="leica",x.id):[];
   const tabs=[["idea","Idea"],["work","Work it"],["compose","Compose"],["settings","Settings"]];
   let pane;
@@ -2060,15 +2083,17 @@ function renderCard(){ qCount();
     pane='<div class="split"><div class="part"><div><button type="button" class="label tipbtn" data-tip="c" aria-expanded="'+(openTip==="c")+'">'+esc(TECH[co[0]][0])+'</button></div><p>'+esc(co[1])+'</p>'+
       '<p class="tdef"><b>What it means:</b> '+esc(TECH[co[0]][1])+'</p></div>'+composeDemo(co[0],x.id)+'</div>'+photoDemo(co[0],x.id);
   } else if(state.tab==="settings"){
-    pane='<div class="field"><label class="label" for="camera">Camera</label><select id="camera">'+
+    pane=variantSwitch(x)+'<div class="field"><label class="label" for="camera">Camera</label><select id="camera">'+
       Object.entries(CAMERAS).map(([k,v])=>'<option value="'+k+'"'+(k===state.camera?" selected":"")+'>'+esc(v.name)+'</option>').join("")+'</select></div>'+
       (su ? '<div><button type="button" class="vals tipbtn" data-tip="exp" aria-expanded="'+(openTip==="exp")+'">'+esc(rec[0])+'</button></div>' : '<span class="vals">'+esc(rec[0])+'</span>')+
       '<p class="note">'+esc(rec[1])+'</p>'+
       (adv.length ? '<div class="adjust"><span class="label">Adjust for now · '+esc(nowLabel(ni))+'</span><ul>'+adv.map(a=>'<li>'+esc(a)+'</li>').join("")+'</ul></div>' : '')+
       (su ? '<div class="setup">'+SETUP_LABELS.map((l,n)=>{ const [mv,nt]=splitVal(su[n]); return '<button type="button" data-tip="'+n+'" aria-haspopup="dialog" aria-expanded="'+(openTip===String(n))+'"><span class="label">'+l+'</span><span class="sv"><b>'+esc(mv)+'</b>'+(nt?'<small>'+esc(nt)+'</small>':'')+'</span><span class="si" aria-hidden="true">i</span></button>'; }).join("")+'</div>'+
-        '<p class="hint">Tap a setting to see what it does and the other options.</p>' : '');
+        '<p class="hint">Tap a setting to see what it does and the other options.</p>' : '')+
+      (vr?'<div class="vsteps"><span class="label">Focus '+esc(vr.name.toLowerCase())+'</span><ol>'+(state.camera==="iphone"&&vr.stepsIphone?vr.stepsIphone:vr.steps).map(t=>'<li>'+esc(t)+'</li>').join("")+'</ol></div>':'');
   } else {
     pane=shotLogHtml(x)+'<div class="part"><span class="label">Look for</span><p>'+esc(x.look)+'</p></div>'+standBlock(x)+
+      (VARIANTS[x.id]?'<p class="hint vhint">'+(vr?'Settings are for <b>'+esc(vr.name.toLowerCase())+'</b>. <button type="button" class="linkbtn" data-variant="0">Back to '+esc(VARIANTS[x.id].base.toLowerCase())+'</button>':'Standing '+esc(VARIANTS[x.id].name.toLowerCase().replace(/^from /,""))+' instead? <button type="button" class="linkbtn" data-variant="1" data-vgo="1">Use those settings</button>')+'</p>':'')+
       '<div class="part"><span class="label">Your rule</span><p>'+esc(x.rule)+'</p></div>'+
       '<div class="part"><span class="label">Best light</span><div class="times">'+x.w.map(w=>'<span class="time">'+WHEN[w]+'</span>').join("")+(x.m?'<span class="time season">'+seasonText(x)+'</span>':'')+(availText(x)?'<span class="time avail">'+esc(availText(x))+'</span>':'')+'</div></div>'+
       '<div class="part"><label class="label" for="note">Your notes</label><textarea id="note" rows="2" placeholder="What worked, what was different, what to try next time">'+esc(state.notes[x.id]||"")+'</textarea></div>'+followIdea(x.i,x.p)+igRow(x)+
@@ -2137,7 +2162,7 @@ function streetOpen(){ if(!state.current) return; state.street=true; const el=$(
   const c=el.querySelector("[data-st=next]"); if(c) c.focus(); }
 function streetClose(quiet){ if(!state.street) return; state.street=false; $("street").hidden=true; $("street").innerHTML=""; document.body.classList.remove("streetmode"); wakeOff(); if(!state.mapHead&&!state.guide) headingStop(); if(!quiet){ render(); const s=document.querySelector('#card [data-street]'); if(s) s.focus(); } }
 function renderStreet(){ const el=$("street"); if(!el||!state.street) return; const x=IDEAS.find(y=>y.id===state.current); if(!x){ streetClose(); return; }
-  const it=INTENTS[x.i], pl=PLACES[x.p], cam=CAMERAS[state.camera], rec=cam.recipes[x.r], su=setupFor(cam,x.r), ni=nowInfo(), adv=su?adjustFor(x.r,ni,cam.setup==="leica",x.id):[], W=WORKX[x.id], sp=spotFor(x), t=new Date();
+  const it=INTENTS[x.i], pl=PLACES[x.p], {cam,rec,su,V:vr}=ideaRec(x,state.camera), ni=nowInfo(), adv=su?adjustFor(x.r,ni,cam.setup==="leica",x.id):[], W=WORKX[x.id], sp=spotFor(x), t=new Date();
   const row=(k,v)=>v?'<div class="strow"><span class="stk">'+k+'</span><span class="stv">'+v+'</span></div>':'';
   let face=""; if(sp){ const S=sp.S, lf=lightFacing(S[2],t), km=state.pos?kmBetween(state.pos,{lat:S[0],lon:S[1]}):null;
     face='<b>'+esc(spotShort(S))+'</b> · face '+compass(S[2])+' · <span class="sdk '+lf.k+'">'+lf.txt+' now</span>'+(km!==null?' · '+(km*1000<40?'you are here':mDist(km)+' away'):'')+'<span class="turnhint" data-face="'+S[2]+'">'+turnText(S[2])+'</span>'; }
@@ -2146,7 +2171,7 @@ function renderStreet(){ const el=$("street"); if(!el||!state.street) return; co
       '<button type="button" class="chip st-stay" data-st="stay" aria-pressed="'+(state.place===x.p)+'">'+(state.place===x.p?'Staying ✓':'Stay here')+'</button><button type="button" class="st-x" data-st="close" aria-label="Leave street mode">×</button></div>'+
     (state.drillRun?'<div class="st-drill">'+drillLine()+'</div>':'')+'<h2>'+esc(x.t)+'</h2><p class="why">'+shootWhy(x)+'</p>'+onlyOneHtml(x)+
     '<div class="st-exp"><span class="stk">'+esc(cam.name)+'</span><b>'+esc(rec[0])+'</b>'+(adv.length?'<span class="st-adj">Now: '+esc(adv[0])+'</span>':'')+'</div>'+
-    row("Focus",esc(shortFocus(x,state.camera))+(W?' · about '+esc(mText(W[2])):''))+
+    row("Focus",vr?esc(state.camera==="iphone"?"Tap and hold for AE/AF Lock, in a gap in the crowd":vr.short)+' · about '+esc(mText(vr.dist)):esc(shortFocus(x,state.camera))+(W?' · about '+esc(mText(W[2])):''))+(vr?row("Where",esc(vr.name)):"")+
     row("Height",W?esc(W[1]):"")+row("Press",W?esc(W[3]):"")+row("Rule",esc(x.rule))+row("Stand",face)+
     (d?'<div class="st-log">'+shotLogHtml(x)+'</div>':'')+
     '</div><div class="st-bar"><button type="button" class="btn" data-st="back" aria-label="Previous idea"'+(state.history.length?'':' disabled')+'>‹</button><button type="button" class="btn primary" data-st="next">Next idea</button><button type="button" class="btn" data-st="shot" aria-pressed="'+d+'">'+(d?'Shot ✓'+(n>1?' '+n+'×':''):'Shot it')+'</button></div>'; }
@@ -4308,6 +4333,8 @@ function render(){
   if(mp) planSheet(pl);
   if(shoot){ renderCard(); if(state.street) renderStreet(); } else if(ev) renderEvents(); else if(pl) renderPlan(); else if(!mp&&!ln&&!td) renderList();
 }
+document.addEventListener("click",e=>{ const b=e.target.closest&&e.target.closest("[data-variant]"); if(!b||!state.current) return; const m=store.get("ideaVariant",{})||{};
+  if(b.dataset.variant==="1") m[state.current]=1; else delete m[state.current]; store.set("ideaVariant",m); if(b.dataset.vgo) state.tab="settings"; render(); if(state.street) renderStreet(); });
 function refilter(){ if(!matches(false).some(x=>x.id===state.current)) pick(); render(); qCount(); }
 state.q=""; state.onNow=!!store.get("onNow",false); state.sort=store.get("isort","place")||"place";
 function qCount(){ const el=$("qCount"); if(!el) return; if((!state.q&&!state.onNow)||state.view!=="shoot"){ el.hidden=true; return; } const n=matches(false).length; el.hidden=false; el.textContent=n?n+" idea"+(n===1?"":"s")+(state.q?(n===1?" matches":" match"):"")+(state.onNow?(state.q?", on now":" on now"):"")+".":""; if(!n) el.hidden=true; }

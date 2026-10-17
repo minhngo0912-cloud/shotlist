@@ -235,6 +235,18 @@ def run(path, name):
           state.mapShowNames=false; mapV=mapClamp({cx:x,cy:y,w:10}); mapDraw(); out.push(document.querySelectorAll('#mapDyn .m-sn').length); state.mapShowNames=true; state.view=was; render(); return out; })()""")
         check("Map: zoomed in, every street gets its name along it (none when zoomed out or with names off)",
               len(sn[0])>=6 and "Broome St" in sn[0] and "Mercer St" in sn[0] and not any(re.match(r"^(W |E )?\d+ (St|Av)$",n) for n in sn[1]) and len(sn[1])>=10 and len(set(sn[1]))==len(sn[1]) and sn[2]==[] and sn[3]==0, sn)
+        # an idea's other place to stand: Herald Square from across the street
+        va=pg.evaluate("""(()=>{ const was=state.camera, v=state.view, out={}; state.camera='q343'; show('ktown-energy'); state.view='shoot'; state.tab='idea'; render();
+          out.hint=!!document.querySelector('#card [data-vgo]'); document.querySelector('#card [data-vgo]').click();
+          out.on=[state.tab, document.querySelector('#card .vals').textContent, document.querySelectorAll('#card .vsteps li').length, ideaRec(IDEAS.find(x=>x.id==='ktown-energy'),'q343').su[0]];
+          state.camera='iphone'; render(); out.iphone=[document.querySelector('#card .vals').textContent, document.querySelector('#card .vsteps li').textContent];
+          state.camera='other'; render(); out.other=ideaRec(IDEAS.find(x=>x.id==='ktown-energy'),'other').su[0];
+          state.camera='q343'; render(); streetOpen(); out.street=[...document.querySelectorAll('#street .strow')].map(r=>r.innerText).join(' / '); streetClose();
+          document.querySelector('#card .vsw [data-variant="0"]').click(); out.off=[document.querySelector('#card .vals').textContent, !!document.querySelector('#card .vsteps'), Object.keys(store.get('ideaVariant',{})).length];
+          out.others=IDEAS.filter(x=>x.id!=='ktown-energy').every(x=>!VARIANTS[x.id]); state.camera=was; state.view=v; state.tab='idea'; render(); return out; })()""")
+        check("Herald Square crossing has a 'from across the street' setting: slower shutter, crop, manual focus with peaking, steps for each camera, in street mode too",
+              va["hint"] and va["on"]==["settings","1/6 s · S mode · Auto ISO · 60 or 75 crop",4,"MF · focus peaking and magnifier on"] and "2×" in va["iphone"][0] and "Zoom" in va["iphone"][1]
+              and va["other"].startswith("Manual focus") and "about 15 m" in va["street"] and va["off"]==["1/15 s · S mode · Auto ISO",False,0] and va["others"], va)
         # search, sort and On now
         pg.fill("#q","steam"); pg.wait_for_timeout(300)
         q1=pg.evaluate("[matches(false).map(x=>x.t), !!document.querySelector('#list .row mark'), !!document.querySelector('#list .qsnip mark')]")
