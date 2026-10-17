@@ -1072,3 +1072,30 @@ body.lfopen{overflow:hidden}
 .tdeal{border-color:#1e9e48} .tdeal .msg{margin:2px 0}
 
 .pc-n.ebay{background:rgba(36,99,217,.08)} .pc-n.sold{background:rgba(36,99,217,.05)}
+
+/* Learn: contents and lesson pages */
+.lhome{display:flex;flex-direction:column;gap:12px}
+.lprog{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)} .ltrack{flex:1;height:6px;border-radius:3px;background:var(--line);overflow:hidden} .ltrack i{display:block;height:100%;background:var(--yellow)}
+.lic{flex:none;width:40px;height:40px;border-radius:10px;background:var(--sign);display:grid;place-items:center} .lic svg{width:22px;height:22px;fill:none;stroke:var(--yellow);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.lic.big{width:52px;height:52px;border-radius:13px} .lic.big svg{width:28px;height:28px}
+.lcont{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border:0;border-radius:12px;background:var(--sign);color:var(--sign-fg);font:inherit;text-align:left;cursor:pointer}
+.lcont .lic{background:rgba(255,255,255,.08)} .lcont>span:nth-child(2){flex:1;display:flex;flex-direction:column} .lcont-l{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--yellow)} .lcont b{font-size:17px} .lcont .go{color:var(--sign-muted);font-size:22px}
+.lgroup h3{margin:8px 0 0;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)} .lgroup>p{margin:2px 0 8px;font-size:13.5px;color:var(--muted)}
+.ltiles{display:flex;flex-direction:column;gap:8px}
+.ltile{display:flex;align-items:center;gap:12px;width:100%;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.ltile .lt{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px} .ltile .lt b{font-size:16px;line-height:1.25} .ltile .lt>span{font-size:13.5px;line-height:1.35;color:var(--muted)}
+.ltile em{font-style:normal;font-size:12px;font-weight:600;color:var(--muted);margin-top:3px} .ltile em i{font-style:normal;color:#1e9e48}
+.ltile .go{color:var(--muted);font-size:22px} .ltile.seen .lic{opacity:.75}
+.lpage{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:visible}
+.lbar{position:sticky;top:0;z-index:5;background:var(--panel);border-bottom:1px solid var(--line);border-radius:12px 12px 0 0;padding:6px 10px}
+.lbar-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.lback{min-height:40px;border:0;background:none;color:var(--fg);font:inherit;font-weight:700;font-size:15px;padding:0 4px;cursor:pointer} .lpos{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.ljump{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 0 4px} .ljump::-webkit-scrollbar{display:none} .ljump .chip{min-height:32px;font-size:13px;padding:0 11px;flex:none}
+.lhead{display:flex;gap:14px;align-items:flex-start;padding:16px 14px 6px} .lhead h2{margin:2px 0 2px;font-size:23px;line-height:1.2} .lhead p{margin:0;color:var(--muted);font-size:14.5px;line-height:1.4}
+.lgrp{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)} .lmeta{display:inline-block;margin-top:6px;font-size:12px;font-weight:700;color:var(--muted)}
+.lpage .lessonbody{padding:8px 14px 16px} .lsec{margin:16px 0 6px;font-size:15px}
+.lpage .lessonbody>p,.lpage .xp,.lpage .zf,.lpage .tgrid,.lpage .learnwhy,.lpage .lightlist,.lpage .cropw,.lpage .camcmp,.lpage .prices,.lpage .drills2,.lpage .lpoints,.lpage .ltry{scroll-margin-top:96px}
+.lnav{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 14px 14px}
+.lnav-b{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg);font:inherit;text-align:left;cursor:pointer;min-height:56px}
+.lnav-b span{font-size:12px;font-weight:700;color:var(--muted)} .lnav-b b{font-size:14px;line-height:1.25} .lnav-b.nx{text-align:right;align-items:flex-end}
+.ljump .chip[aria-current=true]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
