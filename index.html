@@ -792,7 +792,37 @@ body.streetmode{overflow:hidden}
 /* Learn: exposure simulator and crop frames */
 .xprow{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px} .xprow .chip{min-height:34px;font-size:13px;padding:0 11px}
 .xp .demo-svg,.cropw .demo-svg{max-width:none;border-radius:6px}
-.xgrid{grid-template-columns:repeat(2,1fr);margin-top:10px} .xgrid label:first-child{grid-column:1/-1}
+.xgrid{grid-template-columns:2fr 1fr;margin-top:10px}
+.xmode{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:14px 0 8px}
+.xmode button{min-height:42px;border:1.5px solid var(--line);border-radius:8px;background:var(--panel);color:var(--fg);font:inherit;font-size:14px;font-weight:700;padding:0 4px}
+.xmode button[aria-pressed=true]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.xmode-t{font-size:14px;line-height:1.45;margin:0 0 12px}
+.xcap{font-size:12px;color:var(--muted);margin:0 0 8px}
+.xlad{display:flex;flex-direction:column;gap:10px;margin:0 0 10px}
+.xr-h{display:flex;align-items:center;gap:8px;min-height:30px}
+.xr-n{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);min-width:70px}
+.xr-v{font-size:17px;font-variant-numeric:tabular-nums}
+.xr-who{margin-left:auto;font-size:12px;font-weight:700;color:var(--muted);white-space:nowrap}
+.xr.cam .xr-who{color:var(--blue)} .xr.lim .xr-v,.xr.lim .xr-who{color:#c96f12}
+.xr-auto{min-height:28px;font-size:12px;padding:0 9px} .xr-auto[aria-pressed=true]{background:var(--blue);border-color:var(--blue);color:#fff}
+.xr-c{display:grid;grid-template-columns:38px 1fr 38px;align-items:center;gap:8px}
+.xr-b{height:38px;border:1.5px solid var(--line);border-radius:8px;background:var(--panel);color:var(--fg);font-size:22px;font-weight:700;line-height:1;padding:0}
+.xr-b:disabled{opacity:.3}
+.xr-rail{position:relative;height:36px;margin:0 6px;cursor:pointer;touch-action:manipulation}
+.xr.cam .xr-rail{cursor:default}
+.xr-rail::before{content:"";position:absolute;left:0;right:0;top:12px;height:2px;border-radius:1px;background:var(--line)}
+.xr-rail i{position:absolute;top:7px;width:1.5px;height:12px;background:var(--muted);opacity:.7;transform:translateX(-50%)}
+.xr-l{position:absolute;top:22px;font-size:10px;color:var(--muted);transform:translateX(-50%);white-space:nowrap;font-variant-numeric:tabular-nums}
+.xr-m{position:absolute;top:4px;width:18px;height:18px;border-radius:50%;background:var(--fg);border:3px solid var(--panel);box-shadow:0 0 0 1px var(--fg);transform:translateX(-50%);transition:left .35s ease}
+.xr.cam .xr-m{background:var(--panel);border:4px solid var(--blue);box-shadow:none}
+.xr.lim .xr-m{border-color:#c96f12}
+@media (prefers-reduced-motion:reduce){ .xr-m{transition:none} }
+.xauto{display:flex;flex-wrap:wrap;gap:8px 14px;font-size:12px;font-weight:700;color:var(--muted)}
+.xauto label{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.xauto select{min-height:32px;border:1.5px solid var(--line);border-radius:8px;background:var(--panel);color:var(--fg);font-size:13px;font-weight:600;padding:0 4px}
+.xtrade{font-size:14px;line-height:1.45;margin:0 0 6px;padding:8px 10px;border-radius:8px;background:var(--bg);border-left:3px solid var(--blue)}
+.xout .xwhy{color:#c96f12}
+.xp .hint{color:var(--muted)}
 .xout{margin:10px 0 8px;padding-left:18px;font-size:15px;line-height:1.45} .xout li{margin:0 0 4px}
 .xout .ok{color:#1e9e48} .xout .over{color:#d9822b} .xout .under{color:#4a7be0}
 .cropw .dofrow{grid-template-columns:1fr;margin-bottom:10px}
@@ -5057,10 +5087,16 @@ const mFmt = m => m===Infinity||m>50 ? "infinity" : (m<10? m.toFixed(1) : Math.r
 /* Exposure simulator: aperture, shutter and ISO over a drawn street. Brightness follows the stops; the walker (1.4 m/s, 4 m away) blurs with
    the shutter; the far buildings (30 m, focus at 4 m) soften with the aperture; grain rises with ISO. Simplified, but the numbers are real. */
 const XL = {sun:["Bright sun",15],shade:["Open shade",12.5],cloud:["Overcast",12],gold:["Golden hour",11],inside:["Grand Central inside",7],blue:["Blue hour",8],night:["Lit street at night",6]};
-const XSH = [1/4000,1/2000,1/1000,1/500,1/250,1/125,1/60,1/30,1/15,1/8,1/4], XISO=[100,200,400,800,1600,3200,6400,12500];
-const shText = t => t>=0.25&&t<1 ? '1/'+Math.round(1/t)+' s' : t>=1 ? t+' s' : '1/'+Math.round(1/t)+' s';
-const XPRE = [["Sunny 16",{L:"sun",N:16,t:1/125,iso:100}],["Freeze a gesture",{L:"sun",N:4,t:1/2000,iso:0}],["Zone focus",{L:"cloud",N:8,t:1/500,iso:0}],
-  ["Drag at golden hour",{L:"gold",N:11,t:1/15,iso:0}],["Shallow portrait",{L:"shade",N:0,t:1/2000,iso:0}],["Night street",{L:"night",N:0,t:1/125,iso:0}]];
+// Full stops you set yourself, darkest first; the camera picks in third stops, as the Q3 does
+const XSH = [1/16000,1/8000,1/4000,1/2000,1/1000,1/500,1/250,1/125,1/60,1/30,1/15,1/8,1/4,1/2,1], XISO=[100,200,400,800,1600,3200,6400,12500];
+const xApList = f => [16,11,8,5.6,4,2.8,f===28?1.7:2];
+const AP3=[1.7,1.8,2,2.2,2.5,2.8,3.2,3.5,4,4.5,5,5.6,6.3,7.1,8,9,10,11,13,14,16], ISO3=[100,125,160,200,250,320,400,500,640,800,1000,1250,1600,2000,2500,3200,4000,5000,6400,8000,10000,12500],
+  SH3=[16000,12500,10000,8000,6400,5000,4000,3200,2500,2000,1600,1250,1000,800,640,500,400,320,250,200,160,125,100,80,60,50,40,30,25,20,15,13,10,8,6,5,4,3,2.5,2,1.6,1.3,1].map(d=>1/d);
+const near3 = (list,v) => list.reduce((b,c)=>Math.abs(Math.log2(c/v))<Math.abs(Math.log2(b/v))?c:b);
+const shText = t => 1/t>=2.9 ? '1/'+Math.round(1/t)+' s' : (Math.round(t*10)/10)+' s';
+// Presets: [name, settings, 1 if it is meant to go wrong]
+const XPRE = [["Sunny 16",{mode:"M",L:"sun",N:16,t:1/125,iso:100}],["Freeze a gesture",{mode:"S",L:"sun",t:1/2000,iso:0}],["Zone focus",{mode:"M",L:"cloud",N:8,t:1/500,iso:0}],
+  ["Drag at golden hour",{mode:"S",L:"gold",t:1/15,iso:0}],["Drag in full sun",{mode:"S",L:"sun",t:1/15,iso:0},1],["Shallow portrait",{mode:"A",L:"shade",N:0,iso:0}],["Night street",{mode:"A",L:"night",N:0,iso:0,slow:1/250,max:6400}]];
 // How each scene looks when it is exposed correctly: sky, four building tones, windows, street, the walker's coat, lamp lit or not
 const XPAL = {sun:["#9fc3e8",["#b4a48c","#c2b49c","#a8987e","#bba98f"],"#6f7f92","#7d7a74","#3c4250",0],
   shade:["#a9c1da",["#8f8a82","#9a948b","#857f77","#948e85"],"#5f6670","#66655f","#3c4250",0],
@@ -5069,11 +5105,28 @@ const XPAL = {sun:["#9fc3e8",["#b4a48c","#c2b49c","#a8987e","#bba98f"],"#6f7f92"
   inside:["#4a5d68",["#b89f72","#c4ab7e","#ad9468","#bda478"],"#e9d9a8","#8c7b5e","#2e2a26",1],
   blue:["#3d5a9e",["#2b3550","#334060","#28314a","#303a58"],"#f3d27a","#2a2f40","#d8d2c4",1],
   night:["#0d1220",["#1a1e28","#20252f","#171a22","#1d212b"],"#f0c860","#1f2229","#cfc9bc",1]};
-function expoState(){ if(!state.xp) state.xp={L:"cloud",f:CAM_FL[state.camera]===28?28:43,N:8,t:1/250,iso:0}; return state.xp; }
-function expoCalc(){ const X=expoState(), f=X.f, Nmin=f===28?1.7:2, N=Math.max(Nmin,X.N||Nmin), t=X.t, EV=XL[X.L][1];
-  const need=100*Math.pow(2,Math.log2(N*N/t)-EV), auto=!X.iso, iso=auto?Math.min(6400,Math.max(100,need)):X.iso, stops=EV+Math.log2(iso/100)-Math.log2(N*N/t);
+function expoState(){ if(!state.xp) state.xp={mode:"M",L:"cloud",f:CAM_FL[state.camera]===28?28:43,N:8,t:1/250,iso:0};
+  const X=state.xp; X.mode=X.mode||"M"; X.max=X.max||6400; X.slow=X.slow||1/250; return X; }
+// Which settings the camera chooses in the current mode
+const xCtl = X => (X.mode==="A"?["t"]:X.mode==="S"?["N"]:[]).concat(X.iso?[]:["iso"]);
+/* The camera's side, the way the Q3 behaves: A finds the shutter, S the aperture; with Auto ISO the ISO stays at 100 until the shutter would fall
+   below the slowest-shutter setting (A) or the lens is wide open (S), then rises to the maximum; past that, A goes slower anyway. */
+function expoCalc(){ const X=expoState(), f=X.f, Nmin=f===28?1.7:2, EV=XL[X.L][1], auto=!X.iso, max=X.max, mode=X.mode, lim=[];
+  const ev=(N,t)=>Math.log2(N*N/t), isoFor=(N,t)=>100*Math.pow(2,ev(N,t)-EV);
+  let N=Math.max(Nmin,X.N||Nmin), t=X.t, iso=auto?100:X.iso;
+  const autoIso=()=>{ const need=isoFor(N,t); if(need>max*1.06){ iso=max; lim.push("isoMax"); } else if(need<100/1.06){ iso=100; lim.push("isoMin"); } else iso=Math.min(max,Math.max(100,need)); };
+  if(mode==="A"){ const tFor=i=>N*N/Math.pow(2,EV+Math.log2(i/100)); t=tFor(iso);
+    if(auto&&t>X.slow*1.06){ t=X.slow; autoIso(); if(lim.includes("isoMax")){ lim.splice(lim.indexOf("isoMax"),1,"isoMaxA"); t=tFor(max); lim.push("slowPast"); } }
+    if(t>1.06){ t=1; lim.push("tMax"); } else if(t<1/17000){ t=1/16000; lim.push("tMin"); }
+    t=near3(SH3,t); }
+  else if(mode==="S"){ const nFor=i=>Math.sqrt(t*Math.pow(2,EV+Math.log2(i/100))); N=nFor(iso);
+    if(N>16*1.06){ N=16; lim.push("nMax"); } else if(N<Nmin/1.06){ N=Nmin; if(auto) autoIso(); else lim.push("nMin"); }
+    N=near3(AP3.filter(a=>a>=Nmin),N); }
+  else if(auto) autoIso();
+  if(auto) iso=near3(ISO3,iso);
+  const stops=EV+Math.log2(iso/100)-ev(N,t);
   const walk=1.4*t/(4*36/f)*150, s=4000, d=30000, bg=(f*f/(N*(s-f)))*((d-s)/d)/36*150;
-  return {f,N,t,EV,iso,auto,need,stops,walk,bg}; }
+  return {f,N,t,EV,iso,auto,stops,walk,bg,lim,mode,Nmin,max,slow:X.slow}; }
 function expoScene(C){ const k=Math.pow(2,Math.max(-5,Math.min(5,C.stops))/2.2), P=XPAL[expoState().L]||XPAL.cloud, n=Math.min(14,Math.round(C.walk/0.9)), noise=C.iso<=800?0:Math.min(0.55,0.09*Math.log2(C.iso/800)+0.06);
   let ghosts=''; if(n<1) ghosts=dW(84,82,30,""); else for(let i=0;i<=n;i++){ const x=84-C.walk/2+C.walk*i/n; ghosts+='<g opacity="'+Math.min(1,1.6/(n+1)+0.05).toFixed(2)+'">'+dW(x,82,30,"")+'</g>'; }
   ghosts='<g fill="'+P[4]+'">'+ghosts+'</g>';
@@ -5092,18 +5145,66 @@ function expoScene(C){ const k=Math.pow(2,Math.max(-5,Math.min(5,C.stops))/2.2),
     ghosts+'</g>'+
     (noise?'<rect width="150" height="100" filter="url(#xNoise)" opacity="'+noise.toFixed(2)+'" style="mix-blend-mode:overlay"/>':'')+
     '<rect x="1" y="1" width="148" height="98" class="d-frame"/></svg>'; }
+// One stop ladder row. Every rail runs from less light (left) to more light (right), so when you move one marker the camera's moves the other way.
+const xLight = (k,v) => k==="N" ? -2*Math.log2(v) : Math.log2(v);
+const xList = (k,f) => k==="N" ? xApList(f) : k==="t" ? XSH : XISO;
+const xFmt = (k,v) => k==="N" ? "f/"+v : k==="t" ? shText(v) : String(Math.round(v));
+const XLIM = {N:["nMax","nMin"], t:["slowPast","tMax","tMin"], iso:["isoMax","isoMaxA","isoMin"]};
+function xRow(k,C,X){ const cam=xCtl(X).includes(k), list=xList(k,C.f), v=k==="N"?C.N:k==="t"?C.t:C.iso, a=xLight(k,list[0]), b=xLight(k,list[list.length-1]);
+  const at=x=>Math.max(0,Math.min(100,(xLight(k,x)-a)/(b-a)*100)).toFixed(1), lim=XLIM[k].some(l=>C.lim.includes(l));
+  const labels=k==="N"?list:k==="t"?[1/8000,1/1000,1/125,1/15,1]:[100,400,1600,6400];
+  const lab=x=>k==="N"?String(x):k==="t"?(x>=1?"1 s":"1/"+Math.round(1/x)):String(x);
+  const idx=list.indexOf(near3(list,v)), name={N:"Aperture",t:"Shutter",iso:"ISO"}[k];
+  return '<div class="xr'+(cam?' cam':'')+(lim?' lim':'')+'"><div class="xr-h"><span class="xr-n">'+name+'</span><b class="xr-v">'+xFmt(k,v)+'</b>'+
+    (k==="iso"?'<button type="button" class="chip xr-auto" data-xauto aria-pressed="'+C.auto+'">Auto ISO</button>':'')+
+    '<span class="xr-who">'+(cam?'camera sets':'you set')+'</span></div>'+
+    '<div class="xr-c"><button type="button" class="xr-b" data-xstep="'+k+':-1" aria-label="'+name+': less light"'+(cam||idx<=0?' disabled':'')+'>‹</button>'+
+    '<div class="xr-rail"'+(cam?'':' data-xrail="'+k+'"')+'>'+list.map(x=>'<i style="left:'+at(x)+'%"></i>').join("")+labels.map(x=>'<span class="xr-l" style="left:'+at(x)+'%">'+lab(x)+'</span>').join("")+
+      '<b class="xr-m" style="left:'+at(v)+'%"></b></div>'+
+    '<button type="button" class="xr-b" data-xstep="'+k+':1" aria-label="'+name+': more light"'+(cam||idx>=list.length-1?' disabled':'')+'>›</button></div></div>'; }
+const xStops = x => { const n=Math.round(Math.abs(x)*3), w=Math.floor(n/3), r=n%3; return (w||!r?w:"")+["","⅓","⅔"][r]+(n===3?" stop":" stops"); };
+// What changed after you moved one setting: yours, the camera's answer, and the picture
+function xTrade(k,B,A,X){ const val=(kk,C)=>kk==="N"?C.N:kk==="t"?C.t:C.iso, dl=kk=>xLight(kk,val(kk,A))-xLight(kk,val(kk,B));
+  const d=dl(k); if(Math.abs(d)<1/6) return "";
+  let m='<b>You:</b> '+{N:"aperture",t:"shutter",iso:"ISO"}[k]+' '+xFmt(k,val(k,B))+' → '+xFmt(k,val(k,A))+' ('+xStops(d)+(d>0?' more':' less')+' light).';
+  const cam=xCtl(X).filter(kk=>Math.abs(dl(kk))>=1/6).map(kk=>({N:"aperture",t:"shutter",iso:"ISO"}[kk])+' '+xFmt(kk,val(kk,B))+' → '+xFmt(kk,val(kk,A)));
+  const pic=A.stops-B.stops;
+  if(cam.length) m+=' <b>Camera:</b> '+cam.join(", ")+(Math.abs(pic)<1/6?', so the picture stays as bright.':'.');
+  if(Math.abs(pic)>=1/6) m+=' <b>Picture:</b> '+xStops(pic)+(pic>0?' brighter':' darker')+(cam.length?', because the camera hit a limit.':'.');
+  return m; }
+const XMODE = {A:["A · Aperture","Aperture priority. You set the aperture; the camera sets the shutter speed","On the Q3: aperture ring on a number, shutter dial on A."],
+  S:["S · Shutter","Shutter priority. You set the shutter speed; the camera sets the aperture","On the Q3: shutter dial on a number, aperture ring on A."],
+  M:["M · Manual","Manual. You set the aperture and the shutter","On the Q3: both on a number."]};
 function learnExpo(){ const X=expoState(), C=expoCalc(), sel=(key,opts,cur)=>'<select data-xp="'+key+'">'+opts.map(([v,l])=>'<option value="'+v+'"'+(String(v)===String(cur)?' selected':'')+'>'+l+'</option>').join("")+'</select>';
   const st=C.stops, expTxt=Math.abs(st)<0.34?'<b class="ok">Correct</b>':st>0?'<b class="over">'+st.toFixed(1)+' stops too bright</b>'+(st>1.5?': the sky and pale walls blow out':''):'<b class="under">'+(-st).toFixed(1)+' stops too dark</b>'+(st<-1.5?': shadows block up':'');
+  const why=[]; const L=C.lim;
+  if(L.includes("nMax")) why.push('The lens cannot close past f/16, so the picture is too bright: use a faster shutter, or an ND filter for slow-shutter effects.');
+  if(L.includes("nMin")) why.push('The lens is wide open at f/'+C.Nmin+': use a slower shutter or a higher ISO.');
+  if(L.includes("slowPast")) why.push('Auto ISO reached its '+C.max+' maximum, so the camera went slower than your '+shText(C.slow)+' limit.');
+  if(L.includes("isoMax")) why.push('Auto ISO is at its '+C.max+' maximum: open up, use a slower shutter, or allow a higher maximum.');
+  if(L.includes("isoMin")) why.push('ISO cannot go below 100: use a faster shutter or a smaller aperture.');
+  if(L.includes("tMax")) why.push('Slower than 1 s needs a tripod: open up or raise the ISO.');
+  if(L.includes("tMin")) why.push('The fastest shutter is 1/16000 s: stop down.');
   const walkTxt=C.walk<0.4?'sharp':C.walk<1.5?'nearly sharp; fine for a walking figure':C.walk<5?'blurred: the movement shows':'streaked across the frame';
   const bgTxt=C.bg<0.25?'sharp':C.bg<0.8?'slightly soft':C.bg<2?'soft, the walker stands out':'very soft';
   const grain=C.iso<=800?'clean':C.iso<=3200?'fine grain in the shadows':C.iso<=6400?'visible grain':'heavy grain';
-  const Ns=(C.f===28?[1.7]:[2]).concat([2.8,4,5.6,8,11,16]);
+  const M=XMODE[C.mode], modeTxt=M[1]+(C.mode==="M"?(C.auto?'; with Auto ISO the camera sets only the ISO.':', and the ISO too.'):(C.auto?(C.mode==="A"?', and raises the ISO once the shutter would fall below your slowest setting.':', and raises the ISO once the lens is wide open.'):'.'))+' '+M[2]+(C.auto?' ISO on Auto.':'');
   return '<div class="dof xp"><div class="xprow">'+XPRE.map(([n],i)=>'<button type="button" class="chip" data-xpre="'+i+'">'+n+'</button>').join("")+'</div>'+expoScene(C)+
-    '<div class="dofrow xgrid"><label>Light'+sel("L",Object.entries(XL).map(([k,v])=>[k,v[0]]),X.L)+'</label><label>Lens'+sel("f",[[28,"28 mm"],[43,"43 mm"]],C.f)+'</label>'+
-    '<label>Aperture'+sel("N",Ns.map(v=>[v,"f/"+v]),C.N)+'</label><label>Shutter'+sel("t",XSH.map(v=>[v,shText(v)]),X.t)+'</label><label>ISO'+sel("iso",[[0,"Auto (to 6400)"]].concat(XISO.map(v=>[v,String(v)])),X.iso)+'</label></div>'+
-    '<ul class="xout"><li>Exposure: '+expTxt+(C.auto?' · Auto ISO picks <b>'+Math.round(C.iso/10)*10+'</b>'+(C.need>6400&&st<-0.34?' (it needs '+Math.round(C.need/100)*100+', past the 6400 limit: open up or slow down)':C.need<100&&st>0.34?' (it would need to go below 100: use a faster shutter or a smaller aperture)':''):'')+'</li>'+
+    '<div class="dofrow xgrid"><label>Light'+sel("L",Object.entries(XL).map(([k,v])=>[k,v[0]]),X.L)+'</label><label>Lens'+sel("f",[[28,"28 mm"],[43,"43 mm"]],C.f)+'</label></div>'+
+    '<div class="xmode" role="group" aria-label="Exposure mode">'+Object.entries(XMODE).map(([k,v])=>'<button type="button" data-xmode="'+k+'" aria-pressed="'+(C.mode===k)+'">'+v[0]+'</button>').join("")+'</div>'+
+    '<p class="xmode-t">'+modeTxt+'</p>'+
+    '<p class="xcap">Each tick is one stop, half or double the light. Further right lets in more light.</p>'+
+    '<div class="xlad">'+xRow("N",C,X)+xRow("t",C,X)+xRow("iso",C,X)+
+      (C.auto?'<div class="xauto"><label>Auto ISO maximum '+sel("max",[[6400,"6400 (day)"],[12500,"12500 (night)"]],C.max)+'</label>'+(C.mode==="A"?'<label>Slowest '+sel("slow",[1/60,1/125,1/250,1/500].map(v=>[v,shText(v)]),C.slow)+'</label>':'')+'</div>':'')+'</div>'+
+    (state.xpTrade?'<p class="xtrade" role="status">'+state.xpTrade+'</p>':'')+
+    '<ul class="xout"><li>Exposure: '+expTxt+'</li>'+why.map(w=>'<li class="xwhy">'+w+'</li>').join("")+
       '<li>The walker: '+walkTxt+'</li><li>The far buildings: '+bgTxt+'</li><li>Grain: '+grain+'</li></ul>'+
-    '<p class="hint">The walker is 4 m away at walking pace and in focus; the buildings are 30 m away. Light levels are typical values for each scene. The picture is a simplification: it shows which way each setting pushes the photo, not exactly how it will look.</p></div>'; }
+    '<p class="hint">The walker is 4 m away at walking pace and in focus; the buildings are 30 m away. Light levels are typical for each scene, and the camera rounds its choices to third stops, as the Q3 does. The picture shows which way each setting pushes the photo, not exactly how it will look.</p></div>'; }
+// Redraw and let the markers slide from where they were, so you see the camera's setting move against yours
+function xpRedraw(el){ const old=[...el.querySelectorAll('.xr-m')].map(m=>m.style.left), box=document.createElement('div'); box.innerHTML=learnExpo(); const n=box.firstElementChild; el.replaceWith(n);
+  const ms=[...n.querySelectorAll('.xr-m')]; if(old.length!==ms.length) return; const nw=ms.map(m=>m.style.left);
+  ms.forEach((m,i)=>{ m.style.transition='none'; m.style.left=old[i]; }); void n.offsetWidth; ms.forEach((m,i)=>{ m.style.transition=''; m.style.left=nw[i]; }); }
+function xpSet(k,v,el){ const X=expoState(), B=expoCalc(); X[k]=v; const A=expoCalc(); state.xpTrade=xTrade(k,B,A,X); xpRedraw(el); }
 
 /* Crop frames: one scene through the native lens and each crop frame, with what is left of the 60 MP and how far to stand. */
 const CROP_SET = {q328:{n:"Leica Q3",f:28,crops:[35,50,75,90]},q343:{n:"Leica Q3 43",f:43,crops:[60,75,90,120,150]}};
@@ -5650,14 +5751,23 @@ $("map").addEventListener("keydown",e=>{ if(e.key!=="Enter"&&e.key!==" ") return
 window.addEventListener("resize",()=>{ if(state.view==="map") mapLayout(); });
 $("learn").addEventListener("click",e=>{
   const ws=e.target.closest("[data-whysel]"); if(ws){ state.whySel=ws.dataset.whysel; const box=e.target.closest(".learnwhy"); if(box) box.outerHTML=learnWhy(); return; }
-  const xpr=e.target.closest("[data-xpre]"); if(xpr){ const P=XPRE[+xpr.dataset.xpre][1], X=expoState(); Object.assign(X,P); e.target.closest(".xp").outerHTML=learnExpo(); return; }
+  const xpr=e.target.closest("[data-xpre]"); if(xpr){ const P=XPRE[+xpr.dataset.xpre][1], X=expoState(); Object.assign(X,{max:6400,slow:1/250},P); state.xpTrade=""; xpRedraw(e.target.closest(".xp")); return; }
+  const xm=e.target.closest("[data-xmode]"); if(xm){ const X=expoState(), B=expoCalc(), m=xm.dataset.xmode; if(m===X.mode) return;
+    if(X.mode==="A") X.t=near3(XSH,B.t); if(X.mode==="S") X.N=near3(xApList(B.f),B.N);   // what the camera had chosen becomes yours, so the picture does not jump
+    X.mode=m; state.xpTrade=""; xpRedraw(e.target.closest(".xp")); return; }
+  const xa=e.target.closest("[data-xauto]"); if(xa){ const X=expoState(), B=expoCalc(); X.iso=X.iso?0:near3(XISO,B.iso); state.xpTrade=""; xpRedraw(e.target.closest(".xp")); return; }
+  const xst=e.target.closest("[data-xstep]"); if(xst){ const X=expoState(), C=expoCalc(), [k,d]=xst.dataset.xstep.split(":"), list=xList(k,C.f), cur=k==="N"?(X.N||C.Nmin):k==="t"?X.t:X.iso;
+    const i=Math.max(0,Math.min(list.length-1,list.indexOf(near3(list,cur))+(+d))); xpSet(k,list[i],e.target.closest(".xp")); return; }
+  const xr=e.target.closest("[data-xrail]"); if(xr){ const k=xr.dataset.xrail, C=expoCalc(), list=xList(k,C.f), r=xr.getBoundingClientRect(), fr=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));
+    const a=xLight(k,list[0]), b=xLight(k,list[list.length-1]), want=a+fr*(b-a), v=list.reduce((p,c)=>Math.abs(xLight(k,c)-want)<Math.abs(xLight(k,p)-want)?c:p);
+    xpSet(k,v,e.target.closest(".xp")); return; }
   const lcf=e.target.closest("[data-lcf]"); if(lcf){ state.lcF=+lcf.dataset.lcf; e.target.closest(".cropw").outerHTML=learnCrop(); return; }
   const r=e.target.closest(".row"); if(r){ show(r.dataset.id); state.view="shoot"; render(); window.scrollTo({top:0}); return; }
   const rc=e.target.closest("[data-recipe]"); if(rc){ const pick=cityIdeas().filter(x=>x.r===rc.dataset.recipe); if(pick.length){ show(pick[Math.floor(Math.random()*pick.length)].id); state.view="shoot"; state.tab="settings"; render(); window.scrollTo({top:0}); } return; }
   const lt=e.target.closest("[data-light]"); if(lt){ state.when=lt.dataset.light; store.set("when",state.when); $("when").value=state.when; state.view="browse"; refilter(); window.scrollTo({top:0}); return; }
 });
 $("learn").addEventListener("change",e=>{
-  const xs=e.target.closest("[data-xp]"); if(xs){ const X=expoState(), k=xs.dataset.xp; X[k]=k==="L"?xs.value:+xs.value; if(k==="f"&&X.N&&X.N<(X.f===28?1.7:2)) X.N=X.f===28?1.7:2; e.target.closest(".xp").outerHTML=learnExpo(); return; }
+  const xs=e.target.closest("[data-xp]"); if(xs){ const X=expoState(), k=xs.dataset.xp; X[k]=k==="L"?xs.value:+xs.value; if(k==="f"&&X.N) X.N=near3(xApList(X.f),X.N); state.xpTrade=""; xpRedraw(e.target.closest(".xp")); return; }
   const lcs=e.target.closest("[data-lc]"); if(lcs){ state.lcBody=lcs.value; state.lcF=null; e.target.closest(".cropw").outerHTML=learnCrop(); return; }
   const sel=e.target.closest("[data-lf]"); if(sel){ state[sel.dataset.lf]=+sel.value; const w=e.target.closest(".dof"); w.outerHTML=learnDof(); return; }
   const cs=e.target.closest("[data-cam]"); if(cs){ state.camCmp[+cs.dataset.cam]=cs.value; store.set("camCmp",state.camCmp); const w=e.target.closest(".camcmp"); w.outerHTML=learnCams(); return; }

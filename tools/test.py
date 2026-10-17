@@ -521,12 +521,23 @@ def run(path, name):
         check("Learn shows every lesson", pg.evaluate("document.querySelectorAll('details.lesson').length") == pg.evaluate("LEARN.length"))
         no_overflow("Learn"); shot("learn")
         # Exposure simulator: the presets come out correctly exposed, and changing a setting moves the result the right way
-        xp=pg.evaluate("""(()=>{ const r=[]; XPRE.forEach(([n,P])=>{ Object.assign(expoState(),P); r.push([n, Math.abs(expoCalc().stops)<0.34]); });
-          Object.assign(expoState(),{L:'cloud',f:43,N:8,t:1/500,iso:400}); const a=expoCalc().stops; expoState().iso=1600; const b=expoCalc().stops; expoState().t=1/15; const w=expoCalc().walk; expoState().t=1/1000; const w2=expoCalc().walk;
+        xp=pg.evaluate("""(()=>{ const r=[]; XPRE.forEach(([n,P,bad])=>{ Object.assign(expoState(),{max:6400,slow:1/250},P); const s=expoCalc().stops; r.push([n, bad? s>2 : Math.abs(s)<0.34]); });
+          Object.assign(expoState(),{mode:'M',L:'cloud',f:43,N:8,t:1/500,iso:400}); const a=expoCalc().stops; expoState().iso=1600; const b=expoCalc().stops; expoState().t=1/15; const w=expoCalc().walk; expoState().t=1/1000; const w2=expoCalc().walk;
           expoState().N=2; const bg2=expoCalc().bg; expoState().N=11; const bg11=expoCalc().bg; return [r, Math.round(b-a), w>w2*30, bg2>bg11*4]; })()""")
         check("Exposure simulator: every preset is correct, ISO adds stops, slow shutters blur the walker, wide apertures soften the background", all(x[1] for x in xp[0]) and xp[1]==2 and xp[2] and xp[3], xp)
         pg.click(".xp [data-xpre='3']"); pg.wait_for_timeout(80)
         check("The simulator shows the scene and its readout", pg.evaluate("[!!document.querySelector('.xp svg #xExp'), document.querySelector('.xp .xout').textContent.includes('The walker: blurred')]")==[True,True])
+        # Modes: the camera sets the other setting, rounds it to third stops, and the trade is explained
+        xm=pg.evaluate("""(()=>{ const X=expoState(); Object.assign(X,{mode:'A',L:'shade',f:43,N:4,iso:0,max:6400,slow:1/250}); const a=expoCalc();
+          Object.assign(X,{mode:'S',L:'sun',t:1/15}); const s=expoCalc(); Object.assign(X,{mode:'A',L:'night',N:8}); const n=expoCalc();
+          Object.assign(X,{mode:'M',L:'cloud',N:8,t:1/250,iso:0}); const m=expoCalc();
+          return [SH3.includes(a.t), ISO3.includes(m.iso), a.iso, s.N, s.lim.includes('nMax'), n.lim.includes('slowPast'), n.t>1/250, Math.abs(a.stops)<0.34]; })()""")
+        check("Exposure modes: A picks a real shutter speed, S stops at f/16 in sun with a 1/15 s shutter, A at night goes below the slowest setting once ISO is at its maximum", xm==[True,True,100,16,True,True,True,True], xm)
+        pg.evaluate("Object.assign(expoState(),{mode:'M',L:'cloud',f:43,N:8,t:1/250,iso:0}); state.xpTrade=''; document.querySelector('.xp').outerHTML=learnExpo()")
+        pg.click(".xp [data-xmode='A']"); pg.wait_for_timeout(60); pg.click(".xp [data-xstep='N:1']"); pg.wait_for_timeout(60)
+        tr=pg.evaluate("[document.querySelector('.xp .xtrade')?.textContent||'', document.querySelectorAll('.xp .xr.cam').length, document.querySelector('.xp [data-xmode=A]').getAttribute('aria-pressed')]")
+        check("Moving the aperture in A mode shows the camera answering with the ISO, and marks which settings the camera controls", "f/8 → f/5.6" in tr[0] and "ISO 400 → 200" in tr[0] and "stays as bright" in tr[0] and tr[1]==2 and tr[2]=="true", tr)
+        no_overflow("Exposure ladder")
         # Crop frames: megapixels and distances for each frame
         pg.evaluate("state.lcBody='q343'; state.lcF=75; document.querySelector('.cropw').outerHTML=learnCrop()"); pg.wait_for_timeout(80)
         cr=pg.evaluate("document.querySelector('.cropw .xout').textContent")
