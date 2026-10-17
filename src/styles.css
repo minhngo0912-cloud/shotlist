@@ -989,3 +989,38 @@ body.lfopen{overflow:hidden}
 .vsw button[aria-pressed=true]{background:var(--yellow);color:#15161a} .vwhere{margin:0 0 10px}
 .vsteps{margin-top:12px} .vsteps ol{margin:6px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:4px;font-size:14.5px;line-height:1.4}
 .linkbtn{background:none;border:0;padding:0;font:inherit;color:inherit;text-decoration:underline;cursor:pointer;font-weight:600} .vhint{margin:-2px 0 10px}
+
+/* Zone focusing scene */
+.zf-lens{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 0 10px}
+.zf-lens button{min-height:40px;border:1.5px solid var(--line);border-radius:8px;background:var(--panel);color:var(--fg);font:inherit;font-size:14px;font-weight:700}
+.zf-lens button[aria-pressed=true]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.zf-svg{width:100%;height:auto;display:block;border-radius:8px}
+.zf-p{fill:#2b2f38} .zf-t{font-size:7px;font-weight:700;fill:#3b3f47;paint-order:stroke;stroke:#f3efe6;stroke-width:2px} .zf-t.in{fill:#7a5c00}
+.zf-f{font-size:7.5px;font-weight:700;fill:#14161a;paint-order:stroke;stroke:#fccc0a;stroke-width:2.5px}
+.zf .dofout{margin:10px 0 2px} .zf-split{margin:0 0 10px;font-size:14px;line-height:1.45}
+.zf-ctl{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;align-items:center;margin:0 0 10px}
+.zst{display:grid;grid-template-columns:38px 1fr 38px;grid-template-rows:auto auto;align-items:center;gap:2px 6px}
+.zst-n{grid-column:1/-1;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.zst-v{text-align:center;font-size:17px;font-variant-numeric:tabular-nums}
+.zf-h{grid-column:1/-1;justify-self:start;min-height:38px;font-size:14px}
+.dof .hint,.tg-p .hint{color:var(--muted)}
+/* Composition gallery */
+.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 4px}
+.tg-c{display:flex;flex-direction:column;gap:2px;padding:6px 6px 8px;border:1.5px solid var(--line);border-radius:10px;background:var(--panel);color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.tg-c .demo-svg{max-width:none;border-radius:6px;margin-bottom:4px} .tg-c b{font-size:14px;line-height:1.25} .tg-c span{font-size:12px;color:var(--muted)}
+.tg-c[aria-expanded=true]{border-color:var(--fg);box-shadow:0 0 0 1px var(--fg)}
+.tg-p{grid-column:1/-1;padding:10px 12px 12px;border-radius:10px;background:var(--bg);border:1px solid var(--line)} .tg-p>p{margin:0 0 6px;font-size:15px;line-height:1.45}
+.tg-p .row{border:1px solid var(--line);border-radius:8px;margin-top:6px;width:100%;background:var(--panel)}
+/* Example photo deck */
+.wdeck{display:grid;grid-template-columns:38px 1fr 38px;gap:8px;align-items:center;margin:6px 0 4px}
+.wdeck-t{display:flex;flex-direction:column;align-items:center;text-align:center} .wdeck-t b{font-size:16px} .wdeck-t span{font-size:12px;color:var(--muted)}
+.wdots{display:flex;justify-content:center;flex-wrap:wrap;gap:2px;margin:0 0 4px}
+.wdots button{width:22px;height:22px;border:0;background:none;padding:0;cursor:pointer;position:relative}
+.wdots button::after{content:"";position:absolute;left:7px;top:7px;width:8px;height:8px;border-radius:50%;background:var(--line)}
+.wdots button[aria-pressed=true]::after{background:var(--fg);transform:scale(1.2)}
+.learnwhy .refimg{touch-action:pan-y}
+@keyframes wvIn{from{opacity:0;stroke-dashoffset:60}to{opacity:1;stroke-dashoffset:0}}
+@keyframes wvLab{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.learnwhy .refphoto.why .wov svg>*{animation:wvIn .7s ease both} .learnwhy .refphoto.why .wov svg>*:nth-child(2){animation-delay:.25s} .learnwhy .refphoto.why .wov svg>*:nth-child(3){animation-delay:.5s} .learnwhy .refphoto.why .wov svg>*:nth-child(n+4){animation-delay:.75s}
+.learnwhy .refphoto.why .wv-lab{animation:wvLab .5s ease .9s both}
+@media (prefers-reduced-motion:reduce){ .learnwhy .refphoto.why .wov svg>*,.learnwhy .refphoto.why .wv-lab{animation:none} }
