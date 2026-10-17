@@ -575,6 +575,10 @@ def run(path, name):
           const r=[cards.length, cards[0].dataset.pc, cards[1].dataset.pc, !!cards[0].querySelector('.pc-hit'), cards[1].classList.contains('deal'), !!cards[0].querySelector('.pspark'), document.querySelector('.pc[data-pc=m11]').textContent.includes('no longer sold new'), !!document.querySelector('.prices .pc-al.ro a[href^="https://claude.ai/"]')];
           state.view='today'; render(); r.push((document.querySelector('.tdeal')||{}).textContent||''); PRICE_DOCS={}; PRICE_TARGETS={}; return r; })()""")
         check("Camera prices: a card per camera, alert hits then deals first, history drawn, discontinued shown, Today card on a hit", pd[:8]==[9,"q343","x100vi",True,True,True,True,True] and "Leica Q3 43: used $5,000" in pd[8], pd)
+        eb=pg.evaluate("""(()=>{ PRICE_DOCS={griv:{new:{price:1600,seller:'A'},used:{low:1550,seller:'MPB'},ebay:{low:1400,cond:'Used - Excellent',n:5,via:'search'},sold:{median:1450,n:4,low:1300,high:1500}}}; PRICE_TARGETS={griv:{target:1420,kind:'used'}};
+          openLearn('prices','.prices'); const c=document.querySelector('.pc[data-pc=griv]'); const r=[!!c.querySelector('.pc-n.ebay'), c.querySelector('.pc-n.sold').textContent.includes('$1,450'), (c.querySelector('.pc-hit')||{}).textContent||''];
+          PRICE_DOCS={}; PRICE_TARGETS={}; return r; })()""")
+        check("Camera prices: eBay used listings and sold prices get their own boxes, and an eBay listing can meet a used alert", eb[0] and eb[1] and "used $1,400 at eBay" in eb[2], eb)
         # Light here outside the city: real sun for the place, no building shade or street direction from NYC data
         ny=pg.evaluate("[inNYC({lat:40.758,lon:-73.9855}), inNYC({lat:40.7178,lon:-74.0431}), inNYC({lat:40.9573,lon:-73.9632}), inNYC({lat:40.7615,lon:-74.0035}), inNYC({lat:40.58,lon:-74.15}), inNYC({lat:42.3555,lon:-71.0565})]")
         check("Knows the five boroughs: Midtown, a Hudson pier and Staten Island are in; Jersey City, Demarest and Boston are out", ny==[True,False,False,True,True,False], ny)

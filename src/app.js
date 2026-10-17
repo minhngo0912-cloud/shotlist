@@ -4354,6 +4354,7 @@ function priceHit(id){ const t=PRICE_TARGETS[id], d=PRICE_DOCS[id]; if(!t||!t.ta
   const nw=priceNewBest(d), us=d.used&&d.used.low, opts=[];
   if(t.kind!=="used"&&nw) opts.push({kind:"new",price:nw,seller:(d.deal||d.new).seller,url:(d.deal||d.new).url});
   if(t.kind!=="new"&&us) opts.push({kind:"used",price:us,seller:d.used.seller,url:d.used.url});
+  if(t.kind!=="new"&&d.ebay&&d.ebay.low) opts.push({kind:"used",price:d.ebay.low,seller:"eBay",url:d.ebay.url});
   const best=opts.sort((a,b)=>a.price-b.price)[0]; return best&&best.price<=t.target ? Object.assign(best,{target:t.target}) : null; }
 const camName = id => { const c=STREET_CAMS.find(x=>x[0]===id); return c?c[1].replace(/ \(body only\)| with XF.*$/,''):id; };
 function priceSpark(h){ if(!h||h.length<2) return "";
@@ -4369,11 +4370,12 @@ function priceCard(c){ const id=c[0], d=PRICE_DOCS[id]||{}, hit=priceHit(id), t=
   const newCell = dl&&dl.price ? cell("New, on offer",usd(dl.price)+(dl.was?' <s>'+usd(dl.was)+'</s>':''),esc(dl.seller||"")+(dl.what?' · '+esc(dl.what):'')+(dl.ends?' · until '+esc(fmtShort(dl.ends)):''),"deal")
     : nw&&nw.price ? cell("New",usd(nw.price),esc(nw.seller||"")+(nw.stock?' · '+esc(nw.stock):'')) : /discontinued|no longer (available|sold)/i.test(d.notes||"") ? cell("New","—","no longer sold new") : cell("New","—","not confirmed this check");
   const usedCell = us&&us.low ? cell("Used",'from '+usd(us.low),esc(us.seller||"")+(us.cond?' · '+esc(us.cond):'')+(us.high&&us.high>us.low?' · up to '+usd(us.high):'')+(us.n?' · '+us.n+' listed':'')) : cell("Used","—","none confirmed");
-  const soldCell = so&&so.median ? cell("Sold on eBay",usd(so.median),'median of '+(so.n||'recent')+' sales') : '';
+  const eb=d.ebay, ebCell = eb&&eb.low ? cell("Used on eBay",'from '+usd(eb.low),(eb.cond?esc(eb.cond):'')+(eb.high&&eb.high>eb.low?' · up to '+usd(eb.high):'')+(eb.n?' · '+eb.n+' listed':'')+(eb.via==='search'?' · from search results':''),"ebay") : '';
+  const soldCell = so&&so.median ? cell("Sold on eBay",usd(so.median),'median of '+(so.n||'recent')+' sale'+(so.n===1?'':'s')+(so.low&&so.high&&so.high>so.low?', '+usd(so.low)+'–'+usd(so.high):'')+(so.via==='search'?' · from search results':''),"sold") : '';
   const save = best&&us&&us.low ? Math.round((1-us.low/best)*100) : null;
   const vsLaunch = best&&launch ? Math.round((best/launch-1)*100) : null;
   const facts=[save!=null&&save>0?'Used saves '+save+'% on new':null, vsLaunch!=null&&vsLaunch!==0?'New is '+Math.abs(vsLaunch)+'% '+(vsLaunch<0?'below':'above')+' its '+usd(launch)+' launch price':null].filter(Boolean);
-  const links=[[nw&&nw.url,(nw&&nw.seller)||"New"],[dl&&dl.url&&dl.url!==(nw&&nw.url)?dl.url:null,((dl&&dl.seller)||"The")+" offer"],[us&&us.url,(us&&us.seller)||"Used"],[so&&so.url,"eBay sold"]].filter(x=>x[0]&&/^https:\/\//.test(x[0]));
+  const links=[[nw&&nw.url,(nw&&nw.seller)||"New"],[dl&&dl.url&&dl.url!==(nw&&nw.url)?dl.url:null,((dl&&dl.seller)||"The")+" offer"],[us&&us.url,(us&&us.seller)||"Used"],[eb&&eb.url,"eBay listings"],[so&&so.url,"eBay sold"]].filter(x=>x[0]&&/^https:\/\//.test(x[0]));
   let alert;
   if(PRICE_DB) alert='<div class="pc-al"><label>Alert at <span class="pc-in">$<input type="number" inputmode="numeric" min="0" step="50" value="'+(t&&t.target?t.target:'')+'" data-ptin="'+id+'" aria-label="Alert price for '+esc(camName(id))+'"></span></label>'+
       '<select data-ptkind="'+id+'" aria-label="New or used">'+[["any","New or used"],["new","New only"],["used","Used only"]].map(([v,l])=>'<option value="'+v+'"'+((t&&t.kind||"any")===v?' selected':'')+'>'+l+'</option>').join("")+'</select>'+
@@ -4381,7 +4383,7 @@ function priceCard(c){ const id=c[0], d=PRICE_DOCS[id]||{}, hit=priceHit(id), t=
   else alert='<div class="pc-al ro">'+(t&&t.target?'Alert at <b>'+usd(t.target)+'</b> ('+({any:"new or used",new:"new only",used:"used only"}[t.kind||"any"])+'). ':'No alert set. ')+'<a href="'+PRICE_URL+'" target="_blank" rel="noopener">'+(t&&t.target?'Change':'Set one')+' in the Claude version ↗</a></div>';
   return '<article class="pc'+(hit?' hit':'')+(dl&&dl.price?' deal':'')+'" data-pc="'+id+'"><header><b>'+esc(camName(id))+'</b><span>'+camEq(id)+' mm · launched '+esc(String(c[12]))+'</span></header>'+
     (hit?'<p class="pc-hit">At or below your alert: '+hit.kind+' '+usd(hit.price)+(hit.seller?' at '+esc(hit.seller):'')+'</p>':'')+
-    '<div class="pc-nums">'+newCell+usedCell+soldCell+'</div>'+
+    '<div class="pc-nums">'+newCell+usedCell+ebCell+soldCell+'</div>'+
     (facts.length?'<p class="pc-f">'+facts.join(' · ')+'</p>':'')+
     (d.history&&d.history.length>1?'<div class="pc-h">'+priceSpark(d.history)+'<span class="pc-key"><i class="k-new"></i>New <i class="k-used"></i>Used from</span></div>':'')+
     alert+(d.notes?'<p class="pc-note">'+esc(d.notes)+'</p>':'')+
@@ -4393,7 +4395,7 @@ function learnPrices(){ const st=PRICE_DOCS._status, have=STREET_CAMS.some(c=>PR
   return '<div class="prices"><div class="pr-top"><span>'+(st&&st.checked?'Checked '+esc(fmtShort(st.checked)):'Checked recently')+' · updates Tuesdays and Fridays</span>'+
       '<span class="pr-pills">'+(hits?'<b class="pill hit">'+hits+' at your alert</b>':'')+(deals?'<b class="pill">'+deals+' deal'+(deals>1?'s':'')+' now</b>':'')+'</span></div>'+
     (PRICE_DB?'':'')+cams.map(priceCard).join("")+
-    '<p class="hint">Prices in US dollars before tax, from authorised dealers (new) and MPB, KEH and eBay (used). Each one was read from the seller’s page on the day checked; prices change daily, so confirm before you buy. Not financial advice.</p>'+
+    '<p class="hint">Prices in US dollars before tax, from authorised dealers (new), MPB and KEH (used, with a dealer warranty), and eBay (used listings and recent sales, shown separately). Each one was read from the seller’s page on the day checked; prices change daily, so confirm before you buy. Not financial advice.</p>'+
     (st&&st.summary?'<p class="hint">Last check: '+esc(st.summary)+'</p>':'')+'</div>'; }
 // Today: a card when a camera is at or below your alert price
 function priceTodayCard(){ const hits=STREET_CAMS.map(c=>[c[0],priceHit(c[0])]).filter(x=>x[1]); if(!hits.length) return "";

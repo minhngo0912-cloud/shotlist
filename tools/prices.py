@@ -74,8 +74,14 @@ def clean(cid, r, warn):
     s = r.get("sold") if isinstance(r.get("sold"), dict) else None
     if s:
         m = num(s.get("median"))
-        if ok(m, 0.25, 1.8): out["sold"] = {k: v for k, v in {"median": m, "n": num(s.get("n")), "url": url(s.get("url"))}.items() if v}
+        if ok(m, 0.25, 1.8): out["sold"] = {k: v for k, v in {"median": m, "low": num(s.get("low")), "high": num(s.get("high")), "n": num(s.get("n")), "url": url(s.get("url")), "via": "search" if s.get("verified") == "search" else None}.items() if v}
         else: warn.append("%s: sold median %s rejected" % (cid, s.get("median")))
+    e = r.get("ebay") if isinstance(r.get("ebay"), dict) else None
+    if e:
+        lo, hi = num(e.get("low")), num(e.get("high"))
+        if ok(lo, 0.25, 1.6):
+            out["ebay"] = {k: v for k, v in {"low": lo, "high": hi if hi and hi >= lo and ok(hi, 0.25, 2.0) else None, "cond": txt(e.get("cond"), 40), "n": num(e.get("n")), "url": url(e.get("url")), "via": "search" if e.get("verified") == "search" else None}.items() if v}
+        else: warn.append("%s: eBay used price %s rejected" % (cid, e.get("low")))
     if txt(r.get("notes"), 200): out["notes"] = txt(r.get("notes"), 200)
     return out
 
@@ -88,6 +94,7 @@ def hit(d, t):
     target, kind, opts = num(t.get("target")), t.get("kind") or "any", []
     if kind != "used" and best_new(d): src = d.get("deal") or d.get("new"); opts.append(("new", best_new(d), src.get("seller"), src.get("url")))
     if kind != "new" and d.get("used", {}).get("low"): opts.append(("used", d["used"]["low"], d["used"].get("seller"), d["used"].get("url")))
+    if kind != "new" and d.get("ebay", {}).get("low"): opts.append(("used", d["ebay"]["low"], "eBay", d["ebay"].get("url")))
     opts.sort(key=lambda o: o[1])
     return {"kind": opts[0][0], "price": opts[0][1], "seller": opts[0][2], "url": opts[0][3], "target": target} if opts and opts[0][1] <= target else None
 
@@ -110,7 +117,7 @@ def main():
         prev = cur.get(cid, {}) if isinstance(cur.get(cid), dict) else {}
         r = research.get(cid) if isinstance(research.get(cid), dict) else None
         new = clean(cid, r, warn) if r else {}
-        if new.get("new") or new.get("used") or new.get("deal"):
+        if new.get("new") or new.get("used") or new.get("deal") or new.get("ebay") or new.get("sold"):
             doc = dict(new); doc["checked"] = a.today; updated.append(cid)
         else:
             doc = {k: v for k, v in prev.items() if k != "history"}; missing.append(cid)

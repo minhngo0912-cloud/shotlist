@@ -1070,3 +1070,5 @@ body.lfopen{overflow:hidden}
 .pc-links{display:flex;flex-wrap:wrap;gap:4px 12px;margin:8px 0 0;font-size:13px} .pc-links a{color:var(--blue);text-decoration:none;font-weight:600}
 .prices .hint{color:var(--muted)}
 .tdeal{border-color:#1e9e48} .tdeal .msg{margin:2px 0}
+
+.pc-n.ebay{background:rgba(36,99,217,.08)} .pc-n.sold{background:rgba(36,99,217,.05)}
