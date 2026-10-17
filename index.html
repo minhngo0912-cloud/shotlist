@@ -4186,7 +4186,7 @@ function lfcAdvice(st){ if(st.clipHi>0.05||st.stops>=6.5) return {k:"vhigh",labe
   return {k:"ok",label:"Normal range",ev:"0 EV",txt:"Expose as metered."}; }
 function lfcContrast(){ const v=$("lfcVid"), el=$("lfcCx"); if(!LFC.on||!v||!el||!v.videoWidth||v.readyState<2||document.hidden||!LFC.frame) return;
   const r=LFC.frame, ox=(LFC.W-LFC.vw*LFC.s)/2, oy=(LFC.H-LFC.vh*LFC.s)/2, sx=Math.max(0,(r.x0-ox)/LFC.s), sy=Math.max(0,(r.y0-oy)/LFC.s), sw=Math.min(LFC.vw-sx,(r.x1-r.x0)/LFC.s), sh=Math.min(LFC.vh-sy,(r.y1-r.y0)/LFC.s);
-  if(!(sw>4&&sh>4)) return; const cw=96, ch=Math.max(32,Math.min(192,Math.round(96*sh/sw)));
+  if(!(sw>4&&sh>4)) return; const cw=128, ch=Math.max(40,Math.min(256,Math.round(128*sh/sw)));
   const c=LFC.cv||(LFC.cv=document.createElement("canvas")); c.width=cw; c.height=ch; const g=c.getContext("2d",{willReadFrequently:true});
   let st, px; try{ g.drawImage(v,sx,sy,sw,sh,0,0,cw,ch); px=g.getImageData(0,0,cw,ch).data; st=lfcStats(px); }catch(e){ return; }
   try{ lfsTick(px,cw,ch,st,{x0:r.x0,y0:r.y0,x1:r.x0+sw*LFC.s,y1:r.y0+sh*LFC.s}); }catch(e){}
@@ -4232,62 +4232,87 @@ function lfcLevel(){ const el=$("lfcLv"); if(!el) return; const p=ORI.elev, R=LF
    - bright patches on the left, right or bottom edge that pull the eye out of the picture.
    It then suggests where to put a subject (a strong point of the grid that is lit and uncluttered, or the pool of light) and
    how far to turn. Coordinates are 0 to 1 across the frame. It sees shapes and light, not moments: the picture is still yours. */
-function lfsAnalyze(px,cw,ch,stops,guide){ const n=cw*ch, Y=new Float32Array(n), Lin=new Float32Array(n);
-  for(let i=0;i<n;i++){ const y=0.2126*px[i*4]+0.7152*px[i*4+1]+0.0722*px[i*4+2]; Y[i]=y; Lin[i]=Math.pow(y/255,2.2); }
-  const sortedY=Float32Array.from(Y).sort(), q=(a,p)=>a[Math.min(a.length-1,Math.floor(p*(a.length-1)))], medY=q(sortedY,0.5);
-  // edges
+function lfsAnalyze(px,cw,ch,stops,guide){ const n=cw*ch, Y=new Float32Array(n), Lin=new Float32Array(n), Bl=new Float32Array(n);
+  for(let i=0;i<n;i++){ const r=px[i*4], g=px[i*4+1], b=px[i*4+2], y=0.2126*r+0.7152*g+0.0722*b; Y[i]=y; Lin[i]=Math.pow(y/255,2.2); Bl[i]=b-(r+g)/2; }
+  const q=(a,p)=>a[Math.min(a.length-1,Math.max(0,Math.floor(p*(a.length-1))))], sortedY=Float32Array.from(Y).sort(), medY=q(sortedY,0.5);
+  // edges, thinned to their ridge so a line votes once, not as a smear
   const mag=new Float32Array(n), gx=new Float32Array(n), gy=new Float32Array(n);
   for(let y=1;y<ch-1;y++) for(let x=1;x<cw-1;x++){ const i=y*cw+x, a=Y[i-cw-1], b=Y[i-cw], c=Y[i-cw+1], d=Y[i-1], e=Y[i+1], f=Y[i+cw-1], g=Y[i+cw], h=Y[i+cw+1];
     const X=(c+2*e+h)-(a+2*d+f), V=(f+2*g+h)-(a+2*b+c); gx[i]=X; gy[i]=V; mag[i]=Math.hypot(X,V); }
-  const sm=Float32Array.from(mag).sort(), T=Math.max(60,q(sm,0.86));
-  // lines: theta in 2-degree steps, each edge pixel votes near its own gradient direction
+  const thin=new Uint8Array(n), T=Math.max(70,q(Float32Array.from(mag).sort(),0.85));
+  for(let y=1;y<ch-1;y++) for(let x=1;x<cw-1;x++){ const i=y*cw+x, m=mag[i]; if(m<T) continue; const ax=Math.abs(gx[i]), ay=Math.abs(gy[i]);
+    let o; if(ax>2.4*ay) o=1; else if(ay>2.4*ax) o=cw; else o=(gx[i]>0)===(gy[i]>0)?cw+1:cw-1; if(m>=mag[i-o]&&m>=mag[i+o]) thin[i]=1; }
+  // how busy the picture is: the share of clearly strong edges (an absolute measure, so a calm beach reads calm)
+  let strong=0; for(let i=0;i<n;i++) if(mag[i]>=160) strong++; const busy=strong/n;
+  // the sky: smooth, bright-ish pixels reached from the top edge
+  const sky=new Uint8Array(n), stk=[], skyMin=Math.min(140,Math.max(q(sortedY,0.55),115)); const skyOk=i=>mag[i]<110&&(Y[i]>=skyMin||(Bl[i]>25&&Y[i]>=95));   /* bright, or clearly blue */
+  for(let x=0;x<cw;x++) if(skyOk(x)){ sky[x]=1; stk.push(x); }
+  while(stk.length){ const i=stk.pop(), x=i%cw; for(const j of [i-1,i+1,i+cw,i-cw]){ if(j<0||j>=n||sky[j]) continue; if((j===i-1&&x===0)||(j===i+1&&x===cw-1)) continue; if(skyOk(j)&&Math.abs(Y[j]-Y[i])<=10){ sky[j]=1; stk.push(j); } } }   /* stops at a step in brightness, such as the horizon */
+  let skyN=0; for(let i=0;i<n;i++) skyN+=sky[i];
+  // lines: theta in 2-degree steps, each thinned edge pixel votes close to its own gradient direction
   const NT=90, diag=Math.ceil(Math.hypot(cw,ch)/2), NR=2*diag+1, acc=new Float32Array(NT*NR), cx=cw/2, cy=ch/2, CS=[], SN=[];
   for(let t=0;t<NT;t++){ CS.push(Math.cos(t*2*Math.PI/180)); SN.push(Math.sin(t*2*Math.PI/180)); }
-  let nEdge=0;
-  for(let y=1;y<ch-1;y++) for(let x=1;x<cw-1;x++){ const i=y*cw+x; if(mag[i]<T) continue; nEdge++; let th=Math.atan2(gy[i],gx[i])*180/Math.PI; th=((th%180)+180)%180; const t0=Math.round(th/2);
-    for(let k=-4;k<=4;k++){ const t=((t0+k)%NT+NT)%NT, r=Math.round((x-cx)*CS[t]+(y-cy)*SN[t])+diag; acc[t*NR+r]+=1; } }
-  const lines=[], minV=Math.max(14,0.3*Math.min(cw,ch)), A=Float32Array.from(acc);
-  for(let k=0;k<8;k++){ let bi=-1, bv=minV; for(let i=0;i<A.length;i++) if(A[i]>bv){ bv=A[i]; bi=i; } if(bi<0) break;
+  for(let y=1;y<ch-1;y++) for(let x=1;x<cw-1;x++){ const i=y*cw+x; if(!thin[i]) continue; let th=Math.atan2(gy[i],gx[i])*180/Math.PI; th=((th%180)+180)%180; const t0=Math.round(th/2);
+    for(let k=-3;k<=3;k++){ const t=((t0+k)%NT+NT)%NT, r=Math.round((x-cx)*CS[t]+(y-cy)*SN[t])+diag; acc[t*NR+r]+=k===0?1:Math.abs(k)===1?0.8:Math.abs(k)===2?0.5:0.25; } }
+  const lines=[], minV=Math.max(12,0.2*Math.min(cw,ch)), A=Float32Array.from(acc);
+  for(let k=0;k<12;k++){ let bi=-1, bv=minV; for(let i=0;i<A.length;i++) if(A[i]>bv){ bv=A[i]; bi=i; } if(bi<0) break;
     const t=Math.floor(bi/NR), r=bi%NR-diag; lines.push({th:t*2,rho:r,v:bv});
-    for(let dt=-4;dt<=4;dt++) for(let dr=-9;dr<=9;dr++){ let tt=t+dt, rr=r+dr; if(tt<0){ tt+=NT; rr=-rr; } else if(tt>=NT){ tt-=NT; rr=-rr; } const j=tt*NR+rr+diag; if(j>=0&&j<A.length&&rr+diag>=0&&rr+diag<NR) A[j]=0; } }
-  // the meeting point of the slanting lines, by least squares
-  const obl=lines.filter(L=>{ const a=L.th%180; return !(a<12||a>168||(a>78&&a<102)); });
-  // a line that does not pass near the others' meeting point is dropped and the rest tried again
-  let vp=null; const use=obl.slice(), res=(X,Yv,L)=>Math.abs(X*Math.cos(L.th*Math.PI/180)+Yv*Math.sin(L.th*Math.PI/180)-L.rho);
-  while(use.length>=2&&Math.max(...use.map(L=>L.th))-Math.min(...use.map(L=>L.th))>=14){ let a11=0,a12=0,a22=0,b1=0,b2=0;
-    for(const L of use){ const c=Math.cos(L.th*Math.PI/180), s=Math.sin(L.th*Math.PI/180), w=L.v; a11+=w*c*c; a12+=w*c*s; a22+=w*s*s; b1+=w*L.rho*c; b2+=w*L.rho*s; }
-    const det=a11*a22-a12*a12; if(Math.abs(det)<1e-6) break; const X=(b1*a22-b2*a12)/det, Yv=(a11*b2-a12*b1)/det, tol=0.035*Math.min(cw,ch);
-    const worst=use.reduce((a,L)=>res(X,Yv,L)>res(X,Yv,a)?L:a);
-    if(res(X,Yv,worst)>tol){ use.splice(use.indexOf(worst),1); continue; }
-    const vx=(X+cx)/cw, vy=(Yv+cy)/ch; if(vx>-0.3&&vx<1.3&&vy>-0.3&&vy<1.3){ vp={x:vx,y:vy,n:use.length}; use.forEach(L=>L.vp=true); } break; }
+    for(let dt=-3;dt<=3;dt++) for(let dr=-5;dr<=5;dr++){ let tt=t+dt, rr=r+dr; if(tt<0){ tt+=NT; rr=-rr; } else if(tt>=NT){ tt-=NT; rr=-rr; } if(rr+diag<0||rr+diag>=NR) continue; A[tt*NR+rr+diag]=0; } }
+  // where the slanting edges meet: every short slanting edge votes along its own direction into a grid that reaches half a frame
+  // beyond each side; textures scatter their votes, a street's lines pile theirs up in one place. Votes near the edge itself
+  // are skipped, and the winner needs support from edges slanting both ways (or many from one side, for a wall in perspective).
+  let vp=null; { const GX=48, GY=48, gw=2*cw/GX, gh=2*ch/GY, V=new Float32Array(GX*GY), side=new Float32Array(GX*GY*2), mark=new Int32Array(GX*GY).fill(-1), near=0.12*Math.min(cw,ch);
+    let id=0, nVote=0, nThin=0; for(let i=0;i<n;i++) nThin+=thin[i];
+    for(let y=1;y<ch-1;y++) for(let x=1;x<cw-1;x++){ const i=y*cw+x; if(!thin[i]) continue; const g=mag[i], dx=-gy[i]/g, dy=gx[i]/g, a=Math.abs(Math.atan2(dy,dx)*180/Math.PI)%180, ang=a>90?180-a:a;
+      if(ang<12||ang>78) continue;   // level and upright edges meet far away or never: they do not vote
+      if(nThin>900&&((x+y)&1)) continue; id++; nVote++; const sgn=(dx*dy>0)?0:1, step=Math.min(gw,gh)*0.8, L=2.2*Math.hypot(cw,ch);
+      for(let t=-L;t<=L;t+=step){ if(Math.abs(t)<near) continue; const px=x+dx*t, py=y+dy*t, cxg=Math.floor((px+cw/2)/gw), cyg=Math.floor((py+ch/2)/gh); if(cxg<0||cxg>=GX||cyg<0||cyg>=GY) continue; const k=cyg*GX+cxg; if(mark[k]===id) continue; mark[k]=id; V[k]+=1; side[k*2+sgn]+=1; } }
+    if(nVote>=30){ let bi=0; for(let k=1;k<V.length;k++) if(V[k]>V[bi]) bi=k; let mean=0; for(let k=0;k<V.length;k++) mean+=V[k]; mean/=V.length;
+      const bx=bi%GX, by=(bi-bx)/GX; let sx=0, sy=0, sw=0; for(let yy=by-1;yy<=by+1;yy++) for(let xx=bx-1;xx<=bx+1;xx++){ if(xx<0||yy<0||xx>=GX||yy>=GY) continue; const v=V[yy*GX+xx]; sx+=v*(xx+0.5); sy+=v*(yy+0.5); sw+=v; }
+      const pk=V[bi], s0=side[bi*2], s1=side[bi*2+1], both=Math.min(s0,s1)>=0.18*pk, frac=pk/nVote;
+      if((both&&pk>=5*mean&&frac>=0.14)||(!both&&pk>=7*mean&&frac>=0.16)){ const vx=(sx/sw*gw-cw/2)/cw, vy=(sy/sw*gh-ch/2)/ch; vp={x:vx,y:vy,n:Math.round(pk),inF:vx>=0&&vx<=1&&vy>=0&&vy<=1}; } } }
+  // the long lines that run into the meeting point are the ones drawn
+  if(vp){ const X=vp.x*cw-cx, Yv=vp.y*ch-cy, tol=0.05*Math.max(cw,ch); for(const L of lines){ const a=L.th%180; if(a<12||a>168||(a>78&&a<102)) continue; if(Math.abs(X*Math.cos(L.th*Math.PI/180)+Yv*Math.sin(L.th*Math.PI/180)-L.rho)<=tol) L.vp=true; } }
+  // a horizon: a long, nearly level line, or the lower edge of the sky
+  let horizon=null; { const h=lines.filter(L=>L.th>=82&&L.th<=98&&L.v>=0.45*cw).sort((a,b)=>b.v-a.v)[0]; if(h){ const yc=(h.rho/Math.sin(h.th*Math.PI/180)+cy)/ch; if(yc>0.08&&yc<0.92) horizon={y:yc,ang:h.th-90}; }
+    if(!horizon&&skyN>0.12*n){ let rows=0, sum=0, sq=0; for(let x=0;x<cw;x++){ let y=0; while(y<ch&&sky[y*cw+x]) y++; if(y>0&&y<ch){ sum+=y; sq+=y*y; rows++; } } const m=rows?sum/rows:0, sd=rows?Math.sqrt(Math.max(0,sq/rows-m*m)):1e9; if(rows>0.8*cw&&sd<0.04*ch) horizon={y:m/ch,ang:0,sky:true}; }
+    if(horizon){ const hy=Math.round(horizon.y*ch); let a=0,b=0,na=0,nb=0; for(let y=1;y<ch-1;y++) for(let x=1;x<cw-1;x++){ const v=mag[y*cw+x]>=100?1:0; if(y<hy){ a+=v; na++; } else { b+=v; nb++; } } horizon.busyBelow=(b/Math.max(1,nb))>=(a/Math.max(1,na)); } }
   // box means from an integral image
   const I=new Float64Array((cw+1)*(ch+1)); for(let y=0;y<ch;y++){ let row=0; for(let x=0;x<cw;x++){ row+=Lin[y*cw+x]; I[(y+1)*(cw+1)+x+1]=I[y*(cw+1)+x+1]+row; } }
   const box=(x0,y0,x1,y1)=>{ x0=Math.max(0,x0); y0=Math.max(0,y0); x1=Math.min(cw,x1); y1=Math.min(ch,y1); const a=(x1-x0)*(y1-y0); if(a<=0) return 0; return (I[y1*(cw+1)+x1]-I[y0*(cw+1)+x1]-I[y1*(cw+1)+x0]+I[y0*(cw+1)+x0])/a; };
-  // pools of light
-  let pool=null; const Rb=Math.max(4,Math.round(Math.min(cw,ch)/5)), sl=Float32Array.from(Lin).sort(), p80=q(sl,0.8), medL=q(sl,0.5);
-  if(stops>=2.5){ const mask=new Uint8Array(n), strong=new Uint8Array(n); for(let y=0;y<ch;y++) for(let x=0;x<cw;x++){ const i=y*cw+x; if(Lin[i]>=p80&&Y[i]>=50){ mask[i]=1; if(Lin[i]>=1.7*box(x-Rb,y-Rb,x+Rb+1,y+Rb+1)) strong[i]=1; } }
+  const sl=Float32Array.from(Lin).sort(), p80=q(sl,0.8), medL=q(sl,0.5);
+  // pools of light: a solid lit patch, away from the sides and the sky, clearly brighter than the shade around it
+  let pool=null; const Rb=Math.max(4,Math.round(Math.min(cw,ch)/5));
+  if(stops>=2.5){ const mask=new Uint8Array(n); for(let i=0;i<n;i++) if(Lin[i]>=p80&&Y[i]>=50&&!sky[i]) mask[i]=1;
     const seen=new Uint8Array(n), st=[];
-    for(let i0=0;i0<n;i0++){ if(!mask[i0]||seen[i0]) continue; let area=0, sx=0, sy=0, x0=1e9,y0=1e9,x1=-1,y1=-1, top=false, nStrong=0; st.push(i0); seen[i0]=1;
-      while(st.length){ const i=st.pop(), x=i%cw, y=(i-x)/cw; area++; sx+=x; sy+=y; nStrong+=strong[i]; if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; if(y===0) top=true;
-        for(const j of [i-1,i+1,i-cw,i+cw]){ if(j<0||j>=n||seen[j]||!mask[j]) continue; if((j===i-1&&x===0)||(j===i+1&&x===cw-1)) continue; seen[j]=1; st.push(j); } }
-      const fr=area/n, bw=x1-x0+1, bh=y1-y0+1; if(top||fr<0.008||fr>0.3||x0===0||x1===cw-1||bw<3||bh<3||area/(bw*bh)<0.4||nStrong<0.5*area) continue;   /* a solid patch, not a thin line, away from the sides */ const mean=box(x0,y0,x1+1,y1+1), score=fr*Math.log2(Math.max(1.01,mean/Math.max(medL,1e-4)));
-      if(!pool||score>pool.score) pool={x:(sx/area+0.5)/cw,y:(sy/area+0.5)/ch,x0:x0/cw,y0:y0/ch,x1:(x1+1)/cw,y1:(y1+1)/ch,area:fr,score}; } }
-  // where the eye goes first: the cell with the strongest centre-surround difference
-  let sal=null; { const C=4, Rr=5, cells=[]; for(let r=0;r<Rr;r++) for(let c=0;c<C;c++){ const x0=Math.floor(c*cw/C), x1=Math.floor((c+1)*cw/C), y0=Math.floor(r*ch/Rr), y1=Math.floor((r+1)*ch/Rr), inner=box(x0,y0,x1,y1), outer=box(x0-(x1-x0),y0-(y1-y0),x1+(x1-x0),y1+(y1-y0));
-      cells.push({c,r,v:Math.abs(Math.log2(Math.max(inner,1e-4)/Math.max(outer,1e-4))),x:(x0+x1)/2/cw,y:(y0+y1)/2/ch}); }
-    const mean=cells.reduce((t,c)=>t+c.v,0)/cells.length, best=cells.reduce((a,b)=>b.v>a.v?b:a); if(best.v>=0.8&&best.v>=1.8*mean) sal={x:best.x,y:best.y}; }
-  // bright patches on the edges
-  let edge=null; { const b=Math.max(2,Math.round(0.05*Math.min(cw,ch))), hot=Math.max(q(sortedY,0.97),200,medY+60), side={left:[0,0],right:[0,0],bottom:[0,0],top:[0,0]};
-    for(let y=0;y<ch;y++) for(let x=0;x<cw;x++){ const v=Y[y*cw+x]>=hot?1:0; if(x<b){ side.left[0]+=v; side.left[1]++; } if(x>=cw-b){ side.right[0]+=v; side.right[1]++; } if(y>=ch-b){ side.bottom[0]+=v; side.bottom[1]++; } if(y<b){ side.top[0]+=v; side.top[1]++; } }
-    let best=null; for(const k of ["left","right","bottom","top"]){ const fr=side[k][0]/side[k][1]; if(fr>=0.08&&fr<=(k==="top"?0.4:0.6)&&(!best||fr>best[1])) best=[k,fr]; } if(best) edge=best[0]; }
-  // where to put a subject: the strong point of the grid that is best lit, least cluttered and nearest the lines
-  const pts=lfcPowerPts(guide), rad=0.12;
+    for(let i0=0;i0<n;i0++){ if(!mask[i0]||seen[i0]) continue; let area=0, sx=0, sy=0, x0=1e9,y0=1e9,x1=-1,y1=-1, nearSky=0, blue=0, sum=0; st.push(i0); seen[i0]=1;
+      while(st.length){ const i=st.pop(), x=i%cw, y=(i-x)/cw; area++; sx+=x; sy+=y; sum+=Lin[i]; blue+=Bl[i]; if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y;
+        for(const j of [i-1,i+1,i-cw,i+cw]){ if(j<0||j>=n) continue; if((j===i-1&&x===0)||(j===i+1&&x===cw-1)) continue; if(sky[j]) nearSky++; if(seen[j]||!mask[j]) continue; seen[j]=1; st.push(j); } }
+      const fr=area/n, bw=x1-x0+1, bh=y1-y0+1; if(fr<0.008||fr>0.09||y0===0||x0===0||x1===cw-1||bw<3||bh<3||area/(bw*bh)<0.4||nearSky>0.05*area||blue/area>18) continue;
+      const mean=sum/area, ex=Math.max(bw,bh), outer=box(x0-ex,y0-ex,x1+1+ex,y1+1+ex), oa=Math.max(1,(Math.min(cw,x1+1+ex)-Math.max(0,x0-ex))*(Math.min(ch,y1+1+ex)-Math.max(0,y0-ex))-area), ring=(outer*(oa+area)-sum)/oa;
+      if(!(ring<=medL*1.05&&mean>=2.6*Math.max(ring,1e-4))) continue;   // lit, with shade around it: not a white wall among white walls
+      const score=fr*Math.log2(mean/Math.max(ring,1e-4)); if(!pool||score>pool.score) pool={x:(sx/area+0.5)/cw,y:(sy/area+0.5)/ch,x0:x0/cw,y0:y0/ch,x1:(x1+1)/cw,y1:(y1+1)/ch,area:fr,score}; } }
+  // symmetry: the picture against its own mirror image, about the best upright axis near the middle
+  let sym=null; { let best=null; const S=Math.round(cw*0.12), rowM=new Float32Array(ch); for(let y=0;y<ch;y++){ let t=0; for(let x=0;x<cw;x++) t+=Y[y*cw+x]; rowM[y]=t/cw; }   /* only side-to-side structure counts: level bands mirror trivially */
+    for(let s=-S;s<=S;s+=2){ const ax=cw/2+s/2; let sxy=0,sxx=0,syy=0,sx=0,sy=0,m=0; for(let y=0;y<ch;y+=2) for(let x=0;x<cw;x+=2){ const xm=Math.round(2*ax-x); if(xm<0||xm>=cw||xm<=x) continue; const a=Y[y*cw+x]-rowM[y], b=Y[y*cw+xm]-rowM[y]; sx+=a; sy+=b; sxx+=a*a; syy+=b*b; sxy+=a*b; m++; }
+      if(m<0.2*n/4) continue; const c=(sxy-sx*sy/m)/Math.sqrt(Math.max(1e-6,(sxx-sx*sx/m)*(syy-sy*sy/m))); if(!best||c>best.c) best={c,x:ax/cw}; }
+    if(best&&best.c>=0.4) sym=best; }
+  // where the eye goes first: a cell clearly brighter or darker than what surrounds it (not the sky)
+  let sal=null; { const C=4, Rr=5, cells=[]; for(let r=0;r<Rr;r++) for(let c=0;c<C;c++){ const x0=Math.floor(c*cw/C), x1=Math.floor((c+1)*cw/C), y0=Math.floor(r*ch/Rr), y1=Math.floor((r+1)*ch/Rr); let sk=0; for(let y=y0;y<y1;y++) for(let x=x0;x<x1;x++) sk+=sky[y*cw+x];
+      const inner=box(x0,y0,x1,y1), outer=box(x0-(x1-x0),y0-(y1-y0),x1+(x1-x0),y1+(y1-y0)); cells.push({v:sk>0.3*(x1-x0)*(y1-y0)?0:Math.abs(Math.log2(Math.max(inner,1e-4)/Math.max(outer,1e-4))),x:(x0+x1)/2/cw,y:(y0+y1)/2/ch}); }
+    const mean=cells.reduce((t,c)=>t+c.v,0)/cells.length, best=cells.reduce((a,b)=>b.v>a.v?b:a); if(best.v>=1.1&&best.v>=2.4*mean) sal={x:best.x,y:best.y}; }
+  // bright patches on the left, right or bottom edge (the sky along the top is not one)
+  let edge=null; { const b=Math.max(2,Math.round(0.05*Math.min(cw,ch))), hot=Math.max(q(sortedY,0.97),200,medY+60), side={left:[0,0],right:[0,0],bottom:[0,0]}, y0=Math.round(ch*0.2);
+    for(let y=y0;y<ch;y++) for(let x=0;x<cw;x++){ const i=y*cw+x, v=Y[i]>=hot&&!sky[i]?1:0; if(x<b){ side.left[0]+=v; side.left[1]++; } if(x>=cw-b){ side.right[0]+=v; side.right[1]++; } if(y>=ch-b){ side.bottom[0]+=v; side.bottom[1]++; } }
+    let best=null; for(const k of ["left","right","bottom"]){ const fr=side[k][0]/side[k][1]; if(fr>=0.1&&fr<=0.6&&(!best||fr>best[1])) best=[k,fr]; } if(best) edge=best[0]; }
+  // where to put a subject: a strong point of the grid that is on the ground (not sky), lit, uncluttered and near the lines
+  const pts=lfcPowerPts(guide), rad=0.12, skyAt=(x,y)=>{ let s=0,m=0; for(let yy=Math.max(0,Math.round((y-rad)*ch));yy<Math.min(ch,Math.round((y+rad)*ch));yy++) for(let xx=Math.max(0,Math.round((x-rad)*cw));xx<Math.min(cw,Math.round((x+rad)*cw));xx++){ m++; s+=sky[yy*cw+xx]; } return m?s/m:0; };
   const scored=pts.map(([x,y])=>{ const X0=Math.round((x-rad)*cw), X1=Math.round((x+rad)*cw), Y0=Math.round((y-rad*cw/ch)*ch), Y1=Math.round((y+rad*cw/ch)*ch); let e=0, m=0;
       for(let yy=Math.max(1,Y0);yy<Math.min(ch-1,Y1);yy++) for(let xx=Math.max(1,X0);xx<Math.min(cw-1,X1);xx++){ m++; if(mag[yy*cw+xx]>=T) e++; }
-      const clutter=m?e/m:0, lit=Math.max(-1,Math.min(1,Math.log2(Math.max(box(X0,Y0,X1,Y1),1e-4)/Math.max(medL,1e-4))/2)), nearVp=vp?Math.max(0,1-Math.hypot(vp.x-x,(vp.y-y)*ch/cw)/0.5):0;
-      return {x,y,s:0.9*lit-1.4*clutter+0.5*nearVp}; }).sort((a,b)=>b.s-a.s);
-  const target=pool?{x:pool.x,y:pool.y,why:"pool"}:{x:scored[0].x,y:scored[0].y,why:"grid"};
-  return {lines:(vp?lines.filter(L=>L.vp):lines.slice(0,3)).map(L=>({th:L.th,rho:L.rho,v:L.v,cx,cy,cw,ch})),vp,pool,sal,edge,target,edges:nEdge/n,pts}; }
+      const clutter=m?e/m:0, lit=Math.max(-1,Math.min(1,Math.log2(Math.max(box(X0,Y0,X1,Y1),1e-4)/Math.max(medL,1e-4))/2)), nearVp=vp&&vp.inF?Math.max(0,1-Math.hypot(vp.x-x,(vp.y-y)*ch/cw)/0.5):0;
+      return {x,y,s:0.6*lit-1.2*clutter+0.6*nearVp-3*skyAt(x,y)+(y>0.5?0.25:0)+(horizon&&y<horizon.y?-1:0)+(vp&&vp.inF&&y<vp.y-0.05?-1:0)}; }).sort((a,b)=>b.s-a.s);   /* people stand below eye level, which is where the lines meet */
+  const target=pool?{x:pool.x,y:pool.y,why:"pool"}:(vp&&vp.inF)||horizon||sym||sal?{x:scored[0].x,y:scored[0].y,why:"grid"}:null;
+  return {lines:(vp?lines.filter(L=>L.vp):lines.slice(0,3)).map(L=>({th:L.th,rho:L.rho,v:L.v,cx,cy,cw,ch})),vp,pool,sal,edge,target,horizon,sym,busy,sky:skyN/n,pts}; }
 const lfsWhere = (x,y) => { const h=x<0.36?0:x>0.64?2:1, v=y<0.36?0:y>0.64?2:1; return [["upper left","at the top","upper right"],["on the left","in the middle","on the right"],["lower left","at the bottom","lower right"]][v][h]; };
 /* Turn and tilt, in degrees, to move a point of the picture onto another: turning right moves the scene left on the screen. */
 function lfsNudge(fx,fy,tx,ty,R,f){ const d=180/Math.PI, sx=R.x0+fx*(R.x1-R.x0), sy=R.y0+fy*(R.y1-R.y0), X=R.x0+tx*(R.x1-R.x0), Yt=R.y0+ty*(R.y1-R.y0), right=Math.atan((sx-X)/f)*d, up=Math.atan((Yt-sy)/f)*d, out=[];
@@ -4295,21 +4320,23 @@ function lfsNudge(fx,fy,tx,ty,R,f){ const d=180/Math.PI, sx=R.x0+fx*(R.x1-R.x0),
 function lfsAdvice(S,R,f,guide){ const msgs=[], P=lfcPowerPts(guide), near=(x,y)=>P.reduce((a,p)=>Math.hypot(p[0]-x,p[1]-y)<Math.hypot(a[0]-x,a[1]-y)?p:a);
   if(S.pool){ const p=near(S.pool.x,S.pool.y), d=Math.hypot(p[0]-S.pool.x,p[1]-S.pool.y), nd=lfsNudge(S.pool.x,S.pool.y,p[0],p[1],R,f);
     msgs.push({k:"pool",t:"Pool of light "+lfsWhere(S.pool.x,S.pool.y)+": wait for someone to step in."+(d>0.06&&nd.length?" "+lfsCap(nd.join(" and "))+" to put it on a third.":" It sits on a third.")}); }
-  if(S.vp){ const inF=S.vp.x>=0&&S.vp.x<=1&&S.vp.y>=0&&S.vp.y<=1, p=near(S.vp.x,S.vp.y), dc=Math.hypot(S.vp.x-0.5,S.vp.y-0.5), dp=Math.hypot(p[0]-S.vp.x,p[1]-S.vp.y);
+  if(S.vp){ const inF=S.vp.inF, p=near(S.vp.x,S.vp.y), dc=Math.hypot(S.vp.x-0.5,S.vp.y-0.5), dp=Math.hypot(p[0]-S.vp.x,p[1]-S.vp.y);
     if(inF){ const toC=dc<dp, a=toC?lfsNudge(S.vp.x,S.vp.y,0.5,0.5,R,f):lfsNudge(S.vp.x,S.vp.y,p[0],p[1],R,f);
-      const t=dp<0.05?"on a third, so they lead the eye there.":dc<0.05?"in the centre: symmetry, keep it straight.":a.length?a.join(" and ")+(toC?" to centre them.":" to put them on a third."):"close to a third.";
+      const t=dp<0.05?"on a third, so they lead the eye there.":dc<0.05?"in the centre: symmetry, keep it straight.":a.length?a.join(" and ")+(toC?" to centre them.":" to put them on a third."):toC?"keep it straight for symmetry.":"close to a third.";
       msgs.push({k:"vp",t:"Lines meet "+lfsWhere(S.vp.x,S.vp.y)+": "+t}); }
     else msgs.push({k:"vp",t:"Lines lead out "+(S.vp.x<0?"to the left":S.vp.x>1?"to the right":S.vp.y<0?"at the top":"at the bottom")+": turn that way to bring where they meet into the frame."}); }
+  if(!msgs.length&&S.horizon){ const y=S.horizon.y; if(y>0.38&&y<0.62){ const below=S.horizon.busyBelow, to=below===false?2/3:1/3, nd=lfsNudge(0.5,y,0.5,to,R,f); msgs.push({k:"hz",t:"The horizon cuts the frame in half: "+(nd.length?nd.join(" and ")+" to put it on the "+(to<0.5?"upper third, with more ground.":"lower third, with more sky."):"move it to a third.")}); } }
+  if(!msgs.length&&S.sym){ const nd=lfsNudge(S.sym.x,0.5,0.5,0.5,R,f); msgs.push({k:"sym",t:"Symmetric scene: "+(Math.abs(S.sym.x-0.5)<0.03||!nd.length?"it is centred, so stand square and keep it level.":nd.join(" and ")+" to centre it, and stand square.")}); }
   if(!msgs.length&&S.sal) msgs.push({k:"sal",t:"The eye goes first to the bright area "+lfsWhere(S.sal.x,S.sal.y)+": put your subject there, or keep it clear."});
   if(S.edge) msgs.push({k:"edge",t:"Bright patch on the "+S.edge+" edge pulls the eye out: "+({left:"turn a little right",right:"turn a little left",bottom:"tilt up a little",top:"tilt down a little"})[S.edge]+"."});
-  if(!msgs.length) msgs.push({k:"none",t:S.edges<0.04?"No strong lines or light here: look for a shaft of light or a line that leads in.":"Busy, no clear lines or light: step closer or frame against a plain wall."});
+  if(!msgs.length) msgs.push({k:"none",t:S.busy<0.15?"No strong lines or light here: look for a shaft of light or a line that leads in.":"Busy, no clear lines or light: step closer or frame against a plain wall."});
   // one tip, plus the edge warning when there is one
   return msgs[0].k==="edge"||!S.edge?msgs.slice(0,1):[msgs[0],msgs.find(m=>m.k==="edge")]; }
 const lfsCap = t => t.charAt(0).toUpperCase()+t.slice(1);
 function lfsTick(px,cw,ch,st,R){ const svg=$("lfcSg"), tx=$("lfcSgT"); if(!svg||!tx) return; if(!lfcOpt("stage")){ svg.innerHTML=""; tx.hidden=true; return; }
   const g=lfcGuide(), S=lfsAnalyze(px,cw,ch,st.stops,g), prev=LFC.sg, mix=(a,b,k)=>a&&b&&Math.hypot(a.x-b.x,a.y-b.y)<0.15?{...b,x:a.x+(b.x-a.x)*k,y:a.y+(b.y-a.y)*k}:b;
   // smooth what moves, so the marks do not jump about between looks
-  if(prev){ S.vp=mix(prev.vp,S.vp,0.5); S.pool=mix(prev.pool,S.pool,0.5); S.target=mix(prev.target,S.target,0.4); }
+  if(prev){ S.vp=mix(prev.vp,S.vp,0.5); if(S.vp) S.vp.inF=S.vp.x>=0&&S.vp.x<=1&&S.vp.y>=0&&S.vp.y<=1; S.pool=mix(prev.pool,S.pool,0.5); S.target=mix(prev.target,S.target,0.4); }
   LFC.sg=S; const W=LFC.W, H=LFC.H, X=x=>R.x0+x*(R.x1-R.x0), Yp=y=>R.y0+y*(R.y1-R.y0), F=v=>v.toFixed(1); svg.setAttribute("viewBox","0 0 "+W+" "+H);
   let o="";
   for(const L of S.lines){ const c=Math.cos(L.th*Math.PI/180), s=Math.sin(L.th*Math.PI/180), pts=[];
@@ -4320,7 +4347,7 @@ function lfsTick(px,cw,ch,st,R){ const svg=$("lfcSg"), tx=$("lfcSgT"); if(!svg||
   if(S.vp&&S.vp.x>=0&&S.vp.x<=1&&S.vp.y>=0&&S.vp.y<=1){ const x=X(S.vp.x), y=Yp(S.vp.y); o+='<circle class="sg-vp" cx="'+F(x)+'" cy="'+F(y)+'" r="8"/><text class="sg-t" x="'+F(x+12)+'" y="'+F(y+4)+'">Lines meet</text>'; }
   if(S.pool){ const x0=X(S.pool.x0), y0=Yp(S.pool.y0), x1=X(S.pool.x1), y1=Yp(S.pool.y1); o+='<rect class="sg-pool" x="'+F(x0)+'" y="'+F(y0)+'" width="'+F(x1-x0)+'" height="'+F(y1-y0)+'" rx="8"/><text class="sg-t sg-tp" x="'+F(x0+4)+'" y="'+F(y0-5)+'">Light</text>'; }
   if(S.edge){ const e={left:[R.x0,R.y0,R.x0,R.y1],right:[R.x1,R.y0,R.x1,R.y1],bottom:[R.x0,R.y1,R.x1,R.y1],top:[R.x0,R.y0,R.x1,R.y0]}[S.edge]; o+='<line class="sg-edge" x1="'+F(e[0])+'" y1="'+F(e[1])+'" x2="'+F(e[2])+'" y2="'+F(e[3])+'"/>'; }
-  const tx0=X(S.target.x), ty0=Yp(S.target.y); o+='<g class="sg-tg"><circle cx="'+F(tx0)+'" cy="'+F(ty0)+'" r="17"/><circle cx="'+F(tx0)+'" cy="'+F(ty0)+'" r="3"/></g><text class="sg-t sg-tt" x="'+F(tx0)+'" y="'+F(S.vp&&Math.hypot(X(S.vp.x)-tx0,Yp(S.vp.y)-ty0)<60&&Yp(S.vp.y)>ty0?ty0-24:ty0+32)+'" text-anchor="middle">Subject here</text>';
+  if(S.target){ const tx0=X(S.target.x), ty0=Yp(S.target.y); o+='<g class="sg-tg"><circle cx="'+F(tx0)+'" cy="'+F(ty0)+'" r="17"/><circle cx="'+F(tx0)+'" cy="'+F(ty0)+'" r="3"/></g><text class="sg-t sg-tt" x="'+F(tx0)+'" y="'+F(S.vp&&Math.hypot(X(S.vp.x)-tx0,Yp(S.vp.y)-ty0)<60&&Yp(S.vp.y)>ty0?ty0-24:ty0+32)+'" text-anchor="middle">Subject here</text>'; }
   svg.innerHTML=o;
   // the words change only when the same advice comes up twice running
   const M=lfsAdvice(S,R,LFC.f,g), key=M.map(m=>m.k).join(","); if(key===LFC.sgKey||!LFC.sgMsgs){ LFC.sgMsgs=M; } LFC.sgKey=key;

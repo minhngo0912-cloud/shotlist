@@ -665,6 +665,20 @@ def run(path, name):
                   and cp["vp"] and abs(cp["vp"][0]-0.66)<=0.03 and abs(cp["vp"][1]-0.40)<=0.03 and cp["vpAdv"].startswith("Lines meet") and not cp["vpPool"]
                   and cp["pool"] and abs(cp["pool"][0]-0.26)<=0.02 and abs(cp["pool"][1]-0.68)<=0.02 and cp["poolTarget"]=="pool" and "turn 2° left" in cp["poolAdv"].lower()
                   and not cp["skyPool"] and cp["flat"]==[None,None,"none"] and cp["edge"][0]=="right" and "edge" in cp["edge"][1], cp)
+            # the stage finder on the cases real photos showed: a cloud is not a pool and the target stays out of the sky;
+            # a wall whose lines all slant one way meets off the frame; a horizon across the middle gets moved to a third
+            rp=pg.evaluate("""(()=>{ const cw=128, ch=192, mk=d=>{ const k=document.createElement('canvas'); k.width=cw; k.height=ch; const g=k.getContext('2d'); d(g); return g.getImageData(0,0,cw,ch).data; }, R={x0:0,y0:0,x1:300,y1:450}, out={};
+              const cloud=mk(g=>{ g.fillStyle='#6a9be0'; g.fillRect(0,0,cw,ch*0.5); g.fillStyle='#f6f6f6'; g.beginPath(); g.ellipse(cw*0.3,ch*0.18,14,8,0,0,7); g.fill(); g.fillStyle='#4a4038'; g.fillRect(0,ch*0.5,cw,ch*0.5); g.strokeStyle='#7a6a5a'; g.lineWidth=2; for(let i=0;i<6;i++){ g.beginPath(); g.moveTo(i*24,ch*0.6); g.lineTo(i*24+10,ch); g.stroke(); } });
+              let S=lfsAnalyze(cloud,cw,ch,5,'thirds'); out.cloud=[!!S.pool, S.target?+S.target.y.toFixed(2):null, +S.sky.toFixed(2)];
+              const wall=mk(g=>{ g.fillStyle='#d8d4cc'; g.fillRect(0,0,cw,ch); g.strokeStyle='#3a3530'; g.lineWidth=3; const vx=-0.4*cw, vy=0.8*ch; for(let k=0;k<7;k++){ const ey=ch*(-0.2+k*0.17); g.beginPath(); g.moveTo(vx,vy); g.lineTo(cw*1.2,ey); g.stroke(); } });
+              S=lfsAnalyze(wall,cw,ch,4,'thirds'); out.wall=[S.vp&&+S.vp.x.toFixed(2), S.vp&&+S.vp.y.toFixed(2), S.vp&&S.vp.inF, lfsAdvice(S,R,600,'thirds')[0].t];
+              const hz=mk(g=>{ g.fillStyle='#d2d4d8'; g.fillRect(0,0,cw,ch/2); g.fillStyle='#a08a64'; g.fillRect(0,ch/2,cw,ch/2); g.fillStyle='#5a4a34'; for(let i=0;i<40;i++) g.fillRect((i*37)%cw,ch/2+10+(i*53)%(ch/2-14),3,3); });
+              S=lfsAnalyze(hz,cw,ch,3,'thirds'); out.hz=[S.horizon&&+S.horizon.y.toFixed(2), lfsAdvice(S,R,600,'thirds')[0].k, lfsAdvice(S,R,600,'thirds')[0].t];
+              return out; })()""")
+            check("Stage finder on the cases from real photos: a cloud is not a pool of light and the target stays out of the sky; a one-sided wall's lines meet off the frame; a horizon across the middle is moved to a third",
+                  rp["cloud"][0]==False and (rp["cloud"][1] is None or rp["cloud"][1]>0.5) and rp["cloud"][2]>0.3
+                  and rp["wall"][0] is not None and rp["wall"][0]<0 and rp["wall"][2]==False and "lead out to the left" in rp["wall"][3]
+                  and rp["hz"][0] is not None and abs(rp["hz"][0]-0.5)<0.05 and rp["hz"][1]=="hz" and "third" in rp["hz"][2], rp)
             # the spot's day: direct sun past the buildings, the best window, saving the spot and adding it to a calendar
             pg.evaluate("LFB.cache.clear(); LFB.err=''; lfRender()"); pg.wait_for_timeout(400)
             dy=pg.evaluate("""(()=>{ const D=lfDay(LF.curPos); return [!!D, D&&D.hasB, D&&!!D.sun, D&&!!D.best, !!document.querySelector('#lightf .lfd .lfd-sky i'), (document.querySelector('#lightf .lfd-bl')||{textContent:''}).textContent]; })()""")
