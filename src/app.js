@@ -3982,7 +3982,13 @@ const XPAL = {sun:["#9fc3e8",["#b4a48c","#c2b49c","#a8987e","#bba98f"],"#6f7f92"
   blue:["#3d5a9e",["#2b3550","#334060","#28314a","#303a58"],"#f3d27a","#2a2f40","#d8d2c4",1],
   night:["#0d1220",["#1a1e28","#20252f","#171a22","#1d212b"],"#f0c860","#1f2229","#cfc9bc",1]};
 function expoState(){ if(!state.xp) state.xp={mode:"M",L:"cloud",f:CAM_FL[state.camera]===28?28:43,N:8,t:1/250,iso:0};
-  const X=state.xp; X.mode=X.mode||"M"; X.max=X.max||6400; X.slow=X.slow||1/250; return X; }
+  const X=state.xp; X.mode=X.mode||"M"; X.max=X.max||6400; X.slow=X.slow||1/250; X.subj=XSUBJ[X.subj]?X.subj:"walk"; X.dist=X.dist||4; return X; }
+// What crosses the frame: [name, the word for it, speed in m/s, how the speed is described]
+const XSUBJ = {walk:["Walking person","walker",1.4,"at walking pace"],cycle:["Cyclist","cyclist",5,"at about 18 km/h"],car:["Car","car",11,"at about 40 km/h"]};
+/* Blur in picture units (the frame is 150 wide): the subject's movement during the exposure, as a share of the frame width at its distance;
+   the buildings 30 m away, with focus on the subject, from the circle of confusion. */
+function xBlur(f,N,t,subj,dist){ const v=XSUBJ[subj][2], s=dist*1000, d=30000;
+  return {walk:v*t/(dist*36/f)*150, bg:(f*f/(N*(s-f)))*((d-s)/d)/36*150}; }
 // Which settings the camera chooses in the current mode
 const xCtl = X => (X.mode==="A"?["t"]:X.mode==="S"?["N"]:[]).concat(X.iso?[]:["iso"]);
 /* The camera's side, the way the Q3 behaves: A finds the shutter, S the aperture; with Auto ISO the ISO stays at 100 until the shutter would fall
@@ -4001,25 +4007,37 @@ function expoCalc(){ const X=expoState(), f=X.f, Nmin=f===28?1.7:2, EV=XL[X.L][1
   else if(auto) autoIso();
   if(auto) iso=near3(ISO3,iso);
   const stops=EV+Math.log2(iso/100)-ev(N,t);
-  const walk=1.4*t/(4*36/f)*150, s=4000, d=30000, bg=(f*f/(N*(s-f)))*((d-s)/d)/36*150;
-  return {f,N,t,EV,iso,auto,stops,walk,bg,lim,mode,Nmin,max,slow:X.slow}; }
-function expoScene(C){ const k=Math.pow(2,Math.max(-5,Math.min(5,C.stops))/2.2), P=XPAL[expoState().L]||XPAL.cloud, n=Math.min(14,Math.round(C.walk/0.9)), noise=C.iso<=800?0:Math.min(0.55,0.09*Math.log2(C.iso/800)+0.06);
-  let ghosts=''; if(n<1) ghosts=dW(84,82,30,""); else for(let i=0;i<=n;i++){ const x=84-C.walk/2+C.walk*i/n; ghosts+='<g opacity="'+Math.min(1,1.6/(n+1)+0.05).toFixed(2)+'">'+dW(x,82,30,"")+'</g>'; }
+  const {walk,bg}=xBlur(f,N,t,X.subj,X.dist);
+  return {f,N,t,EV,iso,auto,stops,walk,bg,lim,mode,Nmin,max,slow:X.slow,L:X.L,subj:X.subj,dist:X.dist}; }
+// A cyclist and a car, drawn like the walker: x is the centre, y the ground, h the height of a standing person at that distance
+const dBike = (x,y,h,col) => { const p=(a,b)=>n1(x+a*h)+" "+n1(y+b*h), r=0.19*h, w=n1(Math.max(0.6,0.07*h));
+  return '<g stroke="'+col+'" stroke-width="'+w+'" stroke-linecap="round" stroke-linejoin="round" fill="none"><circle cx="'+n1(x-0.3*h)+'" cy="'+n1(y-r)+'" r="'+n1(r)+'"/><circle cx="'+n1(x+0.32*h)+'" cy="'+n1(y-r)+'" r="'+n1(r)+'"/>'+
+    '<path d="M'+p(-0.3,-0.19)+'L'+p(0,-0.2)+'L'+p(-0.06,-0.5)+'M'+p(0,-0.2)+'L'+p(0.24,-0.5)+'L'+p(0.32,-0.19)+'M'+p(-0.1,-0.5)+'L'+p(-0.02,-0.5)+'M'+p(0.2,-0.56)+'L'+p(0.28,-0.55)+'"/>'+
+    '<path d="M'+p(-0.05,-0.52)+'L'+p(0.08,-0.83)+'L'+p(0.24,-0.56)+'M'+p(-0.05,-0.52)+'L'+p(0.1,-0.36)+'L'+p(0.03,-0.17)+'" stroke-width="'+n1(Math.max(0.9,0.11*h))+'"/>'+
+    '<circle cx="'+n1(x+0.12*h)+'" cy="'+n1(y-0.95*h)+'" r="'+n1(0.085*h)+'" fill="'+col+'" stroke="none"/></g>'; };
+const dCar = (x,y,h,col,glass) => { const u=h/1.75, p=(a,b)=>n1(x+a*u)+" "+n1(y+b*u);
+  return '<g><path d="M'+p(-2.15,-0.3)+'L'+p(-2.15,-0.78)+'L'+p(-1.25,-0.88)+'L'+p(-0.75,-1.42)+'L'+p(0.85,-1.42)+'L'+p(1.45,-0.92)+'L'+p(2.15,-0.8)+'L'+p(2.15,-0.3)+'Z" fill="'+col+'"/>'+
+    '<path d="M'+p(-0.62,-1.32)+'L'+p(0.05,-1.32)+'L'+p(0.05,-0.92)+'L'+p(-1.0,-0.92)+'ZM'+p(0.15,-1.32)+'L'+p(0.8,-1.32)+'L'+p(1.25,-0.92)+'L'+p(0.15,-0.92)+'Z" fill="'+glass+'" opacity=".75"/>'+
+    '<circle cx="'+n1(x-1.4*u)+'" cy="'+n1(y-0.32*u)+'" r="'+n1(0.34*u)+'" fill="#1b1d22"/><circle cx="'+n1(x+1.4*u)+'" cy="'+n1(y-0.32*u)+'" r="'+n1(0.34*u)+'" fill="#1b1d22"/></g>'; };
+function expoScene(C,id){ id=id||""; const k=Math.pow(2,Math.max(-5,Math.min(5,C.stops))/2.2), P=XPAL[C.L]||XPAL.cloud, n=Math.min(14,Math.round(C.walk/0.9)), noise=C.iso<=800?0:Math.min(0.55,0.09*Math.log2(C.iso/800)+0.06);
+  const h=30*4/C.dist, gy=C.dist<=2?96:C.dist<=4?82:75, cx=C.subj==="car"?78:84;
+  const fig=x=>C.subj==="cycle"?dBike(x,gy,h,P[4]):C.subj==="car"?dCar(x,gy,h,P[4],P[2]):dW(x,gy,h,"");
+  let ghosts=''; if(n<1) ghosts=fig(cx); else for(let i=0;i<=n;i++){ const x=cx-C.walk/2+C.walk*i/n; ghosts+='<g opacity="'+Math.min(1,1.6/(n+1)+0.05).toFixed(2)+'">'+fig(x)+'</g>'; }
   ghosts='<g fill="'+P[4]+'">'+ghosts+'</g>';
   const bgBlur=Math.min(4,C.bg*1.4);
   return '<svg class="demo-svg xsvg" viewBox="0 0 150 100" role="img" aria-label="Simulated street scene"><defs>'+
-    '<filter id="xExp" x="0" y="0" width="1" height="1" color-interpolation-filters="sRGB"><feComponentTransfer><feFuncR type="linear" slope="'+k.toFixed(3)+'"/><feFuncG type="linear" slope="'+k.toFixed(3)+'"/><feFuncB type="linear" slope="'+k.toFixed(3)+'"/></feComponentTransfer></filter>'+
-    '<filter id="xBg" x="-5%" y="-5%" width="110%" height="110%"><feGaussianBlur stdDeviation="'+bgBlur.toFixed(2)+'"/></filter>'+
-    '<filter id="xNoise" x="0" y="0" width="1" height="1"><feTurbulence type="fractalNoise" baseFrequency="1.6" numOctaves="1" seed="4"/><feColorMatrix type="saturate" values="0"/></filter></defs>'+
-    '<g filter="url(#xExp)"><rect width="150" height="100" fill="'+P[0]+'"/>'+
-    '<g filter="url(#xBg)"><rect x="0" y="10" width="34" height="58" fill="'+P[1][0]+'"/><rect x="38" y="22" width="26" height="46" fill="'+P[1][1]+'"/><rect x="92" y="4" width="22" height="64" fill="'+P[1][2]+'"/><rect x="118" y="16" width="32" height="52" fill="'+P[1][3]+'"/>'+
+    '<filter id="xExp'+id+'" x="0" y="0" width="1" height="1" color-interpolation-filters="sRGB"><feComponentTransfer><feFuncR type="linear" slope="'+k.toFixed(3)+'"/><feFuncG type="linear" slope="'+k.toFixed(3)+'"/><feFuncB type="linear" slope="'+k.toFixed(3)+'"/></feComponentTransfer></filter>'+
+    '<filter id="xBg'+id+'" x="-5%" y="-5%" width="110%" height="110%"><feGaussianBlur stdDeviation="'+bgBlur.toFixed(2)+'"/></filter>'+
+    '<filter id="xNoise'+id+'" x="0" y="0" width="1" height="1"><feTurbulence type="fractalNoise" baseFrequency="1.6" numOctaves="1" seed="4"/><feColorMatrix type="saturate" values="0"/></filter></defs>'+
+    '<g filter="url(#xExp'+id+')"><rect width="150" height="100" fill="'+P[0]+'"/>'+
+    '<g filter="url(#xBg'+id+')"><rect x="0" y="10" width="34" height="58" fill="'+P[1][0]+'"/><rect x="38" y="22" width="26" height="46" fill="'+P[1][1]+'"/><rect x="92" y="4" width="22" height="64" fill="'+P[1][2]+'"/><rect x="118" y="16" width="32" height="52" fill="'+P[1][3]+'"/>'+
       [[4,16],[14,16],[24,16],[4,30],[14,30],[24,30],[4,44],[24,44],[42,28],[52,28],[42,40],[96,10],[104,10],[96,24],[104,38],[122,22],[132,22],[142,22],[122,36],[142,36]].map(([x,y])=>'<rect x="'+x+'" y="'+y+'" width="6" height="7" fill="'+P[2]+'"/>').join("")+'</g>'+
     '<rect x="0" y="68" width="150" height="32" fill="'+P[3]+'"/><path d="M0 76 H150" stroke="#9a9ea6" stroke-width="1" opacity=".6"/><path d="M60 90 h14 M86 90 h14 M112 90 h14" stroke="#d8d8d0" stroke-width="2" opacity=".8"/>'+
     (P[5]?'<circle cx="23.3" cy="31" r="12" fill="#f3e3a8" opacity=".18"/><ellipse cx="24" cy="90" rx="16" ry="4" fill="#f3e3a8" opacity=".14"/>':'')+
     '<rect x="22" y="30" width="2.6" height="62" fill="#2a2d33"/><path d="M18 30 h11 l-2 -4 h-7 Z" fill="#2a2d33"/><circle cx="23.3" cy="31" r="1.6" fill="'+(P[5]?'#fff6d0':'#8a8a80')+'"/>'+
     '<rect x="40" y="62" width="9" height="12" fill="#3b3f47"/><path d="M38 62 h13" stroke="#2a2d33" stroke-width="1.4"/>'+
     ghosts+'</g>'+
-    (noise?'<rect width="150" height="100" filter="url(#xNoise)" opacity="'+noise.toFixed(2)+'" style="mix-blend-mode:overlay"/>':'')+
+    (noise?'<rect width="150" height="100" filter="url(#xNoise'+id+')" opacity="'+noise.toFixed(2)+'" style="mix-blend-mode:overlay"/>':'')+
     '<rect x="1" y="1" width="148" height="98" class="d-frame"/></svg>'; }
 // One stop ladder row. Every rail runs from less light (left) to more light (right), so when you move one marker the camera's moves the other way.
 const xLight = (k,v) => k==="N" ? -2*Math.log2(v) : Math.log2(v);
@@ -4061,21 +4079,41 @@ function learnExpo(){ const X=expoState(), C=expoCalc(), sel=(key,opts,cur)=>'<s
   if(L.includes("isoMin")) why.push('ISO cannot go below 100: use a faster shutter or a smaller aperture.');
   if(L.includes("tMax")) why.push('Slower than 1 s needs a tripod: open up or raise the ISO.');
   if(L.includes("tMin")) why.push('The fastest shutter is 1/16000 s: stop down.');
-  const walkTxt=C.walk<0.4?'sharp':C.walk<1.5?'nearly sharp; fine for a walking figure':C.walk<5?'blurred: the movement shows':'streaked across the frame';
+  const SJ=XSUBJ[C.subj], walkTxt=C.walk<0.4?'sharp':C.walk<1.5?'nearly sharp'+(C.subj==='walk'?'; fine for a walking figure':''):C.walk<5?'blurred: the movement shows':'streaked across the frame';
   const bgTxt=C.bg<0.25?'sharp':C.bg<0.8?'slightly soft':C.bg<2?'soft, the walker stands out':'very soft';
   const grain=C.iso<=800?'clean':C.iso<=3200?'fine grain in the shadows':C.iso<=6400?'visible grain':'heavy grain';
-  const M=XMODE[C.mode], modeTxt=M[1]+(C.mode==="M"?(C.auto?'; with Auto ISO the camera sets only the ISO.':', and the ISO too.'):(C.auto?(C.mode==="A"?', and raises the ISO once the shutter would fall below your slowest setting.':', and raises the ISO once the lens is wide open.'):'.'))+' '+M[2]+(C.auto?' ISO on Auto.':'');
-  return '<div class="dof xp"><div class="xprow">'+XPRE.map(([n],i)=>'<button type="button" class="chip" data-xpre="'+i+'">'+n+'</button>').join("")+'</div>'+expoScene(C)+
-    '<div class="dofrow xgrid"><label>Light'+sel("L",Object.entries(XL).map(([k,v])=>[k,v[0]]),X.L)+'</label><label>Lens'+sel("f",[[28,"28 mm"],[43,"43 mm"]],C.f)+'</label></div>'+
+  const M=XMODE[C.mode], modeTxt=M[1]+(C.mode==="M"?(C.auto?'; with Auto ISO the camera sets only the ISO.':', and the ISO too.'):(C.auto?(C.mode==="A"?', and raises the ISO once the shutter would fall below your slowest setting.':', and raises the ISO once the lens is wide open.'):'.')), NL=xNowLight();
+  return '<div class="dof xp"><div class="xprow">'+(NL?'<button type="button" class="chip xnow" data-xnow="'+NL.key+'">Light now: '+esc(NL.txt)+'</button>':'')+XPRE.map(([n],i)=>'<button type="button" class="chip" data-xpre="'+i+'">'+n+'</button>').join("")+'</div>'+expoScene(C)+
+    '<div class="dofrow xgrid"><label>Light'+sel("L",Object.entries(XL).map(([k,v])=>[k,v[0]]),X.L)+'</label><label>Lens'+sel("f",[[28,"28 mm"],[43,"43 mm"]],C.f)+'</label>'+
+      '<label>Subject'+sel("subj",Object.entries(XSUBJ).map(([k,v])=>[k,v[0]]),C.subj)+'</label><label>Distance'+sel("dist",[[2,"2 m"],[4,"4 m"],[8,"8 m"]],C.dist)+'</label></div>'+
     '<div class="xmode" role="group" aria-label="Exposure mode">'+Object.entries(XMODE).map(([k,v])=>'<button type="button" data-xmode="'+k+'" aria-pressed="'+(C.mode===k)+'">'+v[0]+'</button>').join("")+'</div>'+
-    '<p class="xmode-t">'+modeTxt+'</p>'+
+    '<p class="xmode-t">'+modeTxt+'</p>'+xCamLine(C)+
     '<p class="xcap">Each tick is one stop, half or double the light. Further right lets in more light.</p>'+
     '<div class="xlad">'+xRow("N",C,X)+xRow("t",C,X)+xRow("iso",C,X)+
       (C.auto?'<div class="xauto"><label>Auto ISO maximum '+sel("max",[[6400,"6400 (day)"],[12500,"12500 (night)"]],C.max)+'</label>'+(C.mode==="A"?'<label>Slowest '+sel("slow",[1/60,1/125,1/250,1/500].map(v=>[v,shText(v)]),C.slow)+'</label>':'')+'</div>':'')+'</div>'+
     (state.xpTrade?'<p class="xtrade" role="status">'+state.xpTrade+'</p>':'')+
     '<ul class="xout"><li>Exposure: '+expTxt+'</li>'+why.map(w=>'<li class="xwhy">'+w+'</li>').join("")+
-      '<li>The walker: '+walkTxt+'</li><li>The far buildings: '+bgTxt+'</li><li>Grain: '+grain+'</li></ul>'+
-    '<p class="hint">The walker is 4 m away at walking pace and in focus; the buildings are 30 m away. Light levels are typical for each scene, and the camera rounds its choices to third stops, as the Q3 does. The picture shows which way each setting pushes the photo, not exactly how it will look.</p></div>'; }
+      '<li>The '+SJ[1]+': '+walkTxt+'</li><li>The far buildings: '+bgTxt+'</li><li>Grain: '+grain+'</li></ul>'+xEquivHtml(C)+
+    '<p class="hint">The '+SJ[1]+' is '+C.dist+' m away, crossing the frame '+SJ[3]+', and in focus; the buildings are 30 m away. Light levels are typical for each scene, and the camera rounds its choices to third stops, as the Q3 does. The picture shows which way each setting pushes the photo, not exactly how it will look.</p></div>'; }
+// The same light through other apertures: equally bright pictures that differ only in depth and movement
+function xEquiv(C){ const k=C.N*C.N/C.t, out=[];
+  for(const N of [C.Nmin,4,8,16]){ const raw=N*N/k; if(raw<1/17000||raw>1.06) continue; const t=near3(SH3,raw), B=xBlur(C.f,N,t,C.subj,C.dist);
+    out.push(Object.assign({},C,{N,t,walk:B.walk,bg:B.bg,stops:C.EV+Math.log2(C.iso/100)-Math.log2(N*N/t)})); }
+  return out; }
+const xMoveShort = w => w<0.4?'frozen':w<1.5?'nearly frozen':w<5?'blurred':'streaked';
+const xBgShort = b => b<0.25?'sharp background':b<0.8?'background a little soft':b<2?'soft background':'very soft background';
+function xEquivHtml(C){ const E=xEquiv(C); if(E.length<2) return "";
+  return '<div class="xeq"><h4>Same light, different picture</h4><p class="xeq-t">Each of these lets in as much light as your settings, so all are equally bright. Only the background and the movement change. Tap one to use it.</p><div class="xeq-g">'+
+    E.map((e,i)=>'<button type="button" class="xeq-b" data-xeq="'+e.N+','+e.t+'" aria-pressed="'+(Math.abs(Math.log2(e.N/C.N))<0.2)+'">'+expoScene(e,"q"+i)+'<b>f/'+e.N+' · '+shText(e.t)+'</b><span>'+XSUBJ[C.subj][1]+' '+xMoveShort(e.walk)+', '+xBgShort(e.bg)+'</span></button>').join("")+'</div></div>'; }
+// The light outside now, for the scene's Light setting
+function xNowLight(){ try{ const now=new Date(), pos=state.pos||CITIES[state.city], sp=sunPos(now,pos.lat,pos.lon), ph=sunPhase(sp.alt), sky=withWx(pos,()=>lfSky(now)), dull=/cloud|rain|fog|snow/.test(sky);
+    const key=ph==="night"?"night":ph==="blue"?"blue":ph==="gold"?(dull?"blue":"gold"):dull?"cloud":"sun";
+    return {key,txt:SUN_PHASE[ph]+(sky&&sky!=="unknown"?', '+({clear:"clear",partly:"sun and cloud",cloud:"overcast",rain:"rain",fog:"fog",snow:"snow"}[sky]||sky):'')}; }catch(e){ return null; } }
+// How to set it on the camera
+function xCamLine(C){ const body=C.f===28?"Q3":"Q3 43", el=t=>t<1/2000/1.06?' (electronic shutter)':'';
+  const ap=C.mode==="S"?'aperture ring <b>A</b>':'aperture ring <b>f/'+C.N+'</b>', sh=C.mode==="A"?'shutter dial <b>A</b>':'shutter <b>'+shText(C.t)+'</b>'+el(C.t);
+  const iso=C.auto?'ISO <b>Auto</b>, max '+C.max+(C.mode==="A"?', slowest shutter '+shText(C.slow):''):'ISO <b>'+Math.round(C.iso)+'</b>';
+  return '<p class="xcam">On your '+body+': '+ap+' · '+sh+' · '+iso+'</p>'; }
 // Redraw and let the markers slide from where they were, so you see the camera's setting move against yours
 function xpRedraw(el){ const old=[...el.querySelectorAll('.xr-m')].map(m=>m.style.left), box=document.createElement('div'); box.innerHTML=learnExpo(); const n=box.firstElementChild; el.replaceWith(n);
   const ms=[...n.querySelectorAll('.xr-m')]; if(old.length!==ms.length) return; const nw=ms.map(m=>m.style.left);
@@ -4628,6 +4666,9 @@ window.addEventListener("resize",()=>{ if(state.view==="map") mapLayout(); });
 $("learn").addEventListener("click",e=>{
   const ws=e.target.closest("[data-whysel]"); if(ws){ state.whySel=ws.dataset.whysel; const box=e.target.closest(".learnwhy"); if(box) box.outerHTML=learnWhy(); return; }
   const xpr=e.target.closest("[data-xpre]"); if(xpr){ const P=XPRE[+xpr.dataset.xpre][1], X=expoState(); Object.assign(X,{max:6400,slow:1/250},P); state.xpTrade=""; xpRedraw(e.target.closest(".xp")); return; }
+  const xnw=e.target.closest("[data-xnow]"); if(xnw){ const X=expoState(); X.L=xnw.dataset.xnow; state.xpTrade='<b>Light now:</b> the scene is set to '+XL[X.L][0].toLowerCase()+', the nearest match to the light outside.'; xpRedraw(e.target.closest(".xp")); return; }
+  const xeq=e.target.closest("[data-xeq]"); if(xeq){ const X=expoState(), B=expoCalc(), [N,t]=xeq.dataset.xeq.split(",").map(Number), was=X.mode; X.mode="M"; X.N=N; X.t=t;
+    state.xpTrade='<b>Same light:</b> f/'+N+' at '+shText(t)+' instead of f/'+B.N+' at '+shText(B.t)+'. The brightness stays; the background and the movement change.'+(was!=="M"?' Switched to M so both stay as you set them.':''); xpRedraw(e.target.closest(".xp")); return; }
   const xm=e.target.closest("[data-xmode]"); if(xm){ const X=expoState(), B=expoCalc(), m=xm.dataset.xmode; if(m===X.mode) return;
     if(X.mode==="A") X.t=near3(XSH,B.t); if(X.mode==="S") X.N=near3(xApList(B.f),B.N);   // what the camera had chosen becomes yours, so the picture does not jump
     X.mode=m; state.xpTrade=""; xpRedraw(e.target.closest(".xp")); return; }
@@ -4643,7 +4684,7 @@ $("learn").addEventListener("click",e=>{
   const lt=e.target.closest("[data-light]"); if(lt){ state.when=lt.dataset.light; store.set("when",state.when); $("when").value=state.when; state.view="browse"; refilter(); window.scrollTo({top:0}); return; }
 });
 $("learn").addEventListener("change",e=>{
-  const xs=e.target.closest("[data-xp]"); if(xs){ const X=expoState(), k=xs.dataset.xp; X[k]=k==="L"?xs.value:+xs.value; if(k==="f"&&X.N) X.N=near3(xApList(X.f),X.N); state.xpTrade=""; xpRedraw(e.target.closest(".xp")); return; }
+  const xs=e.target.closest("[data-xp]"); if(xs){ const X=expoState(), k=xs.dataset.xp; X[k]=k==="L"||k==="subj"?xs.value:+xs.value; if(k==="f"&&X.N) X.N=near3(xApList(X.f),X.N); state.xpTrade=""; xpRedraw(e.target.closest(".xp")); return; }
   const lcs=e.target.closest("[data-lc]"); if(lcs){ state.lcBody=lcs.value; state.lcF=null; e.target.closest(".cropw").outerHTML=learnCrop(); return; }
   const sel=e.target.closest("[data-lf]"); if(sel){ state[sel.dataset.lf]=+sel.value; const w=e.target.closest(".dof"); w.outerHTML=learnDof(); return; }
   const cs=e.target.closest("[data-cam]"); if(cs){ state.camCmp[+cs.dataset.cam]=cs.value; store.set("camCmp",state.camCmp); const w=e.target.closest(".camcmp"); w.outerHTML=learnCams(); return; }

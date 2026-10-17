@@ -775,6 +775,13 @@ body.streetmode{overflow:hidden}
 .xprow{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px} .xprow .chip{min-height:34px;font-size:13px;padding:0 11px}
 .xp .demo-svg,.cropw .demo-svg{max-width:none;border-radius:6px}
 .xgrid{grid-template-columns:2fr 1fr;margin-top:10px}
+.xprow .xnow{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.xcam{font-size:13px;line-height:1.45;margin:0 0 12px;padding:8px 10px;border-radius:8px;background:var(--panel);border:1px solid var(--line)}
+.xeq{margin:4px 0 12px} .xeq h4{margin:0 0 4px;font-size:15px} .xeq-t{font-size:13px;line-height:1.4;color:var(--muted);margin:0 0 8px}
+.xeq-g{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.xeq-b{display:flex;flex-direction:column;gap:3px;padding:5px;border:1.5px solid var(--line);border-radius:10px;background:var(--panel);color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.xeq-b[aria-pressed=true]{border-color:var(--blue);box-shadow:0 0 0 1px var(--blue)}
+.xeq-b .demo-svg{width:100%;height:auto;border-radius:6px} .xeq-b b{font-size:13px;font-variant-numeric:tabular-nums} .xeq-b span{font-size:11.5px;line-height:1.3;color:var(--muted)}
 .xmode{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:14px 0 8px}
 .xmode button{min-height:42px;border:1.5px solid var(--line);border-radius:8px;background:var(--panel);color:var(--fg);font:inherit;font-size:14px;font-weight:700;padding:0 4px}
 .xmode button[aria-pressed=true]{background:var(--fg);color:var(--bg);border-color:var(--fg)}

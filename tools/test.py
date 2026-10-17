@@ -538,6 +538,14 @@ def run(path, name):
         tr=pg.evaluate("[document.querySelector('.xp .xtrade')?.textContent||'', document.querySelectorAll('.xp .xr.cam').length, document.querySelector('.xp [data-xmode=A]').getAttribute('aria-pressed')]")
         check("Moving the aperture in A mode shows the camera answering with the ISO, and marks which settings the camera controls", "f/8 → f/5.6" in tr[0] and "ISO 400 → 200" in tr[0] and "stays as bright" in tr[0] and tr[1]==2 and tr[2]=="true", tr)
         no_overflow("Exposure ladder")
+        # Subjects, equivalent exposures, the light now and the camera line
+        sq=pg.evaluate("""(()=>{ const X=expoState(); Object.assign(X,{mode:'M',L:'cloud',f:43,N:8,t:1/250,iso:0,subj:'walk',dist:4}); const w=expoCalc().walk;
+          X.subj='cycle'; const c=expoCalc().walk; X.dist=2; const c2=expoCalc().walk; X.dist=4; const C=expoCalc(), E=xEquiv(C);
+          return [c>w*3, c2>c*1.9, E.length, E.every(e=>Math.abs(e.stops-C.stops)<0.2), E[0].bg>E[E.length-1].bg, E[0].walk<E[E.length-1].walk, !!XL[(xNowLight()||{}).key], xCamLine(C).includes('aperture ring <b>f/8</b>')]; })()""")
+        check("Exposure: a cyclist blurs more than a walker and more when closer; the same-light pictures are equally bright, from soft and frozen to sharp and blurred", sq==[True,True,4,True,True,True,True,True], sq)
+        pg.evaluate("state.xpTrade=''; document.querySelector('.xp').outerHTML=learnExpo()"); pg.click(".xp [data-xeq]"); pg.wait_for_timeout(60)
+        eq=pg.evaluate("[document.querySelectorAll('.xp .xeq-b').length, document.querySelectorAll('.xp svg filter[id^=xExp]').length, new Set([...document.querySelectorAll('.xp svg filter')].map(f=>f.id)).size===document.querySelectorAll('.xp svg filter').length, document.querySelector('.xp .xeq-b[aria-pressed=true] b').textContent, (document.querySelector('.xp .xtrade')||{}).textContent||'']")
+        check("Tapping a same-light picture uses it, and every picture has its own filters", eq[0]==4 and eq[1]==5 and eq[2] and eq[3].startswith("f/2") and "Same light" in eq[4], eq)
         # Light here outside the city: real sun for the place, no building shade or street direction from NYC data
         ny=pg.evaluate("[inNYC({lat:40.758,lon:-73.9855}), inNYC({lat:40.7178,lon:-74.0431}), inNYC({lat:40.9573,lon:-73.9632}), inNYC({lat:40.7615,lon:-74.0035}), inNYC({lat:40.58,lon:-74.15}), inNYC({lat:42.3555,lon:-71.0565})]")
         check("Knows the five boroughs: Midtown, a Hudson pier and Staten Island are in; Jersey City, Demarest and Boston are out", ny==[True,False,False,True,True,False], ny)
