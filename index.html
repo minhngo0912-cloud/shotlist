@@ -1042,6 +1042,27 @@ body.lfopen{overflow:hidden}
 .learnwhy .refphoto.why .wov svg>*{animation:wvIn .7s ease both} .learnwhy .refphoto.why .wov svg>*:nth-child(2){animation-delay:.25s} .learnwhy .refphoto.why .wov svg>*:nth-child(3){animation-delay:.5s} .learnwhy .refphoto.why .wov svg>*:nth-child(n+4){animation-delay:.75s}
 .learnwhy .refphoto.why .wv-lab{animation:wvLab .5s ease .9s both}
 @media (prefers-reduced-motion:reduce){ .learnwhy .refphoto.why .wov svg>*,.learnwhy .refphoto.why .wv-lab{animation:none} }
+
+/* Cameras lesson */
+.camcap{font-size:13px;color:var(--muted);margin:0 0 6px}
+.campick{display:flex;flex-wrap:wrap;gap:6px}
+.campick .chip{min-height:38px;font-size:13.5px;padding:0 11px;gap:6px}
+.campick .chip small{font-size:11px;font-weight:600;color:var(--muted)}
+.campick .chip[aria-pressed=true]{border-color:var(--sw);box-shadow:0 0 0 1px var(--sw)}
+.camfov{display:block;width:100%;height:auto;border-radius:6px;margin:0 0 10px}
+.camfov-t{font-size:5.2px;font-weight:800;paint-order:stroke;stroke:rgba(0,0,0,.75);stroke-width:1.4px}
+.cam-glass{fill:rgba(255,255,255,.08)} .cam-vf{fill:none;stroke:var(--sign-muted);stroke-width:1}
+.cam-phone{fill:none;stroke:var(--sign-muted);stroke-width:1.6;stroke-dasharray:5 4}
+.cbars{display:flex;flex-direction:column;gap:14px;margin:6px 0 10px}
+.cb-h{display:flex;flex-direction:column;margin:0 0 6px} .cb-h b{font-size:15px} .cb-h span{font-size:12.5px;color:var(--muted);line-height:1.35}
+.cb-r{display:grid;grid-template-columns:92px 1fr 74px;gap:8px;align-items:center;margin:3px 0}
+.cb-n{font-size:12.5px;font-weight:700;line-height:1.2} .cb-v{font-size:12.5px;text-align:right;font-variant-numeric:tabular-nums;color:var(--fg)}
+.cb-t{position:relative;height:12px;border-radius:6px;background:var(--line)} .cb-t i{position:absolute;left:0;top:0;bottom:0;border-radius:6px}
+.cb-z em{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--fg);transform:translateX(-1px)}
+.cb-scale{display:grid;grid-template-columns:92px 1fr 74px;gap:8px;font-size:10.5px;color:var(--muted)} .cb-scale span:nth-child(1){grid-column:2;justify-self:start} .cb-scale span:nth-child(2){grid-column:2;justify-self:start;margin-left:calc(20% - 8px)} .cb-scale span:nth-child(3){grid-column:2;justify-self:end}
+.cb-scale span{grid-row:1}
+.camspecs{margin:10px 0 0} .camspecs summary{cursor:pointer;font-weight:700;padding:8px 0}
+.camcmp .hint{color:var(--muted)}
 </style>
 
 <div class="app">
@@ -5481,23 +5502,59 @@ function learnDrills(){ const r=state.drillRun, fmt=t=>new Date(t).toLocaleDateS
       (r&&r.id===id?'<span class="pill">Running</span>':'<button type="button" class="chip" data-drillstart="'+id+'">'+(K.visits?'Log a visit':K.min?'Start · '+K.min+' min':'Start')+'</button>')+'</li>'; }).join("");
   return '<p class="hint">Start an assignment when you are out: it stays at the top of every page with a timer'+' (and a frame counter where it counts frames) until you tap Done.</p><ul class="drills drills2">'+rows+'</ul><p class="hint">'+state.drills.size+' of '+DRILLS.length+' done.</p>'; }
 /* Street cameras compared. Dimensions and weights are as published (with battery where the maker says so); prices are US launch prices. */
-const STREET_CAMS = [["q343", "Leica Q3 43", "Fixed lens", "Full frame, 60 MP", "43 mm f/2", "In the lens", "Electronic", "IP52", 130, 80.3, 97.6, 772, "$6,395", "2024", "The one you own. Long for a street lens: you work from 2 to 5 m and frame tighter scenes. Leica Store Miami now lists it at $7,950."], ["q328", "Leica Q3", "Fixed lens", "Full frame, 60 MP", "28 mm f/1.7", "In the lens", "Electronic", "IP52", 130, 80.3, 92.6, 743, "$5,995", "2023", "The classic wide street lens. Zone focusing covers almost everything at f/8, and crops to 35 and 50 mm."], ["x100vi", "Fujifilm X100VI", "Fixed lens", "APS-C, 40 MP", "35 mm f/2", "In the body", "Optical and electronic", "With adapter ring and filter", 128, 75, 55, 521, "$1,599", "2024", "The most popular street camera of recent years. Hybrid finder shows the frame with the world around it. Long waits at launch."], ["griv", "Ricoh GR IV", "Fixed lens", "APS-C, 26 MP", "28 mm f/2.8", "In the body", "None (screen only)", "No", 109, 61, 33, 262, "$1,499", "2025", "Fits a jacket pocket. Snap focus jumps to a preset distance with one press, made for zone focusing."], ["griiix", "Ricoh GR IIIx", "Fixed lens", "APS-C, 24 MP", "40 mm f/2.8", "In the body", "None (screen only)", "No", 109.4, 61.9, 35.2, 262, "$999", "2021", "The pocket GR with a focal length close to your 43 mm. Same snap focus."], ["rx1r3", "Sony RX1R III", "Fixed lens", "Full frame, 61 MP", "35 mm f/2", "None", "Electronic (pop-up)", "Not stated", 113.3, 67.9, 87.5, 498, "$5,099", "2025", "Full frame in a body much smaller than the Q3. Fast Sony autofocus with subject detection."], ["xe5", "Fujifilm X-E5 with XF 23mm f/2.8", "Interchangeable", "APS-C, 40 MP", "35 mm f/2.8 (kit lens)", "In the body", "Electronic", "Lens only", 124.9, 72.9, 62.1, 535, "$1,899", "2025", "Rangefinder-style body with a pancake lens. Depth and weight here include the 23 mm lens."], ["m11", "Leica M11 (body only)", "Interchangeable", "Full frame, 60 MP", "Any M lens", "None", "Optical rangefinder", "Not stated", 139, 80, 39, 640, "$8,995", "2022", "Manual focus through a rangefinder. Add a lens: a 35 mm Summicron adds roughly 25 mm of depth and 250 g."], ["a7c2", "Sony A7C II (body only)", "Interchangeable", "Full frame, 33 MP", "Any Sony E lens", "In the body", "Electronic", "Dust and moisture resistant", 124, 71, 63, 514, "$2,199", "2023", "Compact full-frame body with the widest lens choice. Add a small prime for street."]];
+const STREET_CAMS = [["q343", "Leica Q3 43", "Fixed lens", "Full frame, 60 MP", "43 mm f/2", "In the lens", "Electronic", "IP52", 130, 80.3, 97.6, 772, "$6,395", "2024", "The one you own. Long for a street lens: you work from 2 to 5 m and frame tighter scenes. Leica Store Miami now lists it at $7,950."], ["q328", "Leica Q3", "Fixed lens", "Full frame, 60 MP", "28 mm f/1.7", "In the lens", "Electronic", "IP52", 130, 80.3, 92.6, 743, "$5,995", "2023", "The classic wide street lens. Zone focusing covers almost everything at f/8, and crops to 35, 50, 75 and 90 mm."], ["x100vi", "Fujifilm X100VI", "Fixed lens", "APS-C, 40 MP", "35 mm f/2", "In the body", "Optical and electronic", "With adapter ring and filter", 128, 75, 55, 521, "$1,599", "2024", "The most popular street camera of recent years. Hybrid finder shows the frame with the world around it. Long waits at launch."], ["griv", "Ricoh GR IV", "Fixed lens", "APS-C, 26 MP", "28 mm f/2.8", "In the body", "None (screen only)", "No", 109, 61, 33, 262, "$1,499", "2025", "Fits a jacket pocket. Snap focus jumps to a preset distance with one press, made for zone focusing."], ["griiix", "Ricoh GR IIIx", "Fixed lens", "APS-C, 24 MP", "40 mm f/2.8", "In the body", "None (screen only)", "No", 109.4, 61.9, 35.2, 262, "$999", "2021", "The pocket GR with a focal length close to your 43 mm. Same snap focus."], ["rx1r3", "Sony RX1R III", "Fixed lens", "Full frame, 61 MP", "35 mm f/2", "None", "Electronic (pop-up)", "Not stated", 113.3, 67.9, 87.5, 498, "$5,099", "2025", "Full frame in a body much smaller than the Q3. Fast Sony autofocus with subject detection."], ["xe5", "Fujifilm X-E5 with XF 23mm f/2.8", "Interchangeable", "APS-C, 40 MP", "35 mm f/2.8 (kit lens)", "In the body", "Electronic", "Lens only", 124.9, 72.9, 62.1, 535, "$1,899", "2025", "Rangefinder-style body with a pancake lens. Depth and weight here include the 23 mm lens."], ["m11", "Leica M11 (body only)", "Interchangeable", "Full frame, 60 MP", "Any M lens", "None", "Optical rangefinder", "Not stated", 139, 80, 39, 640, "$8,995", "2022", "Manual focus through a rangefinder. Add a lens: a 35 mm Summicron adds roughly 25 mm of depth and 250 g."], ["a7c2", "Sony A7C II (body only)", "Interchangeable", "Full frame, 33 MP", "Any Sony E lens", "In the body", "Electronic", "Dust and moisture resistant", 124, 71, 63, 514, "$2,199", "2023", "Compact full-frame body with the widest lens choice. Add a small prime for street."]];
 const CAM_ROWS = [["Type",2],["Sensor",3],["Lens (35 mm eq.)",4],["Stabilizer",5],["Viewfinder",6],["Sealing",7],["Size (W × H × D)",-1],["Weight",11],["Launch price",12]];
 const CAM_COLORS = ["var(--yellow)","var(--blue)","var(--red)"];
-function camFig(view,list){ const pad=8, gap=14, k=1.15, h=Math.max(...list.map(c=>view==="front"?c[9]:c[10]));
-  let x=pad, out=""; list.forEach((c,n)=>{ const w=c[8]*k, hh=(view==="front"?c[9]:c[10])*k, y=pad+(h*k-hh);
-    out+='<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+w.toFixed(1)+'" height="'+hh.toFixed(1)+'" rx="'+(view==="front"?6:4)+'" class="cam-body" style="stroke:'+CAM_COLORS[n]+'"/>'+
-      (view==="front"&&c[2]==="Fixed lens"?'<circle cx="'+(x+w*0.62).toFixed(1)+'" cy="'+(y+hh*0.55).toFixed(1)+'" r="'+(Math.min(w,hh)*0.3).toFixed(1)+'" class="cam-lens"/>':'')+
-      '<text x="'+(x+w/2).toFixed(1)+'" y="'+(pad+h*k+18).toFixed(1)+'" text-anchor="middle" class="cam-dim">'+Math.round(c[8])+' × '+(view==="front"?c[9]:c[10])+' mm</text>';
+/* The lens on each camera: real focal length, widest aperture, sensor crop factor. Body-only cameras are shown with a 35 mm f/2. */
+const CAM_LENS = {q343:[43,2,1],q328:[28,1.7,1],x100vi:[23,2,1.53],griv:[18.3,2.8,1.53],griiix:[26.1,2.8,1.53],rx1r3:[35,2,1],xe5:[23,2.8,1.53],m11:[35,2,1,1],a7c2:[35,2,1,1]};
+const camEq = id => { const L=CAM_LENS[id]; return Math.round(L[0]*L[2]); };
+// Depth of field for a sensor: the circle of confusion shrinks with the sensor
+function dofCam(f,N,s,crop){ const c=0.03/crop, H=f*f/(N*c)+f, d=s*1000; return [d*(H-f)/(H+d-2*f)/1000, d<H?d*(H-f)/(H-d)/1000:Infinity]; }
+const PHONE = ["iPhone 16 Pro",71.5,149.6,8.25];
+function camFig(view,list){ const pad=8, gap=14, k=1.15, phone=view==="front", hs=list.map(c=>view==="front"?c[9]:c[10]), h=Math.max(...hs,phone?PHONE[2]:0);
+  let x=pad, out=""; list.forEach((c,n)=>{ const w=c[8]*k, hh=hs[n]*k, y=pad+(h*k-hh), L=CAM_LENS[c[0]]||[35,2,1];
+    out+='<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+w.toFixed(1)+'" height="'+hh.toFixed(1)+'" rx="'+(view==="front"?6:4)+'" class="cam-body" style="stroke:'+CAM_COLORS[n]+'"/>';
+    if(view==="front"){ const r=Math.min(w,hh)*(L[2]>1?0.26:0.33); out+='<circle cx="'+(x+w*0.6).toFixed(1)+'" cy="'+(y+hh*0.56).toFixed(1)+'" r="'+r.toFixed(1)+'" class="cam-lens"/><circle cx="'+(x+w*0.6).toFixed(1)+'" cy="'+(y+hh*0.56).toFixed(1)+'" r="'+(r*0.55).toFixed(1)+'" class="cam-glass"/>'+
+      (/None/.test(c[6])?'':'<rect x="'+(x+w*0.08).toFixed(1)+'" y="'+(y+hh*0.12).toFixed(1)+'" width="'+(w*0.16).toFixed(1)+'" height="'+(hh*0.16).toFixed(1)+'" rx="2" class="cam-vf"/>'); }
+    out+='<text x="'+(x+w/2).toFixed(1)+'" y="'+(pad+h*k+18).toFixed(1)+'" text-anchor="middle" class="cam-dim">'+Math.round(c[8])+' × '+Math.round(hs[n])+' mm</text>';
     x+=w+gap; });
+  if(phone){ const w=PHONE[1]*k, hh=PHONE[2]*k, y=pad+(h*k-hh); out+='<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+w.toFixed(1)+'" height="'+hh.toFixed(1)+'" rx="12" class="cam-phone"/><text x="'+(x+w/2).toFixed(1)+'" y="'+(pad+h*k+18).toFixed(1)+'" text-anchor="middle" class="cam-dim">iPhone</text>'; x+=w+gap; }
   return '<svg class="camfig" viewBox="0 0 '+(x-gap+pad).toFixed(0)+' '+(h*k+pad+26).toFixed(0)+'" role="img" aria-label="'+(view==="front"?"Front":"Top")+' view to scale">'+out+'</svg>'; }
-function learnCams(){ const sel=state.camCmp.map(id=>STREET_CAMS.find(c=>c[0]===id)).filter(Boolean);
-  const pick=(n)=>'<select data-cam="'+n+'" aria-label="Camera '+(n+1)+'"><option value="">None</option>'+STREET_CAMS.map(c=>'<option value="'+c[0]+'"'+(state.camCmp[n]===c[0]?" selected":"")+'>'+esc(c[1])+'</option>').join("")+'</select>';
-  return '<div class="camcmp"><div class="campicks">'+[0,1,2].map(n=>'<label><span class="swatch" style="background:'+CAM_COLORS[n]+'"></span>'+pick(n)+'</label>').join("")+'</div>'+
-    (sel.length?'<div class="camviews"><span class="label">Front, to scale</span>'+camFig("front",sel)+'<span class="label">Top, to scale (depth includes the lens)</span>'+camFig("top",sel)+'</div>'+
-    '<div class="camtable" style="--n:'+sel.length+'"><div class="camrow camhead"><span></span>'+sel.map((c,n)=>'<b style="border-color:'+CAM_COLORS[n]+'">'+esc(c[1])+'</b>').join("")+'</div>'+
-      CAM_ROWS.map(([lab,i])=>'<div class="camrow"><span>'+lab+'</span>'+sel.map(c=>'<span>'+esc(i===-1? c[8]+' × '+c[9]+' × '+c[10]+' mm' : i===11? c[11]+' g' : i===12? c[12]+' ('+c[13]+')' : String(c[i]))+'</span>').join("")+'</div>').join("")+'</div><ul class="camnotes">'+sel.map((c,n)=>'<li><span class="swatch" style="background:'+CAM_COLORS[n]+'"></span><span><b>'+esc(c[1])+'.</b> '+esc(c[14])+'</span></li>').join("")+'</ul>':'<p class="hint">Choose up to three cameras.</p>')+
-    '<p class="hint">Sizes and weights are as published by the maker or a major retailer; shapes are simplified to their outer dimensions. Prices are US launch prices and have changed since, Leica\u2019s especially.</p></div>'; }
+// What each lens sees: one street, drawn as a 24 mm view, with each camera's frame on it
+function camSees(sel){ let s='<svg class="camfov" viewBox="0 0 150 100" role="img" aria-label="What each lens sees, on the same street">'+cropScene(24)+'<rect x="1" y="1" width="148" height="98" class="d-frame"/>';
+  sel.map((c,n)=>[c,n,camEq(c[0])]).sort((a,b)=>a[2]-b[2]).forEach(([c,n,eq],k)=>{ const w=150*24/eq, h=100*24/eq, x=75-w/2, y=50-h/2;
+    s+='<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+w.toFixed(1)+'" height="'+h.toFixed(1)+'" fill="none" stroke="'+CAM_COLORS[n]+'" stroke-width="1.3"'+(k%2?' stroke-dasharray="3 1.5"':'')+'/>'+
+      '<text x="'+(x+1.5).toFixed(1)+'" y="'+(y+h-1.8).toFixed(1)+'" class="camfov-t" style="fill:'+CAM_COLORS[n]+'">'+eq+' mm</text>'; });
+  return s+'</svg>'; }
+// Side-by-side bars for the things that differ most on the street
+function camBars(sel){ const row=(title,sub,vals,fmt,max,lowGood)=>'<div class="cb"><div class="cb-h"><b>'+title+'</b><span>'+sub+'</span></div>'+vals.map((v,n)=>'<div class="cb-r"><span class="cb-n">'+esc(sel[n][1].replace(/ \(body only\)| with XF.*$/,''))+'</span><span class="cb-t"><i style="width:'+Math.max(3,Math.min(100,v/max*100)).toFixed(1)+'%;background:'+CAM_COLORS[n]+'"></i></span><span class="cb-v">'+fmt(v,n)+'</span></div>').join("")+'</div>';
+  const body=n=>CAM_LENS[sel[n][0]]&&CAM_LENS[sel[n][0]][3];
+  const vol=sel.map(c=>c[8]*c[9]*c[10]/1000), wt=sel.map(c=>c[11]);
+  const zone=sel.map(c=>{ const L=CAM_LENS[c[0]]||[35,2,1]; return dofCam(L[0],8,3,L[2]); });
+  const eqN=sel.map(c=>{ const L=CAM_LENS[c[0]]||[35,2,1]; return L[1]*L[2]; });
+  const zoneRow='<div class="cb"><div class="cb-h"><b>Zone focusing</b><span>Sharp at f/8, focused at 3 m. Wider is more forgiving.</span></div>'+zone.map(([a,b],n)=>{ const p=x=>Math.min(100,x/15*100);
+    return '<div class="cb-r"><span class="cb-n">'+esc(sel[n][1].replace(/ \(body only\)| with XF.*$/,''))+'</span><span class="cb-t cb-z"><i style="left:'+p(a).toFixed(1)+'%;width:'+Math.max(2,(b===Infinity?100:p(b))-p(a)).toFixed(1)+'%;background:'+CAM_COLORS[n]+'"></i><em style="left:20%"></em></span><span class="cb-v">'+(+a.toFixed(1))+'–'+(b===Infinity||b>50?'∞':Math.round(b))+' m</span></div>'; }).join("")+'<div class="cb-scale"><span>0</span><span>3 m</span><span>15 m+</span></div></div>';
+  return '<div class="cbars">'+
+    row('Size','Volume of the outer box, lens included where fixed.',vol,(v,n)=>Math.round(v)+' cm³'+(body(n)?' + lens':''),Math.max(...vol,1100))+
+    row('Weight','With battery.',wt,(v,n)=>v+' g'+(body(n)?' + lens':''),Math.max(...wt,800))+
+    zoneRow+
+    row('Light and background blur','The lens’s widest aperture as it would look on full frame. Lower lets in more light and softens more.',eqN.map(v=>Math.max(0.15,Math.log2(64/(v*v)))),(v,n)=>'f/'+(+eqN[n].toFixed(1)),5)+
+    '</div>'; }
+function learnCams(){ const ids=state.camCmp.filter(id=>STREET_CAMS.some(c=>c[0]===id)), sel=ids.map(id=>STREET_CAMS.find(c=>c[0]===id));
+  const chips='<div class="campick" role="group" aria-label="Choose up to three cameras">'+STREET_CAMS.map(c=>{ const n=ids.indexOf(c[0]); return '<button type="button" class="chip" data-campick="'+c[0]+'" aria-pressed="'+(n>=0)+'"'+(n>=0?' style="--sw:'+CAM_COLORS[n]+'"':'')+'>'+(n>=0?'<span class="swatch" style="background:'+CAM_COLORS[n]+'"></span>':'')+esc(c[1].replace(/ \(body only\)| with XF.*$/,''))+'<small>'+camEq(c[0])+' mm</small></button>'; }).join("")+'</div>';
+  const anyBody=sel.some(c=>CAM_LENS[c[0]]&&CAM_LENS[c[0]][3]);
+  return '<div class="camcmp"><p class="camcap">Pick up to three. Tapping a fourth replaces the last one.</p>'+chips+
+    (sel.length?
+      '<div class="camviews"><span class="label">What each lens sees, from the same spot</span>'+camSees(sel)+
+        '<span class="label">Front, to scale, next to an iPhone</span>'+camFig("front",sel)+'<span class="label">Top, to scale (depth includes the lens)</span>'+camFig("top",sel)+'</div>'+
+      camBars(sel)+
+      (anyBody?'<p class="hint">Body-only cameras are shown with a 35 mm f/2 lens for what they see, zone focusing and light; their size and weight are for the body alone.</p>':'')+
+      '<ul class="camnotes">'+sel.map((c,n)=>'<li><span class="swatch" style="background:'+CAM_COLORS[n]+'"></span><span><b>'+esc(c[1])+'.</b> '+esc(c[14])+'</span></li>').join("")+'</ul>'+
+      '<details class="camspecs"><summary>All specifications</summary><div class="camtable" style="--n:'+sel.length+'"><div class="camrow camhead"><span></span>'+sel.map((c,n)=>'<b style="border-color:'+CAM_COLORS[n]+'">'+esc(c[1])+'</b>').join("")+'</div>'+
+        CAM_ROWS.map(([lab,i])=>'<div class="camrow"><span>'+lab+'</span>'+sel.map(c=>'<span>'+esc(i===-1? c[8]+' × '+c[9]+' × '+c[10]+' mm' : i===11? c[11]+' g' : i===12? c[12]+' ('+c[13]+')' : String(c[i]))+'</span>').join("")+'</div>').join("")+'</div></details>'
+      :'<p class="hint">Choose up to three cameras.</p>')+
+    '<p class="hint">Sizes and weights are as published by the maker or a major retailer; shapes are simplified to their outer dimensions. Zone focusing uses each sensor’s own circle of confusion (0.03 mm on full frame, 0.02 mm on APS-C). Prices are US launch prices and have changed since, Leica’s especially.</p></div>'; }
+
 function renderLearn(){
   const box=$("learn"), open=new Set([...box.querySelectorAll("details.lesson[open]")].map(d=>d.dataset.id)), first=!box.querySelector("details.lesson");
   box.innerHTML='<p class="lead">Short lessons for street photography, written for the Leica Q3 and New York. Each ends with something to try, and links back into the app.</p>'+
@@ -5912,6 +5969,9 @@ $("learn").addEventListener("click",e=>{
     if(k==="N"){ const L=ZF_N(f).slice().sort((x,y)=>x-y), i=L.indexOf(near3(L,+state.lfN)); state.lfN=L[Math.max(0,Math.min(L.length-1,i+(+d)))]; }
     else { const cur=+state.lfS; let v; if(+d>0) v=ZF_S.find(x=>x>cur+1e-6); else v=[...ZF_S].reverse().find(x=>x<cur-1e-6); if(v!=null) state.lfS=v; }
     e.target.closest(".zf").outerHTML=learnDof(); return; }
+  const cp=e.target.closest("[data-campick]"); if(cp){ const id=cp.dataset.campick; let L=state.camCmp.filter(x=>x&&STREET_CAMS.some(c=>c[0]===x));
+    if(L.includes(id)) L=L.filter(x=>x!==id); else if(L.length<3) L.push(id); else L[2]=id;
+    state.camCmp=L; store.set("camCmp",L); const w=e.target.closest(".camcmp"); if(w){ w.outerHTML=learnCams(); const b=document.querySelector('.camcmp [data-campick="'+id+'"]'); if(b) b.focus({preventScroll:true}); } return; }
   const ws=e.target.closest("[data-whysel]"); if(ws){ state.whySel=ws.dataset.whysel; const box=e.target.closest(".learnwhy"); if(box) box.outerHTML=learnWhy(); return; }
   const xpr=e.target.closest("[data-xpre]"); if(xpr){ const P=XPRE[+xpr.dataset.xpre][1], X=expoState(); Object.assign(X,{max:6400,slow:1/250},P); state.xpTrade=""; xpRedraw(e.target.closest(".xp")); return; }
   const xnw=e.target.closest("[data-xnow]"); if(xnw){ const X=expoState(); X.L=xnw.dataset.xnow; state.xpTrade='<b>Light now:</b> the scene is set to '+XL[X.L][0].toLowerCase()+', the nearest match to the light outside.'; xpRedraw(e.target.closest(".xp")); return; }

@@ -562,6 +562,12 @@ def run(path, name):
         pg.evaluate("state.whySel=null; document.querySelector('.learnwhy').outerHTML=learnWhy()"); pg.click(".learnwhy [data-whynav='-1']"); pg.wait_for_timeout(50)
         wd=pg.evaluate("[document.querySelector('.wdeck-t span').textContent, document.querySelector('.learnwhy figure').classList.contains('why')]")
         check("Example photos page through with prev and next, wrapping round, lines shown", wd[0].startswith("11 of 11") and wd[1], wd)
+        # Cameras lesson: chips, what each lens sees, bars with each sensor's own depth of field
+        pg.evaluate("state.camCmp=['q343','griv']; state.view='learn'; render(); document.querySelector('#learn details[data-id=cameras]').open=true"); pg.wait_for_timeout(80)
+        pg.click(".camcmp [data-campick='q328']"); pg.wait_for_timeout(50); pg.click(".camcmp [data-campick='x100vi']"); pg.wait_for_timeout(50)
+        cm=pg.evaluate("[state.camCmp, document.querySelectorAll('.camcmp .camfov rect[stroke]').length, document.querySelectorAll('.camcmp .cb').length, [...document.querySelectorAll('.camcmp .cb')[2].querySelectorAll('.cb-v')].map(e=>e.textContent), !!document.querySelector('.camcmp .cam-phone')]")
+        check("Cameras: up to three picked by chips (a fourth replaces the last), their frames on one street, and zone focusing per sensor", cm[0]==["q343","griv","x100vi"] and cm[1]==3 and cm[2]==4 and cm[3][0]=="2.2–5 m" and cm[3][1].endswith("∞ m") and cm[4], cm)
+        no_overflow("Cameras lesson")
         # Light here outside the city: real sun for the place, no building shade or street direction from NYC data
         ny=pg.evaluate("[inNYC({lat:40.758,lon:-73.9855}), inNYC({lat:40.7178,lon:-74.0431}), inNYC({lat:40.9573,lon:-73.9632}), inNYC({lat:40.7615,lon:-74.0035}), inNYC({lat:40.58,lon:-74.15}), inNYC({lat:42.3555,lon:-71.0565})]")
         check("Knows the five boroughs: Midtown, a Hudson pier and Staten Island are in; Jersey City, Demarest and Boston are out", ny==[True,False,False,True,True,False], ny)
