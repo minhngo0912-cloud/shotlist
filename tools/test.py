@@ -568,6 +568,13 @@ def run(path, name):
         cm=pg.evaluate("[state.camCmp, document.querySelectorAll('.camcmp .camfov rect[stroke]').length, document.querySelectorAll('.camcmp .cb').length, [...document.querySelectorAll('.camcmp .cb')[2].querySelectorAll('.cb-v')].map(e=>e.textContent), !!document.querySelector('.camcmp .cam-phone')]")
         check("Cameras: up to three picked by chips (a fourth replaces the last), their frames on one street, and zone focusing per sensor", cm[0]==["q343","griv","x100vi"] and cm[1]==3 and cm[2]==4 and cm[3][0]=="2.2–5 m" and cm[3][1].endswith("∞ m") and cm[4], cm)
         no_overflow("Cameras lesson")
+        # Camera prices: cards from the data, deals and alert hits first, a Today card when a camera is at or below its alert
+        pd=pg.evaluate("""(()=>{ PRICE_DOCS={_status:{checked:'2026-10-17'},q343:{new:{price:6000,seller:'A',url:'https://example.com/a'},used:{low:5000,seller:'U',url:'https://example.com/u'},history:[{d:'2026-10-10',new:6100,used:5200},{d:'2026-10-17',new:6000,used:5000}]},
+            x100vi:{new:{price:1700,seller:'B'},deal:{price:1600,was:1700,what:'$100 off',seller:'B'}},m11:{used:{low:6600,seller:'U'},notes:'Discontinued new'}}; PRICE_TARGETS={q343:{target:5100,kind:'used'},x100vi:{target:1500,kind:'new'}};
+          openLearn('prices','.prices'); const cards=[...document.querySelectorAll('.prices .pc')];
+          const r=[cards.length, cards[0].dataset.pc, cards[1].dataset.pc, !!cards[0].querySelector('.pc-hit'), cards[1].classList.contains('deal'), !!cards[0].querySelector('.pspark'), document.querySelector('.pc[data-pc=m11]').textContent.includes('no longer sold new'), !!document.querySelector('.prices .pc-al.ro a[href^="https://claude.ai/"]')];
+          state.view='today'; render(); r.push((document.querySelector('.tdeal')||{}).textContent||''); PRICE_DOCS={}; PRICE_TARGETS={}; return r; })()""")
+        check("Camera prices: a card per camera, alert hits then deals first, history drawn, discontinued shown, Today card on a hit", pd[:8]==[9,"q343","x100vi",True,True,True,True,True] and "Leica Q3 43: used $5,000" in pd[8], pd)
         # Light here outside the city: real sun for the place, no building shade or street direction from NYC data
         ny=pg.evaluate("[inNYC({lat:40.758,lon:-73.9855}), inNYC({lat:40.7178,lon:-74.0431}), inNYC({lat:40.9573,lon:-73.9632}), inNYC({lat:40.7615,lon:-74.0035}), inNYC({lat:40.58,lon:-74.15}), inNYC({lat:42.3555,lon:-71.0565})]")
         check("Knows the five boroughs: Midtown, a Hudson pier and Staten Island are in; Jersey City, Demarest and Boston are out", ny==[True,False,False,True,True,False], ny)

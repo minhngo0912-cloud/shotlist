@@ -1,6 +1,10 @@
 /* Events file. A weekly task commits events.json to the repository; the app reads it on every open
    and keeps the last copy on the device for offline use. */
 EVENT_DOCS = store.get("events", null) || {"dogparade": {"city": "nyc", "start": "2026-10-17", "time": "Listed as 1 pm to 4 pm. The start time may change", "source": "https://www.nycforfree.co/events/tompkins-square-halloween-dog-parade-2026"}, "halloween": {"city": "nyc", "start": "2026-10-31", "time": "Starts at 7 pm", "where": "Sixth Av, Canal St to 15 St", "source": "https://www.nycforfree.co/events/nyc-village-halloween-parade-2026"}, "tree": {"city": "nyc", "start": "2026-12-02", "source": "https://www.timeout.com/newyork/news/the-2026-rockefeller-center-christmas-tree-lighting-has-officially-been-announced-and-its-happening-earlier-than-you-think-092926"}};
+/* Camera prices: the twice-weekly check commits prices.json (prices per camera, "_status", and "_targets", the alert prices). */
+PRICE_FILE=true;
+{ const pj=store.get("prices",null); if(pj){ PRICE_TARGETS=pj._targets||{}; PRICE_DOCS=pj; } }
+fetch("prices.json",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{ if(j&&typeof j==="object"&&!Array.isArray(j)){ PRICE_TARGETS=j._targets||{}; PRICE_DOCS=j; store.set("prices",j); rerenderPrices(); } }).catch(()=>{});
 fetch("events.json",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{ if(j&&typeof j==="object"&&!Array.isArray(j)){ EVENT_DOCS=j; store.set("events",j); if(state.view==="events") renderEvents(); } }).catch(()=>{});
 /* Live weather, fetched straight from Open-Meteo. The last reading is kept on the device for offline use. */
 const WMO = c => c===0?"Clear":c===1?"Mainly clear":c===2?"Partly cloudy":c===3?"Overcast":(c===45||c===48)?"Fog":(c>=51&&c<=57)?"Drizzle":(c>=61&&c<=67)?"Rain":(c>=71&&c<=77)?"Snow":(c>=80&&c<=82)?"Rain showers":(c===85||c===86)?"Snow showers":c>=95?"Thunderstorm":"";

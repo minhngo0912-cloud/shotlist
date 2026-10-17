@@ -1,0 +1,233 @@
+{
+ "q343": {
+  "new": {
+   "price": 7950,
+   "seller": "B&H Photo",
+   "url": "https://www.bhphotovideo.com/c/product/1854286-REG/leica_19084_q3_43_digital_camera.html",
+   "stock": "In stock"
+  },
+  "used": {
+   "low": 6119,
+   "high": 7118,
+   "seller": "MPB",
+   "url": "https://www.mpb.com/en-us/product/leica-q3-43",
+   "cond": "Good",
+   "n": 15
+  },
+  "notes": "Adorama also $7,950. Only promo is a free Capture One trial. MPB has 20 units ($6,029-6,569) but the $6,029 grade isn't shown. KEH $6,805-7,118. eBay sold listings unreadable.",
+  "checked": "2026-10-17",
+  "history": [
+   {
+    "d": "2026-10-17",
+    "new": 7950,
+    "used": 6119
+   }
+  ]
+ },
+ "q328": {
+  "new": {
+   "price": 7350,
+   "seller": "B&H Photo",
+   "url": "https://www.bhphotovideo.com/c/product/1768277-REG/leica_19080_q3_digital_camera.html",
+   "stock": "In stock"
+  },
+  "used": {
+   "low": 5309,
+   "high": 6467,
+   "seller": "MPB",
+   "url": "https://www.mpb.com/en-us/product/leica-q3",
+   "cond": "Good",
+   "n": 15
+  },
+  "notes": "Q3 still current; no successor yet, Q4 only rumored. MPB has 31 units from $4,879, but that grade isn't shown. KEH used $6,002-6,467. eBay unreadable.",
+  "checked": "2026-10-17",
+  "history": [
+   {
+    "d": "2026-10-17",
+    "new": 7350,
+    "used": 5309
+   }
+  ]
+ },
+ "x100vi": {
+  "new": {
+   "price": 1799,
+   "seller": "Adorama",
+   "url": "https://www.adorama.com/fujifilm-x100vi-digital-camera/p/ifjx1006",
+   "stock": "Backordered"
+  },
+  "used": {
+   "low": 2009,
+   "high": 2299,
+   "seller": "MPB",
+   "url": "https://www.mpb.com/en-us/product/fujifilm-x100-vi",
+   "cond": "Good",
+   "n": 107
+  },
+  "notes": "Adorama backorder, ETA 12/2026. B&H $1,799.95, temporarily out of stock. Used units sell above new. KEH out of stock. Amazon blocked. eBay sold not readable.",
+  "checked": "2026-10-17",
+  "history": [
+   {
+    "d": "2026-10-17",
+    "new": 1799,
+    "used": 2009
+   }
+  ]
+ },
+ "griv": {
+  "new": {
+   "price": 1597,
+   "seller": "B&H Photo",
+   "url": "https://www.bhphotovideo.com/c/product/1898564-REG/ricoh_gr_iv_digital_camera.html",
+   "stock": "In stock"
+  },
+  "used": {
+   "low": 1559,
+   "high": 1599,
+   "seller": "MPB",
+   "url": "https://www.mpb.com/en-us/product/ricoh-gr-iv",
+   "cond": "Like new",
+   "n": 33
+  },
+  "notes": "MPB says 33 units from $1,479; only 8 shown (all Like new). Adorama $1,599.95. KEH, Amazon, Ricoh US store, eBay sold not readable.",
+  "checked": "2026-10-17",
+  "history": [
+   {
+    "d": "2026-10-17",
+    "new": 1597,
+    "used": 1559
+   }
+  ]
+ },
+ "griiix": {
+  "new": {
+   "price": 1247,
+   "seller": "B&H Photo",
+   "url": "https://www.bhphotovideo.com/c/product/1664769-REG/ricoh_15286_gr_iiix_digital_camera.html",
+   "stock": "In stock"
+  },
+  "used": {
+   "low": 1169,
+   "high": 1249,
+   "seller": "MPB",
+   "url": "https://www.mpb.com/en-us/product/ricoh-gr-iiix/sku-4133692",
+   "cond": "Excellent",
+   "n": 19
+  },
+  "notes": "Adorama same $1,246.95 (limited qty). MPB header says from $1,099, unit not seen. KEH, Amazon, Ricoh US store, eBay sold not readable.",
+  "checked": "2026-10-17",
+  "history": [
+   {
+    "d": "2026-10-17",
+    "new": 1247,
+    "used": 1169
+   }
+  ]
+ },
+ "rx1r3": {
+  "new": {
+   "price": 5098,
+   "seller": "B&H Photo",
+   "url": "https://www.bhphotovideo.com/c/product/1907791-REG/sony_rx1r_iii_digital_camera.html",
+   "stock": "In stock"
+  },
+  "used": {
+   "low": 4249,
+   "high": 4440,
+   "seller": "MPB",
+   "url": "https://www.mpb.com/en-us/product/sony-rx1r-iii",
+   "cond": "Like new",
+   "n": 4
+  },
+  "notes": "B&H shows $50 Sony cash back but RX1R III is not on Sony's fall cashback list, so no deal. Best Buy page $4,745 looks stale/unavailable; excluded. KEH used $4,320-$4,440.",
+  "checked": "2026-10-17",
+  "history": [
+   {
+    "d": "2026-10-17",
+    "new": 5098,
+    "used": 4249
+   }
+  ]
+ },
+ "xe5": {
+  "new": {
+   "price": 1899,
+   "seller": "B&H Photo",
+   "url": "https://www.bhphotovideo.com/c/product/1900551-REG/fujifilm_16949882_x_e5_mirrorless_camera_with.html",
+   "stock": "In stock"
+  },
+  "used": {
+   "low": 1449,
+   "high": 1646,
+   "seller": "MPB",
+   "url": "https://www.mpb.com/en-us/product/fujifilm-x-e5",
+   "cond": "Excellent",
+   "n": 32
+  },
+  "notes": "New is the black 23mm kit (Adorama also $1,899). Used is BODY ONLY; no used kit at MPB/KEH. MPB says from $1,399, condition not shown. KEH $1,514-$1,646.",
+  "checked": "2026-10-17",
+  "history": [
+   {
+    "d": "2026-10-17",
+    "new": 1899,
+    "used": 1449
+   }
+  ]
+ },
+ "m11": {
+  "used": {
+   "low": 6619,
+   "high": 7766,
+   "seller": "MPB",
+   "url": "https://www.mpb.com/en-us/product/leica-m11",
+   "cond": "Excellent",
+   "n": 14
+  },
+  "notes": "Discontinued new: B&H (black) and Adorama (silver) list it as no longer available; M11-P $10,400 replaces it. Lowest used is silver; MPB black $6,919-7,469. eBay unreadable.",
+  "checked": "2026-10-17",
+  "history": [
+   {
+    "d": "2026-10-17",
+    "used": 6619
+   }
+  ]
+ },
+ "a7c2": {
+  "new": {
+   "price": 2498,
+   "seller": "B&H Photo",
+   "url": "https://www.bhphotovideo.com/c/product/1784818-REG/sony_a7c_ii_mirrorless_camera.html",
+   "stock": "In stock"
+  },
+  "deal": {
+   "price": 2448,
+   "was": 2498,
+   "what": "$50 Sony cash back (prepaid card)",
+   "ends": "2026-12-31",
+   "seller": "B&H Photo",
+   "url": "https://www.bhphotovideo.com/c/product/1784818-REG/sony_a7c_ii_mirrorless_camera.html"
+  },
+  "used": {
+   "low": 1829,
+   "high": 1951,
+   "seller": "KEH",
+   "url": "https://www.keh.com/shop/28423756.html",
+   "cond": "Excellent",
+   "n": 47
+  },
+  "notes": "Cash back is a claim to Sony (alphauniverse.com/fall26-cashback), not instant. Adorama/KEH new also $2,498. MPB says from $1,659, condition not shown; lowest seen $1,839.",
+  "checked": "2026-10-17",
+  "history": [
+   {
+    "d": "2026-10-17",
+    "new": 2448,
+    "used": 1829
+   }
+  ]
+ },
+ "_status": {
+  "checked": "2026-10-17",
+  "summary": "9 of 9 cameras updated; deals on Sony A7C II."
+ },
+ "_targets": {}
+}

@@ -1,5 +1,5 @@
 // Offline support. The app files are cached on first visit; each later visit refreshes them in the background.
-const CACHE="shotlist-802b970005";
+const CACHE="shotlist-3384842e00";
 const SHELL=["./","index.html","manifest.webmanifest","icon-180.png","icon-192.png","icon-512.png"];
 self.addEventListener("install",e=>{ e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL.map(u=>new Request(u,{cache:"reload"})))).then(()=>self.skipWaiting())); });
 self.addEventListener("activate",e=>{ e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE&&k!=="shotlist-photos").map(k=>caches.delete(k)))).then(()=>self.clients.claim())); });
@@ -11,8 +11,9 @@ self.addEventListener("fetch",e=>{
     return;
   }
   if(e.request.method!=="GET" || u.origin!==location.origin) return;   // weather and other sites go straight to the network
-  if(u.pathname.endsWith("/events.json")){   // always try for the newest events, fall back to the stored copy offline
-    e.respondWith(fetch(e.request).then(r=>{ if(r.ok){ const cp=r.clone(); caches.open(CACHE).then(c=>c.put("events.json",cp)); } return r; }).catch(()=>caches.match("events.json")));
+  const live=["events.json","prices.json"].find(f=>u.pathname.endsWith("/"+f));
+  if(live){   // always try for the newest events and prices, fall back to the stored copy offline
+    e.respondWith(fetch(e.request).then(r=>{ if(r.ok){ const cp=r.clone(); caches.open(CACHE).then(c=>c.put(live,cp)); } return r; }).catch(()=>caches.match(live)));
     return;
   }
   e.respondWith(caches.open(CACHE).then(async c=>{
