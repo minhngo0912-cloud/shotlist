@@ -27,9 +27,11 @@
    {
     "d": "2026-10-17",
     "new": 7950,
-    "used": 6119
+    "used": 6119,
+    "eb": 6100
    }
-  ]
+  ],
+  "tip": "Same $7,950 at B&H and Adorama, well above its $6,395 launch price; used saves about $1,850."
  },
  "q328": {
   "new": {
@@ -59,9 +61,11 @@
    {
     "d": "2026-10-17",
     "new": 7350,
-    "used": 5309
+    "used": 5309,
+    "eb": 6000
    }
-  ]
+  ],
+  "tip": "Still Leica's current 28 mm Q3; no successor has been announced."
  },
  "x100vi": {
   "new": {
@@ -91,9 +95,11 @@
    {
     "d": "2026-10-17",
     "new": 1799,
-    "used": 2009
+    "used": 2009,
+    "eb": 1644
    }
-  ]
+  ],
+  "tip": "Backordered at Adorama until December and out of stock at B&H, which is why used sells above new."
  },
  "griv": {
   "new": {
@@ -123,9 +129,11 @@
    {
     "d": "2026-10-17",
     "new": 1597,
-    "used": 1559
+    "used": 1559,
+    "eb": 1500
    }
-  ]
+  ],
+  "tip": "Used is barely cheaper than new right now; new comes with the full warranty."
  },
  "griiix": {
   "new": {
@@ -155,9 +163,11 @@
    {
     "d": "2026-10-17",
     "new": 1247,
-    "used": 1169
+    "used": 1169,
+    "eb": 1099
    }
-  ]
+  ],
+  "tip": "Same price at B&H and Adorama; eBay listings are the cheapest way in."
  },
  "rx1r3": {
   "new": {
@@ -187,9 +197,11 @@
    {
     "d": "2026-10-17",
     "new": 5098,
-    "used": 4249
+    "used": 4249,
+    "eb": 3909
    }
-  ]
+  ],
+  "tip": "Not part of Sony's current cash-back offer, so B&H's price is the price."
  },
  "xe5": {
   "new": {
@@ -214,7 +226,8 @@
     "new": 1899,
     "used": 1449
    }
-  ]
+  ],
+  "tip": "Used prices are for the body alone; no used kits with the 23 mm lens were listed."
  },
  "m11": {
   "used": {
@@ -237,9 +250,11 @@
   "history": [
    {
     "d": "2026-10-17",
-    "used": 6619
+    "used": 6619,
+    "eb": 6500
    }
-  ]
+  ],
+  "tip": "No longer sold new; Leica's M11-P replaced it, so used is the way to buy one."
  },
  "a7c2": {
   "new": {
@@ -277,13 +292,16 @@
    {
     "d": "2026-10-17",
     "new": 2448,
-    "used": 1829
+    "used": 1829,
+    "eb": 1599
    }
-  ]
+  ],
+  "tip": "Sony's $50 cash back is claimed from Sony after you buy, not taken off at checkout."
  },
  "_status": {
   "checked": "2026-10-17",
-  "summary": "9 of 9 cameras updated; deals on Sony A7C II."
+  "summary": "9 of 9 cameras updated; deals on Sony A7C II.",
+  "changes": []
  },
  "_targets": {}
 }

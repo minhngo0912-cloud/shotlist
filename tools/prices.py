@@ -83,6 +83,7 @@ def clean(cid, r, warn):
             out["ebay"] = {k: v for k, v in {"low": lo, "high": hi if hi and hi >= lo and ok(hi, 0.25, 2.0) else None, "cond": txt(e.get("cond"), 40), "n": num(e.get("n")), "url": url(e.get("url")), "via": "search" if e.get("verified") == "search" else None}.items() if v}
         else: warn.append("%s: eBay used price %s rejected" % (cid, e.get("low")))
     if txt(r.get("notes"), 200): out["notes"] = txt(r.get("notes"), 200)
+    if txt(r.get("tip"), 160): out["tip"] = txt(r.get("tip"), 160)
     return out
 
 def best_new(d):
@@ -112,7 +113,7 @@ def main():
     cur, targets = load_dir(a.current), load_dir(a.targets)
     alerted = cur.get("_alerted", {}) if isinstance(cur.get("_alerted"), dict) else {}
     os.makedirs(os.path.join(a.out, "docs"), exist_ok=True)
-    warn, docs, updated, missing = [], {}, [], []
+    warn, docs, updated, missing, changes = [], {}, [], [], []
     for cid in CAMS:
         prev = cur.get(cid, {}) if isinstance(cur.get(cid), dict) else {}
         r = research.get(cid) if isinstance(research.get(cid), dict) else None
@@ -127,6 +128,13 @@ def main():
             pt = {"d": a.today}
             if best_new(doc): pt["new"] = best_new(doc)
             if doc.get("used", {}).get("low"): pt["used"] = doc["used"]["low"]
+            if doc.get("ebay", {}).get("low"): pt["eb"] = doc["ebay"]["low"]
+            # what changed since the previous check, in words for the app's "since the last check" line
+            pn, nn = best_new(prev) if prev else None, best_new(doc)
+            if prev.get("deal") and not doc.get("deal"): changes.append(CAMS[cid][0] + " deal ended")
+            if doc.get("deal") and not prev.get("deal") and prev: changes.append("new deal on the " + CAMS[cid][0])
+            ps, ns = (prev.get("new") or {}).get("stock", ""), (doc.get("new") or {}).get("stock", "")
+            if prev and re.search(r"back.?order|out of stock|pre.?order", ps or "", re.I) and re.match(r"in stock", ns or "", re.I): changes.append(CAMS[cid][0] + " back in stock")
             hist.append(pt)
         if hist: doc["history"] = hist[-HISTORY:]
         if doc: docs[cid] = doc
@@ -150,6 +158,7 @@ def main():
     status = {"checked": a.today, "summary": "%d of %d cameras updated%s%s." % (len(updated), len(CAMS),
               "; deals on " + ", ".join(CAMS[c][0] for c in deals) if deals else "; no deals",
               "; not confirmed: " + ", ".join(CAMS[c][0] for c in missing) if missing else "")[:280]}
+    status["changes"] = changes[:6]
     docs["_status"] = status; docs["_alerted"] = new_alerted
     for k, v in docs.items():
         json.dump(v, open(os.path.join(a.out, "docs", k + ".json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)

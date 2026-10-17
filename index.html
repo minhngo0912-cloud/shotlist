@@ -1117,6 +1117,34 @@ body.lfopen{overflow:hidden}
 .lnav-b{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg);font:inherit;text-align:left;cursor:pointer;min-height:56px}
 .lnav-b span{font-size:12px;font-weight:700;color:var(--muted)} .lnav-b b{font-size:14px;line-height:1.25} .lnav-b.nx{text-align:right;align-items:flex-end}
 .ljump .chip[aria-current=true]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+
+/* Price board */
+.pr-week{margin:0;font-size:14px;line-height:1.4;padding:8px 10px;border-radius:8px;background:var(--panel);border:1px solid var(--line)}
+.pr-board{border:1px solid var(--line);border-radius:12px;background:var(--panel);overflow:hidden}
+.pr-head,.pr-row{display:grid;grid-template-columns:minmax(0,1fr) 70px 78px 42px 14px;gap:6px;align-items:center}
+.pr-head{padding:8px 10px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);border-bottom:1px solid var(--line)} .pr-head span:nth-child(n+2){text-align:right}
+.prices .pc{border:0;border-radius:0;padding:0;background:none;box-shadow:none;border-top:1px solid var(--line)} .prices .pc:first-of-type{border-top:0}
+.prices .pc.hit{box-shadow:inset 3px 0 0 #1e9e48} .prices .pc.deal:not(.hit){box-shadow:inset 3px 0 0 #d9822b}
+.pr-row{width:100%;padding:10px;border:0;background:none;color:var(--fg);font:inherit;text-align:left;cursor:pointer;min-height:56px}
+.pc.open .pr-row{background:var(--bg)}
+.pr-name{display:flex;flex-direction:column;gap:3px;min-width:0} .pr-name b{font-size:14.5px;line-height:1.2}
+.pr-badges{display:flex;flex-wrap:wrap;gap:3px} .pr-badges.all{margin:0 0 8px}
+.pb{font-style:normal;font-size:10.5px;font-weight:700;line-height:1;padding:3px 6px;border-radius:5px;background:var(--line);color:var(--fg);white-space:nowrap}
+.pb.deal{background:rgba(217,130,43,.16);color:#b8620d} .pb.warn{background:rgba(217,72,43,.13);color:#c23f1f} .pb.info{background:rgba(36,99,217,.12);color:var(--blue)} .pb.muted{color:var(--muted)} .pb.hit{background:#1e9e48;color:#fff}
+.pr-p{display:flex;flex-direction:column;align-items:flex-end;font-size:14.5px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.15} .pr-p small{font-size:10.5px;font-weight:600;color:var(--muted)} .pr-p em{font-style:normal;font-size:11.5px;font-weight:600;color:var(--muted)}
+.pd{font-style:normal;font-size:10.5px;font-weight:700} .pd.dn{color:#1e9e48} .pd.up{color:#c23f1f}
+.pr-s{text-align:right;font-size:13px;font-weight:800;color:#1e9e48;font-variant-numeric:tabular-nums} .pr-s.neg{color:#c23f1f}
+.pr-row .go{color:var(--muted);font-size:13px;text-align:center}
+.pc-d{padding:4px 12px 14px;background:var(--bg)}
+.pscale{display:block;width:100%;height:auto;margin:4px 0 6px}
+.psc-l{font-size:9px;font-weight:700;fill:var(--muted)} .psc-ax{stroke:var(--line);stroke-width:1} .psc-v{font-size:9px;font-weight:700;fill:var(--fg)}
+.psc-r{stroke-width:6;stroke-linecap:round;opacity:.45} .psc-d{stroke:var(--panel);stroke-width:1.5}
+.psc-r.used,.psc-d.used{stroke:var(--blue)} .psc-d.used{fill:var(--blue);stroke:var(--panel)} .psc-r.ebay{stroke:#8a4fd1} .psc-d.ebay{fill:#8a4fd1} .psc-d.new{fill:var(--fg)} .psc-d.deal{fill:#d9822b} .psc-d.sold{fill:#1e9e48}
+.psc-lnch{stroke:var(--muted);stroke-width:1;stroke-dasharray:3 3} .psc-lt{font-size:8.5px;fill:var(--muted)}
+.pc-tip{margin:4px 0 6px;font-size:14px;line-height:1.45}
+.pc-facts{margin:0 0 4px;padding-left:18px;font-size:13px;line-height:1.45;color:var(--muted)}
+.pc-more{margin:8px 0 0;font-size:12.5px;color:var(--muted)} .pc-more summary{cursor:pointer;font-weight:700} .pc-more p{margin:4px 0 0}
+.pr-row>.pr-badges{grid-column:1/-1;margin-top:-2px}
 </style>
 
 <div class="app">
@@ -5639,39 +5667,76 @@ function priceSpark(h){ if(!h||h.length<2) return "";
   return '<svg class="pspark" viewBox="0 0 240 58" role="img" aria-label="Price history"><path d="M4 50H236" class="ps-ax"/>'+line("new")+line("used")+
     '<text x="236" y="8" text-anchor="end" class="ps-t">'+usd(hi)+'</text><text x="236" y="57" text-anchor="end" class="ps-t">'+usd(lo)+'</text><text x="4" y="57" class="ps-t">'+esc(fmtShort(pts[0].d))+'</text></svg>'; }
 const fmtShort = d => { try{ const x=new Date(d+"T12:00:00"); return x.toLocaleDateString("en-US",{month:"short",day:"numeric"}); }catch(e){ return d; } };
-function priceCard(c){ const id=c[0], d=PRICE_DOCS[id]||{}, hit=priceHit(id), t=PRICE_TARGETS[id], nw=d.new, dl=d.deal, us=d.used, so=d.sold, best=priceNewBest(d);
-  const launch=+String(c[12]).replace(/[^0-9]/g,"")||null;
-  const cell=(lab,big,sub,cls)=>'<div class="pc-n'+(cls?' '+cls:'')+'"><span class="pc-l">'+lab+'</span><b>'+big+'</b><span class="pc-s">'+sub+'</span></div>';
-  const newCell = dl&&dl.price ? cell("New, on offer",usd(dl.price)+(dl.was?' <s>'+usd(dl.was)+'</s>':''),esc(dl.seller||"")+(dl.what?' · '+esc(dl.what):'')+(dl.ends?' · until '+esc(fmtShort(dl.ends)):''),"deal")
-    : nw&&nw.price ? cell("New",usd(nw.price),esc(nw.seller||"")+(nw.stock?' · '+esc(nw.stock):'')) : /discontinued|no longer (available|sold)/i.test(d.notes||"") ? cell("New","—","no longer sold new") : cell("New","—","not confirmed this check");
-  const usedCell = us&&us.low ? cell("Used",'from '+usd(us.low),esc(us.seller||"")+(us.cond?' · '+esc(us.cond):'')+(us.high&&us.high>us.low?' · up to '+usd(us.high):'')+(us.n?' · '+us.n+' listed':'')) : cell("Used","—","none confirmed");
-  const eb=d.ebay, ebCell = eb&&eb.low ? cell("Used on eBay",'from '+usd(eb.low),(eb.cond?esc(eb.cond):'')+(eb.high&&eb.high>eb.low?' · up to '+usd(eb.high):'')+(eb.n?' · '+eb.n+' listed':'')+(eb.via==='search'?' · from search results':''),"ebay") : '';
-  const soldCell = so&&so.median ? cell("Sold on eBay",usd(so.median),'median of '+(so.n||'recent')+' sale'+(so.n===1?'':'s')+(so.low&&so.high&&so.high>so.low?', '+usd(so.low)+'–'+usd(so.high):'')+(so.via==='search'?' · from search results':''),"sold") : '';
-  const save = best&&us&&us.low ? Math.round((1-us.low/best)*100) : null;
-  const vsLaunch = best&&launch ? Math.round((best/launch-1)*100) : null;
-  const facts=[save!=null&&save>0?'Used saves '+save+'% on new':null, vsLaunch!=null&&vsLaunch!==0?'New is '+Math.abs(vsLaunch)+'% '+(vsLaunch<0?'below':'above')+' its '+usd(launch)+' launch price':null].filter(Boolean);
+// The best used price anywhere, and where
+function priceUsedBest(d){ const o=[]; if(d.used&&d.used.low) o.push({p:d.used.low,src:d.used.seller||"Dealer",url:d.used.url}); if(d.ebay&&d.ebay.low) o.push({p:d.ebay.low,src:"eBay",url:d.ebay.url}); return o.sort((a,b)=>a.p-b.p)[0]||null; }
+const priceDisc = d => !(d.new&&d.new.price) && /discontinued|no longer (available|sold)/i.test((d.notes||"")+(d.tip||""));
+function priceBadges(id,d){ const b=[], nw=priceNewBest(d), ub=priceUsedBest(d), st=(d.new&&d.new.stock)||"";
+  if(d.deal&&d.deal.price) b.push(["deal","Deal"+(d.deal.ends?" until "+fmtShort(d.deal.ends):"")]);
+  if(priceDisc(d)) b.push(["muted","Discontinued new"]);
+  else if(/back.?order|pre.?order/i.test(st)) b.push(["warn","Backordered"]); else if(/out of stock|unavailable/i.test(st)) b.push(["warn","Out of stock"]);
+  if(nw&&ub&&ub.p>nw) b.push(["warn","Used costs more than new"]);
+  if(ub&&ub.src==="eBay"&&d.used&&d.used.low) b.push(["info","Cheapest on eBay"]);
+  return b; }
+// Change since the previous check, from the history the price check keeps
+function priceDelta(d){ const h=(d.history||[]).filter(p=>p&&p.d); if(h.length<2) return null; const a=h[h.length-2], b=h[h.length-1], u=p=>Math.min(p.used||Infinity,p.eb||Infinity);
+  const dn=a.new&&b.new?b.new-a.new:0, du=isFinite(u(a))&&isFinite(u(b))?u(b)-u(a):0; return {dn,du,since:a.d}; }
+const deltaTag = v => !v||Math.abs(v)<1 ? '' : '<i class="pd '+(v<0?'dn':'up')+'">'+(v<0?'▼':'▲')+usd(Math.abs(v)).replace('$','$')+'</i>';
+// One line for each camera: launch, new, dealers' used range, eBay range and sold, on one scale
+function priceScale(c,d){ const launch=+String(c[12]).replace(/[^0-9]/g,"")||null, nw=d.new&&d.new.price, dl=d.deal&&d.deal.price, us=d.used, eb=d.ebay, so=d.sold;
+  const lanes=[["New",nw||dl?[dl||nw]:null,dl?"deal":"new",dl&&nw?usd(dl)+' (was '+usd(nw)+')':usd(dl||nw)],
+    ["Used, dealers",us&&us.low?[us.low,us.high||us.low]:null,"used",us&&us.low?usd(us.low)+(us.high&&us.high>us.low?'–'+usd(us.high):''):''],
+    ["Used, eBay",eb&&eb.low?[eb.low,eb.high||eb.low]:null,"ebay",eb&&eb.low?usd(eb.low)+(eb.high&&eb.high>eb.low?'–'+usd(eb.high):''):''],
+    ["Sold, eBay",so&&so.median?[so.median]:null,"sold",so&&so.median?usd(so.median):'']].filter(l=>l[1]);
+  if(!lanes.length) return "";
+  const vals=lanes.flatMap(l=>l[1]).concat(launch?[launch]:[]), lo=Math.min(...vals)*0.94, hi=Math.max(...vals)*1.04, X=v=>(84+(v-lo)/(hi-lo)*206).toFixed(1), H=lanes.length*22+18;
+  let g='';
+  lanes.forEach(([lab,v,k,txt],n)=>{ const y=14+n*22; g+='<text x="0" y="'+(y+4)+'" class="psc-l">'+lab+'</text><path d="M84 '+y+'H290" class="psc-ax"/>';
+    if(v.length===2&&v[1]>v[0]) g+='<path d="M'+X(v[0])+' '+y+'H'+X(v[1])+'" class="psc-r '+k+'"/>';
+    g+='<circle cx="'+X(v[0])+'" cy="'+y+'" r="4.5" class="psc-d '+k+'"/>';
+    const mid=(+X(v[0])+ +X(v[v.length-1]))/2, half=txt.length*2.6+2; g+='<text x="'+Math.min(290-half,Math.max(84+half,mid)).toFixed(1)+'" y="'+(y-6)+'" class="psc-v" text-anchor="middle">'+txt+'</text>'; });
+  if(launch){ const x=X(launch); g+='<path d="M'+x+' 4V'+(H-12)+'" class="psc-lnch"/><text x="'+x+'" y="'+(H-2)+'" text-anchor="middle" class="psc-lt">launch '+usd(launch)+'</text>'; }
+  return '<svg class="pscale" viewBox="0 0 300 '+H+'" role="img" aria-label="Prices on one scale">'+g+'</svg>'; }
+function priceRow(c){ const id=c[0], d=PRICE_DOCS[id]||{}, hit=priceHit(id), nw=priceNewBest(d), ub=priceUsedBest(d), del=priceDelta(d), open=state.priceOpen===id;
+  const save=nw&&ub?Math.round((1-ub.p/nw)*100):null, rowB=priceBadges(id,d).filter(b=>b[0]!=="info");
+  const row='<button type="button" class="pr-row" data-popen="'+id+'" aria-expanded="'+open+'">'+
+    '<span class="pr-name"><b>'+esc(camName(id).replace(/-/g,"\u2011"))+'</b></span>'+
+    '<span class="pr-p">'+(nw?usd(nw):priceDisc(d)?'<em>not sold</em>':'—')+deltaTag(del&&del.dn)+'</span>'+
+    '<span class="pr-p">'+(ub?usd(ub.p)+'<small>'+esc(ub.src)+'</small>':'—')+deltaTag(del&&del.du)+'</span>'+
+    '<span class="pr-s'+(save!=null&&save<0?' neg':'')+'">'+(save==null?'':(save>0?'−':'+')+Math.abs(save)+'%')+'</span><span class="go" aria-hidden="true">'+(open?'⌃':'⌄')+'</span>'+
+    (hit||rowB.length?'<span class="pr-badges">'+(hit?'<i class="pb hit">At your alert</i>':'')+rowB.map(([k,t])=>'<i class="pb '+k+'">'+esc(t)+'</i>').join("")+'</span>':'')+'</button>';
+  return '<article class="pc'+(hit?' hit':'')+(d.deal&&d.deal.price?' deal':'')+(open?' open':'')+'" data-pc="'+id+'">'+row+(open?priceDetail(c,d,hit):'')+'</article>'; }
+function priceDetail(c,d,hit){ const id=c[0], t=PRICE_TARGETS[id], nw=d.new, dl=d.deal, us=d.used, eb=d.ebay, so=d.sold, badges=priceBadges(id,d);
   const links=[[nw&&nw.url,(nw&&nw.seller)||"New"],[dl&&dl.url&&dl.url!==(nw&&nw.url)?dl.url:null,((dl&&dl.seller)||"The")+" offer"],[us&&us.url,(us&&us.seller)||"Used"],[eb&&eb.url,"eBay listings"],[so&&so.url,"eBay sold"]].filter(x=>x[0]&&/^https:\/\//.test(x[0]));
+  const facts=[nw&&nw.price?'New at '+esc(nw.seller||'a dealer')+(nw.stock?' ('+esc(nw.stock.toLowerCase())+')':''):null, dl&&dl.price?esc(dl.what||'Offer')+' at '+esc(dl.seller||'')+(dl.ends?', until '+fmtShort(dl.ends):''):null,
+    us&&us.low?esc(us.seller||'Dealer')+': '+(us.n?us.n+' used, ':'')+(us.cond?'lowest '+esc(us.cond.toLowerCase()):''):null, eb&&eb.low?'eBay: '+(eb.n?eb.n+' listings':'listings')+(eb.cond?', lowest '+esc(eb.cond.toLowerCase()):'')+'; no dealer warranty':null,
+    so&&so.median?'eBay sold: median of '+(so.n||'recent')+' sales':null].filter(Boolean);
   let alert;
   if(PRICE_DB) alert='<div class="pc-al"><label>Alert at <span class="pc-in">$<input type="number" inputmode="numeric" min="0" step="50" value="'+(t&&t.target?t.target:'')+'" data-ptin="'+id+'" aria-label="Alert price for '+esc(camName(id))+'"></span></label>'+
       '<select data-ptkind="'+id+'" aria-label="New or used">'+[["any","New or used"],["new","New only"],["used","Used only"]].map(([v,l])=>'<option value="'+v+'"'+((t&&t.kind||"any")===v?' selected':'')+'>'+l+'</option>').join("")+'</select>'+
       '<button type="button" class="chip" data-ptsave="'+id+'">'+(t&&t.target?'Update':'Set alert')+'</button>'+(t&&t.target?'<button type="button" class="linkbtn" data-ptclear="'+id+'">Remove</button>':'')+'</div>';
   else alert='<div class="pc-al ro">'+(t&&t.target?'Alert at <b>'+usd(t.target)+'</b> ('+({any:"new or used",new:"new only",used:"used only"}[t.kind||"any"])+'). ':'No alert set. ')+'<a href="'+PRICE_URL+'" target="_blank" rel="noopener">'+(t&&t.target?'Change':'Set one')+' in the Claude version ↗</a></div>';
-  return '<article class="pc'+(hit?' hit':'')+(dl&&dl.price?' deal':'')+'" data-pc="'+id+'"><header><b>'+esc(camName(id))+'</b><span>'+camEq(id)+' mm · launched '+esc(String(c[12]))+'</span></header>'+
-    (hit?'<p class="pc-hit">At or below your alert: '+hit.kind+' '+usd(hit.price)+(hit.seller?' at '+esc(hit.seller):'')+'</p>':'')+
-    '<div class="pc-nums">'+newCell+usedCell+ebCell+soldCell+'</div>'+
-    (facts.length?'<p class="pc-f">'+facts.join(' · ')+'</p>':'')+
+  return '<div class="pc-d">'+(hit?'<p class="pc-hit">At or below your alert: '+hit.kind+' '+usd(hit.price)+(hit.seller?' at '+esc(hit.seller):'')+'</p>':'')+
+    (badges.some(b=>b[0]==="info")?'<p class="pr-badges all">'+badges.filter(b=>b[0]==="info").map(([k,tx])=>'<i class="pb '+k+'">'+esc(tx)+'</i>').join("")+'</p>':'')+
+    priceScale(c,d)+
+    (d.tip?'<p class="pc-tip"><b>Good to know.</b> '+esc(d.tip)+'</p>':'')+
+    (facts.length?'<ul class="pc-facts">'+facts.map(f=>'<li>'+f+'</li>').join("")+'</ul>':'')+
     (d.history&&d.history.length>1?'<div class="pc-h">'+priceSpark(d.history)+'<span class="pc-key"><i class="k-new"></i>New <i class="k-used"></i>Used from</span></div>':'')+
-    alert+(d.notes?'<p class="pc-note">'+esc(d.notes)+'</p>':'')+
-    (links.length?'<p class="pc-links">'+links.map(([u,l])=>'<a href="'+esc(u)+'" target="_blank" rel="noopener">'+esc(l)+' ↗</a>').join("")+'</p>':'')+'</article>'; }
+    alert+(links.length?'<p class="pc-links">'+links.map(([u,l])=>'<a href="'+esc(u)+'" target="_blank" rel="noopener">'+esc(l)+' ↗</a>').join("")+'</p>':'')+
+    (d.notes?'<details class="pc-more"><summary>Research details</summary><p>'+esc(d.notes)+'</p></details>':'')+'</div>'; }
+// This week: what changed across the cameras since the previous check
+function priceWeek(){ const out=[]; let dn=0, up=0;
+  STREET_CAMS.forEach(c=>{ const d=PRICE_DOCS[c[0]]; if(!d) return; const x=priceDelta(d); if(x){ if(x.dn<0||x.du<0) dn++; if(x.dn>0||x.du>0) up++; } });
+  const deals=STREET_CAMS.filter(c=>(PRICE_DOCS[c[0]]||{}).deal).length, ev=(PRICE_DOCS._status||{}).changes;
+  if(dn) out.push(dn+' price'+(dn>1?'s':'')+' down'); if(up) out.push(up+' up'); if(Array.isArray(ev)) out.push(...ev.slice(0,3)); if(!out.length&&deals) out.push(deals+' deal'+(deals>1?'s':'')+' on now');
+  return out; }
 function learnPrices(){ const st=PRICE_DOCS._status, have=STREET_CAMS.some(c=>PRICE_DOCS[c[0]]);
   if(!have) return '<div class="prices"><p class="hint">'+(PRICE_FILE||PRICE_DB?'No prices yet. The first check fills this in.':'Prices load from the app’s data; open the installed app or the Claude version to see them.')+'</p></div>';
   const cams=STREET_CAMS.slice().sort((a,b)=>(!!priceHit(b[0])-!!priceHit(a[0]))||(!!(PRICE_DOCS[b[0]]||{}).deal-!!(PRICE_DOCS[a[0]]||{}).deal));
-  const hits=cams.filter(c=>priceHit(c[0])).length, deals=cams.filter(c=>(PRICE_DOCS[c[0]]||{}).deal).length;
-  return '<div class="prices"><div class="pr-top"><span>'+(st&&st.checked?'Checked '+esc(fmtShort(st.checked)):'Checked recently')+' · updates Tuesdays and Fridays</span>'+
-      '<span class="pr-pills">'+(hits?'<b class="pill hit">'+hits+' at your alert</b>':'')+(deals?'<b class="pill">'+deals+' deal'+(deals>1?'s':'')+' now</b>':'')+'</span></div>'+
-    (PRICE_DB?'':'')+cams.map(priceCard).join("")+
-    '<p class="hint">Prices in US dollars before tax, from authorised dealers (new), MPB and KEH (used, with a dealer warranty), and eBay (used listings and recent sales, shown separately). Each one was read from the seller’s page on the day checked; prices change daily, so confirm before you buy. Not financial advice.</p>'+
-    (st&&st.summary?'<p class="hint">Last check: '+esc(st.summary)+'</p>':'')+'</div>'; }
+  const wk=priceWeek(), first=!STREET_CAMS.some(c=>priceDelta(PRICE_DOCS[c[0]]||{}));
+  return '<div class="prices"><div class="pr-top"><span>'+(st&&st.checked?'Checked '+esc(fmtShort(st.checked)):'Checked recently')+' · updates Tuesdays and Fridays</span></div>'+
+    '<p class="pr-week"><b>'+(first?'First check.':'Since the last check:')+'</b> '+(first?'Changes show here from the next one.':esc(wk.join(' · ')||'no price changes'))+'</p>'+
+    '<div class="pr-board"><div class="pr-head"><span>Camera</span><span>New</span><span>Best used</span><span>Save</span><span></span></div>'+cams.map(priceRow).join("")+'</div>'+
+    '<p class="hint">Tap a camera for its price scale, sellers and alert. Prices in US dollars before tax: new from authorised dealers, used from MPB and KEH (with a dealer warranty) and eBay (without). Each was read from the seller’s page on the day checked; confirm before you buy. Not financial advice.</p></div>'; }
 // Today: a card when a camera is at or below your alert price
 function priceTodayCard(){ const hits=STREET_CAMS.map(c=>[c[0],priceHit(c[0])]).filter(x=>x[1]); if(!hits.length) return "";
   return '<section class="tcard tdeal"><p class="tlabel">Camera deal</p>'+hits.slice(0,3).map(([id,h])=>'<p class="msg"><b>'+esc(camName(id))+'</b>: '+h.kind+' '+usd(h.price)+(h.seller?' at '+esc(h.seller):'')+' (your alert '+usd(h.target)+')</p>').join("")+
@@ -6137,6 +6202,7 @@ $("learn").addEventListener("click",e=>{
     if(k==="N"){ const L=ZF_N(f).slice().sort((x,y)=>x-y), i=L.indexOf(near3(L,+state.lfN)); state.lfN=L[Math.max(0,Math.min(L.length-1,i+(+d)))]; }
     else { const cur=+state.lfS; let v; if(+d>0) v=ZF_S.find(x=>x>cur+1e-6); else v=[...ZF_S].reverse().find(x=>x<cur-1e-6); if(v!=null) state.lfS=v; }
     e.target.closest(".zf").outerHTML=learnDof(); return; }
+  const po=e.target.closest("[data-popen]"); if(po){ const id=po.dataset.popen; state.priceOpen=state.priceOpen===id?null:id; rerenderPrices(); const b=document.querySelector('.pc[data-pc="'+id+'"]'); if(b&&state.priceOpen){ b.scrollIntoView({block:"nearest"}); } const r=document.querySelector('.pc[data-pc="'+id+'"] .pr-row'); if(r) r.focus({preventScroll:true}); return; }
   const pts=e.target.closest("[data-ptsave]"); if(pts){ priceSave(pts.dataset.ptsave,pts.closest(".pc")); return; }
   const ptc=e.target.closest("[data-ptclear]"); if(ptc){ priceClear(ptc.dataset.ptclear); return; }
   const cp=e.target.closest("[data-campick]"); if(cp){ const id=cp.dataset.campick; let L=state.camCmp.filter(x=>x&&STREET_CAMS.some(c=>c[0]===x));

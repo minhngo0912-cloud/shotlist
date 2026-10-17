@@ -17,7 +17,8 @@ Return ONLY a JSON object, no prose before or after, of this shape (one key per 
    "used": {"low": 5100, "high": 5800, "seller": "MPB", "url": "https://...", "cond": "Excellent", "n": 6, "verified": "page"} or null,
    "sold": {"median": 5400, "low": 4900, "high": 5900, "n": 12, "url": "https://...", "verified": "search"} or null,
    "ebay": {"low": 5250, "high": 6100, "cond": "Used - Excellent", "n": 9, "url": "https://...", "verified": "search"} or null,
-   "notes": "anything the reader should know, under 200 characters"
+   "tip": "ONE plain sentence for a buyer, under 140 characters, about what matters most right now (stock, a deal's catch, used vs new, a replacement model). No seller-page jargon, no unit counts.",
+   "notes": "research details: what you checked and could not read, under 200 characters"
  }
 }
 Prices are whole US dollars as numbers.
