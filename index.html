@@ -3493,21 +3493,26 @@ fetch("events.json",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{ if
 const WMO = c => c===0?"Clear":c===1?"Mainly clear":c===2?"Partly cloudy":c===3?"Overcast":(c===45||c===48)?"Fog":(c>=51&&c<=57)?"Drizzle":(c>=61&&c<=67)?"Rain":(c>=71&&c<=77)?"Snow":(c>=80&&c<=82)?"Rain showers":(c===85||c===86)?"Snow showers":c>=95?"Thunderstorm":"";
 WEATHER = store.get("weather",{}) || {};
 let weatherBusy=false;
+const WX_Q="&current=temperature_2m,weather_code,is_day&daily=precipitation_probability_max&hourly=precipitation_probability,precipitation,cloud_cover,weather_code,temperature_2m&timezone=auto&forecast_days=7";
+function wxParse(j){ const cur=j.current||{}, txt=WMO(cur.weather_code); if(typeof cur.temperature_2m!=="number"||!txt) return null;
+  return {updated:new Date().toISOString(),temp_c:cur.temperature_2m,condition:txt,condition_text:txt,is_day:!!cur.is_day,
+    precip_chance_today:j.daily&&j.daily.precipitation_probability_max?j.daily.precipitation_probability_max[0]:undefined,
+    hourly:j.hourly&&j.hourly.time?{time:j.hourly.time,pop:j.hourly.precipitation_probability,mm:j.hourly.precipitation,cc:j.hourly.cloud_cover,code:j.hourly.weather_code,t:j.hourly.temperature_2m}:null}; }
 async function loadWeather(){
   const id=state.city, c=CITIES[id]; if(weatherBusy||typeof c.lat!=="number") return; weatherBusy=true;
   try{
-    const r=await fetch("https://api.open-meteo.com/v1/forecast?latitude="+c.lat+"&longitude="+c.lon+"&current=temperature_2m,weather_code,is_day&daily=precipitation_probability_max&hourly=precipitation_probability,precipitation,cloud_cover,weather_code,temperature_2m&timezone=auto&forecast_days=7");
+    const r=await fetch("https://api.open-meteo.com/v1/forecast?latitude="+c.lat+"&longitude="+c.lon+WX_Q);
     if(!r.ok) throw new Error("weather "+r.status);
-    const j=await r.json(), cur=j.current||{}, txt=WMO(cur.weather_code);
-    if(typeof cur.temperature_2m==="number" && txt){
-      WEATHER[id]={updated:new Date().toISOString(),temp_c:cur.temperature_2m,condition:txt,condition_text:txt,is_day:!!cur.is_day,
-        precip_chance_today:j.daily&&j.daily.precipitation_probability_max?j.daily.precipitation_probability_max[0]:undefined,
-        hourly:j.hourly&&j.hourly.time?{time:j.hourly.time,pop:j.hourly.precipitation_probability,mm:j.hourly.precipitation,cc:j.hourly.cloud_cover,code:j.hourly.weather_code,t:j.hourly.temperature_2m}:null};
-      store.set("weather",WEATHER);
-    }
+    const v=wxParse(await r.json()); if(v){ WEATHER[id]=v; store.set("weather",WEATHER); }
   }catch(e){} finally{ weatherBusy=false; }
   renderNow(); if(state.view==="today") renderToday(); if(state.view==="map"&&$("mapSvg")){ mapDraw(); mapPanel(); } if(state.view==="shoot"&&state.tab==="settings"&&openTip===null&&document.activeElement.id!=="camera") renderCard();
 }
+/* The forecast for where you are, for Light here away from the city. Kept as WEATHER.here with its position; fetched at most every 10 minutes. */
+let wxHereAt=0;
+async function loadWeatherAt(pos){ if(Date.now()-wxHereAt<10*60*1000) return; wxHereAt=Date.now();
+  try{ const r=await fetch("https://api.open-meteo.com/v1/forecast?latitude="+pos.lat.toFixed(3)+"&longitude="+pos.lon.toFixed(3)+WX_Q); if(!r.ok) return;
+    const v=wxParse(await r.json()); if(!v) return; v.lat=+pos.lat.toFixed(3); v.lon=+pos.lon.toFixed(3); WEATHER.here=v; store.set("weather",WEATHER);
+    if(typeof LF!=="undefined"&&LF.open) lfRender(); }catch(e){} }
 loadWeather(); setInterval(loadWeather, 15*60*1000);
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ const w=WEATHER[state.city]; if(!w||Date.now()-new Date(w.updated)>10*60*1000) loadWeather(); } });
 $("city").addEventListener("change",loadWeather);
@@ -3527,7 +3532,14 @@ if("serviceWorker" in navigator){
 function phaseAt(t){ const c=CITIES[state.city]; if(typeof c.lat!=="number") return "mid"; const [rise,set]=sunTimes(t,c.lat,c.lon), m=6e4;
   return (t<rise-30*m||t>+set+30*m) ? "night" : t>set-120*m ? "gold" : t<+rise+180*m ? "am" : "mid"; }
 /* Hourly forecast (installed app only): rain and heavy cloud by hour, used by the map slider, the pins and Plan. */
-function hourlyAt(t){ const w=WEATHER[state.city], h=w&&w.hourly; if(!h||!h.time) return null;
+/* Which forecast to read. Light here sets this while it draws: the city's forecast near the city, the forecast for where you are
+   further out (installed app), or none when there is no forecast for that place. */
+let WX_KEY=null;
+function wxKeyFor(pos){ if(!pos||kmBetween(pos,CITIES[state.city])<30) return null; const w=WEATHER.here;
+  if(w&&w.lat!=null&&kmBetween(pos,w)<15&&Date.now()-new Date(w.updated)<3*36e5) return "here";
+  if(typeof loadWeatherAt==="function") loadWeatherAt(pos); return "none"; }
+function withWx(pos,fn){ const was=WX_KEY; WX_KEY=wxKeyFor(pos); try{ return fn(); } finally{ WX_KEY=was; } }
+function hourlyAt(t){ const w=WEATHER[WX_KEY||state.city], h=w&&w.hourly; if(!h||!h.time) return null;
   const key=t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0")+"T"+String(t.getHours()).padStart(2,"0")+":00", i=h.time.indexOf(key);
   return i<0?null:{pop:h.pop?h.pop[i]:null, mm:h.mm?h.mm[i]:null, cc:h.cc?h.cc[i]:null, code:h.code?h.code[i]:null, temp:h.t?h.t[i]:null}; }
 function skyAt(t){ const f=hourlyAt(t); if(!f) return undefined; const c=f.code;
@@ -3563,6 +3575,18 @@ function wxSvg(x0,y0,wb,h,u){ const s=skyAt(mapNow()); if(!s) return ""; const f
   if(s==="rain") return '<defs><pattern id="rainP" patternUnits="userSpaceOnUse" width="'+f(10*u)+'" height="'+f(18*u)+'" patternTransform="rotate(14)"><path d="M'+f(2*u)+' 0v'+f(7*u)+'M'+f(7*u)+' '+f(9*u)+'v'+f(7*u)+'" stroke-width="'+f(1*u)+'" class="m-rainl"/></pattern></defs><rect '+box+' class="m-wx rain"/><rect '+box+' fill="url(#rainP)" class="m-rainr"/>';
   if(s==="snow") return '<defs><pattern id="snowP" patternUnits="userSpaceOnUse" width="'+f(14*u)+'" height="'+f(14*u)+'"><circle cx="'+f(3*u)+'" cy="'+f(4*u)+'" r="'+f(1.3*u)+'" class="m-snowd"/><circle cx="'+f(10*u)+'" cy="'+f(11*u)+'" r="'+f(1*u)+'" class="m-snowd"/></pattern></defs><rect '+box+' class="m-wx snow"/><rect '+box+' fill="url(#snowP)" class="m-rainr"/>';
   return '<rect '+box+' class="m-wx '+s+'"/>'; }
+/* Inside the five boroughs? The map's land shape (MAPD_LAND) is the city, from NYC Planning's shoreline; MAPD_CTX is the land around it
+   (New Jersey, Westchester, Nassau). On the water, the nearest land decides, so a pier or a ferry counts as the city. */
+let NYC_HIT=null; const NYC_MEMO=new Map();
+function inNYC(pos){ if(!pos||state.city!=="nyc") return false; if(typeof MAPD_LAND==="undefined"||kmBetween(pos,CITIES.nyc)>60) return false;
+  const key=pos.lat.toFixed(4)+","+pos.lon.toFixed(4); if(NYC_MEMO.has(key)) return NYC_MEMO.get(key);
+  let r=false;
+  try{ if(!NYC_HIT){ const c=document.createElement("canvas").getContext("2d"); NYC_HIT={c,L:new Path2D(MAPD_LAND),X:new Path2D(MAPD_CTX)}; }
+    const H=NYC_HIT, at=(la,lo)=>{ const [x,y]=mapXY(la,lo); return H.c.isPointInPath(H.L,x*10,y*10)?1:H.c.isPointInPath(H.X,x*10,y*10)?-1:0; };
+    const h=at(pos.lat,pos.lon), kx=111320*Math.cos(pos.lat*Math.PI/180);
+    if(h) r=h>0; else for(const d of [150,400,900]){ let v=0; for(let i=0;i<12;i++){ const a=i*Math.PI/6; v+=at(pos.lat+Math.cos(a)*d/110540,pos.lon+Math.sin(a)*d/kx); } if(v){ r=v>0; break; } }
+  }catch(e){ r=kmBetween(pos,CITIES.nyc)<12; }
+  if(NYC_MEMO.size>500) NYC_MEMO.clear(); NYC_MEMO.set(key,r); return r; }
 function kmBetween(a,b){ const r=Math.PI/180, h=Math.sin((a.lat-b.lat)*r/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin((a.lon-b.lon)*r/2)**2; return 6371*2*Math.asin(Math.sqrt(h)); }
 function makePlan(){
   const withPos=Object.keys(CITIES[state.city].places).filter(id=>typeof PLACES[id].lat==="number"); if(!withPos.length) return null;
@@ -3942,7 +3966,7 @@ function lightHere(t){ const c=CITIES[state.city], sp=sunPos(t,c.lat,c.lon), tf=
    are standing on. Opens full screen, keeps the screen awake, and updates as you turn and every minute. */
 const LF = {open:false, watch:null, sel:0, timer:0, wake:null, fallback:false};
 /* The sky now, in the words the camera advice uses: clear, partly, cloud, rain, fog, snow or unknown. */
-function lfSky(t){ const s=skyAt(t); if(s!==undefined){ if(s===null){ const f=hourlyAt(t); return f&&f.cc>=50?"partly":"clear"; } return s==="snow"?"snow":s; }
+function lfSky(t){ if(WX_KEY==='none') return 'unknown'; const s=skyAt(t); if(s!==undefined){ if(s===null){ const f=hourlyAt(t); return f&&f.cc>=50?"partly":"clear"; } return s==="snow"?"snow":s; }
   const i=nowInfo(); return i.sky==="sun"?"clear":i.sky==="partly"?"partly":i.sky==="storm"?"rain":i.sky||"unknown"; }
 /* Scene brightness as EV at ISO 100, from the sun's height and the sky (the sunny-16 rule and its relatives). */
 function lfEV(alt,sky){ let ev = alt>=40?15:alt>=20?14.5:alt>=10?14:alt>=6?13:alt>=0?12:alt>=-4?10:alt>=-6?8:7;
@@ -3954,7 +3978,7 @@ const lfShutter = (N,iso,ev) => N*N/Math.pow(2,ev+Math.log2(iso/100));
 const lfShutterText = t => t>=0.5?Math.round(t)+" s":"1/"+[8,15,30,60,125,250,500,1000,2000,4000,8000,16000].reduce((a,b)=>Math.abs(Math.log2(b*t))<Math.abs(Math.log2(a*t))?b:a)+" s";
 const lfISOText = iso => { const steps=[50,100,200,400,800,1600,3200,6400,12500,25000]; return "ISO "+steps.reduce((a,b)=>Math.abs(Math.log2(b/iso))<Math.abs(Math.log2(a/iso))?b:a); };
 /* The street under your feet: the nearest street line within about 70 m, its direction, and which side is in sun. */
-function lfStreet(pos,sp){ if(state.city!=="nyc"||typeof MAPD_ROADS==="undefined") return null; const G=streetGrid(), [px,py]=mapXY(pos.lat,pos.lon), gx=Math.floor(px/10), gy=Math.floor(py/10); let best=null;
+function lfStreet(pos,sp){ if(state.city!=="nyc"||typeof MAPD_ROADS==="undefined"||!inNYC(pos)) return null; const G=streetGrid(), [px,py]=mapXY(pos.lat,pos.lon), gx=Math.floor(px/10), gy=Math.floor(py/10); let best=null;
   for(let x=gx-1;x<=gx+1;x++) for(let y=gy-1;y<=gy+1;y++){ const cell=G.cells.get(x+","+y); if(!cell) continue;
     for(const k of cell){ const ax=G.seg[k], ay=G.seg[k+1], bx=G.seg[k+2], by=G.seg[k+3], L2=(bx-ax)**2+(by-ay)**2; if(L2<0.04) continue;
       const u=Math.max(0,Math.min(1,((px-ax)*(bx-ax)+(py-ay)*(by-ay))/L2)), d=Math.hypot(ax+(bx-ax)*u-px,ay+(by-ay)*u-py); if(!best||d<best.d) best={d,ax,ay,bx,by}; } }
@@ -4128,7 +4152,7 @@ const LF_KIND = {side:"Side light",back:"Into the sun",front:"Sun behind you",sh
    around you, say whether your spot and each sidewalk are in direct sun, which building is in the way, and when that changes. */
 const LFB = {cache:new Map(), busy:false, err:"", key:""};
 const LFB_URL = "https://data.cityofnewyork.us/resource/5zhs-2jue.json";
-const lfbOn = () => typeof loadWeather==="function" && state.city==="nyc";   // the Claude version cannot reach the city's data
+const lfbOn = pos => typeof loadWeather==="function" && state.city==="nyc" && !!pos && inNYC(pos);   // the Claude version cannot reach the city's data
 const lfbKey = pos => (Math.round(pos.lat*500)/500).toFixed(4)+","+(Math.round(pos.lon*380)/380).toFixed(4);   // tiles of about 220 m
 async function lfbLoad(pos){ const key=lfbKey(pos); if(LFB.cache.has(key)||LFB.busy||(LFB.err&&Date.now()-(LFB.errAt||0)<60000)) return; LFB.err=""; LFB.busy=true; LFB.key=key;
   try{ const [clat,clon]=key.split(",").map(Number), kx=111320*Math.cos(clat*Math.PI/180), ky=110540;
@@ -4161,7 +4185,7 @@ function lfbSun(T,pt,t){ const sp=sunPos(t,pt.lat,pt.lon); if(sp.alt<=0.5) retur
 /* When the sun arrives at or leaves a point, looking ahead up to three hours. */
 function lfbChange(T,pt,t){ const now=lfbSun(T,pt,t); if(now.down) return null; for(let m=2;m<=180;m+=2){ const r=lfbSun(T,pt,new Date(+t+m*6e4)); if(r.down) return now.sun?{m,txt:"sunset"}:null; if(r.sun!==now.sun) return {m,txt:r.sun?"arrives":"leaves"}; } return null; }
 const storeys = h => Math.max(1,Math.round(h/3.3));
-function lfbHtml(pos,t,st){ if(!lfbOn()) return ""; const T=lfbTile(pos);
+function lfbHtml(pos,t,st){ if(!lfbOn(pos)) return ""; const T=lfbTile(pos);
   if(!T){ lfbLoad(pos); if(LFB.err) return '<p class="lf-st lf-shade">Building shadows could not load ('+esc(LFB.err)+'). The sunny side above is worked out from the street direction only.</p>'; return '<p class="lf-st lf-shade">Checking the buildings around you…</p>'; }
   const here=lfbSun(T,pos,t); if(here.down) return "";
   const ch=lfbChange(T,pos,t), at=ch?hmText(((t.getHours()*60+t.getMinutes()+ch.m)%1440)):"";
@@ -4439,7 +4463,7 @@ function lfcDraw(){ LFC.raf=0; if(!LFC.on) return; const ov=$("lfcOv"), v=$("lfc
    around it, when the streetlights come on, and the best window to be there. Today, or tomorrow once today's light is over. */
 state.lightSpots=store.get("lightSpots",[])||[];
 const LFD = {key:"", val:null};
-function lfDay(pos,now){ now=now||new Date(); const T=lfbOn()?lfbTile(pos):null;
+function lfDay(pos,now){ now=now||new Date(); const T=lfbOn(pos)?lfbTile(pos):null;
   const build=d0=>{ const steps=[]; for(let m=0;m<1440;m+=5){ const t=new Date(+d0+m*6e4), sp=sunPos(t,pos.lat,pos.lon); steps.push({m,alt:sp.alt,ph:sunPhase(sp.alt)}); }
     const lit=steps.filter(x=>x.ph!=="night"); if(!lit.length) return null; const from=Math.max(0,lit[0].m-30), to=Math.min(1435,lit[lit.length-1].m+35), S=steps.filter(x=>x.m>=from&&x.m<=to);
     if(T) for(const x of S){ if(x.alt>0.5){ const r=lfbSun(T,pos,new Date(+d0+x.m*6e4)); x.sun=!r.down&&r.sun; } else x.sun=false; }
@@ -4464,7 +4488,8 @@ function lfDay(pos,now){ now=now||new Date(); const T=lfbOn()?lfbTile(pos):null;
   if(D){ D.tomorrow=tomorrow; D.best=best; const at=new Date(+D.d0+(best?best.s:720)*6e4), sk=best?skyAt(at):undefined; D.sky=sk===undefined?"":({cloud:"overcast",rain:"rain",snow:"snow",fog:"fog",partly:"some cloud",storm:"storms"})[sk]||(sk===null?"clear":""); }
   LFD.key=key; LFD.val=D; return D; }
 const hmSpan = (a,b) => { const x=hmText(a), y=hmText(b), pa=x.slice(-2); return (pa===y.slice(-2)?x.slice(0,-3):x)+"–"+y; };
-function lfDayHtml(pos,name){ if(lfbOn()&&!lfbTile(pos)) lfbLoad(pos); const D=lfDay(pos); if(!D) return "";
+function lfDayHtml(pos,name){ return withWx(pos,()=>lfDayHtml0(pos,name)); }
+function lfDayHtml0(pos,name){ if(lfbOn(pos)&&!lfbTile(pos)) lfbLoad(pos); const D=lfDay(pos); if(!D) return "";
   const span=D.to-D.from, X=m=>(Math.max(0,Math.min(1,(m-D.from)/span))*100).toFixed(2)+"%", W=(a,b)=>(Math.max(0,(Math.min(b,D.to)-Math.max(a,D.from))/span)*100).toFixed(2)+"%";
   const runs=[]; let c=null; for(const x of D.steps){ if(c&&c.ph===x.ph) c.e=x.m+5; else { c={ph:x.ph,s:x.m,e:x.m+5}; runs.push(c); } }
   const now=new Date(), nm=now.getHours()*60+now.getMinutes(), ticks=[]; for(let h=Math.ceil(D.from/60);h*60<=D.to;h++) if(h%2===0) ticks.push(h*60);
@@ -4480,7 +4505,7 @@ function lfDayHtml(pos,name){ if(lfbOn()&&!lfbTile(pos)) lfbLoad(pos); const D=l
     '<div class="lfd-ticks">'+ticks.map(m=>'<span style="left:'+X(m)+'">'+hmText(m).replace(":00","")+'</span>').join("")+'</div></div>'+
     '<div class="lfd-key"><span><i class="k-sky"></i>Light</span>'+(D.sun?'<span><i class="k-sun"></i>Sun on this spot</span>':'')+'<span><i class="k-best"></i>Best</span><span><i class="k-lights"></i>Streetlights</span></div>'+
     (B?'<p class="lf-st lfd-bl">Best light here'+(D.tomorrow?' tomorrow':'')+': <b>'+hmSpan(B.s,B.e)+'</b>, '+esc(B.txt)+'.'+(D.sky?' Forecast: '+esc(D.sky)+'.':'')+'</p>':'')+
-    '<p class="lf-st lfd-list">'+list.map(esc).join(" · ")+'.'+(!D.hasB&&lfbOn()?' <span class="lf-src">Checking the buildings for direct sun…</span>':'')+'</p>'+
+    '<p class="lf-st lfd-list">'+list.map(esc).join(" · ")+'.'+(!D.hasB&&lfbOn(pos)?' <span class="lf-src">Checking the buildings for direct sun…</span>':'')+'</p>'+
     '<div class="lfd-act">'+(LF.spot||state.pos?'<button type="button" class="chip" data-lf="spot"'+(saved?' aria-pressed="true"':'')+'>'+(saved?'★ Saved spot':'☆ Save this spot')+'</button>':'')+
     (B?(typeof loadWeather==="function"?'<button type="button" class="chip" data-lf="ics">📅 Calendar (.ics)</button>':'')+'<a class="chip" target="_blank" rel="noopener" href="'+esc(lfGcal(pos,name,D))+'">Google Calendar</a>':'')+'</div>'; }
 function lfSpotNear(pos){ return state.lightSpots.find(x=>kmBetween(x,pos)<0.04)||null; }
@@ -4498,13 +4523,13 @@ function lfIcsSave(){ const pos=LF.curPos, D=pos&&lfDay(pos); if(!D||!D.best) re
   try{ const blob=new Blob([txt],{type:"text/calendar"}), u=URL.createObjectURL(blob), a=document.createElement("a"); a.href=u; a.download=f; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),4000); LF.icsMsg="Saved "+f+": open it to add the event to Calendar."; }
   catch(e){ LF.icsMsg="This page cannot save files. Use Google Calendar, or open Shot List from your home screen."; }
   lfRender(); }
-function lfRender(){ const el=$("lightf"); if(!el||!LF.open) return; const real=new Date(), t=new Date(+real+(LF.off||0)*6e4), c=CITIES[state.city];
-  const pos=LF.spot?LF.spot:state.pos&&kmBetween(state.pos,c)<60?state.pos:{lat:c.lat,lon:c.lon}, here=!LF.spot&&pos!==state.pos;
+function lfRender(){ const el=$("lightf"); if(!el||!LF.open) return; const c=CITIES[state.city], pos=LF.spot?LF.spot:state.pos?state.pos:{lat:c.lat,lon:c.lon}; withWx(pos,()=>lfRender0(el,pos)); }
+function lfRender0(el,pos){ const real=new Date(), t=new Date(+real+(LF.off||0)*6e4), c=CITIES[state.city], here=!LF.spot&&pos!==state.pos, out=!here&&!inNYC(pos);
   const {sp,sky,opts}=lfOptions(t,pos), mo=moonPos(t,pos.lat,pos.lon);
   // after dark with a bright moon up, the moon is one more way to point
   if(sp.alt<-0.8&&mo.alt>2&&mo.frac>0.45&&sky!=="cloud"&&sky!=="rain"&&sky!=="fog") opts.push({k:"moon",face:mo.az,title:"Face "+compass(mo.az)+": the moon "+(mo.alt<20?"low over the street":"above the rooftops"),why:(mo.alt<20?"A low moon between buildings is the shot: frame it at the end of a street or beside a water tower.":"The moon is high; it works small in a wide frame of lit windows.")+" Exposed for the street it turns into a white disc, a shape rather than detail. The 75 or 90 mm crop makes it bigger.",recipe:"night",ev:7,comp:"−0.7 EV"});
   if(LF.sel>=opts.length) LF.sel=0; let o=opts[LF.sel]; LF.cur=o;
-  const T=lfbOn()&&sp.alt>0.5?lfbTile(pos):null, here0=T?lfbSun(T,pos,t):null, shaded=here0&&!here0.down&&here0.sun===false&&(sky==="clear"||sky==="partly"||sky==="unknown")&&o.k!=="shade";
+  const T=lfbOn(pos)&&sp.alt>0.5?lfbTile(pos):null, here0=T?lfbSun(T,pos,t):null, shaded=here0&&!here0.down&&here0.sun===false&&(sky==="clear"||sky==="partly"||sky==="unknown")&&o.k!=="shade";
   if(shaded) o=Object.assign({},o,{ev:o.ev-3});   // in a building's shadow there is about three stops less light than in the open street
   const subj=LF.subj||"auto", st=lfStreet(pos,sp), S=lfSettings(o,sky,sp,subj), ph=sunPhase(sp.alt), np=Object.keys(c.places).filter(id=>typeof PLACES[id].lat==="number").map(id=>[id,kmBetween(pos,PLACES[id])]).sort((a,b)=>a[1]-b[1])[0], hood=LF.spot?LF.spot.name:np&&np[1]<0.8?PLACES[np[0]].name:nearestHood(pos.lat,pos.lon);
   const skyWord={clear:"Clear",partly:"Sun and cloud",cloud:"Overcast",rain:"Rain",fog:"Fog",snow:"Snow",unknown:""}[sky]||"";
@@ -4522,6 +4547,7 @@ function lfRender(){ const el=$("lightf"); if(!el||!LF.open) return; const real=
   el.innerHTML='<div class="st-in lf-in"><div class="st-top"><span class="st-where"><b>Light here</b> · '+hmText(t.getHours()*60+t.getMinutes())+(LF.off?' (in '+(LF.off>=60?Math.floor(LF.off/60)+' h '+(LF.off%60?LF.off%60+' min':''):LF.off+' min')+')':'')+(hood&&!here?' · '+(LF.spot?'★ ':'')+esc(hood):'')+'</span><button type="button" class="st-x" data-lf="close" aria-label="Close">×</button></div>'+
     (LF.spot?'<p class="lf-note lf-spotn">Showing your saved spot, not where you are. <button type="button" class="chip" data-lf="unspot">Back to where I am</button></p>':'')+
     (here?'<p class="lf-note">'+(LF.fallback?'Location is off, so this is for Midtown. Allow location for advice on the street you are on.':'Finding where you are… meanwhile this is for Midtown.')+'</p>':'')+
+    (out?'<p class="lf-note">Outside New York City: the sun, times and directions are for '+(LF.spot?'this spot':'where you are')+', but there is no building shade or street direction here'+(WX_KEY==="none"?', and no forecast yet, so check the sky yourself':'')+'.</p>':'')+
     '<p class="lf-sky">'+(sp.alt>0?'Sun '+Math.round(sp.alt)+'° up in the '+compass(sp.az):sp.alt>-6?'Sun just below the horizon to the '+compass(sp.az):'Sun down')+' · '+SUN_PHASE[ph]+(skyWord?' · '+skyWord:'')+moonLine+'</p>'+
     '<div class="lf-dialw">'+lfDial(sp,o.face,mo)+'</div>'+
     '<div class="lf-time"><input type="range" id="lfTime" min="0" max="180" step="5" value="'+(LF.off||0)+'" aria-label="Look ahead: minutes from now"><div class="lf-timel"><span>Now</span><span>+1 h</span><span>+2 h</span><span>+3 h</span></div>'+(LF.off?'<button type="button" class="chip" data-lfat="0">Back to now</button>':'')+'</div>'+

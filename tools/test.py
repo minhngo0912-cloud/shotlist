@@ -538,6 +538,13 @@ def run(path, name):
         tr=pg.evaluate("[document.querySelector('.xp .xtrade')?.textContent||'', document.querySelectorAll('.xp .xr.cam').length, document.querySelector('.xp [data-xmode=A]').getAttribute('aria-pressed')]")
         check("Moving the aperture in A mode shows the camera answering with the ISO, and marks which settings the camera controls", "f/8 → f/5.6" in tr[0] and "ISO 400 → 200" in tr[0] and "stays as bright" in tr[0] and tr[1]==2 and tr[2]=="true", tr)
         no_overflow("Exposure ladder")
+        # Light here outside the city: real sun for the place, no building shade or street direction from NYC data
+        ny=pg.evaluate("[inNYC({lat:40.758,lon:-73.9855}), inNYC({lat:40.7178,lon:-74.0431}), inNYC({lat:40.9573,lon:-73.9632}), inNYC({lat:40.7615,lon:-74.0035}), inNYC({lat:40.58,lon:-74.15}), inNYC({lat:42.3555,lon:-71.0565})]")
+        check("Knows the five boroughs: Midtown, a Hudson pier and Staten Island are in; Jersey City, Demarest and Boston are out", ny==[True,False,False,True,True,False], ny)
+        pg.evaluate("lfOpen({lat:42.3555,lon:-71.0565,name:'Boston'})"); pg.wait_for_timeout(200)
+        lo=pg.evaluate("[document.getElementById('lightf').innerText.includes('Outside New York City'), document.getElementById('lightf').innerText.includes('building heights'), document.getElementById('lightf').innerText.includes('Your street runs'), Math.round(sunPos(new Date(),42.3555,-71.0565).az)===Math.round(LF.cur?sunPos(new Date(),42.3555,-71.0565).az:-1)]")
+        pg.evaluate("lfClose()")
+        check("Light here away from the city says what is missing and shows no building shade or street direction", lo[:3]==[True,False,False], lo)
         # Crop frames: megapixels and distances for each frame
         pg.evaluate("state.lcBody='q343'; state.lcF=75; document.querySelector('.cropw').outerHTML=learnCrop()"); pg.wait_for_timeout(80)
         cr=pg.evaluate("document.querySelector('.cropw .xout').textContent")

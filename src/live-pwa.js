@@ -6,21 +6,26 @@ fetch("events.json",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{ if
 const WMO = c => c===0?"Clear":c===1?"Mainly clear":c===2?"Partly cloudy":c===3?"Overcast":(c===45||c===48)?"Fog":(c>=51&&c<=57)?"Drizzle":(c>=61&&c<=67)?"Rain":(c>=71&&c<=77)?"Snow":(c>=80&&c<=82)?"Rain showers":(c===85||c===86)?"Snow showers":c>=95?"Thunderstorm":"";
 WEATHER = store.get("weather",{}) || {};
 let weatherBusy=false;
+const WX_Q="&current=temperature_2m,weather_code,is_day&daily=precipitation_probability_max&hourly=precipitation_probability,precipitation,cloud_cover,weather_code,temperature_2m&timezone=auto&forecast_days=7";
+function wxParse(j){ const cur=j.current||{}, txt=WMO(cur.weather_code); if(typeof cur.temperature_2m!=="number"||!txt) return null;
+  return {updated:new Date().toISOString(),temp_c:cur.temperature_2m,condition:txt,condition_text:txt,is_day:!!cur.is_day,
+    precip_chance_today:j.daily&&j.daily.precipitation_probability_max?j.daily.precipitation_probability_max[0]:undefined,
+    hourly:j.hourly&&j.hourly.time?{time:j.hourly.time,pop:j.hourly.precipitation_probability,mm:j.hourly.precipitation,cc:j.hourly.cloud_cover,code:j.hourly.weather_code,t:j.hourly.temperature_2m}:null}; }
 async function loadWeather(){
   const id=state.city, c=CITIES[id]; if(weatherBusy||typeof c.lat!=="number") return; weatherBusy=true;
   try{
-    const r=await fetch("https://api.open-meteo.com/v1/forecast?latitude="+c.lat+"&longitude="+c.lon+"&current=temperature_2m,weather_code,is_day&daily=precipitation_probability_max&hourly=precipitation_probability,precipitation,cloud_cover,weather_code,temperature_2m&timezone=auto&forecast_days=7");
+    const r=await fetch("https://api.open-meteo.com/v1/forecast?latitude="+c.lat+"&longitude="+c.lon+WX_Q);
     if(!r.ok) throw new Error("weather "+r.status);
-    const j=await r.json(), cur=j.current||{}, txt=WMO(cur.weather_code);
-    if(typeof cur.temperature_2m==="number" && txt){
-      WEATHER[id]={updated:new Date().toISOString(),temp_c:cur.temperature_2m,condition:txt,condition_text:txt,is_day:!!cur.is_day,
-        precip_chance_today:j.daily&&j.daily.precipitation_probability_max?j.daily.precipitation_probability_max[0]:undefined,
-        hourly:j.hourly&&j.hourly.time?{time:j.hourly.time,pop:j.hourly.precipitation_probability,mm:j.hourly.precipitation,cc:j.hourly.cloud_cover,code:j.hourly.weather_code,t:j.hourly.temperature_2m}:null};
-      store.set("weather",WEATHER);
-    }
+    const v=wxParse(await r.json()); if(v){ WEATHER[id]=v; store.set("weather",WEATHER); }
   }catch(e){} finally{ weatherBusy=false; }
   renderNow(); if(state.view==="today") renderToday(); if(state.view==="map"&&$("mapSvg")){ mapDraw(); mapPanel(); } if(state.view==="shoot"&&state.tab==="settings"&&openTip===null&&document.activeElement.id!=="camera") renderCard();
 }
+/* The forecast for where you are, for Light here away from the city. Kept as WEATHER.here with its position; fetched at most every 10 minutes. */
+let wxHereAt=0;
+async function loadWeatherAt(pos){ if(Date.now()-wxHereAt<10*60*1000) return; wxHereAt=Date.now();
+  try{ const r=await fetch("https://api.open-meteo.com/v1/forecast?latitude="+pos.lat.toFixed(3)+"&longitude="+pos.lon.toFixed(3)+WX_Q); if(!r.ok) return;
+    const v=wxParse(await r.json()); if(!v) return; v.lat=+pos.lat.toFixed(3); v.lon=+pos.lon.toFixed(3); WEATHER.here=v; store.set("weather",WEATHER);
+    if(typeof LF!=="undefined"&&LF.open) lfRender(); }catch(e){} }
 loadWeather(); setInterval(loadWeather, 15*60*1000);
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ const w=WEATHER[state.city]; if(!w||Date.now()-new Date(w.updated)>10*60*1000) loadWeather(); } });
 $("city").addEventListener("change",loadWeather);
