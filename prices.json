@@ -14,6 +14,13 @@
    "cond": "Good",
    "n": 15
   },
+  "ebay": {
+   "low": 6100,
+   "high": 7208,
+   "cond": "Pre-Owned",
+   "n": 5,
+   "url": "https://www.ebay.com/shop/leica-q3-digital-camera?_nkw=leica+q3+digital+camera"
+  },
   "notes": "Adorama also $7,950. Only promo is a free Capture One trial. MPB has 20 units ($6,029-6,569) but the $6,029 grade isn't shown. KEH $6,805-7,118. eBay sold listings unreadable.",
   "checked": "2026-10-17",
   "history": [
@@ -38,6 +45,13 @@
    "url": "https://www.mpb.com/en-us/product/leica-q3",
    "cond": "Good",
    "n": 15
+  },
+  "ebay": {
+   "low": 6000,
+   "high": 6950,
+   "cond": "Used",
+   "n": 2,
+   "url": "https://www.ebay.com/shop/leica-q3-digital-camera?_nkw=leica+q3+digital+camera"
   },
   "notes": "Q3 still current; no successor yet, Q4 only rumored. MPB has 31 units from $4,879, but that grade isn't shown. KEH used $6,002-6,467. eBay unreadable.",
   "checked": "2026-10-17",
@@ -64,6 +78,13 @@
    "cond": "Good",
    "n": 107
   },
+  "ebay": {
+   "low": 1644,
+   "high": 2400,
+   "cond": "Pre-Owned",
+   "n": 9,
+   "url": "https://www.ebay.com/b/Fujifilm-X100-Digital-Cameras/31388/bn_86582793"
+  },
   "notes": "Adorama backorder, ETA 12/2026. B&H $1,799.95, temporarily out of stock. Used units sell above new. KEH out of stock. Amazon blocked. eBay sold not readable.",
   "checked": "2026-10-17",
   "history": [
@@ -88,6 +109,13 @@
    "url": "https://www.mpb.com/en-us/product/ricoh-gr-iv",
    "cond": "Like new",
    "n": 33
+  },
+  "ebay": {
+   "low": 1500,
+   "high": 1750,
+   "cond": "Pre-Owned",
+   "n": 6,
+   "url": "https://www.ebay.com/b/Ricoh-GR-Digital-Cameras/31388/bn_636"
   },
   "notes": "MPB says 33 units from $1,479; only 8 shown (all Like new). Adorama $1,599.95. KEH, Amazon, Ricoh US store, eBay sold not readable.",
   "checked": "2026-10-17",
@@ -114,6 +142,13 @@
    "cond": "Excellent",
    "n": 19
   },
+  "ebay": {
+   "low": 1099,
+   "high": 1535,
+   "cond": "Pre-Owned",
+   "n": 8,
+   "url": "https://www.ebay.com/shop/gr-iii"
+  },
   "notes": "Adorama same $1,246.95 (limited qty). MPB header says from $1,099, unit not seen. KEH, Amazon, Ricoh US store, eBay sold not readable.",
   "checked": "2026-10-17",
   "history": [
@@ -138,6 +173,13 @@
    "url": "https://www.mpb.com/en-us/product/sony-rx1r-iii",
    "cond": "Like new",
    "n": 4
+  },
+  "ebay": {
+   "low": 3909,
+   "high": 4199,
+   "cond": "Used",
+   "n": 2,
+   "url": "https://www.ebay.com/shop/sony-rx1r-iii?_nkw=sony+rx1r+iii"
   },
   "notes": "B&H shows $50 Sony cash back but RX1R III is not on Sony's fall cashback list, so no deal. Best Buy page $4,745 looks stale/unavailable; excluded. KEH used $4,320-$4,440.",
   "checked": "2026-10-17",
@@ -183,6 +225,13 @@
    "cond": "Excellent",
    "n": 14
   },
+  "ebay": {
+   "low": 6500,
+   "high": 7000,
+   "cond": "Pre-Owned",
+   "n": 5,
+   "url": "https://www.ebay.com/shop/leica-m11-camera?_nkw=leica+m11+camera"
+  },
   "notes": "Discontinued new: B&H (black) and Adorama (silver) list it as no longer available; M11-P $10,400 replaces it. Lowest used is silver; MPB black $6,919-7,469. eBay unreadable.",
   "checked": "2026-10-17",
   "history": [
@@ -214,6 +263,13 @@
    "url": "https://www.keh.com/shop/28423756.html",
    "cond": "Excellent",
    "n": 47
+  },
+  "ebay": {
+   "low": 1599,
+   "high": 1799,
+   "cond": "Pre-Owned",
+   "n": 3,
+   "url": "https://www.ebay.com/shop/sony-a7c-ii-body?_nkw=sony+a7c+ii+body"
   },
   "notes": "Cash back is a claim to Sony (alphauniverse.com/fall26-cashback), not instant. Adorama/KEH new also $2,498. MPB says from $1,659, condition not shown; lowest seen $1,839.",
   "checked": "2026-10-17",
