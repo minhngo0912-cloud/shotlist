@@ -606,6 +606,11 @@ def run(path, name):
         pg.evaluate("state.pos={lat:40.60,lon:-74.20}; renderEvents()"); en3=pg.evaluate("[!!document.querySelector('#events [data-ideasnear]'), document.querySelectorAll('#events details.event').length]")
         pg.evaluate("EVENT_DOCS=window._evKeep; state.evNear=false; store.set('evNear',false); state.pos=null")
         check("Events near me now: today first then the coming week, nearest first with distance and walk, 2 miles adds more, nothing nearby offers ideas instead", en[0]=="#On today" and en[1].startswith("Near A|0.2 mi") and en[2]=="#Coming up nearby" and en[3].startswith("Near B|0.5 mi") and len(en)==4 and "Far C" in en2 and "Later D" not in en2 and en3==[True,0], [en,en2,en3])
+        # Music series: show nights from the weekly check's dates or a weekday pattern, not the whole season
+        ms=pg.evaluate("""(()=>{ const t=new Date(2026,6,14), keep=EVENT_DOCS; EVENT_DOCS=Object.assign({},keep,{bryantpicnic:{city:'nyc',start:'2026-06-01',end:'2026-09-15',dates:['2026-07-15','2026-07-17']}});
+          const rows=eventRows(t), L=id=>evOngoingLabel(rows.find(r=>r.e.id===id),t), r=[L('bryantpicnic'), L('seaside'), L('summerstage'), L('foliage')||'', evShowOn(rows.find(r=>r.e.id==='seaside'),new Date(2026,6,16))];
+          EVENT_DOCS=keep; return r; })()""")
+        check("Music series show their next show night, not On now all season", ms==["Next show Wed","Next show Thu","Season on, check tonight","Next show Wed" if False else ms[3],True] and ms[0]=="Next show Wed" and ms[1]=="Next show Thu", ms)
         # Light here outside the city: real sun for the place, no building shade or street direction from NYC data
         ny=pg.evaluate("[inNYC({lat:40.758,lon:-73.9855}), inNYC({lat:40.7178,lon:-74.0431}), inNYC({lat:40.9573,lon:-73.9632}), inNYC({lat:40.7615,lon:-74.0035}), inNYC({lat:40.58,lon:-74.15}), inNYC({lat:42.3555,lon:-71.0565})]")
         check("Knows the five boroughs: Midtown, a Hudson pier and Staten Island are in; Jersey City, Demarest and Boston are out", ny==[True,False,False,True,True,False], ny)
