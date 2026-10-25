@@ -1127,3 +1127,9 @@ body.lfopen{overflow:hidden}
 .pc-facts{margin:0 0 4px;padding-left:18px;font-size:13px;line-height:1.45;color:var(--muted)}
 .pc-more{margin:8px 0 0;font-size:12.5px;color:var(--muted)} .pc-more summary{cursor:pointer;font-weight:700} .pc-more p{margin:4px 0 0}
 .pr-row>.pr-badges{grid-column:1/-1;margin-top:-2px}
+
+/* Events near me */
+.evnearbtn[aria-pressed=true]{background:var(--blue);border-color:var(--blue);color:#fff}
+.evnear{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin:0 0 10px;font-size:14px} .evnear .chip{min-height:34px;font-size:13.5px;padding:0 12px} .evnear .msg{font-size:13px}
+.evgroup{margin:14px 0 6px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.evdist{display:block;font-size:12.5px;font-weight:700;color:var(--blue)}

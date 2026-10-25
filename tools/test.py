@@ -292,7 +292,7 @@ def run(path, name):
         check("Events lists events", pg.evaluate("document.querySelectorAll('#events details').length") > 10); no_overflow("Events"); shot("events")
         el=pg.evaluate("eventLight(EVENTS.find(e=>e.id==='thanksgiving'), new Date(2026,10,26))")
         check("The light during an event: window, sun, sunset and the sunny side of the street", el[0].startswith("8:30 am to 12 pm") and "Sunset" in el[0] and el[1].startswith("Stand on the west side"), el)
-        check("Events carry arrival advice and quick filters", pg.evaluate("[document.querySelectorAll('#events .evquick .chip').length, [...document.querySelectorAll('#events .label')].some(l=>l.textContent==='Getting there and when')]")==[3,True])
+        check("Events carry arrival advice and quick filters", pg.evaluate("[document.querySelectorAll('#events .evquick .chip').length, [...document.querySelectorAll('#events .label')].some(l=>l.textContent==='Getting there and when')]")==[4,True])
         pg.click("#events .evquick [data-q=confirmed]"); pg.wait_for_timeout(100)
         check("Confirmed filter keeps only confirmed events", pg.evaluate("[...document.querySelectorAll('#events details')].every(d=>d.querySelector('.pill')&&d.querySelector('.pill').textContent==='Confirmed')"))
         pg.click("#events .evquick [data-q=confirmed]"); pg.wait_for_timeout(100)
@@ -594,6 +594,18 @@ def run(path, name):
           r.push(!!dd&&dd.querySelectorAll('.pscale circle').length===4&&!!dd.querySelector('.psc-lnch')&&dd.textContent.includes('At or below your alert: used $1,400 at eBay')&&!!dd.querySelector('.pc-al.ro a[href^="https://claude.ai/"]'));
           state.view='today'; render(); r.push((document.querySelector('.tdeal')||{}).textContent||''); PRICE_DOCS={}; PRICE_TARGETS={}; return r; })()""")
         check("Camera prices: a board row per camera, alert hits first, change marks, badges, best used from eBay; a row opens its price scale, sellers and alert; Today card on a hit", pd[:10]==[9,pd[1],"griv,q343","x100vi",True,True,True,True,True,True] and pd[1] in ("griv","q343") and "Leica Q3 43: used $5,000" in pd[10], pd)
+        # Events near me now: within 1 or 2 miles of you, today first, nearest first
+        pg.evaluate("""(()=>{ const d=new Date(), ymd=x=>x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'), plus=n=>ymd(new Date(d.getFullYear(),d.getMonth(),d.getDate()+n));
+          window._evKeep=EVENT_DOCS; EVENT_DOCS=Object.assign({},EVENT_DOCS,{'near-a':{city:'nyc',name:'Near A',type:'festival',start:plus(0),time:'all day',lat:40.7262,lon:-73.9990,map:'x'},'near-b':{city:'nyc',name:'Near B',type:'market',start:plus(3),lat:40.7230,lon:-73.9900,map:'x'},
+            'far-c':{city:'nyc',name:'Far C',type:'parade',start:plus(1),lat:40.7450,lon:-73.9900,map:'x'},'late-d':{city:'nyc',name:'Later D',type:'music',start:plus(10),lat:40.7231,lon:-73.9991,map:'x'}});
+          state.pos={lat:40.7230,lon:-73.9990}; state.evNear=false; state.evRadius=1; state.view='events'; render(); })()""")
+        pg.click("#events [data-evnear]"); pg.wait_for_timeout(300)
+        en=pg.evaluate("[...document.querySelectorAll('#events .evgroup, #events details.event')].map(d=>d.classList.contains('evgroup')?'#'+d.textContent:d.querySelector('.t b').textContent+'|'+((d.querySelector('.evdist')||{}).textContent||''))")
+        pg.click("#events [data-evr='2']"); pg.wait_for_timeout(100)
+        en2=pg.evaluate("[...document.querySelectorAll('#events details.event .t b')].map(b=>b.textContent)")
+        pg.evaluate("state.pos={lat:40.60,lon:-74.20}; renderEvents()"); en3=pg.evaluate("[!!document.querySelector('#events [data-ideasnear]'), document.querySelectorAll('#events details.event').length]")
+        pg.evaluate("EVENT_DOCS=window._evKeep; state.evNear=false; store.set('evNear',false); state.pos=null")
+        check("Events near me now: today first then the coming week, nearest first with distance and walk, 2 miles adds more, nothing nearby offers ideas instead", en[0]=="#On today" and en[1].startswith("Near A|0.2 mi") and en[2]=="#Coming up nearby" and en[3].startswith("Near B|0.5 mi") and len(en)==4 and "Far C" in en2 and "Later D" not in en2 and en3==[True,0], [en,en2,en3])
         # Light here outside the city: real sun for the place, no building shade or street direction from NYC data
         ny=pg.evaluate("[inNYC({lat:40.758,lon:-73.9855}), inNYC({lat:40.7178,lon:-74.0431}), inNYC({lat:40.9573,lon:-73.9632}), inNYC({lat:40.7615,lon:-74.0035}), inNYC({lat:40.58,lon:-74.15}), inNYC({lat:42.3555,lon:-71.0565})]")
         check("Knows the five boroughs: Midtown, a Hudson pier and Staten Island are in; Jersey City, Demarest and Boston are out", ny==[True,False,False,True,True,False], ny)

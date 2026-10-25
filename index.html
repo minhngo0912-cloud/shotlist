@@ -1145,6 +1145,12 @@ body.lfopen{overflow:hidden}
 .pc-facts{margin:0 0 4px;padding-left:18px;font-size:13px;line-height:1.45;color:var(--muted)}
 .pc-more{margin:8px 0 0;font-size:12.5px;color:var(--muted)} .pc-more summary{cursor:pointer;font-weight:700} .pc-more p{margin:4px 0 0}
 .pr-row>.pr-badges{grid-column:1/-1;margin-top:-2px}
+
+/* Events near me */
+.evnearbtn[aria-pressed=true]{background:var(--blue);border-color:var(--blue);color:#fff}
+.evnear{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin:0 0 10px;font-size:14px} .evnear .chip{min-height:34px;font-size:13.5px;padding:0 12px} .evnear .msg{font-size:13px}
+.evgroup{margin:14px 0 6px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.evdist{display:block;font-size:12.5px;font-weight:700;color:var(--blue)}
 </style>
 
 <div class="app">
@@ -2885,7 +2891,7 @@ const store = {
 };
 const state = {
   city: store.get("city","nyc"), intent: store.get("intent","all"), place: store.get("place","all"), when: store.get("when","all"),
-  camera: store.get("camera","q343"), view:"today", tab:"idea", cond:"auto", camCmp:store.get("camCmp",["q343","x100vi","griv"]), lfF:43, lfN:8, lfS:3, drills:new Set(store.get("drills",[])), evType:"all", mapZoom:store.get("mapZoom","city"), ideasMode:store.get("ideasMode","card")==="list"?"list":"card", listView:"browse", home:(h=>h&&typeof h.lat==="number"&&typeof h.lon==="number"?h:null)(store.get("home",null)), homeEdit:false, weekSel:null, mapSel:null, mapEv:null, mapT:null, mapD:0, mapHead:false, heading:null, mapIntent:"all", mapShowEv:store.get("mapShowEv",true)!==false, mapShowLm:store.get("mapShowLm",true)!==false, mapShowSub:store.get("mapShowSub",true)!==false, mapShowStn:store.get("mapShowStn",true)!==false, mapShowSunny:store.get("mapShowSunny",true)!==false, mapShowSpots:store.get("mapShowSpots",true)!==false, mapShowNames:store.get("mapShowNames",true)!==false, mapShowHenge:store.get("mapShowHenge",true)!==false, mapShowFerry:store.get("mapShowFerry",true)!==false, mapRun:null, mapFerry:null, sheet:"peek", mapLm:null, mapSpot:null, notes: store.get("notes",{}) || {}, pos:null, plan:null,
+  camera: store.get("camera","q343"), view:"today", tab:"idea", cond:"auto", camCmp:store.get("camCmp",["q343","x100vi","griv"]), evNear:!!store.get("evNear",false), evRadius:store.get("evRadius",1)===2?2:1, lfF:43, lfN:8, lfS:3, drills:new Set(store.get("drills",[])), evType:"all", mapZoom:store.get("mapZoom","city"), ideasMode:store.get("ideasMode","card")==="list"?"list":"card", listView:"browse", home:(h=>h&&typeof h.lat==="number"&&typeof h.lon==="number"?h:null)(store.get("home",null)), homeEdit:false, weekSel:null, mapSel:null, mapEv:null, mapT:null, mapD:0, mapHead:false, heading:null, mapIntent:"all", mapShowEv:store.get("mapShowEv",true)!==false, mapShowLm:store.get("mapShowLm",true)!==false, mapShowSub:store.get("mapShowSub",true)!==false, mapShowStn:store.get("mapShowStn",true)!==false, mapShowSunny:store.get("mapShowSunny",true)!==false, mapShowSpots:store.get("mapShowSpots",true)!==false, mapShowNames:store.get("mapShowNames",true)!==false, mapShowHenge:store.get("mapShowHenge",true)!==false, mapShowFerry:store.get("mapShowFerry",true)!==false, mapRun:null, mapFerry:null, sheet:"peek", mapLm:null, mapSpot:null, notes: store.get("notes",{}) || {}, pos:null, plan:null,
   saved: new Set(store.get("saved",[])), done: new Set(store.get("done",[])), current:null, history:[],
   log: (o=>o&&typeof o==="object"&&!Array.isArray(o)?o:{})(store.get("log",{})), justShot:null, street:false, stayPrev:null
 };
@@ -3589,6 +3595,9 @@ function calLinks(e,o){ if(!o) return "";
     '<a class="chip" href="'+esc(g)+'" target="_blank" rel="noopener">Google Calendar ↗</a>'+
     (PHOTOS_INLINE ? '<a class="chip" href="data:text/calendar;charset=utf-8,'+encodeURIComponent(ics)+'">Apple Calendar</a>' : '')+'</div></div>';
 }
+// Where you are, for Near me now: a fresh fix each time it is switched on or the Events tab opens with it on
+function evLocate(){ state.evPosErr=false; if(!navigator.geolocation){ state.evPosErr=true; return; }
+  try{ navigator.geolocation.getCurrentPosition(p=>{ state.pos={lat:p.coords.latitude,lon:p.coords.longitude}; if(state.view==="events") renderEvents(); },()=>{ if(!state.pos){ state.evPosErr=true; if(state.view==="events") renderEvents(); } },{timeout:10000,maximumAge:60000}); }catch(e){ state.evPosErr=true; } }
 function renderEvents(){
   const now=new Date(), today=new Date(now.getFullYear(),now.getMonth(),now.getDate()), cam=CAMERAS[state.camera], box=$("events");
   const fmt=(d,o)=>d.toLocaleDateString("en-US",o), dm={weekday:"short",month:"short",day:"numeric"};
@@ -3597,25 +3606,40 @@ function renderEvents(){
   if(state.evType!=="all" && !kinds.includes(state.evType)) state.evType="all";
   const Q=state.evQuick||(state.evQuick=new Set()), lim30=new Date(today.getFullYear(),today.getMonth(),today.getDate()+30);
   const quick=r=>(!Q.has("soon")||(r.o&&r.o[0]<=lim30))&&(!Q.has("confirmed")||r.confirmed)&&(!Q.has("photo")||PHOTO_TYPES.has(r.e.type));
-  const list=(state.evType==="all"?all:all.filter(r=>r.e.type===state.evType)).filter(quick);
-  const chips='<div class="intents evquick">'+[["soon","Next 30 days"],["confirmed","Confirmed"],["photo","Photo events"]].map(([k,l])=>'<button type="button" class="chip" data-q="'+k+'" aria-pressed="'+Q.has(k)+'">'+l+'</button>').join("")+'</div>'+
+  let list=(state.evType==="all"?all:all.filter(r=>r.e.type===state.evType)).filter(quick);
+  const chips='<div class="intents evquick"><button type="button" class="chip evnearbtn" data-evnear="1" aria-pressed="'+!!state.evNear+'">◎ Near me now</button>'+[["soon","Next 30 days"],["confirmed","Confirmed"],["photo","Photo events"]].filter(([k])=>!(state.evNear&&k==="soon")).map(([k,l])=>'<button type="button" class="chip" data-q="'+k+'" aria-pressed="'+Q.has(k)+'">'+l+'</button>').join("")+'</div>'+
     '<div class="intents" id="evTypes"><button type="button" class="chip" data-t="all" aria-pressed="'+(state.evType==="all")+'">All types</button>'+
     kinds.map(k=>'<button type="button" class="chip" data-t="'+k+'" aria-pressed="'+(state.evType===k)+'">'+EVENT_TYPES[k]+' · '+all.filter(r=>r.e.type===k).length+'</button>').join("")+'</div>';
+  // Near me now: events within 1 or 2 miles, on today or in the next 7 days, nearest first
+  const R=state.evRadius===2?2:1, NEAR=!!state.evNear, wk=new Date(today.getFullYear(),today.getMonth(),today.getDate()+7), nm=now.getHours()*60+now.getMinutes(), evMi={}, evWhen={};
+  const nearCtl=NEAR?'<div class="evnear"><span>Within</span>'+[1,2].map(m=>'<button type="button" class="chip" data-evr="'+m+'" aria-pressed="'+(R===m)+'">'+m+' mile'+(m>1?'s':'')+'</button>').join("")+'<span class="msg">'+(state.pos?'of you · on today and the next 7 days':'')+'</span></div>':'';
+  if(NEAR){
+    if(!state.pos){ box.innerHTML='<p class="lead">Events worth shooting near you.</p>'+chips+nearCtl+'<p class="empty">'+(state.evPosErr?'Your location is not available. Allow location access for Shot List, then tap Near me now again.':'Finding where you are…')+'</p>'; return; }
+    list=list.filter(r=>r.o&&!r.cancelled&&r.o[0]<wk&&(r.o[1]||r.o[0])>=today).map(r=>{ const g=r.e.geo||eventGeo(r.e.id); if(!g) return null; const mi=kmBetween(state.pos,{lat:g[0],lon:g[1]})/1.609; if(mi>R) return null;
+        const onDay=r.o[0]<=today, w=onDay?evWindow(r.e,today):null, game=r.game&&evDay(r.game.at)<=today;
+        let k, lab; if(game||onDay){ if(w&&nm>w[1]) return null; k=0; lab=w&&nm<w[0]?'Later today, from '+hmText(w[0]):'On now'; if(game&&!w) lab='Today'; } else { k=1; lab=eventSoon(r.o,today); }
+        evMi[r.e.id]=mi; evWhen[r.e.id]=[k,lab]; return r; }).filter(Boolean)
+      .sort((a,b)=>(evWhen[a.e.id][0]-evWhen[b.e.id][0])||(evMi[a.e.id]-evMi[b.e.id])); }
   const seenVenue=new Set(), shown=list.filter(r=>{ if(!r.game) return true; if(seenVenue.has(r.e.id)) return false; seenVenue.add(r.e.id); return true; });
-  if(!shown.length){ box.innerHTML=(all.length?'<p class="lead">Events worth shooting, soonest first.</p>'+chips+'<p class="empty">Nothing matches these filters.</p>':'<p class="empty">No events listed for this city yet.</p>'); return; }
+  if(!shown.length){ box.innerHTML=NEAR?'<p class="lead">Events worth shooting near you.</p>'+chips+nearCtl+'<p class="empty">Nothing within '+R+' mile'+(R>1?'s':'')+' of you today or in the next 7 days'+(R===1?'. Try 2 miles.':'.')+'</p><button type="button" class="chip" data-ideasnear="1">See shot ideas near you ›</button>'
+      :(all.length?'<p class="lead">Events worth shooting, soonest first.</p>'+chips+'<p class="empty">Nothing matches these filters.</p>':'<p class="empty">No events listed for this city yet.</p>'); return; }
   const st=EVENT_DOCS._status, chk=st&&eParse(st.checked);
-  box.innerHTML='<p class="lead">Events worth shooting, plus photo walks, shows and camera events for photographers, soonest first. '+
+  let lastK=-1;
+  box.innerHTML=(NEAR?'<p class="lead">Events worth shooting near you, nearest first. Distances are straight-line from where you are; walking takes a little longer.</p>'
+      :'<p class="lead">Events worth shooting, plus photo walks, shows and camera events for photographers, soonest first. '+
     (chk?'Dates were last checked on '+fmt(chk,{month:"short",day:"numeric"})+' and the list is rechecked every week. ':'')+
-    'Events marked Confirmed were matched to a published listing. The rest follow each event\'s usual pattern, so confirm before you go.</p>'+chips+shown.map((r,n)=>{
+    'Events marked Confirmed were matched to a published listing. The rest follow each event\'s usual pattern, so confirm before you go.</p>')+chips+nearCtl+shown.map((r,n)=>{
+    const head=NEAR&&evWhen[r.e.id][0]!==lastK?(lastK=evWhen[r.e.id][0],'<p class="evgroup">'+(lastK===0?'On today':'Coming up nearby')+'</p>'):'';
     const e=r.e, o=r.o, yr=o?o[0].getFullYear():today.getFullYear(), other=o&&yr!==today.getFullYear(), games=r.game?list.filter(x=>x.game&&x.e.id===e.id):[];
     const full=o ? fmt(o[0],dm)+(o[1]?" to "+fmt(o[1],dm):"")+(other?", "+yr:"") : "Date not announced";
-    const soon=r.cancelled?"Cancelled":(o?eventSoon(o,today):"");
+    const soon=r.cancelled?"Cancelled":NEAR&&evWhen[e.id]?evWhen[e.id][1]:(o?eventSoon(o,today):"");
+    const mi=NEAR?evMi[e.id]:null, dist=mi!=null?'<span class="evdist">'+(mi<0.1?'Right here':milesText(mi)+' · about '+Math.max(1,Math.round(mi*1.25*20))+' min walk')+'</span>':'';
     const q="https://www.google.com/search?q="+encodeURIComponent(e.name+" "+CITIES[e.city].name+" "+yr+" date route");
     const src=typeof r.source==="string" && /^https:\/\//.test(r.source) ? r.source : null;
-    return '<details class="event" data-id="'+esc(e.id)+'"'+((first?n===0:open.has(e.id))?" open":"")+'><summary>'+
+    return head+'<details class="event" data-id="'+esc(e.id)+'"'+((first?n===0:open.has(e.id))?" open":"")+'><summary>'+
       '<span class="cal">'+(o?'<small>'+fmt(o[0],{month:"short"})+'</small><b>'+o[0].getDate()+'</b>':'<small>TBA</small><b>·</b>')+'</span>'+
-      '<span class="t">'+(EVENT_TYPES[e.type]?'<span class="etag'+(PHOTO_TYPES.has(e.type)?" ph":"")+'">'+EVENT_TYPES[e.type]+'</span>':'')+'<b>'+esc(e.name)+'</b><span>'+esc(r.game?'Next: '+r.game.title+', '+o[0].toLocaleDateString("en-US",{weekday:"short"})+' '+hmText(r.game.at.getHours()*60+r.game.at.getMinutes()):e.where)+'</span></span>'+
-      '<span class="soon'+(/now|Today|Tomorrow|days|Cancelled/.test(soon)?" near":"")+'">'+soon+'</span></summary>'+
+      '<span class="t">'+(EVENT_TYPES[e.type]?'<span class="etag'+(PHOTO_TYPES.has(e.type)?" ph":"")+'">'+EVENT_TYPES[e.type]+'</span>':'')+'<b>'+esc(e.name)+'</b>'+dist+'<span>'+esc(r.game?'Next: '+r.game.title+', '+o[0].toLocaleDateString("en-US",{weekday:"short"})+' '+hmText(r.game.at.getHours()*60+r.game.at.getMinutes()):e.where)+'</span></span>'+
+      '<span class="soon'+(/now|Today|today|Tomorrow|days|Cancelled/.test(soon)?" near":"")+'">'+soon+'</span></summary>'+
       '<div class="event-body"><p class="when">'+full+(e.approx?" (expected)":"")+
         (r.confirmed?' <span class="pill">Confirmed</span>':'')+(r.added?' <span class="pill">New</span>':'')+
         '<span>'+esc(e.time)+(e.approx?". This date is announced each year and may differ.":"")+(e.note?" "+esc(e.note):"")+'</span></p>'+
@@ -6022,6 +6046,7 @@ function render(){
   $("viewToday").hidden=!td; if(td) renderToday();
   $("viewLearn").hidden=!ln; if(ln) renderLearn();
   $("viewMap").hidden=!mp; if(mp) renderMap();
+  if(ev&&state.evNear&&!render._evFix){ render._evFix=true; evLocate(); } if(!ev) render._evFix=false;
   $("viewShoot").hidden=!shoot; $("viewList").hidden=shoot||ev||pl||mp||ln||td; $("viewPlan").hidden=true; $("viewEvents").hidden=!ev; $("bar").hidden=!shoot; $("filters").hidden=ev||pl||mp||ln||td; $("now").hidden=ev||pl||ln||mp||td; document.body.classList.toggle("mapview",mp); $("syncbox").hidden=mp; document.querySelector("footer").hidden=mp; renderNow();
   const tab = ["shoot","browse","saved","again"].includes(state.view) ? "ideas" : state.view==="plan" ? "map" : state.view;
   document.querySelectorAll("#views button").forEach(b=>b.setAttribute("aria-selected",b.dataset.v===tab));
@@ -6104,7 +6129,10 @@ function syncTheme(){ const d=isDark(); $("theme").textContent=d?"☼":"☾"; $(
 $("theme").addEventListener("click",()=>{ const next=isDark()?"light":"dark"; rootEl.setAttribute("data-theme",next); store.set("theme",next); syncTheme(); });
 syncTheme();
 $("events").addEventListener("click",e=>{
-  const q=e.target.closest(".evquick .chip"); if(q){ const k=q.dataset.q, Q=state.evQuick||(state.evQuick=new Set()); if(Q.has(k)) Q.delete(k); else Q.add(k); renderEvents(); return; }
+  const inb=e.target.closest("[data-ideasnear]"); if(inb){ state.place="near"; state.ideasMode="list"; state.view=state.listView||"browse"; render(); fillPlaces(); syncNear(); refilter(); window.scrollTo({top:0}); return; }
+  const nb=e.target.closest("[data-evnear]"); if(nb){ state.evNear=!state.evNear; store.set("evNear",state.evNear); if(state.evNear) evLocate(); renderEvents(); return; }
+  const rb=e.target.closest("[data-evr]"); if(rb){ state.evRadius=+rb.dataset.evr; store.set("evRadius",state.evRadius); renderEvents(); return; }
+  const q=e.target.closest(".evquick [data-q]"); if(q){ const k=q.dataset.q, Q=state.evQuick||(state.evQuick=new Set()); if(Q.has(k)) Q.delete(k); else Q.add(k); renderEvents(); return; }
   const pe=e.target.closest("[data-planev]"); if(pe){ planEvent(pe.dataset.planev); return; }
   const me=e.target.closest("[data-mapev]"); if(me){ const id=me.dataset.mapev, g=eventGeo(id); state.mapT=null; state.view="map"; render(); requestAnimationFrame(()=>requestAnimationFrame(()=>{ state.mapShowEv=true; state.mapEv=id; state.mapSel=null; state.mapSpot=null; state.mapLm=null; state.mapRun=null; state.mapFerry=null; mapPanel(); mapDraw(); if(g){ const [x,y]=mapXY(g[0],g[1]); mapFly(mapAim({cx:x,cy:y,w:Math.min(mapV.w,30)})); } setSheet("half"); })); return; }
   const c=e.target.closest("#evTypes .chip"); if(!c) return; state.evType=c.dataset.t; renderEvents(); });
