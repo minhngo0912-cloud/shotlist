@@ -611,6 +611,23 @@ def run(path, name):
           const rows=eventRows(t), L=id=>evOngoingLabel(rows.find(r=>r.e.id===id),t), r=[L('bryantpicnic'), L('seaside'), L('summerstage'), L('foliage')||'', evShowOn(rows.find(r=>r.e.id==='seaside'),new Date(2026,6,16))];
           EVENT_DOCS=keep; return r; })()""")
         check("Music series show their next show night, not On now all season", ms==["Next show Wed","Next show Thu","Season on, check tonight","Next show Wed" if False else ms[3],True] and ms[0]=="Next show Wed" and ms[1]=="Next show Thu", ms)
+        # Navigation and sheets: tab bar at the bottom, Settings, Filters, Events grouped with a detail sheet
+        pg.evaluate("state.view='today'; render(); window.scrollTo(0,0)"); pg.wait_for_timeout(60)
+        tb=pg.evaluate("(()=>{ const r=$('views').getBoundingClientRect(); return [Math.round(r.bottom)===innerHeight, document.querySelectorAll('#views button svg').length, getComputedStyle($('views')).position]; })()")
+        pg.click("#setOpen"); pg.wait_for_timeout(250); pg.click("#setSheet [data-cam=q328]"); pg.wait_for_timeout(60)
+        st=pg.evaluate("[state.camera, store.get('camera'), document.querySelectorAll('#setCams [aria-checked=true]').length, !!document.querySelector('#setSheet #syncbox'), !!document.querySelector('#setSheet footer')]")
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(250); st.append(pg.evaluate("$('setSheet').hidden"))
+        pg.evaluate("state.camera='q343'; store.set('camera','q343')")
+        pg.click("#vIdeas"); pg.wait_for_timeout(100); pg.evaluate("state.ideasMode='card'; state.view='shoot'; render()")
+        pg.click("#fOpen"); pg.wait_for_timeout(250); pg.click("#intents [data-i=odd]"); pg.wait_for_timeout(80)
+        fs=pg.evaluate("[$('fCount').textContent, $('fShow').textContent.startsWith('Show '), !$('fActive').hidden]")
+        pg.click("#fShow"); pg.wait_for_timeout(250); fs.append(pg.evaluate("$('fSheet').hidden")); pg.click("#fActive [data-fclear]"); pg.wait_for_timeout(80); fs.append(pg.evaluate("[state.intent, $('fCount').hidden]"))
+        pg.click("#vEvents"); pg.wait_for_timeout(150)
+        eg=pg.evaluate("[document.querySelectorAll('#events .evgroup').length>=2, document.querySelectorAll('#events details[open]').length]")
+        pg.click("#events details.event summary"); pg.wait_for_timeout(250)
+        eg.append(pg.evaluate("[!!document.getElementById('evSheet'), !!document.querySelector('#evSheet .event-body .when')]"))
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(100); eg.append(pg.evaluate("!!document.getElementById('evSheet')"))
+        check("Navigation: tab bar fixed at the bottom with icons; Settings changes the camera and closes with Escape; Filters count, show and clear; Events grouped, opening in a sheet", tb==[True,5,"fixed"] and st==["q328","q328",1,True,True,True] and fs[0]=="1" and fs[1] and fs[2] and fs[3] and fs[4]==["all",True] and eg[0] and eg[1]==0 and eg[2]==[True,True] and eg[3]==False, [tb,st,fs,eg])
         # Light here outside the city: real sun for the place, no building shade or street direction from NYC data
         ny=pg.evaluate("[inNYC({lat:40.758,lon:-73.9855}), inNYC({lat:40.7178,lon:-74.0431}), inNYC({lat:40.9573,lon:-73.9632}), inNYC({lat:40.7615,lon:-74.0035}), inNYC({lat:40.58,lon:-74.15}), inNYC({lat:42.3555,lon:-71.0565})]")
         check("Knows the five boroughs: Midtown, a Hudson pier and Staten Island are in; Jersey City, Demarest and Boston are out", ny==[True,False,False,True,True,False], ny)

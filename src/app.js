@@ -2099,8 +2099,7 @@ function renderCard(){ qCount();
     pane='<div class="split"><div class="part"><div><button type="button" class="label tipbtn" data-tip="c" aria-expanded="'+(openTip==="c")+'">'+esc(TECH[co[0]][0])+'</button></div><p>'+esc(co[1])+'</p>'+
       '<p class="tdef"><b>What it means:</b> '+esc(TECH[co[0]][1])+'</p></div>'+composeDemo(co[0],x.id)+'</div>'+photoDemo(co[0],x.id);
   } else if(state.tab==="settings"){
-    pane=variantSwitch(x)+'<div class="field"><label class="label" for="camera">Camera</label><select id="camera">'+
-      Object.entries(CAMERAS).map(([k,v])=>'<option value="'+k+'"'+(k===state.camera?" selected":"")+'>'+esc(v.name)+'</option>').join("")+'</select></div>'+
+    pane=variantSwitch(x)+'<p class="camline">For your <b>'+esc(cam.name)+'</b> <button type="button" class="linkbtn" data-setopen="1">Change camera</button></p>'+
       (su ? '<div><button type="button" class="vals tipbtn" data-tip="exp" aria-expanded="'+(openTip==="exp")+'">'+esc(rec[0])+'</button></div>' : '<span class="vals">'+esc(rec[0])+'</span>')+
       '<p class="note">'+esc(rec[1])+'</p>'+
       (adv.length ? '<div class="adjust"><span class="label">Adjust for now · '+esc(nowLabel(ni))+'</span><ul>'+adv.map(a=>'<li>'+esc(a)+'</li>').join("")+'</ul></div>' : '')+
@@ -2354,7 +2353,8 @@ function evLocate(){ state.evPosErr=false; if(!navigator.geolocation){ state.evP
 function renderEvents(){
   const now=new Date(), today=new Date(now.getFullYear(),now.getMonth(),now.getDate()), cam=CAMERAS[state.camera], box=$("events");
   const fmt=(d,o)=>d.toLocaleDateString("en-US",o), dm={weekday:"short",month:"short",day:"numeric"};
-  const open=new Set([...box.querySelectorAll("details[open]")].map(d=>d.dataset.id)), first=!box.querySelector("details");
+  const wk7=new Date(today.getFullYear(),today.getMonth(),today.getDate()+7), wk42=new Date(today.getFullYear(),today.getMonth(),today.getDate()+42);
+  const grpOf = r => !r.o?3 : r.o[0]<=today?0 : r.o[0]<wk7?1 : r.o[0]<wk42?2 : 3, GRP=["On now","This week","Next few weeks","Later"];
   const all=eventRows(today), kinds=Object.keys(EVENT_TYPES).filter(k=>all.some(r=>r.e.type===k));
   if(state.evType!=="all" && !kinds.includes(state.evType)) state.evType="all";
   const Q=state.evQuick||(state.evQuick=new Set()), lim30=new Date(today.getFullYear(),today.getMonth(),today.getDate()+30);
@@ -2388,14 +2388,15 @@ function renderEvents(){
       :'<p class="lead">Events worth shooting, plus photo walks, shows and camera events for photographers, soonest first. '+
     (chk?'Dates were last checked on '+fmt(chk,{month:"short",day:"numeric"})+' and the list is rechecked every week. ':'')+
     'Events marked Confirmed were matched to a published listing. The rest follow each event\'s usual pattern, so confirm before you go.</p>')+chips+nearCtl+shown.map((r,n)=>{
-    const head=NEAR&&evWhen[r.e.id][0]!==lastK?(lastK=evWhen[r.e.id][0],'<p class="evgroup">'+(lastK===0?'On today':'Coming up nearby')+'</p>'):'';
+    const head=NEAR?(evWhen[r.e.id][0]!==lastK?(lastK=evWhen[r.e.id][0],'<p class="evgroup">'+(lastK===0?'On today':'Coming up nearby')+'</p>'):'')
+      :(grpOf(r)!==lastK?(lastK=grpOf(r),'<p class="evgroup">'+GRP[lastK]+'</p>'):'');
     const e=r.e, o=r.o, yr=o?o[0].getFullYear():today.getFullYear(), other=o&&yr!==today.getFullYear(), games=r.game?list.filter(x=>x.game&&x.e.id===e.id):[];
     const full=o ? fmt(o[0],dm)+(o[1]?" to "+fmt(o[1],dm):"")+(other?", "+yr:"") : "Date not announced";
     const soon=r.cancelled?"Cancelled":NEAR&&evWhen[e.id]?evWhen[e.id][1]:(o?(o[0]<=today?evOngoingLabel(r,today):eventSoon(o,today)):"");
     const mi=NEAR?evMi[e.id]:null, dist=mi!=null?'<span class="evdist">'+(mi<0.1?'Right here':milesText(mi)+' · about '+Math.max(1,Math.round(mi*1.25*20))+' min walk')+'</span>':'';
     const q="https://www.google.com/search?q="+encodeURIComponent(e.name+" "+CITIES[e.city].name+" "+yr+" date route");
     const src=typeof r.source==="string" && /^https:\/\//.test(r.source) ? r.source : null;
-    return head+'<details class="event" data-id="'+esc(e.id)+'"'+((first?n===0:open.has(e.id))?" open":"")+'><summary>'+
+    return head+'<details class="event" data-id="'+esc(e.id)+'"><summary>'+
       '<span class="cal">'+(o?'<small>'+fmt(o[0],{month:"short"})+'</small><b>'+o[0].getDate()+'</b>':'<small>TBA</small><b>·</b>')+'</span>'+
       '<span class="t">'+(EVENT_TYPES[e.type]?'<span class="etag'+(PHOTO_TYPES.has(e.type)?" ph":"")+'">'+EVENT_TYPES[e.type]+'</span>':'')+'<b>'+esc(e.name)+'</b>'+dist+'<span>'+esc(r.game?'Next: '+r.game.title+', '+o[0].toLocaleDateString("en-US",{weekday:"short"})+' '+hmText(r.game.at.getHours()*60+r.game.at.getMinutes()):e.where)+'</span></span>'+
       '<span class="soon'+(/now|Today|today|Tomorrow|days|Cancelled/.test(soon)?" near":"")+'">'+soon+'</span></summary>'+
@@ -2413,7 +2414,16 @@ function renderEvents(){
         '<li><span class="tag"><span class="dot" style="background:'+INTENTS[i[0]].color+'"></span>'+INTENTS[i[0]].name+'</span><b>'+esc(i[1])+'</b><span>'+esc(i[2])+'</span><span class="set">'+esc(cam.recipes[i[3]][0])+'</span></li>').join("")+'</ul></div>':'')+
       calLinks(e,o)+(src?'<a class="check" href="'+esc(src)+'" target="_blank" rel="noopener">Source for this date ↗</a>':'<a class="check" href="'+q+'" target="_blank" rel="noopener">Check this year\'s date and route ↗</a>')+'</div></details>';
   }).join("");
+  if(state.evOpen){ if(box.querySelector('details.event[data-id="'+CSS.escape(state.evOpen)+'"]')) evSheetOpen(state.evOpen,true); else state.evOpen=null; }
 }
+// An event opens in a sheet over the list; it lives inside #events so the buttons in it keep working
+function evSheetOpen(id,quiet){ const box=$("events"), d=box.querySelector('details.event[data-id="'+CSS.escape(id)+'"]'); if(!d) return; evSheetClose(true);
+  state.evOpen=id; const sm=d.querySelector("summary"), body=d.querySelector(".event-body");
+  box.insertAdjacentHTML("beforeend",'<div class="sheet evsheet" id="evSheet"><div class="sh-back" data-esclose="1"></div><div class="sh-panel" role="dialog" aria-modal="true" aria-label="'+esc(d.querySelector(".t b").textContent)+'">'+
+    '<header class="sh-head es-head event">'+sm.innerHTML+'<button type="button" class="sh-x" data-esclose="1" aria-label="Close">×</button></header><div class="sh-body"><div class="event-body es-b">'+body.innerHTML+'</div></div></div></div>');
+  const el=$("evSheet"); document.body.classList.add("sheetopen"); if(quiet) el.classList.add("on"); else requestAnimationFrame(()=>{ el.classList.add("on"); el.querySelector(".sh-x").focus({preventScroll:true}); }); }
+function evSheetClose(silent){ const el=document.getElementById("evSheet"); if(!el) return; el.remove(); if(!silent){ state.evOpen=null; document.body.classList.remove("sheetopen"); const d=document.querySelector('#events details.event[data-id="'+CSS.escape(state.evLast||"")+'"] summary'); if(d) d.focus({preventScroll:true}); } }
+function showEvent(id){ state.view="events"; state.evNear=false; render(); evSheetOpen(id); }
 /*@LIVE@*/
 // Plan an outing: a few stops ordered as a walk, with ideas that suit the light at each stop's time.
 function phaseAt(t){ const c=CITIES[state.city]; if(typeof c.lat!=="number") return "mid"; const [rise,set]=sunTimes(t,c.lat,c.lon), m=6e4;
@@ -2764,7 +2774,7 @@ function sheetGestures(){ const g=$("mapGrab"), sh=$("mapSheet"), peek=sh.queryS
   for(const el of [g,peek]){ el.addEventListener("pointerdown",down); el.addEventListener("pointermove",move); el.addEventListener("pointerup",up); el.addEventListener("pointercancel",up); }
   g.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); setSheet(state.sheet==="peek"?"half":state.sheet==="half"?"full":"peek"); } }); }
 /* Size the map to fill the screen under the header. */
-function mapLayout(){ const m=$("map"); if(!m||state.view!=="map") return; if(state.mapFull) m.style.height=""; else { const top=m.getBoundingClientRect().top+window.scrollY; m.style.height=Math.max(440,Math.round(window.innerHeight-top-10))+"px"; }
+function mapLayout(){ const m=$("map"); if(!m||state.view!=="map") return; if(state.mapFull) m.style.height=""; else { const top=m.getBoundingClientRect().top+window.scrollY; m.style.height=Math.max(440,Math.round(window.innerHeight-top-10-($("views").getBoundingClientRect().height||0)))+"px"; }
   setSheet(state.sheet||"peek",true); headSize(); mapDraw(); }
 /* Map layers you can turn on and off */
 const MAP_LAYERS = [["mapShowEv","Events","Upcoming events, and what is on now","lg ev"],["mapShowLm","Landmarks","Buildings, views and bridge walkway entrances, with tips","lg lmk"],["mapShowSub","Subway lines","In MTA colours","lg sub"],["mapShowStn","Stations","Every subway station when zoomed in","lg stn"],
@@ -4759,8 +4769,10 @@ function render(){
   $("viewToday").hidden=!td; if(td) renderToday();
   $("viewLearn").hidden=!ln; if(ln) renderLearn();
   $("viewMap").hidden=!mp; if(mp) renderMap();
+  if(!ev&&document.getElementById("evSheet")){ evSheetClose(); }
   if(ev&&state.evNear&&!render._evFix){ render._evFix=true; evLocate(); } if(!ev) render._evFix=false;
-  $("viewShoot").hidden=!shoot; $("viewList").hidden=shoot||ev||pl||mp||ln||td; $("viewPlan").hidden=true; $("viewEvents").hidden=!ev; $("bar").hidden=!shoot; $("filters").hidden=ev||pl||mp||ln||td; $("now").hidden=ev||pl||ln||mp||td; document.body.classList.toggle("mapview",mp); $("syncbox").hidden=mp; document.querySelector("footer").hidden=mp; renderNow();
+  fSync(); document.body.classList.toggle("shootbar",shoot);
+  $("viewShoot").hidden=!shoot; $("viewList").hidden=shoot||ev||pl||mp||ln||td; $("viewPlan").hidden=true; $("viewEvents").hidden=!ev; $("bar").hidden=!shoot; $("filters").hidden=ev||pl||mp||ln||td; $("now").hidden=ev||pl||ln||mp||td; document.body.classList.toggle("mapview",mp); renderNow();
   const tab = ["shoot","browse","saved","again"].includes(state.view) ? "ideas" : state.view==="plan" ? "map" : state.view;
   document.querySelectorAll("#views button").forEach(b=>b.setAttribute("aria-selected",b.dataset.v===tab));
   if(["browse","saved","again"].includes(state.view)) state.listView=state.view;
@@ -4810,6 +4822,15 @@ function fillPlaces(){
     groupOptions(placeOrder(), id=>{ const d=milesText(milesTo(PLACES[id])); return '<option value="'+id+'">'+esc(PLACES[id].name)+(d?' · '+d:'')+'</option>'; });
   sel.value=state.place; if(!sel.value){ state.place="all"; sel.value="all"; }
 }
+// The Filters button: how many filters are on, a one-line summary under the search, and the count on the sheet's button
+function fSync(){ const b=$("fCount"); if(!b) return; const parts=[];
+  if(state.intent&&state.intent!=="all"&&INTENTS[state.intent]) parts.push(INTENTS[state.intent].name);
+  if(state.place==="near") parts.push("Near me"); else if(state.place&&state.place!=="all"){ const o=[...$("place").options].find(x=>x.value===state.place); parts.push(o?o.textContent:state.place); }
+  if(state.when&&state.when!=="all"){ const o=[...$("when").options].find(x=>x.value===state.when); parts.push(o?o.textContent:state.when); }
+  if(state.cond&&state.cond!=="auto"){ const o=[...$("cond").options].find(x=>x.value===state.cond); parts.push("Set to "+(o?o.textContent.toLowerCase():state.cond)); }
+  b.hidden=!parts.length; b.textContent=parts.length; $("fOpen").setAttribute("aria-label","Filters"+(parts.length?", "+parts.length+" on":""));
+  const a=$("fActive"); a.hidden=!parts.length; a.innerHTML=parts.length?'<span>Showing</span> '+parts.map(p=>'<button type="button" class="fpill" data-fopen="1">'+esc(p)+'</button>').join("")+'<button type="button" class="linkbtn fx" data-fclear="1">Clear</button>':'';
+  let n=0; try{ n=matches(false).length; }catch(e){} $("fShow").textContent=n?"Show "+n+" idea"+(n===1?"":"s"):"No ideas match: clear a filter"; }
 function syncNear(){ $("near").textContent=state.pos?"Near me ✓":"Near me"; $("near").setAttribute("aria-pressed",!!state.pos); }
 fillPlaces(); fill($("when"),"Any light",WHEN,state.when);
 $("city").addEventListener("change",e=>{state.city=e.target.value;state.place="all";state.history=[];store.set("city",state.city);store.set("place","all");fillPlaces();refilter();});
@@ -4837,11 +4858,29 @@ document.addEventListener("visibilitychange",()=>{ try{ if(!document.hidden&&sta
 // Day and night view. With no saved choice the page follows the device setting.
 const rootEl=document.documentElement;
 const isDark=()=>{ const a=rootEl.getAttribute("data-theme"); return a ? a==="dark" : !!(window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches); };
-function syncTheme(){ const d=isDark(); $("theme").textContent=d?"☼":"☾"; $("theme").setAttribute("aria-label",d?"Switch to day view":"Switch to night view"); $("theme").title=d?"Day view":"Night view"; }
+function syncTheme(){ const a=rootEl.getAttribute("data-theme")||"auto"; document.querySelectorAll("#setTheme [data-th]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.th===a)); }
 { const t=store.get("theme",null); if(t==="dark"||t==="light") rootEl.setAttribute("data-theme",t); }
-$("theme").addEventListener("click",()=>{ const next=isDark()?"light":"dark"; rootEl.setAttribute("data-theme",next); store.set("theme",next); syncTheme(); });
+$("setTheme").addEventListener("click",e=>{ const b=e.target.closest("[data-th]"); if(!b) return; const t=b.dataset.th; if(t==="auto"){ rootEl.removeAttribute("data-theme"); store.set("theme",null); } else { rootEl.setAttribute("data-theme",t); store.set("theme",t); } syncTheme(); if(state.view==="map"&&$("mapSvg")) mapDraw(); });
+/* Sheets: Settings (camera, appearance, home, other devices, about) and the Ideas filters. */
+let sheetFrom=null;
+function sheetOpen(id){ const el=$(id); sheetFrom=document.activeElement; el.hidden=false; document.body.classList.add("sheetopen"); requestAnimationFrame(()=>{ el.classList.add("on"); const f=el.querySelector(".sh-x"); if(f) f.focus({preventScroll:true}); }); }
+function sheetClose(id){ const el=$(id); if(el.hidden) return; el.classList.remove("on"); document.body.classList.remove("sheetopen"); setTimeout(()=>{ el.hidden=true; },180); if(sheetFrom&&sheetFrom.focus) sheetFrom.focus({preventScroll:true}); }
+function renderSettings(){ $("setCams").innerHTML=Object.entries(CAMERAS).map(([k,v])=>'<button type="button" role="radio" class="setcam" data-cam="'+k+'" aria-checked="'+(k===state.camera)+'"><b>'+esc(v.name)+'</b><span>'+(k==="q343"?"43 mm f/2 · crops 60–150 mm":k==="q328"?"28 mm f/1.7 · crops 35–90 mm":k==="iphone"?"Main camera, settings in plain words":"General advice for any camera")+'</span></button>').join("");
+  const h=state.home; $("setHome").textContent=h&&h.lat!=null?"Set ("+(h.mode==="transit"?"by transit":h.mode==="walk"?"on foot":"by car")+"). Today shows when to leave.":"Not set. Set it to see when to leave home for the next good light."; $("setHomeBtn").textContent=h&&h.lat!=null?"Change":"Set home"; syncTheme(); }
+$("setOpen").addEventListener("click",()=>{ renderSettings(); sheetOpen("setSheet"); });
+$("setSheet").addEventListener("click",e=>{ if(e.target.closest("[data-sclose]")){ sheetClose("setSheet"); return; }
+  const c=e.target.closest("[data-cam]"); if(c&&CAMERAS[c.dataset.cam]){ state.camera=c.dataset.cam; store.set("camera",state.camera); openTip=null; renderSettings(); render(); return; }
+  if(e.target.closest("#setHomeBtn")){ sheetClose("setSheet"); state.view="today"; state.homeEdit=true; render(); requestAnimationFrame(()=>{ const t=document.querySelector("#today .thome, #today [data-homesave], #today .homeedit"); if(t) t.scrollIntoView({block:"center"}); }); } });
+$("fOpen").addEventListener("click",()=>{ fSync(); sheetOpen("fSheet"); });
+$("fSheet").addEventListener("click",e=>{ if(e.target.closest("[data-fclose]")) sheetClose("fSheet"); });
+$("fClear").addEventListener("click",()=>{ state.intent="all"; store.set("intent","all"); syncChips(); state.place="all"; state.stayPrev=null; store.set("place","all"); $("place").value="all";
+  state.when="all"; store.set("when","all"); $("when").value="all"; if(state.cond!=="auto"){ state.cond="auto"; $("cond").value="auto"; } refilter(); });
+$("fActive").addEventListener("click",e=>{ if(e.target.closest("[data-fopen]")) { fSync(); sheetOpen("fSheet"); } else if(e.target.closest("[data-fclear]")) $("fClear").click(); });
+document.addEventListener("keydown",e=>{ if(e.key!=="Escape") return; for(const id of ["fSheet","setSheet"]) if(!$(id).hidden){ sheetClose(id); e.preventDefault(); } const es=document.getElementById("evSheet"); if(es){ evSheetClose(); e.preventDefault(); } });
 syncTheme();
 $("events").addEventListener("click",e=>{
+  if(e.target.closest("[data-esclose]")){ evSheetClose(); return; }
+  const sm=e.target.closest("details.event>summary"); if(sm){ e.preventDefault(); const id=sm.parentNode.dataset.id; state.evLast=id; evSheetOpen(id); return; }
   const inb=e.target.closest("[data-ideasnear]"); if(inb){ state.place="near"; state.ideasMode="list"; state.view=state.listView||"browse"; render(); fillPlaces(); syncNear(); refilter(); window.scrollTo({top:0}); return; }
   const nb=e.target.closest("[data-evnear]"); if(nb){ state.evNear=!state.evNear; store.set("evNear",state.evNear); if(state.evNear) evLocate(); renderEvents(); return; }
   const rb=e.target.closest("[data-evr]"); if(rb){ state.evRadius=+rb.dataset.evr; store.set("evRadius",state.evRadius); renderEvents(); return; }
@@ -4855,7 +4894,7 @@ $("pGo").addEventListener("click",()=>{ state.plan=makePlan(); savePlan(); rende
 $("pDay").addEventListener("change",()=>{ const keep=$("pTime").value; renderPlan(); if([...$("pTime").options].some(o=>o.value===keep)) $("pTime").value=keep; });
 $("plan").addEventListener("click",e=>{
   const me=e.target.closest("[data-mapev]"); if(me){ const id=me.dataset.mapev, g=eventGeo(id); state.mapT=null; state.view="map"; render(); requestAnimationFrame(()=>requestAnimationFrame(()=>{ state.mapShowEv=true; state.mapEv=id; state.mapSel=null; state.mapSpot=null; state.mapLm=null; state.mapRun=null; state.mapFerry=null; mapPanel(); mapDraw(); if(g){ const [x,y]=mapXY(g[0],g[1]); mapFly(mapAim({cx:x,cy:y,w:Math.min(mapV.w,30)})); } setSheet("half"); })); return; }
-  const ev=e.target.closest("[data-event]"); if(ev){ state.view="events"; render(); const d=document.querySelector('#events details[data-id="'+ev.dataset.event+'"]'); if(d){ d.open=true; d.scrollIntoView({block:"start"}); } return; }
+  const ev=e.target.closest("[data-event]"); if(ev){ showEvent(ev.dataset.event); return; }
   const r=e.target.closest(".row"); if(!r||!r.dataset.id) return; show(r.dataset.id); state.view="shoot"; render(); window.scrollTo({top:0}); });
 state.plan=loadPlan();
 syncNear();
@@ -4920,7 +4959,7 @@ $("map").addEventListener("click",e=>{
   const hb=e.target.closest("[data-head]"); if(hb){ if(state.mapHead){ headUp(false); return; } const ok=headingStart();
     ok.then(r=>{ headUp(true); if(!r){ headMsgShow(); return; } if(!state.pos&&navigator.geolocation){ try{ navigator.geolocation.getCurrentPosition(p=>{ state.pos={lat:p.coords.latitude,lon:p.coords.longitude}; if(state.mapHead&&posOnMap()){ const [x,y]=mapXY(state.pos.lat,state.pos.lon); mapV=mapClamp({cx:x,cy:y,w:Math.min(mapV.w,24)}); mapDraw(); } else if(state.mapHead) offMapMsg(); },()=>{ const pnl=$("mapPanel"); if(pnl&&!pnl.querySelector(".posmsg")) pnl.insertAdjacentHTML("afterbegin",'<p class="msg posmsg">Your location is not available, so the map turns around its centre. Allow location for Shot List to centre it on you.</p>'); },{timeout:10000,maximumAge:60000}); }catch(err){} } });
     return; }
-  const ev=e.target.closest("[data-event]"); if(ev){ state.view="events"; render(); const d=document.querySelector('#events details[data-id="'+ev.dataset.event+'"]'); if(d){ d.open=true; d.scrollIntoView({block:"start"}); } return; }
+  const ev=e.target.closest("[data-event]"); if(ev){ showEvent(ev.dataset.event); return; }
   const r=e.target.closest(".row"); if(r){ show(r.dataset.id); state.view="shoot"; render(); window.scrollTo({top:0}); return; }
   const g=e.target.closest("[data-go]"); if(g){ state.place=g.dataset.go; store.set("place",state.place); fillPlaces(); $("place").value=state.place; state.view="browse"; refilter(); window.scrollTo({top:0}); return; }
   const q=e.target.closest("[data-plan]"); if(q){ state.view="plan"; render(); if(state.mapD&&$("pDay")){ $("pDay").value=String(state.mapD); renderPlan(); } $("pStart").value=q.dataset.plan; window.scrollTo({top:0}); }
@@ -5009,7 +5048,7 @@ $("today").addEventListener("click",e=>{
   const mg=e.target.closest("[data-mapgo]"); if(mg){ const id=mg.dataset.mapgo; state.mapT=state.todayAt; state.view="map"; render(); requestAnimationFrame(()=>requestAnimationFrame(()=>{ mapSelect(id); })); return; }
   const pd=e.target.closest("[data-planday]"); if(pd){ planToday(pd.dataset.planday); return; }
   const gv=e.target.closest("[data-goview]"); if(gv){ state.view=gv.dataset.goview; render(); window.scrollTo({top:0}); return; }
-  const ev=e.target.closest("[data-event]"); if(ev){ state.view="events"; render(); const d=document.querySelector('#events details[data-id="'+ev.dataset.event+'"]'); if(d){ d.open=true; d.scrollIntoView({block:"start"}); } return; }
+  const ev=e.target.closest("[data-event]"); if(ev){ showEvent(ev.dataset.event); return; }
   const r=e.target.closest(".row[data-id]"); if(r){ show(r.dataset.id); state.view="shoot"; render(); window.scrollTo({top:0}); }
 });
 setInterval(()=>{ try{ if(state.view==="today"&&!document.hidden) renderToday(); }catch(e){} }, 60000);
@@ -5047,6 +5086,7 @@ $("card").addEventListener("click",e=>{
 });
 $("card").addEventListener("input",e=>{ if(e.target.id!=="note"||!state.current) return;
   const v=e.target.value.trim(); if(v) state.notes[state.current]=e.target.value; else delete state.notes[state.current]; store.set("notes",state.notes); });
+document.addEventListener("click",e=>{ if(e.target.closest&&e.target.closest("[data-setopen]")){ renderSettings(); sheetOpen("setSheet"); } });
 $("card").addEventListener("change",e=>{ if(e.target.id==="camera"){ state.camera=e.target.value; store.set("camera",state.camera); openTip=null; renderCard(); } });
 
 /* Seasonal and event ideas: Work it, tips, Compose, stance, availability and where to stand. */

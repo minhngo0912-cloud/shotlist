@@ -37,7 +37,7 @@
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:16px;line-height:1.45;-webkit-text-size-adjust:100%}
 button,select{font-family:var(--sans)}
-.app{max-width:760px;margin:0 auto;padding-inline:16px;padding-block:16px 120px;display:flex;flex-direction:column;gap:14px}
+.app{max-width:760px;margin:0 auto;padding-inline:16px;padding-block:12px calc(var(--tabh) + 24px);display:flex;flex-direction:column;gap:14px}
 .label{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .dot{width:14px;height:14px;border-radius:50%;flex:none}
 :focus-visible{outline:3px solid var(--blue);outline-offset:2px}
@@ -154,7 +154,7 @@ select{width:100%;min-height:44px;padding:0 10px;border:1.5px solid var(--line);
 .d-edgeline{fill:none;stroke:#c9a400;stroke-width:1.6}
 .d-frame{fill:none;stroke:var(--sign-fg);stroke-width:2} .d-edge{fill:none;stroke:var(--sign-line);stroke-width:2}
 
-.bar{position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px))}
+.bar{position:fixed;left:0;right:0;bottom:var(--tabh);z-index:39;background:var(--bg);border-top:1px solid var(--line);padding:10px 16px}
 .bar-in{max-width:728px;margin:0 auto;display:grid;grid-template-columns:52px 2fr 1fr 1fr;gap:8px}
 .btn{min-height:52px;min-width:0;border-radius:8px;border:1.5px solid var(--fg);background:var(--bg);color:var(--fg);font-weight:700;font-size:16px;cursor:pointer;white-space:nowrap}
 .btn.primary{background:var(--fg);color:var(--bg)}
@@ -431,7 +431,7 @@ footer{font-size:13px;color:var(--muted);max-width:65ch}
 .lk.moon{background:#f2f2e6;border:2px solid #3a3f4d;width:8px;height:8px;border-radius:50%}
 
 /* ===== Map-first layout: the map fills the screen, controls float over it, details live in a sheet ===== */
-body.mapview .app{padding-bottom:8px}
+body.mapview .app{padding-bottom:calc(var(--tabh) + 8px)}
 #map{position:relative;overflow:hidden;border-radius:14px;height:calc(100dvh - 150px);min-height:440px;--sheetH:110px;background:#0e1a2b;box-shadow:0 1px 0 var(--line),0 8px 24px rgba(0,0,0,.18);touch-action:none}
 .mapwrap{position:absolute;inset:0}
 .mapsvg{display:block;width:100%;height:100%;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;background:#0e1a2b}
@@ -1151,6 +1151,51 @@ body.lfopen{overflow:hidden}
 .evnear{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin:0 0 10px;font-size:14px} .evnear .chip{min-height:34px;font-size:13.5px;padding:0 12px} .evnear .msg{font-size:13px}
 .evgroup{margin:14px 0 6px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
 .evdist{display:block;font-size:12.5px;font-weight:700;color:var(--blue)}
+
+/* Bottom tab bar, slim header, sheets */
+:root{--tabh:calc(58px + env(safe-area-inset-bottom,0px))}
+body.shootbar .app{padding-bottom:calc(var(--tabh) + 96px)}
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:grid;grid-template-columns:repeat(5,1fr);height:var(--tabh);padding:0 6px env(safe-area-inset-bottom,0px);background:var(--sign);border-top:1px solid var(--sign-line);margin:0!important;border-radius:0}
+.tabbar button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:0!important;height:58px;padding:0!important;border:0!important;border-radius:0;background:none!important;color:var(--sign-muted);font:inherit;font-size:11px!important;font-weight:700;letter-spacing:.02em;cursor:pointer}
+.tabbar svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.tabbar button[aria-selected="true"]{color:var(--sign-fg)} .tabbar button[aria-selected="true"] svg{stroke:var(--yellow)}
+.tabbar button:focus-visible{outline:2px solid var(--yellow);outline-offset:-4px}
+body.sheetopen .tabbar,body.sheetopen .bar{visibility:hidden}
+.mast{padding:0 12px 0 14px} .mast .top{padding:8px 0} .mast h1{font-size:22px}
+.setbtn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.sheet{position:fixed;inset:0;z-index:1500;display:flex;flex-direction:column;justify-content:flex-end}
+.sheet[hidden]{display:none}
+.sh-back{position:absolute;inset:0;background:rgba(0,0,0,.45);opacity:0;transition:opacity .18s}
+.sh-panel{position:relative;max-height:88dvh;display:flex;flex-direction:column;background:var(--bg);border-radius:16px 16px 0 0;width:100%;max-width:760px;margin:0 auto;transform:translateY(24px);opacity:0;transition:transform .2s ease,opacity .18s;box-shadow:0 -8px 30px rgba(0,0,0,.25)}
+.sheet.on .sh-back{opacity:1} .sheet.on .sh-panel{transform:none;opacity:1}
+@media (prefers-reduced-motion:reduce){ .sh-panel,.sh-back{transition:none} }
+.sh-head{display:flex;align-items:center;gap:10px;padding:14px 14px 10px 16px;border-bottom:1px solid var(--line)} .sh-head h2{margin:0;flex:1;font-size:19px}
+.sh-x{flex:none;width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--panel);color:var(--fg);font-size:22px;line-height:1;cursor:pointer}
+.sh-body{overflow-y:auto;padding:4px 16px 16px;display:flex;flex-direction:column;gap:10px;overscroll-behavior:contain}
+.sh-foot{padding:10px 16px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line)} .sh-foot .btn{width:100%}
+.sh-l{margin:12px 0 0;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+body.sheetopen{overflow:hidden}
+.intents.wrap{flex-wrap:wrap;overflow:visible;margin-inline:0;padding-inline:0}
+.ftop{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center} .ftop .ideamode{margin:0}
+.fbtn{gap:6px;min-height:44px} .fbtn b{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:var(--blue);color:#fff;font-size:12px}
+.factive{margin:-2px 0 0;font-size:13.5px;color:var(--muted)} .factive .linkbtn{font-size:13.5px} .factive .fx{color:var(--muted)}
+.camline{margin:0 0 4px;font-size:14px;color:var(--muted)} .camline b{color:var(--fg)}
+.setcams{display:flex;flex-direction:column;gap:6px} .setcam{display:flex;flex-direction:column;gap:1px;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--panel);color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.setcam b{font-size:15px} .setcam span{font-size:12.5px;color:var(--muted)} .setcam[aria-checked=true]{border-color:var(--fg);box-shadow:0 0 0 1px var(--fg)}
+.seg3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px} .seg3 button{min-height:42px;border:1.5px solid var(--line);border-radius:8px;background:var(--panel);color:var(--fg);font:inherit;font-size:14px;font-weight:700}
+.seg3 button[aria-pressed=true]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.sethome{display:flex;align-items:center;gap:10px;font-size:14px} .sethome span{flex:1;color:var(--muted)}
+.setabout{font-size:13px;color:var(--muted);line-height:1.5;margin:0}
+.sh-body .syncbox{margin:0}
+/* Events: sticky group headings and the event sheet */
+#events .evgroup{position:sticky;top:0;z-index:3;margin:4px -16px -4px;padding:8px 16px;background:var(--bg)}
+.evsheet .es-head{align-items:flex-start} .evsheet .es-head .cal{flex:none} .evsheet .es-head .t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px} .evsheet .es-head .t b{font-size:18px}
+.evsheet .es-head .soon{display:none} .evsheet .sh-body{padding-top:12px}
+
+.evsheet .es-head.event{border:0;border-bottom:1px solid var(--line);border-radius:0;background:none;overflow:visible}
+.evsheet .es-b{border-top:0;padding:0}
+.factive{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.fpill{min-height:30px;padding:0 10px;border:1px solid var(--line);border-radius:15px;background:var(--panel);color:var(--fg);font:inherit;font-size:13px;font-weight:700;cursor:pointer}
 </style>
 
 <div class="app">
@@ -1161,42 +1206,20 @@ body.lfopen{overflow:hidden}
       <label class="label" for="city" hidden>City</label><select id="city" class="citysel" aria-label="City"></select>
     </div>
     <div class="prog"><span id="progress"></span><span class="track"><i id="fill"></i></span></div>
-    <button type="button" class="themebtn" id="theme"></button>
+    <button type="button" class="themebtn setbtn" id="setOpen" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
   </header>
 
-  <nav class="views" id="views" role="tablist" aria-label="View">
-    <button type="button" role="tab" data-v="today" id="vToday">Today</button>
-    <button type="button" role="tab" data-v="ideas" id="vIdeas">Ideas</button>
-    <button type="button" role="tab" data-v="map" id="vMap">Map</button>
-    <button type="button" role="tab" data-v="events" id="vEvents">Events</button>
-    <button type="button" role="tab" data-v="learn" id="vLearn">Learn</button>
-  </nav>
   <div class="drillbar" id="drillBar" role="status" aria-live="polite" hidden></div>
   </div>
 
   <section class="alert" id="rainAlert" aria-live="polite" hidden></section>
 
-  <section class="now" id="now" aria-label="Conditions now">
-    <span class="now-ico" id="nowIco" aria-hidden="true"></span>
-    <div class="now-main"><b id="nowHead"></b><span id="nowSub"></span></div>
-    <select id="cond" aria-label="Conditions">
-      <option value="auto">Auto</option><option value="sun">Bright sun</option><option value="cloud">Overcast</option><option value="rain">Rain</option><option value="fog">Fog</option><option value="snow">Snow</option><option value="dusk">Dusk</option><option value="night">Night</option>
-    </select>
-    <button type="button" class="chip" id="useLight" aria-pressed="false"></button>
-    <p class="lightline" id="lightLine" hidden></p>
-  </section>
 
   <section class="filters" id="filters" aria-label="Filters">
-    <div class="ideamode" id="ideaMode" role="group" aria-label="Show ideas as"><button type="button" data-im="card">One at a time</button><button type="button" data-im="list">List</button></div>
+    <div class="ftop"><div class="ideamode" id="ideaMode" role="group" aria-label="Show ideas as"><button type="button" data-im="card">One at a time</button><button type="button" data-im="list">List</button></div><button type="button" class="chip fbtn" id="fOpen" aria-haspopup="dialog">Filters<b id="fCount" hidden></b></button></div>
     <div class="isearch"><input type="search" id="q" placeholder="Search: steam, neon, shadows, dogs…" aria-label="Search ideas" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"><button type="button" class="chip" id="onNow" aria-pressed="false" title="Only ideas that are on and suit the light right now">On now</button></div>
     <p class="msg isearch-n" id="qCount" hidden></p>
-    <div class="intents" id="intents"></div>
-    <div class="selects">
-      <div class="field"><label class="label" for="place">Place</label><select id="place"></select></div>
-      <div class="field"><label class="label" for="when">Light</label><select id="when"></select></div>
-      <button type="button" class="chip" id="near" aria-pressed="false">Near me</button>
-    </div>
-    <p class="msg" id="nearMsg" hidden></p>
+    <p class="factive" id="fActive" hidden></p>
   </section>
 
   <main id="viewToday" hidden><div id="today"></div></main>
@@ -1216,6 +1239,42 @@ body.lfopen{overflow:hidden}
   <main id="viewMap" hidden><div id="map"></div></main>
   <main id="viewEvents" hidden><div class="list" id="events"></div></main>
 
+
+</div>
+
+<nav class="views tabbar" id="views" role="tablist" aria-label="View"><button type="button" role="tab" data-v="today" id="vToday"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/><circle cx="12" cy="12" r="4"/></svg><span>Today</span></button><button type="button" role="tab" data-v="ideas" id="vIdeas"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3.5" width="13" height="16" rx="2"/><path d="M8 3.5V2.5M7.5 8.5h6M7.5 12h6M7.5 15.5h3.5"/><path d="M20 7v13a1.5 1.5 0 0 1-1.5 1.5H8"/></svg><span>Ideas</span></button><button type="button" role="tab" data-v="map" id="vMap"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6z"/><path d="M9 4v14M15 6v14"/></svg><span>Map</span></button><button type="button" role="tab" data-v="events" id="vEvents"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/><circle cx="8.5" cy="14" r="1.2"/><circle cx="12" cy="14" r="1.2"/></svg><span>Events</span></button><button type="button" role="tab" data-v="learn" id="vLearn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 5.5c3-1.3 5.8-1.3 8.5.5v14c-2.7-1.8-5.5-1.8-8.5-.5zM20.5 5.5c-3-1.3-5.8-1.3-8.5.5v14c2.7-1.8 5.5-1.8 8.5-.5z"/></svg><span>Learn</span></button></nav>
+<div class="sheet" id="fSheet" hidden><div class="sh-back" data-fclose="1"></div><div class="sh-panel" role="dialog" aria-modal="true" aria-labelledby="fTitle">
+  <header class="sh-head"><h2 id="fTitle">Filters</h2><button type="button" class="linkbtn" id="fClear">Clear all</button><button type="button" class="sh-x" data-fclose="1" aria-label="Close">×</button></header>
+  <div class="sh-body">
+  <p class="sh-l">The light now</p>
+  <section class="now" id="now" aria-label="Conditions now">
+    <span class="now-ico" id="nowIco" aria-hidden="true"></span>
+    <div class="now-main"><b id="nowHead"></b><span id="nowSub"></span></div>
+    <select id="cond" aria-label="Conditions">
+      <option value="auto">Auto</option><option value="sun">Bright sun</option><option value="cloud">Overcast</option><option value="rain">Rain</option><option value="fog">Fog</option><option value="snow">Snow</option><option value="dusk">Dusk</option><option value="night">Night</option>
+    </select>
+    <button type="button" class="chip" id="useLight" aria-pressed="false"></button>
+    <p class="lightline" id="lightLine" hidden></p>
+  </section>
+  <p class="sh-l">What you want to show</p>
+  <div class="intents wrap" id="intents"></div>
+  <p class="sh-l">Where and when</p>
+    <div class="selects">
+      <div class="field"><label class="label" for="place">Place</label><select id="place"></select></div>
+      <div class="field"><label class="label" for="when">Light</label><select id="when"></select></div>
+      <button type="button" class="chip" id="near" aria-pressed="false">Near me</button>
+    </div>
+  <p class="msg" id="nearMsg" hidden></p>
+  </div>
+  <div class="sh-foot"><button type="button" class="btn primary" id="fShow" data-fclose="1">Show ideas</button></div>
+</div></div>
+<div class="sheet" id="setSheet" hidden><div class="sh-back" data-sclose="1"></div><div class="sh-panel" role="dialog" aria-modal="true" aria-labelledby="setTitle">
+  <header class="sh-head"><h2 id="setTitle">Settings</h2><button type="button" class="sh-x" data-sclose="1" aria-label="Close">×</button></header>
+  <div class="sh-body">
+  <p class="sh-l">Your camera</p><div class="setcams" id="setCams" role="radiogroup" aria-label="Your camera"></div><p class="msg">Every idea's settings, focus advice and crop frames are written for this camera.</p>
+  <p class="sh-l">Appearance</p><div class="seg3" id="setTheme" role="group" aria-label="Appearance"><button type="button" data-th="auto">Auto</button><button type="button" data-th="light">Light</button><button type="button" data-th="dark">Dark</button></div>
+  <p class="sh-l">Home</p><div class="sethome"><span id="setHome"></span><button type="button" class="chip" id="setHomeBtn">Set home</button></div>
+  <p class="sh-l">Other devices</p>
   <details class="syncbox" id="syncbox">
     <summary>Move saved ideas, shot marks and notes to another device</summary>
     <div class="syncbody">
@@ -1227,10 +1286,10 @@ body.lfopen{overflow:hidden}
       <p class="msg" id="syncMsg" role="status"></p>
     </div>
   </details>
-
-  <footer>Subway photography is allowed by MTA rules without flash, tripods or lights. Diagrams are schematic. Place details were checked against published sources in October 2026; ideas and settings are starting points to test on the street. Saved and shot marks are kept on this device only. Weather data by Open-Meteo.com.</footer>
-</div>
-
+  <p class="sh-l">About</p>
+  <footer class="setabout">Subway photography is allowed by MTA rules without flash, tripods or lights. Diagrams are schematic. Place details were checked against published sources in October 2026; ideas and settings are starting points to test on the street. Saved and shot marks are kept on this device only. Weather data by Open-Meteo.com.</footer>
+  </div>
+</div></div>
 <div id="tipSheet" class="tipwrap" hidden></div>
 <div id="street" class="street" role="dialog" aria-modal="true" aria-label="Street mode" hidden></div>
 <div id="lightf" class="street lightf" role="dialog" aria-modal="true" aria-label="Light where you are" hidden></div>
@@ -3358,8 +3417,7 @@ function renderCard(){ qCount();
     pane='<div class="split"><div class="part"><div><button type="button" class="label tipbtn" data-tip="c" aria-expanded="'+(openTip==="c")+'">'+esc(TECH[co[0]][0])+'</button></div><p>'+esc(co[1])+'</p>'+
       '<p class="tdef"><b>What it means:</b> '+esc(TECH[co[0]][1])+'</p></div>'+composeDemo(co[0],x.id)+'</div>'+photoDemo(co[0],x.id);
   } else if(state.tab==="settings"){
-    pane=variantSwitch(x)+'<div class="field"><label class="label" for="camera">Camera</label><select id="camera">'+
-      Object.entries(CAMERAS).map(([k,v])=>'<option value="'+k+'"'+(k===state.camera?" selected":"")+'>'+esc(v.name)+'</option>').join("")+'</select></div>'+
+    pane=variantSwitch(x)+'<p class="camline">For your <b>'+esc(cam.name)+'</b> <button type="button" class="linkbtn" data-setopen="1">Change camera</button></p>'+
       (su ? '<div><button type="button" class="vals tipbtn" data-tip="exp" aria-expanded="'+(openTip==="exp")+'">'+esc(rec[0])+'</button></div>' : '<span class="vals">'+esc(rec[0])+'</span>')+
       '<p class="note">'+esc(rec[1])+'</p>'+
       (adv.length ? '<div class="adjust"><span class="label">Adjust for now · '+esc(nowLabel(ni))+'</span><ul>'+adv.map(a=>'<li>'+esc(a)+'</li>').join("")+'</ul></div>' : '')+
@@ -3613,7 +3671,8 @@ function evLocate(){ state.evPosErr=false; if(!navigator.geolocation){ state.evP
 function renderEvents(){
   const now=new Date(), today=new Date(now.getFullYear(),now.getMonth(),now.getDate()), cam=CAMERAS[state.camera], box=$("events");
   const fmt=(d,o)=>d.toLocaleDateString("en-US",o), dm={weekday:"short",month:"short",day:"numeric"};
-  const open=new Set([...box.querySelectorAll("details[open]")].map(d=>d.dataset.id)), first=!box.querySelector("details");
+  const wk7=new Date(today.getFullYear(),today.getMonth(),today.getDate()+7), wk42=new Date(today.getFullYear(),today.getMonth(),today.getDate()+42);
+  const grpOf = r => !r.o?3 : r.o[0]<=today?0 : r.o[0]<wk7?1 : r.o[0]<wk42?2 : 3, GRP=["On now","This week","Next few weeks","Later"];
   const all=eventRows(today), kinds=Object.keys(EVENT_TYPES).filter(k=>all.some(r=>r.e.type===k));
   if(state.evType!=="all" && !kinds.includes(state.evType)) state.evType="all";
   const Q=state.evQuick||(state.evQuick=new Set()), lim30=new Date(today.getFullYear(),today.getMonth(),today.getDate()+30);
@@ -3647,14 +3706,15 @@ function renderEvents(){
       :'<p class="lead">Events worth shooting, plus photo walks, shows and camera events for photographers, soonest first. '+
     (chk?'Dates were last checked on '+fmt(chk,{month:"short",day:"numeric"})+' and the list is rechecked every week. ':'')+
     'Events marked Confirmed were matched to a published listing. The rest follow each event\'s usual pattern, so confirm before you go.</p>')+chips+nearCtl+shown.map((r,n)=>{
-    const head=NEAR&&evWhen[r.e.id][0]!==lastK?(lastK=evWhen[r.e.id][0],'<p class="evgroup">'+(lastK===0?'On today':'Coming up nearby')+'</p>'):'';
+    const head=NEAR?(evWhen[r.e.id][0]!==lastK?(lastK=evWhen[r.e.id][0],'<p class="evgroup">'+(lastK===0?'On today':'Coming up nearby')+'</p>'):'')
+      :(grpOf(r)!==lastK?(lastK=grpOf(r),'<p class="evgroup">'+GRP[lastK]+'</p>'):'');
     const e=r.e, o=r.o, yr=o?o[0].getFullYear():today.getFullYear(), other=o&&yr!==today.getFullYear(), games=r.game?list.filter(x=>x.game&&x.e.id===e.id):[];
     const full=o ? fmt(o[0],dm)+(o[1]?" to "+fmt(o[1],dm):"")+(other?", "+yr:"") : "Date not announced";
     const soon=r.cancelled?"Cancelled":NEAR&&evWhen[e.id]?evWhen[e.id][1]:(o?(o[0]<=today?evOngoingLabel(r,today):eventSoon(o,today)):"");
     const mi=NEAR?evMi[e.id]:null, dist=mi!=null?'<span class="evdist">'+(mi<0.1?'Right here':milesText(mi)+' · about '+Math.max(1,Math.round(mi*1.25*20))+' min walk')+'</span>':'';
     const q="https://www.google.com/search?q="+encodeURIComponent(e.name+" "+CITIES[e.city].name+" "+yr+" date route");
     const src=typeof r.source==="string" && /^https:\/\//.test(r.source) ? r.source : null;
-    return head+'<details class="event" data-id="'+esc(e.id)+'"'+((first?n===0:open.has(e.id))?" open":"")+'><summary>'+
+    return head+'<details class="event" data-id="'+esc(e.id)+'"><summary>'+
       '<span class="cal">'+(o?'<small>'+fmt(o[0],{month:"short"})+'</small><b>'+o[0].getDate()+'</b>':'<small>TBA</small><b>·</b>')+'</span>'+
       '<span class="t">'+(EVENT_TYPES[e.type]?'<span class="etag'+(PHOTO_TYPES.has(e.type)?" ph":"")+'">'+EVENT_TYPES[e.type]+'</span>':'')+'<b>'+esc(e.name)+'</b>'+dist+'<span>'+esc(r.game?'Next: '+r.game.title+', '+o[0].toLocaleDateString("en-US",{weekday:"short"})+' '+hmText(r.game.at.getHours()*60+r.game.at.getMinutes()):e.where)+'</span></span>'+
       '<span class="soon'+(/now|Today|today|Tomorrow|days|Cancelled/.test(soon)?" near":"")+'">'+soon+'</span></summary>'+
@@ -3672,7 +3732,16 @@ function renderEvents(){
         '<li><span class="tag"><span class="dot" style="background:'+INTENTS[i[0]].color+'"></span>'+INTENTS[i[0]].name+'</span><b>'+esc(i[1])+'</b><span>'+esc(i[2])+'</span><span class="set">'+esc(cam.recipes[i[3]][0])+'</span></li>').join("")+'</ul></div>':'')+
       calLinks(e,o)+(src?'<a class="check" href="'+esc(src)+'" target="_blank" rel="noopener">Source for this date ↗</a>':'<a class="check" href="'+q+'" target="_blank" rel="noopener">Check this year\'s date and route ↗</a>')+'</div></details>';
   }).join("");
+  if(state.evOpen){ if(box.querySelector('details.event[data-id="'+CSS.escape(state.evOpen)+'"]')) evSheetOpen(state.evOpen,true); else state.evOpen=null; }
 }
+// An event opens in a sheet over the list; it lives inside #events so the buttons in it keep working
+function evSheetOpen(id,quiet){ const box=$("events"), d=box.querySelector('details.event[data-id="'+CSS.escape(id)+'"]'); if(!d) return; evSheetClose(true);
+  state.evOpen=id; const sm=d.querySelector("summary"), body=d.querySelector(".event-body");
+  box.insertAdjacentHTML("beforeend",'<div class="sheet evsheet" id="evSheet"><div class="sh-back" data-esclose="1"></div><div class="sh-panel" role="dialog" aria-modal="true" aria-label="'+esc(d.querySelector(".t b").textContent)+'">'+
+    '<header class="sh-head es-head event">'+sm.innerHTML+'<button type="button" class="sh-x" data-esclose="1" aria-label="Close">×</button></header><div class="sh-body"><div class="event-body es-b">'+body.innerHTML+'</div></div></div></div>');
+  const el=$("evSheet"); document.body.classList.add("sheetopen"); if(quiet) el.classList.add("on"); else requestAnimationFrame(()=>{ el.classList.add("on"); el.querySelector(".sh-x").focus({preventScroll:true}); }); }
+function evSheetClose(silent){ const el=document.getElementById("evSheet"); if(!el) return; el.remove(); if(!silent){ state.evOpen=null; document.body.classList.remove("sheetopen"); const d=document.querySelector('#events details.event[data-id="'+CSS.escape(state.evLast||"")+'"] summary'); if(d) d.focus({preventScroll:true}); } }
+function showEvent(id){ state.view="events"; state.evNear=false; render(); evSheetOpen(id); }
 /* Events file. A weekly task commits events.json to the repository; the app reads it on every open
    and keeps the last copy on the device for offline use. */
 EVENT_DOCS = store.get("events", null) || {"dogparade": {"city": "nyc", "start": "2026-10-17", "time": "Listed as 1 pm to 4 pm. The start time may change", "source": "https://www.nycforfree.co/events/tompkins-square-halloween-dog-parade-2026"}, "halloween": {"city": "nyc", "start": "2026-10-31", "time": "Starts at 7 pm", "where": "Sixth Av, Canal St to 15 St", "source": "https://www.nycforfree.co/events/nyc-village-halloween-parade-2026"}, "tree": {"city": "nyc", "start": "2026-12-02", "source": "https://www.timeout.com/newyork/news/the-2026-rockefeller-center-christmas-tree-lighting-has-officially-been-announced-and-its-happening-earlier-than-you-think-092926"}};
@@ -4069,7 +4138,7 @@ function sheetGestures(){ const g=$("mapGrab"), sh=$("mapSheet"), peek=sh.queryS
   for(const el of [g,peek]){ el.addEventListener("pointerdown",down); el.addEventListener("pointermove",move); el.addEventListener("pointerup",up); el.addEventListener("pointercancel",up); }
   g.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); setSheet(state.sheet==="peek"?"half":state.sheet==="half"?"full":"peek"); } }); }
 /* Size the map to fill the screen under the header. */
-function mapLayout(){ const m=$("map"); if(!m||state.view!=="map") return; if(state.mapFull) m.style.height=""; else { const top=m.getBoundingClientRect().top+window.scrollY; m.style.height=Math.max(440,Math.round(window.innerHeight-top-10))+"px"; }
+function mapLayout(){ const m=$("map"); if(!m||state.view!=="map") return; if(state.mapFull) m.style.height=""; else { const top=m.getBoundingClientRect().top+window.scrollY; m.style.height=Math.max(440,Math.round(window.innerHeight-top-10-($("views").getBoundingClientRect().height||0)))+"px"; }
   setSheet(state.sheet||"peek",true); headSize(); mapDraw(); }
 /* Map layers you can turn on and off */
 const MAP_LAYERS = [["mapShowEv","Events","Upcoming events, and what is on now","lg ev"],["mapShowLm","Landmarks","Buildings, views and bridge walkway entrances, with tips","lg lmk"],["mapShowSub","Subway lines","In MTA colours","lg sub"],["mapShowStn","Stations","Every subway station when zoomed in","lg stn"],
@@ -6064,8 +6133,10 @@ function render(){
   $("viewToday").hidden=!td; if(td) renderToday();
   $("viewLearn").hidden=!ln; if(ln) renderLearn();
   $("viewMap").hidden=!mp; if(mp) renderMap();
+  if(!ev&&document.getElementById("evSheet")){ evSheetClose(); }
   if(ev&&state.evNear&&!render._evFix){ render._evFix=true; evLocate(); } if(!ev) render._evFix=false;
-  $("viewShoot").hidden=!shoot; $("viewList").hidden=shoot||ev||pl||mp||ln||td; $("viewPlan").hidden=true; $("viewEvents").hidden=!ev; $("bar").hidden=!shoot; $("filters").hidden=ev||pl||mp||ln||td; $("now").hidden=ev||pl||ln||mp||td; document.body.classList.toggle("mapview",mp); $("syncbox").hidden=mp; document.querySelector("footer").hidden=mp; renderNow();
+  fSync(); document.body.classList.toggle("shootbar",shoot);
+  $("viewShoot").hidden=!shoot; $("viewList").hidden=shoot||ev||pl||mp||ln||td; $("viewPlan").hidden=true; $("viewEvents").hidden=!ev; $("bar").hidden=!shoot; $("filters").hidden=ev||pl||mp||ln||td; $("now").hidden=ev||pl||ln||mp||td; document.body.classList.toggle("mapview",mp); renderNow();
   const tab = ["shoot","browse","saved","again"].includes(state.view) ? "ideas" : state.view==="plan" ? "map" : state.view;
   document.querySelectorAll("#views button").forEach(b=>b.setAttribute("aria-selected",b.dataset.v===tab));
   if(["browse","saved","again"].includes(state.view)) state.listView=state.view;
@@ -6115,6 +6186,15 @@ function fillPlaces(){
     groupOptions(placeOrder(), id=>{ const d=milesText(milesTo(PLACES[id])); return '<option value="'+id+'">'+esc(PLACES[id].name)+(d?' · '+d:'')+'</option>'; });
   sel.value=state.place; if(!sel.value){ state.place="all"; sel.value="all"; }
 }
+// The Filters button: how many filters are on, a one-line summary under the search, and the count on the sheet's button
+function fSync(){ const b=$("fCount"); if(!b) return; const parts=[];
+  if(state.intent&&state.intent!=="all"&&INTENTS[state.intent]) parts.push(INTENTS[state.intent].name);
+  if(state.place==="near") parts.push("Near me"); else if(state.place&&state.place!=="all"){ const o=[...$("place").options].find(x=>x.value===state.place); parts.push(o?o.textContent:state.place); }
+  if(state.when&&state.when!=="all"){ const o=[...$("when").options].find(x=>x.value===state.when); parts.push(o?o.textContent:state.when); }
+  if(state.cond&&state.cond!=="auto"){ const o=[...$("cond").options].find(x=>x.value===state.cond); parts.push("Set to "+(o?o.textContent.toLowerCase():state.cond)); }
+  b.hidden=!parts.length; b.textContent=parts.length; $("fOpen").setAttribute("aria-label","Filters"+(parts.length?", "+parts.length+" on":""));
+  const a=$("fActive"); a.hidden=!parts.length; a.innerHTML=parts.length?'<span>Showing</span> '+parts.map(p=>'<button type="button" class="fpill" data-fopen="1">'+esc(p)+'</button>').join("")+'<button type="button" class="linkbtn fx" data-fclear="1">Clear</button>':'';
+  let n=0; try{ n=matches(false).length; }catch(e){} $("fShow").textContent=n?"Show "+n+" idea"+(n===1?"":"s"):"No ideas match: clear a filter"; }
 function syncNear(){ $("near").textContent=state.pos?"Near me ✓":"Near me"; $("near").setAttribute("aria-pressed",!!state.pos); }
 fillPlaces(); fill($("when"),"Any light",WHEN,state.when);
 $("city").addEventListener("change",e=>{state.city=e.target.value;state.place="all";state.history=[];store.set("city",state.city);store.set("place","all");fillPlaces();refilter();});
@@ -6142,11 +6222,29 @@ document.addEventListener("visibilitychange",()=>{ try{ if(!document.hidden&&sta
 // Day and night view. With no saved choice the page follows the device setting.
 const rootEl=document.documentElement;
 const isDark=()=>{ const a=rootEl.getAttribute("data-theme"); return a ? a==="dark" : !!(window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches); };
-function syncTheme(){ const d=isDark(); $("theme").textContent=d?"☼":"☾"; $("theme").setAttribute("aria-label",d?"Switch to day view":"Switch to night view"); $("theme").title=d?"Day view":"Night view"; }
+function syncTheme(){ const a=rootEl.getAttribute("data-theme")||"auto"; document.querySelectorAll("#setTheme [data-th]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.th===a)); }
 { const t=store.get("theme",null); if(t==="dark"||t==="light") rootEl.setAttribute("data-theme",t); }
-$("theme").addEventListener("click",()=>{ const next=isDark()?"light":"dark"; rootEl.setAttribute("data-theme",next); store.set("theme",next); syncTheme(); });
+$("setTheme").addEventListener("click",e=>{ const b=e.target.closest("[data-th]"); if(!b) return; const t=b.dataset.th; if(t==="auto"){ rootEl.removeAttribute("data-theme"); store.set("theme",null); } else { rootEl.setAttribute("data-theme",t); store.set("theme",t); } syncTheme(); if(state.view==="map"&&$("mapSvg")) mapDraw(); });
+/* Sheets: Settings (camera, appearance, home, other devices, about) and the Ideas filters. */
+let sheetFrom=null;
+function sheetOpen(id){ const el=$(id); sheetFrom=document.activeElement; el.hidden=false; document.body.classList.add("sheetopen"); requestAnimationFrame(()=>{ el.classList.add("on"); const f=el.querySelector(".sh-x"); if(f) f.focus({preventScroll:true}); }); }
+function sheetClose(id){ const el=$(id); if(el.hidden) return; el.classList.remove("on"); document.body.classList.remove("sheetopen"); setTimeout(()=>{ el.hidden=true; },180); if(sheetFrom&&sheetFrom.focus) sheetFrom.focus({preventScroll:true}); }
+function renderSettings(){ $("setCams").innerHTML=Object.entries(CAMERAS).map(([k,v])=>'<button type="button" role="radio" class="setcam" data-cam="'+k+'" aria-checked="'+(k===state.camera)+'"><b>'+esc(v.name)+'</b><span>'+(k==="q343"?"43 mm f/2 · crops 60–150 mm":k==="q328"?"28 mm f/1.7 · crops 35–90 mm":k==="iphone"?"Main camera, settings in plain words":"General advice for any camera")+'</span></button>').join("");
+  const h=state.home; $("setHome").textContent=h&&h.lat!=null?"Set ("+(h.mode==="transit"?"by transit":h.mode==="walk"?"on foot":"by car")+"). Today shows when to leave.":"Not set. Set it to see when to leave home for the next good light."; $("setHomeBtn").textContent=h&&h.lat!=null?"Change":"Set home"; syncTheme(); }
+$("setOpen").addEventListener("click",()=>{ renderSettings(); sheetOpen("setSheet"); });
+$("setSheet").addEventListener("click",e=>{ if(e.target.closest("[data-sclose]")){ sheetClose("setSheet"); return; }
+  const c=e.target.closest("[data-cam]"); if(c&&CAMERAS[c.dataset.cam]){ state.camera=c.dataset.cam; store.set("camera",state.camera); openTip=null; renderSettings(); render(); return; }
+  if(e.target.closest("#setHomeBtn")){ sheetClose("setSheet"); state.view="today"; state.homeEdit=true; render(); requestAnimationFrame(()=>{ const t=document.querySelector("#today .thome, #today [data-homesave], #today .homeedit"); if(t) t.scrollIntoView({block:"center"}); }); } });
+$("fOpen").addEventListener("click",()=>{ fSync(); sheetOpen("fSheet"); });
+$("fSheet").addEventListener("click",e=>{ if(e.target.closest("[data-fclose]")) sheetClose("fSheet"); });
+$("fClear").addEventListener("click",()=>{ state.intent="all"; store.set("intent","all"); syncChips(); state.place="all"; state.stayPrev=null; store.set("place","all"); $("place").value="all";
+  state.when="all"; store.set("when","all"); $("when").value="all"; if(state.cond!=="auto"){ state.cond="auto"; $("cond").value="auto"; } refilter(); });
+$("fActive").addEventListener("click",e=>{ if(e.target.closest("[data-fopen]")) { fSync(); sheetOpen("fSheet"); } else if(e.target.closest("[data-fclear]")) $("fClear").click(); });
+document.addEventListener("keydown",e=>{ if(e.key!=="Escape") return; for(const id of ["fSheet","setSheet"]) if(!$(id).hidden){ sheetClose(id); e.preventDefault(); } const es=document.getElementById("evSheet"); if(es){ evSheetClose(); e.preventDefault(); } });
 syncTheme();
 $("events").addEventListener("click",e=>{
+  if(e.target.closest("[data-esclose]")){ evSheetClose(); return; }
+  const sm=e.target.closest("details.event>summary"); if(sm){ e.preventDefault(); const id=sm.parentNode.dataset.id; state.evLast=id; evSheetOpen(id); return; }
   const inb=e.target.closest("[data-ideasnear]"); if(inb){ state.place="near"; state.ideasMode="list"; state.view=state.listView||"browse"; render(); fillPlaces(); syncNear(); refilter(); window.scrollTo({top:0}); return; }
   const nb=e.target.closest("[data-evnear]"); if(nb){ state.evNear=!state.evNear; store.set("evNear",state.evNear); if(state.evNear) evLocate(); renderEvents(); return; }
   const rb=e.target.closest("[data-evr]"); if(rb){ state.evRadius=+rb.dataset.evr; store.set("evRadius",state.evRadius); renderEvents(); return; }
@@ -6160,7 +6258,7 @@ $("pGo").addEventListener("click",()=>{ state.plan=makePlan(); savePlan(); rende
 $("pDay").addEventListener("change",()=>{ const keep=$("pTime").value; renderPlan(); if([...$("pTime").options].some(o=>o.value===keep)) $("pTime").value=keep; });
 $("plan").addEventListener("click",e=>{
   const me=e.target.closest("[data-mapev]"); if(me){ const id=me.dataset.mapev, g=eventGeo(id); state.mapT=null; state.view="map"; render(); requestAnimationFrame(()=>requestAnimationFrame(()=>{ state.mapShowEv=true; state.mapEv=id; state.mapSel=null; state.mapSpot=null; state.mapLm=null; state.mapRun=null; state.mapFerry=null; mapPanel(); mapDraw(); if(g){ const [x,y]=mapXY(g[0],g[1]); mapFly(mapAim({cx:x,cy:y,w:Math.min(mapV.w,30)})); } setSheet("half"); })); return; }
-  const ev=e.target.closest("[data-event]"); if(ev){ state.view="events"; render(); const d=document.querySelector('#events details[data-id="'+ev.dataset.event+'"]'); if(d){ d.open=true; d.scrollIntoView({block:"start"}); } return; }
+  const ev=e.target.closest("[data-event]"); if(ev){ showEvent(ev.dataset.event); return; }
   const r=e.target.closest(".row"); if(!r||!r.dataset.id) return; show(r.dataset.id); state.view="shoot"; render(); window.scrollTo({top:0}); });
 state.plan=loadPlan();
 syncNear();
@@ -6225,7 +6323,7 @@ $("map").addEventListener("click",e=>{
   const hb=e.target.closest("[data-head]"); if(hb){ if(state.mapHead){ headUp(false); return; } const ok=headingStart();
     ok.then(r=>{ headUp(true); if(!r){ headMsgShow(); return; } if(!state.pos&&navigator.geolocation){ try{ navigator.geolocation.getCurrentPosition(p=>{ state.pos={lat:p.coords.latitude,lon:p.coords.longitude}; if(state.mapHead&&posOnMap()){ const [x,y]=mapXY(state.pos.lat,state.pos.lon); mapV=mapClamp({cx:x,cy:y,w:Math.min(mapV.w,24)}); mapDraw(); } else if(state.mapHead) offMapMsg(); },()=>{ const pnl=$("mapPanel"); if(pnl&&!pnl.querySelector(".posmsg")) pnl.insertAdjacentHTML("afterbegin",'<p class="msg posmsg">Your location is not available, so the map turns around its centre. Allow location for Shot List to centre it on you.</p>'); },{timeout:10000,maximumAge:60000}); }catch(err){} } });
     return; }
-  const ev=e.target.closest("[data-event]"); if(ev){ state.view="events"; render(); const d=document.querySelector('#events details[data-id="'+ev.dataset.event+'"]'); if(d){ d.open=true; d.scrollIntoView({block:"start"}); } return; }
+  const ev=e.target.closest("[data-event]"); if(ev){ showEvent(ev.dataset.event); return; }
   const r=e.target.closest(".row"); if(r){ show(r.dataset.id); state.view="shoot"; render(); window.scrollTo({top:0}); return; }
   const g=e.target.closest("[data-go]"); if(g){ state.place=g.dataset.go; store.set("place",state.place); fillPlaces(); $("place").value=state.place; state.view="browse"; refilter(); window.scrollTo({top:0}); return; }
   const q=e.target.closest("[data-plan]"); if(q){ state.view="plan"; render(); if(state.mapD&&$("pDay")){ $("pDay").value=String(state.mapD); renderPlan(); } $("pStart").value=q.dataset.plan; window.scrollTo({top:0}); }
@@ -6314,7 +6412,7 @@ $("today").addEventListener("click",e=>{
   const mg=e.target.closest("[data-mapgo]"); if(mg){ const id=mg.dataset.mapgo; state.mapT=state.todayAt; state.view="map"; render(); requestAnimationFrame(()=>requestAnimationFrame(()=>{ mapSelect(id); })); return; }
   const pd=e.target.closest("[data-planday]"); if(pd){ planToday(pd.dataset.planday); return; }
   const gv=e.target.closest("[data-goview]"); if(gv){ state.view=gv.dataset.goview; render(); window.scrollTo({top:0}); return; }
-  const ev=e.target.closest("[data-event]"); if(ev){ state.view="events"; render(); const d=document.querySelector('#events details[data-id="'+ev.dataset.event+'"]'); if(d){ d.open=true; d.scrollIntoView({block:"start"}); } return; }
+  const ev=e.target.closest("[data-event]"); if(ev){ showEvent(ev.dataset.event); return; }
   const r=e.target.closest(".row[data-id]"); if(r){ show(r.dataset.id); state.view="shoot"; render(); window.scrollTo({top:0}); }
 });
 setInterval(()=>{ try{ if(state.view==="today"&&!document.hidden) renderToday(); }catch(e){} }, 60000);
@@ -6352,6 +6450,7 @@ $("card").addEventListener("click",e=>{
 });
 $("card").addEventListener("input",e=>{ if(e.target.id!=="note"||!state.current) return;
   const v=e.target.value.trim(); if(v) state.notes[state.current]=e.target.value; else delete state.notes[state.current]; store.set("notes",state.notes); });
+document.addEventListener("click",e=>{ if(e.target.closest&&e.target.closest("[data-setopen]")){ renderSettings(); sheetOpen("setSheet"); } });
 $("card").addEventListener("change",e=>{ if(e.target.id==="camera"){ state.camera=e.target.value; store.set("camera",state.camera); openTip=null; renderCard(); } });
 
 /* Seasonal and event ideas: Work it, tips, Compose, stance, availability and where to stand. */
