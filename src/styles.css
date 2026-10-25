@@ -1178,3 +1178,9 @@ body.sheetopen{overflow:hidden}
 .evsheet .es-b{border-top:0;padding:0}
 .factive{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 .fpill{min-height:30px;padding:0 10px;border:1px solid var(--line);border-radius:15px;background:var(--panel);color:var(--fg);font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+
+.evsearch{display:flex;flex-direction:column;gap:8px;margin-top:6px} .evsearch .msg{margin:0;font-size:13.5px}
+.evlinks{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.evlink{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--fg);text-decoration:none;min-height:60px}
+.evlink b{font-size:14px;line-height:1.25} .evlink span{font-size:12px;color:var(--blue);font-weight:700}
+.evsh{margin:14px 0 0;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}

@@ -603,7 +603,7 @@ def run(path, name):
         en=pg.evaluate("[...document.querySelectorAll('#events .evgroup, #events details.event')].map(d=>d.classList.contains('evgroup')?'#'+d.textContent:d.querySelector('.t b').textContent+'|'+((d.querySelector('.evdist')||{}).textContent||''))")
         pg.click("#events [data-evr='2']"); pg.wait_for_timeout(100)
         en2=pg.evaluate("[...document.querySelectorAll('#events details.event .t b')].map(b=>b.textContent)")
-        pg.evaluate("state.pos={lat:40.60,lon:-74.20}; renderEvents()"); en3=pg.evaluate("[!!document.querySelector('#events [data-ideasnear]'), document.querySelectorAll('#events details.event').length]")
+        pg.evaluate("state.pos={lat:40.58,lon:-74.15}; renderEvents()"); en3=pg.evaluate("[!!document.querySelector('#events [data-ideasnear]'), document.querySelectorAll('#events details.event').length]")
         pg.evaluate("EVENT_DOCS=window._evKeep; state.evNear=false; store.set('evNear',false); state.pos=null")
         check("Events near me now: today first then the coming week, nearest first with distance and walk, 2 miles adds more, nothing nearby offers ideas instead", en[0]=="#On today" and en[1].startswith("Near A|0.2 mi") and en[2]=="#Coming up nearby" and en[3].startswith("Near B|0.5 mi") and len(en)==4 and "Far C" in en2 and "Later D" not in en2 and en3==[True,0], [en,en2,en3])
         # Music series: show nights from the weekly check's dates or a weekday pattern, not the whole season
@@ -628,6 +628,12 @@ def run(path, name):
         eg.append(pg.evaluate("[!!document.getElementById('evSheet'), !!document.querySelector('#evSheet .event-body .when')]"))
         pg.keyboard.press("Escape"); pg.wait_for_timeout(100); eg.append(pg.evaluate("!!document.getElementById('evSheet')"))
         check("Navigation: tab bar fixed at the bottom with icons; Settings changes the camera and closes with Escape; Filters count, show and clear; Events grouped, opening in a sheet", tb==[True,5,"fixed"] and st==["q328","q328",1,True,True,True] and fs[0]=="1" and fs[1] and fs[2] and fs[3] and fs[4]==["all",True] and eg[0] and eg[1]==0 and eg[2]==[True,True] and eg[3]==False, [tb,st,fs,eg])
+        # Search around here: one-tap searches for events near you anywhere, by town once it is known
+        pg.evaluate("NEARBY.key='40.96,-73.96'; NEARBY.town='Demarest'; NEARBY.st='NJ'; NEARBY.cc='US'; NEARBY.busy=false; state.pos={lat:40.9573,lon:-73.9632}; state.evNear=true; state.evRadius=1; state.view='events'; render._evFix=true; render()"); pg.wait_for_timeout(100)
+        sa=pg.evaluate("[...document.querySelectorAll('#events .evsearch .evlink')].map(a=>a.getAttribute('href'))")
+        pg.evaluate("NEARBY.key=null; NEARBY.busy=true; renderEvents()"); sb=pg.evaluate("[...document.querySelectorAll('#events .evsearch .evlink')].map(a=>a.getAttribute('href'))")
+        pg.evaluate("NEARBY.busy=false; state.evNear=false; store.set('evNear',false); state.pos=null")
+        check("Search around here: town-based searches (Google, Maps at your position, Eventbrite, Meetup, Patch) and near-me ones before the town is known", len(sa)==6 and "events%20today%20in%20Demarest%2C%20NJ" in sa[0] and "@40.9573,-73.9632,15z" in sa[2] and "/d/nj--demarest/events--today/" in sa[3] and "us--nj--Demarest" in sa[4] and len(sb)==4 and "events%20near%20me%20today" in sb[0], [sa,sb])
         # Light here outside the city: real sun for the place, no building shade or street direction from NYC data
         ny=pg.evaluate("[inNYC({lat:40.758,lon:-73.9855}), inNYC({lat:40.7178,lon:-74.0431}), inNYC({lat:40.9573,lon:-73.9632}), inNYC({lat:40.7615,lon:-74.0035}), inNYC({lat:40.58,lon:-74.15}), inNYC({lat:42.3555,lon:-71.0565})]")
         check("Knows the five boroughs: Midtown, a Hudson pier and Staten Island are in; Jersey City, Demarest and Boston are out", ny==[True,False,False,True,True,False], ny)

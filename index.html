@@ -1196,6 +1196,12 @@ body.sheetopen{overflow:hidden}
 .evsheet .es-b{border-top:0;padding:0}
 .factive{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 .fpill{min-height:30px;padding:0 10px;border:1px solid var(--line);border-radius:15px;background:var(--panel);color:var(--fg);font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+
+.evsearch{display:flex;flex-direction:column;gap:8px;margin-top:6px} .evsearch .msg{margin:0;font-size:13.5px}
+.evlinks{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.evlink{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--fg);text-decoration:none;min-height:60px}
+.evlink b{font-size:14px;line-height:1.25} .evlink span{font-size:12px;color:var(--blue);font-weight:700}
+.evsh{margin:14px 0 0;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
 </style>
 
 <div class="app">
@@ -3653,6 +3659,26 @@ function calLinks(e,o){ if(!o) return "";
     '<a class="chip" href="'+esc(g)+'" target="_blank" rel="noopener">Google Calendar ↗</a>'+
     (PHOTOS_INLINE ? '<a class="chip" href="data:text/calendar;charset=utf-8,'+encodeURIComponent(ics)+'">Apple Calendar</a>' : '')+'</div></div>';
 }
+/* Search around here: anywhere in the US, one-tap searches for events near you. Street fairs, markets and parades have no nationwide
+   feed, so these open the places they are listed. Your town comes from a free reverse-geocoding service, sent only a rounded
+   position (about 1 km); without it the links use your coordinates or Google's own "near me". */
+const NEARBY = Object.assign({key:null,town:null,st:null,cc:null,busy:false}, store.get("nearTown",{})||{});
+function nearTown(){ if(!state.pos) return null; const la=state.pos.lat.toFixed(2), lo=state.pos.lon.toFixed(2), key=la+","+lo;
+  if(NEARBY.key===key) return NEARBY; if(NEARBY.busy) return null; NEARBY.busy=true;
+  const done=j=>{ NEARBY.busy=false; NEARBY.key=key; NEARBY.town=j&&(j.city||j.locality)||null; NEARBY.st=j&&j.principalSubdivisionCode?String(j.principalSubdivisionCode).replace(/^[A-Z]+-/,""):null; NEARBY.cc=j&&j.countryCode||null;
+    store.set("nearTown",{key,town:NEARBY.town,st:NEARBY.st,cc:NEARBY.cc}); if(state.view==="events"&&state.evNear) renderEvents(); };
+  try{ fetch("https://api.bigdatacloud.net/data/reverse-geocode-client?latitude="+la+"&longitude="+lo+"&localityLanguage=en").then(r=>r.ok?r.json():null).then(done).catch(()=>done(null)); }catch(e){ done(null); }
+  return null; }
+function nearSearchHtml(R){ if(!state.pos) return ""; const t=nearTown(), la=state.pos.lat.toFixed(4), lo=state.pos.lon.toFixed(4), town=t&&t.town, st=t&&t.st, us=!t||!t.cc||t.cc==="US";
+  const place=town?town+(st?", "+st:""):null, g=q=>"https://www.google.com/search?q="+encodeURIComponent(q), slug=x=>String(x).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+  const L=[["Events today",g(place?"events today in "+place:"events near me today"),"Google"],
+    ["Street fairs, markets and parades this week",g("street fair OR festival OR parade OR market this week "+(place?"in "+place:"near me")),"Google"],
+    ["Events on the map around you","https://www.google.com/maps/search/events/@"+la+","+lo+","+(R===2?14:15)+"z","Google Maps"]];
+  if(town&&st&&us) L.push(["Today on Eventbrite","https://www.eventbrite.com/d/"+slug(st)+"--"+slug(town)+"/events--today/","Eventbrite"]);
+  L.push(["Photo walks and meetups","https://www.meetup.com/find/?keywords="+encodeURIComponent("photo walk")+(town&&st&&us?"&location="+encodeURIComponent("us--"+st.toLowerCase()+"--"+town):"")+"&source=EVENTS","Meetup"]);
+  if(town&&st&&us) L.push(["Local news and listings",g("site:patch.com "+town+" "+st+" events"),"Patch"]);
+  return '<section class="evsearch"><p class="evsh">Search around here</p><p class="msg">'+(place?'Around <b>'+esc(place)+'</b>. ':'')+'Street fairs, markets and parades outside New York are not in the app\u2019s list; these searches find them wherever you are'+(place?'':' (finding your town…)')+'.</p>'+
+    '<div class="evlinks">'+L.map(([lab,u,src])=>'<a class="evlink" href="'+esc(u)+'" target="_blank" rel="noopener"><b>'+esc(lab)+'</b><span>'+esc(src)+' ↗</span></a>').join("")+'</div></section>'; }
 // Where you are, for Near me now: a fresh fix each time it is switched on or the Events tab opens with it on
 /* Music series are listed by season. Their show nights come from the weekly check ("dates" on the event's document, from the
    official schedule) or a fixed weekday pattern ("days"); with neither, the app does not claim a show is on. */
@@ -3698,7 +3724,7 @@ function renderEvents(){
         evMi[r.e.id]=mi; evWhen[r.e.id]=[k,lab]; return r; }).filter(Boolean)
       .sort((a,b)=>(evWhen[a.e.id][0]-evWhen[b.e.id][0])||(evMi[a.e.id]-evMi[b.e.id])); }
   const seenVenue=new Set(), shown=list.filter(r=>{ if(!r.game) return true; if(seenVenue.has(r.e.id)) return false; seenVenue.add(r.e.id); return true; });
-  if(!shown.length){ box.innerHTML=NEAR?'<p class="lead">Events worth shooting near you.</p>'+chips+nearCtl+'<p class="empty">Nothing within '+R+' mile'+(R>1?'s':'')+' of you today or in the next 7 days'+(R===1?'. Try 2 miles.':'.')+'</p><button type="button" class="chip" data-ideasnear="1">See shot ideas near you ›</button>'
+  if(!shown.length){ box.innerHTML=NEAR?'<p class="lead">Events worth shooting near you.</p>'+chips+nearCtl+'<p class="empty">Nothing in the app\u2019s list within '+R+' mile'+(R>1?'s':'')+' of you today or in the next 7 days'+(R===1?'. Try 2 miles.':'.')+'</p>'+nearSearchHtml(R)+(inNYC(state.pos)?'<button type="button" class="chip" data-ideasnear="1">See shot ideas near you ›</button>':'')
       :(all.length?'<p class="lead">Events worth shooting, soonest first.</p>'+chips+'<p class="empty">Nothing matches these filters.</p>':'<p class="empty">No events listed for this city yet.</p>'); return; }
   const st=EVENT_DOCS._status, chk=st&&eParse(st.checked);
   let lastK=-1;
@@ -3731,7 +3757,7 @@ function renderEvents(){
       (e.ideas.length?'<div class="part"><span class="label">Shots to look for</span><ul class="eideas">'+e.ideas.map(i=>
         '<li><span class="tag"><span class="dot" style="background:'+INTENTS[i[0]].color+'"></span>'+INTENTS[i[0]].name+'</span><b>'+esc(i[1])+'</b><span>'+esc(i[2])+'</span><span class="set">'+esc(cam.recipes[i[3]][0])+'</span></li>').join("")+'</ul></div>':'')+
       calLinks(e,o)+(src?'<a class="check" href="'+esc(src)+'" target="_blank" rel="noopener">Source for this date ↗</a>':'<a class="check" href="'+q+'" target="_blank" rel="noopener">Check this year\'s date and route ↗</a>')+'</div></details>';
-  }).join("");
+  }).join("")+(NEAR?nearSearchHtml(R):"");
   if(state.evOpen){ if(box.querySelector('details.event[data-id="'+CSS.escape(state.evOpen)+'"]')) evSheetOpen(state.evOpen,true); else state.evOpen=null; }
 }
 // An event opens in a sheet over the list; it lives inside #events so the buttons in it keep working
