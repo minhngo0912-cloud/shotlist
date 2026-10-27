@@ -7,22 +7,23 @@
    "stock": "In stock"
   },
   "used": {
-   "low": 6029,
+   "low": 6119,
    "high": 7118,
    "seller": "MPB",
    "url": "https://www.mpb.com/en-us/product/leica-q3-43",
-   "n": 22
+   "cond": "Good",
+   "n": 14
   },
   "ebay": {
-   "low": 6100,
+   "low": 4600,
    "high": 6300,
    "cond": "Pre-Owned",
    "n": 4,
    "url": "https://www.ebay.com/shop/leica-q3?_nkw=leica+q3"
   },
-  "notes": "Adorama also $7,950. MPB's $6,029 low was not itemised (grades shown: Excellent/Good). KEH low Excellent $6,805. eBay sold pages blocked; no sold prices seen. Leica US store blocked.",
-  "tip": "New is $7,950 everywhere with no discount, so a used Q3 43 from MPB saves about $1,900 and comes with a warranty.",
-  "checked": "2026-10-23",
+  "notes": "Adorama is also $7,950. KEH high is LN-, $7,118. eBay sold pages blocked, so no sold data. The $4,600 eBay low looks unusually cheap and seller feedback was not visible.",
+  "tip": "Used Q3 43s at MPB and KEH run about $1,000 to $1,800 under the $7,950 new price, and new stock is easy to find.",
+  "checked": "2026-10-27",
   "history": [
    {
     "d": "2026-10-17",
@@ -37,9 +38,15 @@
    },
    {
     "d": "2026-10-23",
+    "eb": 6100,
     "new": 7950,
-    "used": 6029,
-    "eb": 6100
+    "used": 6029
+   },
+   {
+    "d": "2026-10-27",
+    "new": 7950,
+    "used": 6119,
+    "eb": 4600
    }
   ]
  },
@@ -51,11 +58,12 @@
    "stock": "In stock"
   },
   "used": {
-   "low": 5149,
+   "low": 5159,
    "high": 6468,
    "seller": "MPB",
    "url": "https://www.mpb.com/en-us/product/leica-q3",
-   "n": 42
+   "cond": "Good",
+   "n": 18
   },
   "ebay": {
    "low": 5349,
@@ -64,9 +72,9 @@
    "n": 3,
    "url": "https://www.ebay.com/shop/leica-q3?_nkw=leica+q3"
   },
-  "notes": "Adorama also $7,350. No Q3 replacement found. MPB's $5,149 low not itemised (Like new/Excellent/Good). KEH low Excellent $5,972. eBay sold blocked. Leica US store blocked.",
-  "tip": "The Q3 is still Leica's current model, and with many used units at MPB and KEH, used saves $1,400 to $2,200 over new.",
-  "checked": "2026-10-23",
+  "notes": "Adorama and KEH new are also $7,350. No replacement model is shown. Skipped two $1,999 eBay listings as suspect. eBay sold pages blocked. MPB's lowest unit was not shown.",
+  "tip": "Used Q3s cost about $1,000 to $2,000 less than the $7,350 new price, and the new model is still in stock.",
+  "checked": "2026-10-27",
   "history": [
    {
     "d": "2026-10-17",
@@ -81,8 +89,14 @@
    },
    {
     "d": "2026-10-23",
+    "eb": 5349,
     "new": 7350,
-    "used": 5149,
+    "used": 5149
+   },
+   {
+    "d": "2026-10-27",
+    "new": 7350,
+    "used": 5159,
     "eb": 5349
    }
   ]
@@ -90,28 +104,28 @@
  "x100vi": {
   "new": {
    "price": 1799,
-   "seller": "Adorama",
-   "url": "https://www.adorama.com/fujifilm-x100vi-digital-camera/p/ifjx1006",
-   "stock": "Backordered"
+   "seller": "B&H Photo",
+   "url": "https://www.bhphotovideo.com/c/product/1899777-REG/fujifilm_16953912_x100vi_digital_camera_silver_coo_japan.html",
+   "stock": "Out of stock"
   },
   "used": {
-   "low": 1778,
+   "low": 1929,
    "high": 2199,
-   "seller": "KEH",
-   "url": "https://www.keh.com/shop/28581582.html",
-   "cond": "Like New Minus",
-   "n": 9
+   "seller": "MPB",
+   "url": "https://www.mpb.com/en-us/product/fujifilm-x100-vi",
+   "cond": "Good",
+   "n": 109
   },
   "ebay": {
-   "low": 1950,
-   "high": 2000,
+   "low": 1790,
+   "high": 1990,
    "cond": "Pre-Owned",
-   "n": 3,
+   "n": 2,
    "url": "https://www.ebay.com/shop/x100vi?_nkw=x100vi"
   },
-  "notes": "B&H camera-only $1,799.95, stock unreadable. MPB: 108 units from $1,929, but I only saw 8, all Like new. eBay sold page blocked. eBay seller feedback not visible.",
-  "tip": "New stock is scarce (Adorama backordered to Dec), and like-new used units cost about the same as new or more.",
-  "checked": "2026-10-23",
+  "notes": "B&H black $1,799.95 OOS; Adorama $1,799 backorder (12/2026); Fuji US shop showed no price; KEH unavailable; eBay sold pages unreadable; MPB low from top-pick summary.",
+  "tip": "New stock is scarce everywhere: B&H is out and Adorama is backordered until December, and used units cost more than new.",
+  "checked": "2026-10-27",
   "history": [
    {
     "d": "2026-10-17",
@@ -127,9 +141,15 @@
    },
    {
     "d": "2026-10-23",
+    "eb": 1950,
     "new": 1799,
-    "used": 1778,
-    "eb": 1950
+    "used": 1778
+   },
+   {
+    "d": "2026-10-27",
+    "new": 1799,
+    "used": 1929,
+    "eb": 1790
    }
   ]
  },
@@ -141,22 +161,23 @@
    "stock": "In stock"
   },
   "used": {
-   "low": 1479,
+   "low": 1519,
    "high": 1599,
    "seller": "MPB",
    "url": "https://www.mpb.com/en-us/product/ricoh-gr-iv",
-   "n": 33
+   "cond": "Excellent",
+   "n": 36
   },
   "ebay": {
-   "low": 1539,
-   "high": 1539,
+   "low": 1515,
+   "high": 1515,
    "cond": "Pre-Owned",
    "n": 1,
    "url": "https://www.ebay.com/shop/ricoh-gr-iv?_nkw=ricoh+gr+iv"
   },
-  "notes": "Adorama/Ricoh $1599.95. MPB low unit not itemized, only Like new/Excellent stocked. No std GR IV at KEH. eBay sold page blocked. 1 eBay listing includes extras.",
-  "tip": "Used units at MPB sell for about the same as new, so new with full warranty is the better buy right now.",
-  "checked": "2026-10-23",
+  "notes": "Adorama $1,599.95, stock not stated; Ricoh US store and Amazon blocked; no std GR IV at KEH; eBay sold unreadable; only eBay used BIN says '+extras'.",
+  "tip": "It's in stock new for about $1,597, and used ones save less than $100, so buying new is the better value.",
+  "checked": "2026-10-27",
   "history": [
    {
     "d": "2026-10-17",
@@ -172,9 +193,15 @@
    },
    {
     "d": "2026-10-23",
+    "eb": 1539,
     "new": 1597,
-    "used": 1479,
-    "eb": 1539
+    "used": 1479
+   },
+   {
+    "d": "2026-10-27",
+    "new": 1597,
+    "used": 1519,
+    "eb": 1515
    }
   ]
  },
@@ -182,26 +209,27 @@
   "new": {
    "price": 1247,
    "seller": "B&H Photo",
-   "url": "https://www.bhphotovideo.com/c/product/1664769-REG/ricoh_15286_gr_iiix_digital_camera.html",
+   "url": "https://www.bhphotovideo.com/c/buy/gr-series-cameras/ci/36013",
    "stock": "In stock"
   },
   "used": {
-   "low": 1099,
+   "low": 984,
    "high": 1249,
    "seller": "MPB",
    "url": "https://www.mpb.com/en-us/product/ricoh-gr-iiix",
-   "n": 20
+   "cond": "Good",
+   "n": 22
   },
   "ebay": {
-   "low": 1060,
-   "high": 1480,
+   "low": 1200,
+   "high": 1394,
    "cond": "Pre-Owned",
-   "n": 3,
-   "url": "https://www.ebay.com/shop/ricoh-iiix?_nkw=ricoh+iiix"
+   "n": 2,
+   "url": "https://www.ebay.com/b/Ricoh-Ricoh-GR-Compact-Digital-Cameras/31388/bn_108324063"
   },
-  "notes": "Ricoh US store $1249.95. Adorama page blocked. KEH: temporarily unavailable. MPB low unit not itemized, only Like new/Excellent stocked. eBay sold page blocked.",
-  "tip": "New is in stock again near list price, and used units only save about $150, so check the shutter count before buying used.",
-  "checked": "2026-10-23",
+  "notes": "B&H price read from its GR category page (product page blocked); Adorama same $1,246.95; Ricoh store blocked; KEH unavailable; eBay sold unreadable.",
+  "tip": "A used one in good condition saves about $260 over new, and most like-new used units cost nearly as much as a new one.",
+  "checked": "2026-10-27",
   "history": [
    {
     "d": "2026-10-17",
@@ -217,9 +245,15 @@
    },
    {
     "d": "2026-10-23",
+    "eb": 1060,
     "new": 1247,
-    "used": 1099,
-    "eb": 1060
+    "used": 1099
+   },
+   {
+    "d": "2026-10-27",
+    "new": 1247,
+    "used": 984,
+    "eb": 1200
    }
   ]
  },
@@ -231,23 +265,23 @@
    "stock": "In stock"
   },
   "used": {
-   "low": 4249,
+   "low": 4320,
    "high": 4440,
-   "seller": "MPB",
-   "url": "https://www.mpb.com/en-us/product/sony-rx1r-iii",
-   "cond": "Like new",
-   "n": 5
+   "seller": "KEH",
+   "url": "https://www.keh.com/shop/sony-rx1r-iii-digital-camera-61mp.html",
+   "cond": "Excellent",
+   "n": 4
   },
   "ebay": {
-   "low": 3925,
+   "low": 3865,
    "high": 4600,
    "cond": "Pre-Owned",
-   "n": 3,
+   "n": 2,
    "url": "https://www.ebay.com/shop/sony-rx1r-iii?_nkw=sony+rx1r+iii"
   },
-  "notes": "B&H lists a $50 cashback by registration (no end date) and 'save up to $220'; neither counted. KEH: EX $4,320, LN- $4,440. eBay sold page blocked.",
-  "tip": "New units are easy to get at full price, and buying used saves roughly $650 to $850.",
-  "checked": "2026-10-23",
+  "notes": "Adorama also $5,098 (limited qty). B&H/Adorama show a $50 Sony cashback banner, but Sony's fall offer page omits RX1R III, so no deal. MPB out of stock. eBay sold pages blocked.",
+  "tip": "Used RX1R III bodies sell for about $650 to $800 under the $5,098 new price, and some dealers have only limited new stock.",
+  "checked": "2026-10-27",
   "history": [
    {
     "d": "2026-10-17",
@@ -263,9 +297,15 @@
    },
    {
     "d": "2026-10-23",
+    "eb": 3925,
     "new": 5098,
-    "used": 4249,
-    "eb": 3925
+    "used": 4249
+   },
+   {
+    "d": "2026-10-27",
+    "new": 5098,
+    "used": 4320,
+    "eb": 3865
    }
   ]
  },
@@ -277,23 +317,22 @@
    "stock": "In stock"
   },
   "used": {
-   "low": 1359,
+   "low": 1519,
    "high": 1661,
    "seller": "MPB",
    "url": "https://www.mpb.com/en-us/product/fujifilm-x-e5",
-   "cond": "Good",
-   "n": 31
+   "n": 28
   },
   "ebay": {
-   "low": 1649,
-   "high": 1649,
+   "low": 1700,
+   "high": 1700,
    "cond": "Pre-Owned",
    "n": 1,
    "url": "https://www.ebay.com/shop/fujifilm-xe5?_nkw=fujifilm+xe5"
   },
-  "notes": "Used prices are BODY ONLY; MPB and KEH listed no kits. B&H used kit from $1,727.95. B&H 'Save up to $840' is unexplained, not counted as a deal. eBay sold blocked.",
-  "tip": "The 23mm kit is in stock new; used units are mostly body only, so price the lens separately before buying used.",
-  "checked": "2026-10-23",
+  "notes": "Used figures are body only (MPB 28 units $1,519-1,579, cond of lowest not shown; KEH $1,567-1,661). eBay low is $1,699.95. Fujifilm US shop showed no price. eBay sold pages blocked.",
+  "tip": "The 23mm kit costs $1,899 new at the big dealers, but most used X-E5s are sold body only, so add the lens cost when you compare.",
+  "checked": "2026-10-27",
   "history": [
    {
     "d": "2026-10-17",
@@ -307,31 +346,37 @@
    },
    {
     "d": "2026-10-23",
+    "eb": 1649,
     "new": 1899,
-    "used": 1359,
-    "eb": 1649
+    "used": 1359
+   },
+   {
+    "d": "2026-10-27",
+    "new": 1899,
+    "used": 1519,
+    "eb": 1700
    }
   ]
  },
  "m11": {
   "used": {
-   "low": 6619,
+   "low": 6469,
    "high": 7766,
    "seller": "MPB",
-   "url": "https://www.mpb.com/en-us/product/leica-m11",
-   "cond": "Excellent",
-   "n": 15
+   "url": "https://www.mpb.com/en-us/product/leica-m11-black-20200",
+   "cond": "Good",
+   "n": 14
   },
   "ebay": {
-   "low": 6695,
+   "low": 5200,
    "high": 7000,
    "cond": "Pre-Owned",
-   "n": 2,
+   "n": 3,
    "url": "https://www.ebay.com/shop/leica-m11-digital-camera?_nkw=leica+m11+digital+camera"
   },
-  "notes": "Discontinued: B&H says No Longer Available (M11-P $10,400 replaces it); Adorama has used only. Low is a silver MPB unit; MPB black from $6,769. eBay sold blocked.",
-  "tip": "New stock of the standard M11 is gone, so buy used, where it costs about $3,000 less than a new M11-P.",
-  "checked": "2026-10-23",
+  "notes": "Still discontinued new: B&H says No Longer Available and points to the M11-P, and Adorama's silver M11 is unavailable. Used range covers black and silver. eBay sold pages blocked.",
+  "tip": "The standard M11 is no longer sold new, so buying used is the only way to get one; the M11-P replaces it at $10,400 new.",
+  "checked": "2026-10-27",
   "history": [
    {
     "d": "2026-10-17",
@@ -344,25 +389,29 @@
    },
    {
     "d": "2026-10-23",
-    "used": 6619,
-    "eb": 6695
+    "eb": 6695,
+    "used": 6619
+   },
+   {
+    "d": "2026-10-27",
+    "used": 6469,
+    "eb": 5200
    }
   ]
  },
  "a7c2": {
   "new": {
    "price": 2498,
-   "seller": "B&H Photo",
-   "url": "https://www.bhphotovideo.com/c/product/1784818-REG/sony_a7c_ii_mirrorless_camera.html",
-   "stock": "In stock"
+   "seller": "Adorama",
+   "url": "https://www.adorama.com/sony-alpha-a7c-ii-mirrorless-camera-body-33mp-full-frame/p/isoa7cm2s"
   },
   "deal": {
    "price": 2448,
    "was": 2498,
-   "what": "$50 Sony cash back (prepaid Visa, claim online)",
+   "what": "$50 Sony mail-in cash back (prepaid Visa)",
    "ends": "2026-12-31",
-   "seller": "B&H Photo",
-   "url": "https://www.bhphotovideo.com/c/product/1784818-REG/sony_a7c_ii_mirrorless_camera.html"
+   "seller": "Sony (any US authorized retailer)",
+   "url": "https://alphauniverse.com/fall26-cashback/shop/"
   },
   "used": {
    "low": 1729,
@@ -373,14 +422,15 @@
    "n": 36
   },
   "ebay": {
-   "low": 1890,
-   "high": 1900,
-   "n": 2,
+   "low": 1649,
+   "high": 1649,
+   "cond": "Pre-Owned",
+   "n": 1,
    "url": "https://www.ebay.com/shop/sony-a7c-ii-body?_nkw=sony+a7c+ii+body"
   },
-  "notes": "Adorama $2498. Cash back dates are from alphauniverse.com. KEH $1868-1951 (EX+/LN-). n is MPB only. eBay sold page blocked. Both eBay US listings have no condition stated.",
-  "tip": "Used bodies cost about $600 less than new, and new Sony's $50 cash back needs a claim filed within 14 days of purchase.",
-  "checked": "2026-10-23",
+  "notes": "B&H page and Amazon blocked. KEH silver $1,829-1,951 (KEH new $2,498). Used n is MPB only. eBay sold pages blocked; only 1 US used BIN with known condition and location.",
+  "tip": "Sony's $50 mail-in rebate runs to Dec 31, but a used body saves far more than that, at about $1,700 to $1,950.",
+  "checked": "2026-10-27",
   "history": [
    {
     "d": "2026-10-17",
@@ -396,18 +446,22 @@
    },
    {
     "d": "2026-10-23",
+    "eb": 1890,
+    "new": 2448,
+    "used": 1729
+   },
+   {
+    "d": "2026-10-27",
     "new": 2448,
     "used": 1729,
-    "eb": 1890
+    "eb": 1649
    }
   ]
  },
  "_status": {
-  "checked": "2026-10-23",
+  "checked": "2026-10-27",
   "summary": "9 of 9 cameras updated; deals on Sony A7C II.",
-  "changes": [
-   "Sony RX1R III deal ended"
-  ]
+  "changes": []
  },
  "_targets": {}
 }
