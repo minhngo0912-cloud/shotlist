@@ -1208,3 +1208,32 @@ body.sheetopen{overflow:hidden}
 .ttmr .row{margin:6px 0 0;padding:8px 6px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
 .ttmr .callinks{margin-top:10px}
 .chip.calok{color:#1e9e48;border-color:rgba(30,158,72,.4);cursor:default}
+
+/* Ideas list: progress, folding places, Now tags, row swipes */
+.iprog{margin:4px 0 12px;font-size:14px;color:var(--muted)} .iprog b{color:var(--fg,inherit);font-weight:800}
+.iprog em{display:block;margin-top:6px;height:4px;border-radius:2px;background:var(--line);overflow:hidden} .iprog i{display:block;height:100%;background:#1e9e48;border-radius:2px}
+.foldbar{margin:0 0 8px;text-align:right;font-size:14px}
+.group-head .ghmeta{flex-basis:100%;display:flex;justify-content:space-between;align-items:center;gap:8px;margin:2px 0 0;padding:4px 0;border:0;background:none;color:var(--sign-muted);font:inherit;font-size:13px;text-align:left;cursor:pointer}
+.group-head .ghmeta:disabled{cursor:default} .ghnow{color:#7ee2a0;font-weight:700} .ghchev{font-size:14px;color:var(--sign-fg)}
+.group-head .ghbar{flex-basis:100%;height:3px;border-radius:2px;background:rgba(255,255,255,.16);overflow:hidden} .ghbar i{display:block;height:100%;background:#3ddc6f}
+.group.folded .group-head{border-bottom:0}
+.group-head.ghphoto{background-size:cover;background-position:center}
+.nowtag{display:inline-block;margin-right:6px;padding:0 6px;border-radius:8px;background:rgba(30,158,72,.14);color:#1e9e48;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;vertical-align:1px}
+#list .row{position:relative;touch-action:pan-y;transition:transform .18s ease}
+#list .row.sw-l,#list .row.sw-r{transition:none}
+#list .row.sw-l{background:linear-gradient(270deg,rgba(255,196,0,.28),transparent 45%) ,var(--panel)}
+#list .row.sw-r{background:linear-gradient(90deg,rgba(30,158,72,.25),transparent 45%),var(--panel)}
+#list .row.sw-l:after{content:"★ Save";position:absolute;right:-110px;top:50%;transform:translateY(-50%);width:100px;font-weight:800;color:#b07d00}
+#list .row.sw-r:before{content:"✓ Shot";position:absolute;left:-100px;top:50%;transform:translateY(-50%);width:90px;text-align:right;font-weight:800;color:#1e9e48}
+#list .row.sw-go.sw-l:after,#list .row.sw-go.sw-r:before{text-decoration:underline}
+.rowtoast{position:fixed;left:50%;bottom:calc(var(--tabh,58px) + 14px);transform:translate(-50%,20px);z-index:70;display:flex;gap:14px;align-items:center;max-width:calc(100vw - 32px);padding:10px 16px;border-radius:12px;background:#14161a;color:#fff;font-size:14px;box-shadow:0 6px 20px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}
+.rowtoast.on{opacity:1;transform:translate(-50%,0);pointer-events:auto} .rowtoast span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap} .rowtoast .linkbtn{color:#ffd166;flex:none}
+/* One at a time: slide on swipe, first-time hint, Start at keeps its arrow */
+@keyframes slideL{from{transform:translateX(40px);opacity:.3}to{transform:none;opacity:1}} @keyframes slideR{from{transform:translateX(-40px);opacity:.3}to{transform:none;opacity:1}}
+#card.slide-l{animation:slideL .22s ease-out} #card.slide-r{animation:slideR .22s ease-out}
+.swipehint{margin:8px 2px 0;font-size:13px;color:var(--muted);text-align:center}
+.start{display:flex;flex-direction:column;align-items:flex-start;gap:2px} .start .nw{white-space:nowrap}
+@media (prefers-reduced-motion:reduce){ #card.slide-l,#card.slide-r{animation:none} #list .row{transition:none} }
+.group.folded .group-head .where,.group.folded .group-head .maplink{display:none}
+.group-head[data-pid]{cursor:pointer}
+.group.folded .group-head{row-gap:2px;padding-top:10px;padding-bottom:10px}

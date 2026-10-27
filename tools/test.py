@@ -231,6 +231,14 @@ def run(path, name):
         check("Escape leaves street mode and releases the screen", pg.evaluate("[$('street').hidden, state.street, document.body.classList.contains('streetmode'), window._wake]")==[True,False,False,0])
         # Browse and Saved
         pg.click("#vIdeas"); pg.click("#ideaMode [data-im=list]"); pg.wait_for_timeout(150); no_overflow("Browse"); shot("browse")
+        bl=pg.evaluate("(()=>{ const g=document.querySelectorAll('#list .group').length, open=document.querySelectorAll('#list .group:not(.folded)').length, meta=(document.querySelector('#list .ghmeta')||{}).textContent||''; document.querySelector('#list [data-pfold=open]').click(); const all=document.querySelectorAll('#list .row').length; document.querySelector('#list [data-pfold=close]').click(); const none=document.querySelectorAll('#list .row').length; document.querySelector('#list .group-head[data-pid]').click(); const one=document.querySelectorAll('#list .group:not(.folded)').length; return [g>15, open, /\\d+ ideas? .*\\d+ of \\d+ shot/.test(meta), all>100, none, one, /of \\d+ ideas/.test(document.querySelector('#list .iprog').textContent)]; })()")
+        check("Browse folds places to one open, headers give ideas, suits now and shot counts, Open all and Fold all work, a header tap opens it, and a progress line tops the list", bl==[True,1,True,True,0,1,True], bl)
+        sw=pg.evaluate("""(()=>{ const row=document.querySelector('#list .row'), id=row.dataset.id, r=row.getBoundingClientRect(), y=r.top+r.height/2, x=r.left+60, n0=(state.log[id]||[]).length, s0=state.saved.has(id);
+          const go=(dx)=>{ const el=document.querySelector('#list .row[data-id=\"'+id+'\"]'); const ev=(t,x2)=>el.dispatchEvent(new PointerEvent(t,{bubbles:true,pointerType:'touch',clientX:x2,clientY:y,pointerId:1})); ev('pointerdown',x); ev('pointermove',x+dx/4); ev('pointermove',x+dx); ev('pointerup',x+dx); el.dispatchEvent(new MouseEvent('click',{bubbles:true})); };
+          go(120); const shot=[(state.log[id]||[]).length===n0+1, state.view]; document.querySelector('#rowToast [data-undo]').click(); const undone=(state.log[id]||[]).length===n0;
+          go(-120); const sv=state.saved.has(id)!==s0; document.querySelector('#rowToast [data-undo]').click(); return [shot, undone, sv, state.saved.has(id)===s0]; })()""")
+        check("Swiping a row right logs it as shot and left saves it, without opening it, and Undo puts each back", sw==[[True,"browse"],True,True,True], sw)
+        pg.evaluate("state.openPlaces=new Set(placeOrder()); renderList()")
         check("Browse lists ideas", pg.evaluate("document.querySelectorAll('#list .row').length") > 100)
         nv=pg.evaluate("""(()=>{ const tabs=[...document.querySelectorAll('#views button')].map(b=>b.textContent); state.view='plan'; render();
           const r=[tabs, document.getElementById('vMap').getAttribute('aria-selected'), !$('mapPlanSheet').hidden, !!$('mapPlanBody').querySelector('#pGo'), $('map').classList.contains('planopen'), $('viewPlan').hidden];
@@ -266,7 +274,7 @@ def run(path, name):
         pg.fill("#q","reflection"); pg.wait_for_timeout(300); q2=pg.evaluate("matches(false).some(x=>/reflections/i.test(x.look+x.work+x.t))")
         pg.fill("#q","golden hour"); pg.wait_for_timeout(300); q3=pg.evaluate("matches(false).length>0&&matches(false).every(x=>x.w.includes('gold'))")
         pg.fill("#q","zzzz"); pg.wait_for_timeout(300); q4=pg.evaluate("[matches(false).length, !!document.querySelector('#list [data-qclear=q]')]")
-        pg.click("#list [data-qclear=q]"); pg.wait_for_timeout(150); q5=pg.evaluate("[state.q, document.getElementById('q').value, document.querySelectorAll('#list .row').length>100]")
+        pg.click("#list [data-qclear=q]"); pg.wait_for_timeout(150); q5=pg.evaluate("[state.q, document.getElementById('q').value, matches(false).length>100&&document.querySelectorAll('#list .group').length>15]")
         check("Ideas search: words match titles and text (plurals folded, golden hour finds late-afternoon ideas), with highlights and a way out when nothing matches",
               "Steam and neon" in q1[0] and q1[1] and q1[2] and q2 and q3 and q4==[0,True] and q5==["","",True], [q1,q2,q3,q4,q5])
         pg.select_option("#isort","now"); pg.wait_for_timeout(150)

@@ -1768,7 +1768,7 @@ function bullets(lines, cityId){
 const START = {"chinatown": ["Doyers St at Pell St", "Doyers St & Pell St, New York, NY"], "gct": ["Main Concourse, Grand Central Terminal", "Grand Central Terminal Main Concourse, New York, NY"], "tsq": ["The red steps at Duffy Square", "TKTS red steps, Father Duffy Square, Times Square, New York, NY"], "wsp": ["Washington Square Arch", "Washington Square Arch, New York, NY"], "dumbo": ["Washington St at Water St", "Washington St & Water St, Brooklyn, NY"], "coney": ["The boardwalk by the Wonder Wheel", "Deno's Wonder Wheel Amusement Park, Brooklyn, NY"], "soho": ["Prince St at Greene St", "Prince St & Greene St, New York, NY"], "jh": ["Roosevelt Av at 74 St", "74th St & Roosevelt Ave, Jackson Heights, NY"], "ferry": ["Whitehall Terminal", "Staten Island Ferry Whitehall Terminal, New York, NY"], "harlem": ["Apollo Theater, 125 St", "Apollo Theater, 253 W 125th St, New York, NY"], "les": ["Essex Market, Essex St at Delancey St", "Essex Market, 88 Essex St, New York, NY"], "flushing": ["Main St at Roosevelt Av", "Main St & Roosevelt Ave, Flushing, NY"], "wburg": ["Bedford Av at North 7 St", "Bedford Ave & N 7th St, Brooklyn, NY"], "midtown": ["Paley Park, East 53 St", "Paley Park, 3 E 53rd St, New York, NY"], "cpark": ["Bethesda Terrace", "Bethesda Terrace, Central Park, New York, NY"], "rockaway": ["The boardwalk at Beach 90 St", "Beach 90th St & Shore Front Pkwy, Rockaway Beach, NY"], "arthur": ["Arthur Av at East 187 St", "Arthur Ave & E 187th St, Bronx, NY"]};
 Object.assign(START, {"union": ["The south steps at 14th Street", "Union Square Park, E 14th St & Broadway, New York, NY"], "fidi": ["The Federal Hall steps on Wall Street", "Federal Hall, 26 Wall St, New York, NY"], "ktown": ["West 32nd Street at Broadway", "W 32nd St & Broadway, New York, NY"], "bushwick": ["Troutman Street at St Nicholas Avenue", "Troutman St & St Nicholas Ave, Brooklyn, NY"], "chelsea": ["The High Line entrance at Gansevoort Street", "The High Line, Gansevoort St & Washington St, New York, NY"], "brighton": ["Brighton Beach Avenue at Brighton 6th Street", "Brighton Beach Ave & Brighton 6th St, Brooklyn, NY"]});
 const mapUrl = pid => START[pid] ? "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(START[pid][1]) : "";
-const startHtml = pid => START[pid] ? '<a class="start" href="'+mapUrl(pid)+'" target="_blank" rel="noopener"><small>Start at</small> '+esc(START[pid][0])+' <span aria-hidden="true">↗</span></a>' : '';
+const startHtml = pid => START[pid] ? '<a class="start" href="'+mapUrl(pid)+'" target="_blank" rel="noopener"><small>Start at</small><span>'+esc(START[pid][0]).replace(/ (\S+)$/,' <span class="nw">$1&nbsp;↗</span>')+'</span></a>' : '';
 const startLink = pid => START[pid] ? '<a class="maplink" href="'+mapUrl(pid)+'" target="_blank" rel="noopener" aria-label="Open the starting point for '+esc(PLACES[pid].name)+' in Google Maps">Map ↗</a>' : '';
 const mapAddr = pid => START[pid] ? START[pid][1] : PLACES[pid].lat+","+PLACES[pid].lon;
 const dirUrl = (from,to,mode,via) => "https://www.google.com/maps/dir/?api=1&origin="+encodeURIComponent(mapAddr(from))+"&destination="+encodeURIComponent(mapAddr(to))+
@@ -2218,14 +2218,16 @@ function renderList(){ qCount();
   const nSaved=cityIdeas().filter(x=>state.saved.has(x.id)).length;
   let sort=ISORT[state.sort]?state.sort:"place"; if(sort==="near"&&!state.pos) sort="place";
   const sortSel='<label class="isort"><span>Sort</span><select id="isort">'+Object.entries(ISORT).filter(([k])=>k!=="near"||state.pos).map(([k,v])=>'<option value="'+k+'"'+(k===sort?' selected':'')+'>'+v+'</option>').join("")+'</select></label>';
-  const head = sw+'<div class="notesbar"><span class="msg">'+m.length+' idea'+(m.length===1?'':'s')+(sort==="place"&&state.pos?', nearest first':'')+'</span>'+sortSel+
+  const all0=cityIdeas(), shot0=all0.filter(x=>state.done.has(x.id)).length;
+  const prog='<div class="iprog"><span>'+(shot0?'You’ve shot <b>'+shot0+'</b> of '+all0.length+' ideas in '+esc(CITIES[state.city].name):'None shot yet: '+all0.length+' ideas in '+esc(CITIES[state.city].name)+'. Tap Shot it, or swipe a row right, after you shoot one.')+'</span><em><i style="width:'+(all0.length?(shot0/all0.length*100).toFixed(1):0)+'%"></i></em></div>';
+  const head = sw+prog+'<div class="notesbar"><span class="msg">'+m.length+' idea'+(m.length===1?'':'s')+(sort==="place"&&state.pos?', nearest first':'')+'</span>'+sortSel+
     (noted.length?'<button type="button" class="chip" id="copyNotes">Copy my notes ('+noted.length+')</button>':'')+'</div>';
   const t0=new Date(), key0=lightAt(t0), sky0=skyAt(t0);
   const rowHtml=(x,flat)=>{ const pl=PLACES[x.p], last=lastShot(x.id), open=ideaOpen(x,t0,sky0), fit=x.w.includes(key0), snip=qSnippet(x), mi=milesTo(pl);
     const status=flat?(fit&&open?'<span class="ok">Suits the light now</span>':!open?'<span class="off">Not on now</span>':'Best: '+esc(x.w.slice(0,2).map(w=>WHEN[w].toLowerCase()).join(" or "))):'';
     return '<button type="button" class="row'+(state.done.has(x.id)?" done":"")+'" data-id="'+x.id+'">'+
       '<span class="dot" style="background:'+INTENTS[x.i].color+'"></span>'+
-      '<span class="t"><b>'+qMarkTitle(x)+'</b><span>'+(flat?esc(pl.name)+(mi!==null?' · '+milesText(mi):'')+' · '+status+(sort==="recent"&&last?' · shot '+esc(agoText(last.t)):''):esc(INTENTS[x.i].name)+(COMPOSE[x.id]?' · '+esc(TECH[COMPOSE[x.id][0]][0]):''))+'</span>'+(snip?'<span class="qsnip">'+snip+'</span>':'')+'</span>'+
+      '<span class="t"><b>'+qMarkTitle(x)+'</b><span>'+(!flat&&fit&&open?'<span class="nowtag">Now</span>':'')+(flat?esc(pl.name)+(mi!==null?' · '+milesText(mi):'')+' · '+status+(sort==="recent"&&last?' · shot '+esc(agoText(last.t)):''):esc(INTENTS[x.i].name)+(COMPOSE[x.id]?' · '+esc(TECH[COMPOSE[x.id][0]][0]):''))+'</span>'+(snip?'<span class="qsnip">'+snip+'</span>':'')+'</span>'+
       '<span class="marks">'+(state.saved.has(x.id)?'<span class="pill">Saved</span>':'')+(state.done.has(x.id)?'<span class="pill">'+((last||{}).r==="keep"?'Keeper':(last||{}).r==="again"?'Try again':'Shot')+'</span>':'')+(state.notes[x.id]?'<span class="pill">Note</span>':'')+'</span>'+
       '<span class="go" aria-hidden="true">›</span></button>'; };
   if(sort!=="place"){ const R=m.map(x=>({x,n:nowRank(x,t0,key0,sky0),d:milesTo(PLACES[x.p]),l:lastShot(x.id)}));
@@ -2234,12 +2236,20 @@ function renderList(){ qCount();
     if(sort==="fresh") R.sort((a,b)=>(state.done.has(a.x.id)?1:0)-(state.done.has(b.x.id)?1:0)||a.n-b.n);
     if(sort==="recent") R.sort((a,b)=>(b.l?b.l.t:0)-(a.l?a.l.t:0)||a.n-b.n);
     box.innerHTML=head+(sort==="recent"&&!R.some(r=>r.l)?'<p class="msg">Nothing shot yet: these are in order of how well they fit now.</p>':'')+'<section class="group flat">'+R.map(r=>rowHtml(r.x,true)).join("")+'</section>'+(saved?"":followAll()); return; }
-  box.innerHTML = head+
+  // places fold: the first (nearest) place starts open; searching, a narrow filter, Saved and Try again open them all
+  const foldAll = saved||!!state.q||m.length<=24, firstPid=placeOrder().find(pid=>m.some(x=>x.p===pid));
+  if(!state.openPlaces) state.openPlaces=new Set(store.get("openPlaces",null)||(firstPid?[firstPid]:[]));
+  const isOpen = pid => foldAll||state.openPlaces.has(pid), anyClosed=!foldAll&&placeOrder().some(pid=>m.some(x=>x.p===pid)&&!state.openPlaces.has(pid));
+  const foldBar = foldAll?'':'<p class="foldbar"><button type="button" class="linkbtn" data-pfold="'+(anyClosed?'open':'close')+'">'+(anyClosed?'Open all places':'Fold all places')+'</button></p>';
+  box.innerHTML = head+foldBar+
   (state.pos||state.place!=="all"?"":'<div class="intents areajump">'+Object.keys(AREAS).filter(a=>placeOrder().some(pid=>areaOf(pid)===a&&m.some(x=>x.p===pid))).map(a=>'<a class="chip" href="#area-'+a+'">'+AREAS[a]+'</a>').join("")+'</div>')+
   placeOrder().map((pid,n,arr)=>{ const p=PLACES[pid];
     const rows=m.filter(x=>x.p===pid); if(!rows.length) return "";
     const first=!state.pos && !arr.slice(0,n).some(q=>areaOf(q)===areaOf(pid)&&m.some(x=>x.p===q));
-    return (first?'<h3 class="label areahead" id="area-'+areaOf(pid)+'">'+AREAS[areaOf(pid)]+'</h3>':'')+'<section class="group"><div class="group-head"><b>'+esc(p.name)+(milesTo(p)!==null?'<span class="dist">'+milesText(milesTo(p))+'</span>':'')+'</b>'+whereHtml(PLACES[pid])+startLink(pid)+'</div>'+rows.map(x=>rowHtml(x,false)).join("")+'</section>';
+    const allHere=all0.filter(x=>x.p===pid), shotHere=allHere.filter(x=>state.done.has(x.id)).length, nowHere=rows.filter(x=>x.w.includes(key0)&&ideaOpen(x,t0,sky0)).length, op=isOpen(pid), ph=PHOTOS_INLINE&&PLACE_PHOTO[pid];
+    const meta='<button type="button" class="ghmeta" data-ptog="'+pid+'" aria-expanded="'+op+'"'+(foldAll?' disabled':'')+'><span>'+rows.length+' idea'+(rows.length>1?'s':'')+(nowHere?' · <span class="ghnow">'+nowHere+' suit'+(nowHere>1?'':'s')+' now</span>':'')+' · '+shotHere+' of '+allHere.length+' shot</span>'+(foldAll?'':'<span class="ghchev" aria-hidden="true">'+(op?'▴':'▾')+'</span>')+'</button>'+
+      '<span class="ghbar"><i style="width:'+(allHere.length?(shotHere/allHere.length*100).toFixed(1):0)+'%"></i></span>';
+    return (first?'<h3 class="label areahead" id="area-'+areaOf(pid)+'">'+AREAS[areaOf(pid)]+'</h3>':'')+'<section class="group'+(op?'':' folded')+'"><div class="group-head'+(ph?' ghphoto':'')+'"'+(foldAll?'':' data-pid="'+pid+'"')+(ph?' style="background-image:linear-gradient(90deg,rgba(14,16,20,.92) 0%,rgba(14,16,20,.78) 55%,rgba(14,16,20,.45) 100%),url(&quot;'+esc(ph.src)+'&quot;)"':'')+'><b>'+esc(p.name)+(milesTo(p)!==null?'<span class="dist">'+milesText(milesTo(p))+'</span>':'')+'</b>'+whereHtml(PLACES[pid])+startLink(pid)+meta+'</div>'+(op?rows.map(x=>rowHtml(x,false)).join(""):'')+'</section>';
   }).join("")+(saved?"":followAll());
 }
 /* Accounts to follow for inspiration. Links only: the photos belong to the photographers, so the app sends you to them.
@@ -4836,7 +4846,7 @@ function planEvent(id){ const now=new Date(), today=new Date(now.getFullYear(),n
 function planToday(h,off){ off=off||0; renderPlan(); const t=new Date(), best=todayPicks(new Date(+atMin(Math.min(1435,(+h+1)*60))+off*864e5))[0];
   if(best&&[...$("pStart").options].some(o=>o.value===best.id)) $("pStart").value=best.id;
   $("pDay").value=String(off); renderPlan(); $("pTime").value=(!off&&+h*60<=dayMin(new Date()))?"now":String(h); if(!$("pTime").value) $("pTime").selectedIndex=0; $("pLen").value="150"; state.plan=makePlan(); savePlan(); state.view="map"; render(); }
-function render(){
+function render(){ { const rt=document.getElementById("rowToast"); if(rt&&!["browse","saved","again"].includes(state.view)) rt.classList.remove("on"); }
   openTip=null; tipSheet(); if(state.view!=="map"&&state.mapFull) mapFull(false); if(state.view!=="map"&&state.guide) guideStop(true);
   const shoot=state.view==="shoot", ev=state.view==="events", pl=state.view==="plan", mp=state.view==="map"||pl, ln=state.view==="learn", td=state.view==="today";
   $("viewToday").hidden=!td; if(td) renderToday();
@@ -5156,7 +5166,30 @@ $("list").addEventListener("click",e=>{
     const fallback=()=>{ if(!bar.querySelector("textarea")){ const ta=document.createElement("textarea"); ta.readOnly=true; ta.value=t; bar.appendChild(ta); ta.focus(); ta.select(); } b.textContent="Select and copy the text below"; };
     try{ navigator.clipboard.writeText(t).then(()=>{ b.textContent="Copied"; }, fallback); }catch(err){ fallback(); }
     return; }
-  const r=e.target.closest(".row"); if(!r) return; show(r.dataset.id); state.view="shoot"; render(); window.scrollTo({top:0});});
+  const gh=e.target.closest(".group-head[data-pid]"), pt=e.target.closest("[data-ptog]")||(gh&&!e.target.closest("a")?gh:null); if(pt){ const id=pt.dataset.ptog||pt.dataset.pid; state.openPlaces.has(id)?state.openPlaces.delete(id):state.openPlaces.add(id); store.set("openPlaces",[...state.openPlaces]); renderList(); return; }
+  const pf=e.target.closest("[data-pfold]"); if(pf){ state.openPlaces = pf.dataset.pfold==="open" ? new Set(placeOrder()) : new Set(); store.set("openPlaces",[...state.openPlaces]); renderList(); return; }
+  const ud=e.target.closest("[data-undo]"); if(ud){ rowUndo(); return; }
+  const r=e.target.closest(".row"); if(!r) return; if(ROWSW.suppress){ ROWSW.suppress=false; return; } show(r.dataset.id); state.view="shoot"; render(); window.scrollTo({top:0});});
+/* Swipe a row in the list: left to save (or unsave), right to log it as shot. A small note at the bottom offers Undo. */
+const ROWSW={st:null,row:null,suppress:false,last:null};
+function rowToast(msg){ let t=$("rowToast"); if(!t){ t=document.createElement("div"); t.id="rowToast"; t.className="rowtoast"; t.setAttribute("role","status"); document.body.appendChild(t);
+    t.addEventListener("click",e=>{ if(e.target.closest("[data-undo]")) rowUndo(); }); }
+  t.innerHTML='<span>'+msg+'</span><button type="button" class="linkbtn" data-undo="1">Undo</button>'; t.classList.add("on"); clearTimeout(ROWSW.tt); ROWSW.tt=setTimeout(()=>t.classList.remove("on"),4500); }
+function rowUndo(){ const L=ROWSW.last; if(!L) return; ROWSW.last=null; if(L.k==="save"){ L.had?state.saved.add(L.id):state.saved.delete(L.id); store.set("saved",[...state.saved]); } else undoShot(L.id);
+  const t=$("rowToast"); if(t) t.classList.remove("on"); render(); }
+function rowAct(id,dir){ const x=IDEAS.find(y=>y.id===id); if(!x) return;
+  if(dir<0){ const had=state.saved.has(id); had?state.saved.delete(id):state.saved.add(id); store.set("saved",[...state.saved]); ROWSW.last={k:"save",id,had}; rowToast((had?'Removed from saved: ':'Saved: ')+'<b>'+esc(x.t)+'</b>'); }
+  else { logShot(id); state.justShot=null; ROWSW.last={k:"shot",id}; rowToast('Logged as shot: <b>'+esc(x.t)+'</b>'); }
+  render(); }
+(()=>{ const L=$("list");
+  L.addEventListener("pointerdown",e=>{ ROWSW.st=null; if(e.pointerType==="mouse") return; const r=e.target.closest(".row[data-id]"); if(!r) return; ROWSW.st={x:e.clientX,y:e.clientY,t:Date.now(),on:false}; ROWSW.row=r; });
+  L.addEventListener("pointermove",e=>{ const s=ROWSW.st, r=ROWSW.row; if(!s||!r) return; const dx=e.clientX-s.x, dy=e.clientY-s.y;
+    if(!s.on){ if(Math.abs(dy)>10&&Math.abs(dy)>Math.abs(dx)){ ROWSW.st=null; return; } if(Math.abs(dx)>12&&Math.abs(dx)>Math.abs(dy)*1.5) s.on=true; else return; }
+    const d=Math.max(-140,Math.min(140,dx)); r.style.transform="translateX("+d+"px)"; r.classList.toggle("sw-l",d<0); r.classList.toggle("sw-r",d>0); r.classList.toggle("sw-go",Math.abs(d)>=90); });
+  const end=e=>{ const s=ROWSW.st, r=ROWSW.row; ROWSW.st=null; ROWSW.row=null; if(!s||!r) return; const dx=(e&&e.clientX!=null?e.clientX:s.x)-s.x;
+    r.style.transform=""; r.classList.remove("sw-l","sw-r","sw-go"); if(!s.on) return; ROWSW.suppress=true; setTimeout(()=>{ ROWSW.suppress=false; },400);
+    if(e&&e.type==="pointerup"&&Math.abs(dx)>=90) rowAct(r.dataset.id,dx<0?-1:1); };
+  L.addEventListener("pointerup",end); L.addEventListener("pointercancel",end); })();
 $("card").addEventListener("click",e=>{
   if(e.target.closest("[data-stay]")){ const x=IDEAS.find(y=>y.id===state.current); if(x) toggleStay(x.p); return; }
   if(e.target.closest("[data-street]")){ streetOpen(); return; }
@@ -5221,5 +5254,8 @@ SPOTS.chinatown.push([40.7155,-73.9984,209,"Mott Street at Bayard Street","Lion 
   add("soho",["bHgrYlaFAMSdK8s5FJNTfg",0,null,null]); add("wburg",["7ydzGgebwMSwtkgKwkTpjg",0,null,null]); add("cpark",["5dZ084wK25BHka7zj43dxA",0,null,null]);
   SV_PANO["midtown:"+(n("midtown")-2)]=["wFI2mCHjFQFX9ZKFUlYfrQ",0,null,null]; SV_PANO["midtown:"+(n("midtown")-1)]=SV_PANO["midtown:2"]; SV_PANO["midtown:"+n("midtown")]=["wrkE0z0J2dD_1XSF3qYYcg",0,null,null,"Google's picture is from summer; the rink is on this lawn from late October to early March."];
   add("union",["Bma9XBXgfne6Jq-S83dUOg",0,null,null,"Google's picture is from spring; the market stalls stand on this plaza from mid-November."]); add("wsp",SV_PANO["wsp:0"]); add("chinatown",SV_PANO["chinatown:4"]); })();
-swipeable($("card"),goNext,goBack); swipeable($("street"),goNext,goBack);
+function cardSlide(dir){ const c=$("card"); if(!c) return; c.classList.remove("slide-l","slide-r"); void c.offsetWidth; c.classList.add(dir<0?"slide-l":"slide-r"); store.set("swipeSeen",true); const h=$("swipeHint"); if(h) h.remove(); }
+swipeable($("card"),()=>{ goNext(); cardSlide(-1); },()=>{ const had=state.history.length; goBack(); if(had) cardSlide(1); }); swipeable($("street"),goNext,goBack);
+if(!store.get("swipeSeen",false)){ if($("card")){ const h=document.createElement("p"); h.id="swipeHint"; h.className="swipehint"; h.textContent="Tip: swipe the card left for another idea, right to go back.";
+  $("card").insertAdjacentElement("afterend",h); } }
 syncChips(); pick(); state.history=[]; render();
