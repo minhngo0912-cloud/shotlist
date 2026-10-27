@@ -1184,3 +1184,18 @@ body.sheetopen{overflow:hidden}
 .evlink{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--fg);text-decoration:none;min-height:60px}
 .evlink b{font-size:14px;line-height:1.25} .evlink span{font-size:12px;color:var(--blue);font-weight:700}
 .evsh{margin:14px 0 0;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+
+/* Today: weather in Right now, compact picks, data age, pull to refresh */
+.tnow .twx{display:flex;gap:8px;align-items:flex-start;margin-top:8px!important;padding-top:8px;border-top:1px solid rgba(255,255,255,.18)}
+.tnow .twx b{color:#fff;font-weight:700} .twxi{flex:none;color:#ffd166;line-height:0;margin-top:1px}
+.tnow.night .twxi,.tnow.blue .twxi{color:#c9d4ff}
+.tasof{font-size:12px} .tasof.stale{color:#c0392b} .tasof .linkbtn{font-size:12px}
+.tprow{display:flex;align-items:center;gap:12px;width:100%;padding:10px 0;border:0;border-top:1px solid var(--line);background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.tprow img{flex:none;width:44px;height:44px;border-radius:10px;object-fit:cover;background:var(--line)}
+.tprow .tpickn{width:36px;height:36px;font-size:15px}
+.tprow .t{flex:1;min-width:0;display:flex;flex-direction:column} .tprow .t b{font-size:15px}
+.tprow .t span{color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tprow .go{color:var(--muted);font-size:20px}
+.tcard.tquiet{padding:10px 14px} .tcard.tquiet .tlabel{display:none} .tcard.tquiet .msg{margin:0}
+.tpull{position:fixed;top:calc(env(safe-area-inset-top) + 6px);left:50%;transform:translate(-50%,-60px);z-index:60;padding:6px 14px;border-radius:16px;background:var(--panel);border:1px solid var(--line);color:var(--muted);font-size:13px;font-weight:600;box-shadow:0 4px 14px rgba(0,0,0,.15);opacity:0;transition:opacity .15s;pointer-events:none}
+.tpull.on{opacity:1} .tpull.done{color:#1e9e48;transform:translate(-50%,20px)!important}

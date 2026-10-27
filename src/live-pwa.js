@@ -31,6 +31,10 @@ async function loadWeatherAt(pos){ if(Date.now()-wxHereAt<10*60*1000) return; wx
     const v=wxParse(await r.json()); if(!v) return; v.lat=+pos.lat.toFixed(3); v.lon=+pos.lon.toFixed(3); WEATHER.here=v; store.set("weather",WEATHER);
     if(typeof LF!=="undefined"&&LF.open) lfRender(); }catch(e){} }
 loadWeather(); setInterval(loadWeather, 15*60*1000);
+/* Today's Refresh and pull down: the weather now, and the events and prices files again. */
+window.liveRefresh=()=>{ loadWeather();
+  fetch("events.json",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{ if(j&&typeof j==="object"&&!Array.isArray(j)){ EVENT_DOCS=j; store.set("events",j); if(state.view==="today") renderToday(); } }).catch(()=>{});
+  fetch("prices.json",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{ if(j&&typeof j==="object"&&!Array.isArray(j)){ PRICE_TARGETS=j._targets||{}; PRICE_DOCS=j; store.set("prices",j); rerenderPrices(); } }).catch(()=>{}); };
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ const w=WEATHER[state.city]; if(!w||Date.now()-new Date(w.updated)>10*60*1000) loadWeather(); } });
 $("city").addEventListener("change",loadWeather);
 /* Place photos for offline use: once per set of photos, a few seconds after opening and only when online, fetch each pin
