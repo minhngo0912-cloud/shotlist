@@ -1199,3 +1199,12 @@ body.sheetopen{overflow:hidden}
 .tcard.tquiet{padding:10px 14px} .tcard.tquiet .tlabel{display:none} .tcard.tquiet .msg{margin:0}
 .tpull{position:fixed;top:calc(env(safe-area-inset-top) + 6px);left:50%;transform:translate(-50%,-60px);z-index:60;padding:6px 14px;border-radius:16px;background:var(--panel);border:1px solid var(--line);color:var(--muted);font-size:13px;font-weight:600;box-shadow:0 4px 14px rgba(0,0,0,.15);opacity:0;transition:opacity .15s;pointer-events:none}
 .tpull.on{opacity:1} .tpull.done{color:#1e9e48;transform:translate(-50%,20px)!important}
+
+/* Quiet alerts line, Tomorrow morning card, calendar */
+.talerts.tquiet .msg{color:var(--muted)} .talerts.tquiet b{color:var(--ink,inherit);font-weight:700} .tqk{color:#1e9e48;font-weight:800}
+.ttmr{border-color:#d9a441;background:linear-gradient(180deg,rgba(217,164,65,.10),transparent 60%),var(--panel)}
+.ttmrw{display:flex;flex-wrap:wrap;gap:6px 14px;margin:0 0 6px;font-size:14px;font-weight:600} .ttmrw>span{display:inline-flex;align-items:center;gap:6px}
+.ttmr .twx2{display:flex;gap:8px;align-items:flex-start;margin:4px 0 6px} .ttmr .twxi{color:#d9a441}
+.ttmr .row{margin:6px 0 0;padding:8px 6px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.ttmr .callinks{margin-top:10px}
+.chip.calok{color:#1e9e48;border-color:rgba(30,158,72,.4);cursor:default}
