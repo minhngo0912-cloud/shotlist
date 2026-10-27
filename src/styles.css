@@ -1270,3 +1270,29 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 #map.full .mnorth,#map.full .mguide{top:calc(max(10px,env(safe-area-inset-top,0px)) + 58px)}
 .mcard .callinks{flex-wrap:nowrap;overflow-x:auto} .mcard .callinks .chip{flex:none}
 .mapgo select{padding-right:36px;text-overflow:ellipsis;white-space:nowrap;overflow:hidden}
+
+/* Events: one filter row, day strip, card meta, Going, folded Later */
+.evinfo{margin:0} .evinfo>summary{list-style:none;cursor:pointer} .evinfo>summary::-webkit-details-marker{display:none}
+.evinfo-i{display:inline-block;margin-left:2px;color:var(--muted);font-weight:700} .evinfo[open] .evinfo-i{color:var(--fg)} .evinfo>.msg{margin:6px 0 4px}
+.evquick{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none} .evquick::-webkit-scrollbar{display:none}
+.chipsel{position:relative;flex:none;display:inline-flex}
+.chipsel select{min-height:40px;padding:0 30px 0 14px;border:1px solid var(--line);border-radius:20px;background:var(--panel);color:var(--fg);font:inherit;font-size:15px;font-weight:600;-webkit-appearance:none;appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 15px) 52%,calc(100% - 10px) 52%;background-size:5px 5px;background-repeat:no-repeat}
+.chipsel.on select{background-color:var(--fg);color:var(--bg);border-color:var(--fg)}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.evstrip{display:flex;gap:4px;overflow-x:auto;margin:10px 0 4px;padding:2px 0 6px;scrollbar-width:none;scroll-snap-type:x proximity} .evstrip::-webkit-scrollbar{display:none}
+.evd{flex:none;width:44px;display:flex;flex-direction:column;align-items:center;gap:1px;padding:4px 0 6px;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--fg);font:inherit;cursor:pointer;scroll-snap-align:start}
+.evd .evdm{height:12px;font-size:10px;font-weight:800;text-transform:uppercase;color:#d6453d;letter-spacing:.04em}
+.evd .evdw{font-size:11px;color:var(--muted);font-weight:600} .evd b{font-size:17px;line-height:1.1}
+.evd .evdots{display:flex;gap:2px;height:6px} .evd .evdots i{width:5px;height:5px;border-radius:50%;background:#d6453d}
+.evd.we{background:var(--bg)} .evd.none b{color:var(--muted)} .evd.on{background:var(--fg);color:var(--bg);border-color:var(--fg)} .evd.on .evdw{color:var(--bg)} .evd.on .evdots i{background:var(--yellow)}
+.evdayf{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:8px 0 0;font-weight:700}
+.evmeta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:2px;font-size:13px;font-weight:600;color:var(--fg)}
+.evwx{display:inline-flex;align-items:center;gap:2px;color:var(--muted)} .evwx svg{width:15px;height:15px;color:#e0a100}
+.eok{color:#1e9e48;letter-spacing:.04em} .enew{display:inline-block;padding:0 5px;border-radius:6px;background:var(--yellow);color:#14161a;letter-spacing:.04em}
+.soon{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.evstar{width:36px;height:36px;margin-right:-6px;border:0;border-radius:18px;background:none;color:var(--muted);font-size:22px;line-height:1;cursor:pointer}
+.evstar[aria-pressed="true"]{color:#e0a100}
+.evsec{position:relative} #events .evsec>.evgroup{position:sticky;top:0;z-index:3;display:block;width:calc(100% + 32px);margin:4px -16px -4px;padding:8px 16px;background:var(--bg);text-align:left}
+.evfold{border:0;font:inherit;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);cursor:pointer}
+.evgo .evgroup{color:#b07d00}
+.tgoing{margin-top:4px} .tcard .tgoing+*,.tcard .tev+.tgoing{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}

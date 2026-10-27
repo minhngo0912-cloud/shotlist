@@ -310,12 +310,20 @@ def run(path, name):
         pg.evaluate("$('pDay').value='0'; renderPlan(); state.plan=makePlan(); savePlan(); renderPlan()")
         # Events
         pg.click("#vEvents"); pg.wait_for_timeout(150)
-        check("Events lists events", pg.evaluate("document.querySelectorAll('#events details').length") > 10); no_overflow("Events"); shot("events")
+        pg.evaluate("state.evLaterOpen=true; renderEvents()"); check("Events lists events", pg.evaluate("document.querySelectorAll('#events details.event').length") > 10); no_overflow("Events"); shot("events")
         el=pg.evaluate("eventLight(EVENTS.find(e=>e.id==='thanksgiving'), new Date(2026,10,26))")
         check("The light during an event: window, sun, sunset and the sunny side of the street", el[0].startswith("8:30 am to 12 pm") and "Sunset" in el[0] and el[1].startswith("Stand on the west side"), el)
-        check("Events carry arrival advice and quick filters", pg.evaluate("[document.querySelectorAll('#events .evquick .chip').length, [...document.querySelectorAll('#events .label')].some(l=>l.textContent==='Getting there and when')]")==[4,True])
+        check("Events carry arrival advice and one row of filters (Near me now, When, Type, Confirmed)", pg.evaluate("[document.querySelectorAll('#events .evquick .chip').length, document.querySelectorAll('#events .evquick select').length, [...document.querySelectorAll('#events .label')].some(l=>l.textContent==='Getting there and when')]")==[2,2,True])
+        ev5=pg.evaluate("""(()=>{ const secs=()=>[...document.querySelectorAll('#events .evsec>.evgroup')].map(x=>x.textContent.replace(/ ·.*/,''));
+          state.evLaterOpen=false; renderEvents(); const s0=secs(), fold=document.querySelector('#events [data-evlater]'), n0=document.querySelectorAll('#events details.event').length; fold.click(); const n1=document.querySelectorAll('#events details.event').length; document.querySelector('#events [data-evlater]').click();
+          const star=document.querySelector('#events [data-evgo]'), id=star.dataset.evgo; star.click(); const s1=secs(), sheet=!!document.getElementById('evSheet'); document.querySelector('#events .evgo [data-evgo]').click();
+          const meta=[...document.querySelectorAll('#events .evmeta')].map(m=>m.textContent);
+          const dayBtn=[...document.querySelectorAll('#events .evd')].find(d=>!d.classList.contains('none')&&d.querySelector('.evdots i')); dayBtn.click(); const dayN=document.querySelectorAll('#events details.event').length, dayLine=!!document.querySelector('#events .evdayf');
+          document.querySelector('#events .evdayf [data-evday]').click();
+          return [s0.includes('Later')&&!!fold, n1>n0, s1[0], state.evGoing.has(id)===false, sheet, meta.length>0&&meta.every(t=>/(am|pm)/.test(t)), dayN>=1&&dayLine, state.evDay]; })()""")
+        check("Events: Later folds, a star moves an event to Going without opening it, cards give the time and light, and a day in the strip filters to that day", ev5==[True,True,"Going",True,False,True,True,None], ev5)
         pg.click("#events .evquick [data-q=confirmed]"); pg.wait_for_timeout(100)
-        check("Confirmed filter keeps only confirmed events", pg.evaluate("[...document.querySelectorAll('#events details')].every(d=>d.querySelector('.pill')&&d.querySelector('.pill').textContent==='Confirmed')"))
+        cf=pg.evaluate("[...document.querySelectorAll('#events details.event')].filter(d=>!(d.querySelector('.pill')&&d.querySelector('.pill').textContent==='Confirmed')).map(d=>d.dataset.id+'|'+d.className+'|'+((d.querySelector('.pill')||{}).textContent))"); check("Confirmed filter keeps only confirmed events", pg.evaluate("[...document.querySelectorAll('#events details.event')].every(d=>d.querySelector('.pill')&&d.querySelector('.pill').textContent==='Confirmed')"), cf)
         pg.click("#events .evquick [data-q=confirmed]"); pg.wait_for_timeout(100)
         # Music: the free outdoor series are built-ins with a stand and a view
         mu=pg.evaluate("[EVENTS.filter(e=>e.type==='music').map(e=>e.id), EVENTS.filter(e=>e.type==='music'&&(!EVENT_VIEW[e.id]||!EVENT_GEO[e.id]||e.ideas.length<3)).map(e=>e.id), EVENTS.find(e=>e.id==='summerstage').when(2026).map(w=>w.map(d=>d.getMonth()+1+'/'+d.getDate()))]")

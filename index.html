@@ -1288,6 +1288,32 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 #map.full .mnorth,#map.full .mguide{top:calc(max(10px,env(safe-area-inset-top,0px)) + 58px)}
 .mcard .callinks{flex-wrap:nowrap;overflow-x:auto} .mcard .callinks .chip{flex:none}
 .mapgo select{padding-right:36px;text-overflow:ellipsis;white-space:nowrap;overflow:hidden}
+
+/* Events: one filter row, day strip, card meta, Going, folded Later */
+.evinfo{margin:0} .evinfo>summary{list-style:none;cursor:pointer} .evinfo>summary::-webkit-details-marker{display:none}
+.evinfo-i{display:inline-block;margin-left:2px;color:var(--muted);font-weight:700} .evinfo[open] .evinfo-i{color:var(--fg)} .evinfo>.msg{margin:6px 0 4px}
+.evquick{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none} .evquick::-webkit-scrollbar{display:none}
+.chipsel{position:relative;flex:none;display:inline-flex}
+.chipsel select{min-height:40px;padding:0 30px 0 14px;border:1px solid var(--line);border-radius:20px;background:var(--panel);color:var(--fg);font:inherit;font-size:15px;font-weight:600;-webkit-appearance:none;appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 15px) 52%,calc(100% - 10px) 52%;background-size:5px 5px;background-repeat:no-repeat}
+.chipsel.on select{background-color:var(--fg);color:var(--bg);border-color:var(--fg)}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.evstrip{display:flex;gap:4px;overflow-x:auto;margin:10px 0 4px;padding:2px 0 6px;scrollbar-width:none;scroll-snap-type:x proximity} .evstrip::-webkit-scrollbar{display:none}
+.evd{flex:none;width:44px;display:flex;flex-direction:column;align-items:center;gap:1px;padding:4px 0 6px;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--fg);font:inherit;cursor:pointer;scroll-snap-align:start}
+.evd .evdm{height:12px;font-size:10px;font-weight:800;text-transform:uppercase;color:#d6453d;letter-spacing:.04em}
+.evd .evdw{font-size:11px;color:var(--muted);font-weight:600} .evd b{font-size:17px;line-height:1.1}
+.evd .evdots{display:flex;gap:2px;height:6px} .evd .evdots i{width:5px;height:5px;border-radius:50%;background:#d6453d}
+.evd.we{background:var(--bg)} .evd.none b{color:var(--muted)} .evd.on{background:var(--fg);color:var(--bg);border-color:var(--fg)} .evd.on .evdw{color:var(--bg)} .evd.on .evdots i{background:var(--yellow)}
+.evdayf{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:8px 0 0;font-weight:700}
+.evmeta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:2px;font-size:13px;font-weight:600;color:var(--fg)}
+.evwx{display:inline-flex;align-items:center;gap:2px;color:var(--muted)} .evwx svg{width:15px;height:15px;color:#e0a100}
+.eok{color:#1e9e48;letter-spacing:.04em} .enew{display:inline-block;padding:0 5px;border-radius:6px;background:var(--yellow);color:#14161a;letter-spacing:.04em}
+.soon{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.evstar{width:36px;height:36px;margin-right:-6px;border:0;border-radius:18px;background:none;color:var(--muted);font-size:22px;line-height:1;cursor:pointer}
+.evstar[aria-pressed="true"]{color:#e0a100}
+.evsec{position:relative} #events .evsec>.evgroup{position:sticky;top:0;z-index:3;display:block;width:calc(100% + 32px);margin:4px -16px -4px;padding:8px 16px;background:var(--bg);text-align:left}
+.evfold{border:0;font:inherit;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);cursor:pointer}
+.evgo .evgroup{color:#b07d00}
+.tgoing{margin-top:4px} .tcard .tgoing+*,.tcard .tev+.tgoing{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}
 </style>
 
 <div class="app">
@@ -3806,19 +3832,46 @@ function evOngoingLabel(r,today){ if(evSeason(r)){ const sh=evShows(r); if(!sh) 
   if(r.e.type==="light"&&r.o[1]&&(r.o[1]-r.o[0])>3*864e5) return "In season"; return "On now"; }
 function evLocate(){ state.evPosErr=false; if(!navigator.geolocation){ state.evPosErr=true; return; }
   try{ navigator.geolocation.getCurrentPosition(p=>{ state.pos={lat:p.coords.latitude,lon:p.coords.longitude}; if(state.view==="events") renderEvents(); },()=>{ if(!state.pos){ state.evPosErr=true; if(state.view==="events") renderEvents(); } },{timeout:10000,maximumAge:60000}); }catch(e){ state.evPosErr=true; } }
+/* Is an event on this day? Long runs (seasons, foliage) count only on a listed show night or, with all=true, on any day they span. */
+function evOnDay(r,d,all){ if(!r.o||r.cancelled) return false; const a=evDay(r.o[0]), b=evDay(r.o[1]||r.o[0]); if(d<a||d>b) return false;
+  if(evSeason(r)){ const on=evShowOn(r,d); return on===null?!!all:on; }
+  return all||(b-a)<=14*864e5||+d===+a; }
+/* A strip of the next five weeks with a dot per event, to spot a busy weekend or a free day; tap a day to see just that day. */
+function evStrip(rows,today,sel){ const days=[]; for(let k=0;k<35;k++) days.push(new Date(today.getFullYear(),today.getMonth(),today.getDate()+k));
+  return '<div class="evstrip" role="group" aria-label="Events by day, next five weeks">'+days.map((d,k)=>{ const n=rows.filter(r=>evOnDay(r,d,false)).length, on=sel&&+sel===+d, first=k===0||d.getDate()===1;
+    return '<button type="button" class="evd'+(n?'':' none')+(on?' on':'')+(d.getDay()===0||d.getDay()===6?' we':'')+'" data-evday="'+(+d)+'" aria-pressed="'+!!on+'" aria-label="'+esc(d.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})+', '+(n?n+' event'+(n>1?'s':''):'no events'))+'">'+
+      '<span class="evdm">'+(first?d.toLocaleDateString("en-US",{month:"short"}):'')+'</span><span class="evdw">'+(k===0?'Today':DAY_SHORT[d.getDay()])+'</span><b>'+d.getDate()+'</b><span class="evdots">'+'<i></i>'.repeat(Math.min(3,n))+'</span></button>'; }).join("")+'</div>'; }
+/* One line under the event's name: the start time, the light then, and the forecast when it is within the week. */
+function evMeta(r,today){ if(!r.o||r.cancelled||r.game) return ""; const d=evDay(r.o[0]<today?today:r.o[0]), w=evWindow(r.e,d); if(!w) return "";
+  const t=new Date(d.getFullYear(),d.getMonth(),d.getDate(),0,w[0]), c=CITIES[state.city], ph=sunPhase(sunPos(t,c.lat,c.lon).alt), days=(d-today)/864e5;
+  const f=days<7?hourlyAt(t):null, sky=f?skyAt(t):undefined, wx=f?'<span class="evwx" title="'+esc(sky?WX_WORD[sky]:f.cc>=50?'Some cloud':'Clear')+'">'+wxIcon(sky||(f.cc>=50?"cloud":""),ph!=="night")+(f.temp!=null?Math.round(f.temp*9/5+32)+'°':'')+'</span>':'';
+  return '<span class="evmeta">'+(r.o[0]<today?'Today ':'')+hmText(w[0])+' · '+(ph==="day"?(t.getHours()<11?'morning light':t.getHours()<15?'midday sun':'afternoon light'):(ph==="night"?'after dark':SUN_PHASE[ph].toLowerCase()))+wx+'</span>'; }
+/* What a calendar entry for an event holds, for Add to Google Calendar from the Going star. */
+function evCalEv(e,o){ const c=calInfo(e,o), ymd=s=>s.slice(0,4)+"-"+s.slice(4,6)+"-"+s.slice(6,8)+"T00:00:00"; return {summary:c.title,start:ymd(c.start),end:ymd(c.end),allDay:true,location:c.loc,description:c.desc}; }
+function evToast(html){ let t=$("rowToast"); if(!t){ t=document.createElement("div"); t.id="rowToast"; t.className="rowtoast"; t.setAttribute("role","status"); document.body.appendChild(t); }
+  t.innerHTML=html; t.classList.add("on"); clearTimeout(ROWSW.tt); ROWSW.tt=setTimeout(()=>t.classList.remove("on"),6000); }
+function evGoToggle(id){ const G=state.evGoing||(state.evGoing=new Set()); const on=!G.has(id); on?G.add(id):G.delete(id); store.set("evGoing",[...G]);
+  const r=eventRows(evDay(new Date())).find(x=>x.e.id===id); renderEvents();
+  if(on&&r) evToast('<span>Going: <b>'+esc(r.e.name)+'</b></span>'+(CAL_MCP&&r.o?calBtn(evCalEv(r.e,r.o)):'')); }
 function renderEvents(){
   const now=new Date(), today=new Date(now.getFullYear(),now.getMonth(),now.getDate()), cam=CAMERAS[state.camera], box=$("events");
   const fmt=(d,o)=>d.toLocaleDateString("en-US",o), dm={weekday:"short",month:"short",day:"numeric"};
   const wk7=new Date(today.getFullYear(),today.getMonth(),today.getDate()+7), wk42=new Date(today.getFullYear(),today.getMonth(),today.getDate()+42);
   const grpOf = r => !r.o?3 : r.o[0]<=today?0 : r.o[0]<wk7?1 : r.o[0]<wk42?2 : 3, GRP=["On now","This week","Next few weeks","Later"];
   const all=eventRows(today), kinds=Object.keys(EVENT_TYPES).filter(k=>all.some(r=>r.e.type===k));
-  if(state.evType!=="all" && !kinds.includes(state.evType)) state.evType="all";
-  const Q=state.evQuick||(state.evQuick=new Set()), lim30=new Date(today.getFullYear(),today.getMonth(),today.getDate()+30);
-  const quick=r=>(!Q.has("soon")||(r.o&&r.o[0]<=lim30))&&(!Q.has("confirmed")||r.confirmed)&&(!Q.has("photo")||PHOTO_TYPES.has(r.e.type));
-  let list=(state.evType==="all"?all:all.filter(r=>r.e.type===state.evType)).filter(quick);
-  const chips='<div class="intents evquick"><button type="button" class="chip evnearbtn" data-evnear="1" aria-pressed="'+!!state.evNear+'">◎ Near me now</button>'+[["soon","Next 30 days"],["confirmed","Confirmed"],["photo","Photo events"]].filter(([k])=>!(state.evNear&&k==="soon")).map(([k,l])=>'<button type="button" class="chip" data-q="'+k+'" aria-pressed="'+Q.has(k)+'">'+l+'</button>').join("")+'</div>'+
-    '<div class="intents" id="evTypes"><button type="button" class="chip" data-t="all" aria-pressed="'+(state.evType==="all")+'">All types</button>'+
-    kinds.map(k=>'<button type="button" class="chip" data-t="'+k+'" aria-pressed="'+(state.evType===k)+'">'+EVENT_TYPES[k]+' · '+all.filter(r=>r.e.type===k).length+'</button>').join("")+'</div>';
+  if(state.evType!=="all" && state.evType!=="photo" && !kinds.includes(state.evType)) state.evType="all";
+  const Q=state.evQuick||(state.evQuick=new Set()), WH=state.evWhenF||"any", limW=WH==="any"?null:new Date(today.getFullYear(),today.getMonth(),today.getDate()+(+WH));
+  const DAYF=state.evDay?new Date(state.evDay):null;
+  const typeOk=r=>state.evType==="all"||(state.evType==="photo"?PHOTO_TYPES.has(r.e.type):r.e.type===state.evType);
+  const quick=r=>(!limW||state.evNear||(r.o&&r.o[0]<=limW))&&(!Q.has("confirmed")||r.confirmed)&&(!DAYF||state.evNear||evOnDay(r,DAYF,true));
+  let list=all.filter(typeOk).filter(quick);
+  const nPhoto=all.filter(r=>PHOTO_TYPES.has(r.e.type)).length;
+  const chips='<div class="intents evquick"><button type="button" class="chip evnearbtn" data-evnear="1" aria-pressed="'+!!state.evNear+'">◎ Near me now</button>'+
+    (state.evNear?'':'<label class="chipsel'+(WH!=="any"?' on':'')+'"><span class="vh">When</span><select id="evWhenSel" aria-label="When">'+[["any","Any time"],["7","Next 7 days"],["30","Next 30 days"]].map(([k,l])=>'<option value="'+k+'"'+(k===WH?' selected':'')+'>'+l+'</option>').join("")+'</select></label>')+
+    '<label class="chipsel'+(state.evType!=="all"?' on':'')+'"><span class="vh">Type</span><select id="evTypeSel" aria-label="Type of event"><option value="all">All types · '+all.length+'</option>'+(nPhoto?'<option value="photo"'+(state.evType==="photo"?' selected':'')+'>For photographers · '+nPhoto+'</option>':'')+
+      kinds.map(k=>'<option value="'+k+'"'+(state.evType===k?' selected':'')+'>'+EVENT_TYPES[k]+' · '+all.filter(r=>r.e.type===k).length+'</option>').join("")+'</select></label>'+
+    '<button type="button" class="chip" data-q="confirmed" aria-pressed="'+Q.has("confirmed")+'">Confirmed</button></div>'+
+    (state.evNear?'':evStrip(all.filter(typeOk),today,DAYF));
   // Near me now: events within 1 or 2 miles, on today or in the next 7 days, nearest first
   const R=state.evRadius===2?2:1, NEAR=!!state.evNear, wk=new Date(today.getFullYear(),today.getMonth(),today.getDate()+7), nm=now.getHours()*60+now.getMinutes(), evMi={}, evWhen={};
   const nearCtl=NEAR?'<div class="evnear"><span>Within</span>'+[1,2].map(m=>'<button type="button" class="chip" data-evr="'+m+'" aria-pressed="'+(R===m)+'">'+m+' mile'+(m>1?'s':'')+'</button>').join("")+'<span class="msg">'+(state.pos?'of you · on today and the next 7 days':'')+'</span></div>':'';
@@ -3841,12 +3894,20 @@ function renderEvents(){
   const st=EVENT_DOCS._status, chk=st&&eParse(st.checked);
   let lastK=-1;
   box.innerHTML=(NEAR?'<p class="lead">Events worth shooting near you, nearest first. Distances are straight-line from where you are; walking takes a little longer.</p>'
-      :'<p class="lead">Events worth shooting, plus photo walks, shows and camera events for photographers, soonest first. '+
+      :'<details class="evinfo"><summary class="lead">Events worth shooting and events for photographers, soonest first. <span class="evinfo-i" aria-label="More about these dates">ⓘ</span></summary><p class="msg">'+
     (chk?'Dates were last checked on '+fmt(chk,{month:"short",day:"numeric"})+' and the list is rechecked every week. ':'')+
-    'Events marked Confirmed were matched to a published listing. The rest follow each event\'s usual pattern, so confirm before you go.</p>')+chips+nearCtl+shown.map((r,n)=>{
-    const head=NEAR?(evWhen[r.e.id][0]!==lastK?(lastK=evWhen[r.e.id][0],'<p class="evgroup">'+(lastK===0?'On today':'Coming up nearby')+'</p>'):'')
-      :(grpOf(r)!==lastK?(lastK=grpOf(r),'<p class="evgroup">'+GRP[lastK]+'</p>'):'');
-    const e=r.e, o=r.o, yr=o?o[0].getFullYear():today.getFullYear(), other=o&&yr!==today.getFullYear(), games=r.game?list.filter(x=>x.game&&x.e.id===e.id):[];
+    'Events marked Confirmed were matched to a published listing. The rest follow each event\'s usual pattern, so confirm before you go. Tap ☆ on an event you plan to shoot: it moves to Going at the top and shows on Today the day before.</p></details>')+chips+nearCtl+
+    (DAYF&&!NEAR?'<p class="evdayf">'+fmt(DAYF,{weekday:"long",month:"short",day:"numeric"})+' · '+shown.length+' event'+(shown.length===1?'':'s')+' <button type="button" class="linkbtn" data-evday="">Show all days</button></p>':'');
+  // Going first, then the usual groups; each group is its own section so its heading only sticks while it is on screen; Later folds
+  const GO=state.evGoing||new Set(), going=NEAR||DAYF?[]:shown.filter(r=>GO.has(r.e.id)&&r.o&&!r.cancelled), rest=shown.filter(r=>!going.includes(r)), secs=[];
+  if(going.length) secs.push({k:"go",title:"Going",rows:going});
+  for(const r of rest){ const k=NEAR?evWhen[r.e.id][0]:grpOf(r), t=NEAR?(k===0?'On today':'Coming up nearby'):GRP[k]; const last=secs[secs.length-1]; if(last&&last.k===k) last.rows.push(r); else secs.push({k,title:t,rows:[r]}); }
+  const laterOpen=!!state.evLaterOpen||!!DAYF;
+  box.innerHTML += secs.map(S=>{ const fold=!NEAR&&S.k===3&&S.rows.length>2;
+    return '<section class="evsec'+(S.k==="go"?' evgo':'')+'">'+(fold?'<button type="button" class="evgroup evfold" data-evlater="1" aria-expanded="'+laterOpen+'">'+S.title+' · '+S.rows.length+' events <span aria-hidden="true">'+(laterOpen?'▴':'▾')+'</span></button>':'<p class="evgroup">'+S.title+'</p>')+
+      (fold&&!laterOpen?'':S.rows.map(r=>evCard(r)).join(""))+'</section>'; }).join("")+(NEAR?nearSearchHtml(R):"");
+  function evCard(r){
+    const head="", e=r.e, o=r.o, yr=o?o[0].getFullYear():today.getFullYear(), other=o&&yr!==today.getFullYear(), games=r.game?list.filter(x=>x.game&&x.e.id===e.id):[];
     const full=o ? fmt(o[0],dm)+(o[1]?" to "+fmt(o[1],dm):"")+(other?", "+yr:"") : "Date not announced";
     const soon=r.cancelled?"Cancelled":NEAR&&evWhen[e.id]?evWhen[e.id][1]:(o?(o[0]<=today?evOngoingLabel(r,today):eventSoon(o,today)):"");
     const mi=NEAR?evMi[e.id]:null, dist=mi!=null?'<span class="evdist">'+(mi<0.1?'Right here':milesText(mi)+' · about '+Math.max(1,Math.round(mi*1.25*20))+' min walk')+'</span>':'';
@@ -3854,8 +3915,8 @@ function renderEvents(){
     const src=typeof r.source==="string" && /^https:\/\//.test(r.source) ? r.source : null;
     return head+'<details class="event" data-id="'+esc(e.id)+'"><summary>'+
       '<span class="cal">'+(o?'<small>'+fmt(o[0],{month:"short"})+'</small><b>'+o[0].getDate()+'</b>':'<small>TBA</small><b>·</b>')+'</span>'+
-      '<span class="t">'+(EVENT_TYPES[e.type]?'<span class="etag'+(PHOTO_TYPES.has(e.type)?" ph":"")+'">'+EVENT_TYPES[e.type]+'</span>':'')+'<b>'+esc(e.name)+'</b>'+dist+'<span>'+esc(r.game?'Next: '+r.game.title+', '+o[0].toLocaleDateString("en-US",{weekday:"short"})+' '+hmText(r.game.at.getHours()*60+r.game.at.getMinutes()):e.where)+'</span></span>'+
-      '<span class="soon'+(/now|Today|today|Tomorrow|days|Cancelled/.test(soon)?" near":"")+'">'+soon+'</span></summary>'+
+      '<span class="t">'+(EVENT_TYPES[e.type]?'<span class="etag'+(PHOTO_TYPES.has(e.type)?" ph":"")+'">'+EVENT_TYPES[e.type]+(r.confirmed?' <span class="eok">✓ Confirmed</span>':r.added?' <span class="enew">New</span>':'')+'</span>':'')+'<b>'+esc(e.name)+'</b>'+dist+evMeta(r,today)+'<span>'+esc(r.game?'Next: '+r.game.title+', '+o[0].toLocaleDateString("en-US",{weekday:"short"})+' '+hmText(r.game.at.getHours()*60+r.game.at.getMinutes()):e.where)+'</span></span>'+
+      '<span class="soon'+(/now|Today|today|Tomorrow|days|Cancelled/.test(soon)?" near":"")+'">'+soon+(o&&!r.cancelled&&!r.game?'<button type="button" class="evstar" data-evgo="'+esc(e.id)+'" aria-pressed="'+(state.evGoing&&state.evGoing.has(e.id)?'true':'false')+'" aria-label="'+(state.evGoing&&state.evGoing.has(e.id)?'Going: tap to remove':'Mark as going')+'">'+(state.evGoing&&state.evGoing.has(e.id)?'★':'☆')+'</button>':'')+'</span></summary>'+
       '<div class="event-body"><p class="when">'+full+(e.approx?" (expected)":"")+
         (r.confirmed?' <span class="pill">Confirmed</span>':'')+(r.added?' <span class="pill">New</span>':'')+
         '<span>'+esc(e.time)+(e.approx?". This date is announced each year and may differ.":"")+(e.note?" "+esc(e.note):"")+'</span></p>'+
@@ -3869,7 +3930,7 @@ function renderEvents(){
       (e.ideas.length?'<div class="part"><span class="label">Shots to look for</span><ul class="eideas">'+e.ideas.map(i=>
         '<li><span class="tag"><span class="dot" style="background:'+INTENTS[i[0]].color+'"></span>'+INTENTS[i[0]].name+'</span><b>'+esc(i[1])+'</b><span>'+esc(i[2])+'</span><span class="set">'+esc(cam.recipes[i[3]][0])+'</span></li>').join("")+'</ul></div>':'')+
       calLinks(e,o)+(src?'<a class="check" href="'+esc(src)+'" target="_blank" rel="noopener">Source for this date ↗</a>':'<a class="check" href="'+q+'" target="_blank" rel="noopener">Check this year\'s date and route ↗</a>')+'</div></details>';
-  }).join("")+(NEAR?nearSearchHtml(R):"");
+  }
   if(state.evOpen){ if(box.querySelector('details.event[data-id="'+CSS.escape(state.evOpen)+'"]')) evSheetOpen(state.evOpen,true); else state.evOpen=null; }
 }
 // An event opens in a sheet over the list; it lives inside #events so the buttons in it keep working
@@ -6294,7 +6355,9 @@ function renderToday(){ const box=$("today"); if(!box) return;
     : '<p class="msg">No ideas suit this light. Try another time above.</p>';
   const locChip = state.pos ? '' : '<button type="button" class="chip" data-todayloc="1">Use my location</button>';
   // events
-  const evs=todayEvents(), evHtml=evs.length?evs.map(({r,st})=>'<div class="tev'+(st.k==="live"?' live':'')+'"><b>'+esc(evTitle(r))+'</b><span class="msg">'+esc(st.line)+(r.e.where?' · '+esc(r.e.where):'')+'</span>'+
+  const goT=(()=>{ const G=state.evGoing; if(!G||!G.size) return []; const t1=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1); return eventRows(evDay(now)).filter(r=>G.has(r.e.id)&&evOnDay(r,t1,false)&&!evOnDay(r,evDay(now),false)); })();
+  const goTom = goT.length ? '<div class="tgoing"><p class="tlabel">Going tomorrow</p>'+goT.map(r=>{ const w=evWindow(r.e,new Date(now.getFullYear(),now.getMonth(),now.getDate()+1)); return '<div class="tev"><b>★ '+esc(r.e.name)+'</b><span class="msg">'+(w?'From '+hmText(w[0]):'Tomorrow')+(r.e.where?' · '+esc(r.e.where):'')+'</span>'+(eventGeo(r.e.id)&&w?leaveBy(eventGeo(r.e.id),w[0],new Date(now.getFullYear(),now.getMonth(),now.getDate()+1),"it starts"):'')+'<div class="callinks"><button type="button" class="chip" data-event="'+esc(r.e.id)+'">Open in Events</button></div></div>'; }).join("")+'</div>' : '';
+  const evs=todayEvents(), evHtml=evs.length?evs.map(({r,st})=>'<div class="tev'+(st.k==="live"?' live':'')+'"><b>'+(state.evGoing&&state.evGoing.has(r.e.id)?'★ ':'')+esc(evTitle(r))+'</b><span class="msg">'+esc(st.line)+(r.e.where?' · '+esc(r.e.where):'')+'</span>'+
       (eventGeo(r.e.id)?(w0=>leaveBy(eventGeo(r.e.id), st.k==="live"||!w0?nm:w0[0], null, st.k==="live"||!w0?"":"it starts"))(evWindow(r.e,new Date(now.getFullYear(),now.getMonth(),now.getDate()))):'')+'<div class="callinks"><button type="button" class="chip" data-event="'+esc(r.e.id)+'">Open in Events</button></div></div>').join("")
     : '<p class="msg">No events listed for today. <button type="button" class="linkbtn" data-goview="events">See what is coming up</button></p>';
   // outing
@@ -6321,18 +6384,18 @@ function renderToday(){ const box=$("today"); if(!box) return;
   const savedOpen=cityIdeas().filter(x=>state.saved.has(x.id)&&!state.done.has(x.id));
   const nudge = savedOpen.length ? (x=>'<p class="tlabel">From your saved ideas</p><button type="button" class="row" data-id="'+x.id+'"><span class="dot" style="background:'+INTENTS[x.i].color+'"></span><span class="t"><b>'+esc(x.t)+'</b><span>'+esc(PLACES[x.p].name)+(x.w.includes(key)?' · suits '+esc(lname):'')+'</span></span><span class="go" aria-hidden="true">›</span></button>')(savedOpen[dayN%savedOpen.length])
     : (d=>d?'<p class="tlabel">Assignment for today</p><p><b>'+esc(d[1])+'</b>. '+esc(d[2])+'</p><div class="callinks">'+(state.drillRun?'':'<button type="button" class="chip primary" data-drillstart="'+d[0]+'">Start it now</button>')+'<button type="button" class="linkbtn" data-goview="learn">More assignments in Learn</button></div>':'')(DRILLS.filter(d=>!state.drills.has(d[0]))[dayN%Math.max(1,DRILLS.filter(d=>!state.drills.has(d[0])).length)]);
-  const evCard='<section class="tcard'+(evs.length?'':' tquiet')+'"><p class="tlabel">On today</p>'+evHtml+'</section>';
+  const evCard='<section class="tcard'+(evs.length||goTom?'':' tquiet')+'">'+(evs.length||!goTom?'<p class="tlabel">On today</p>'+evHtml:'')+goTom+'</section>';
   box.innerHTML=
     '<header class="thead"><h2>'+now.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})+'</h2>'+asOf+'</header>'+
     nowStrip+tmrCard+alertsHtml()+
     '<section class="tcard"><p class="tlabel">Where to go</p><div class="intents tmoments">'+moments.map(m=>'<button type="button" class="chip" data-tat="'+(m.at===null?'now':m.at)+'" aria-pressed="'+(m.at===state.todayAt)+'">'+m.label+'</button>').join("")+locChip+'</div>'+
       '<p class="msg">Best places for '+esc(lname)+(state.todayAt===null?' now':' at '+tf(state.todayAt))+(state.pos?', nearest first among equals':'')+'.</p>'+homeHtml()+pickHtml+'</section>'+
-    (evs.length?evCard:'')+
+    (evs.length||goTom?evCard:'')+
     dayCard+
     '<section class="tcard tlight"><p class="tlabel">The light today</p>'+band+'<div class="twins">'+wins+'</div></section>'+
     weekHtml()+
     (tmrCard&&planFor.off?'':'<section class="tcard tplan"><p class="tlabel">Plan an outing</p><p>'+planFor.txt+'</p>'+(planFor.when==="tonight"?(tp=>tp?leaveBy(START_GEO[tp.id]||[PLACES[tp.id].lat,PLACES[tp.id].lon],planFor.h*60+15,null,""):"")(todayPicks(atMin(planFor.h*60+60))[0]):'')+'<button type="button" class="btn primary" data-planday="'+planFor.h+'" data-planoff="'+planFor.off+'">Plan '+planFor.when+'</button></section>')+
-    priceTodayCard()+(evs.length?'':evCard)+
+    priceTodayCard()+(evs.length||goTom?'':evCard)+
     (nudge?'<section class="tcard">'+nudge+'</section>':''); }
 /* Shoot now: the one best idea for this light, nearest first, not yet shot. */
 function shootNow(){ const now=new Date(), key=lightAt(now), sky=nowInfo().sky, pool=cityIdeas().filter(x=>typeof PLACES[x.p].lat==="number"&&ideaOpen(x,now,sky)&&x.w.includes(key));
@@ -6376,6 +6439,7 @@ function render(){ { const rt=document.getElementById("rowToast"); if(rt&&!["bro
 document.addEventListener("click",e=>{ const b=e.target.closest&&e.target.closest("[data-variant]"); if(!b||!state.current) return; const m=store.get("ideaVariant",{})||{};
   if(b.dataset.variant==="1") m[state.current]=1; else delete m[state.current]; store.set("ideaVariant",m); if(b.dataset.vgo) state.tab="settings"; render(); if(state.street) renderStreet(); });
 function refilter(){ if(!matches(false).some(x=>x.id===state.current)) pick(); render(); qCount(); }
+state.evGoing=new Set(store.get("evGoing",[])||[]); state.evWhenF=store.get("evWhenF","any")||"any";
 state.q=""; state.onNow=!!store.get("onNow",false); state.sort=store.get("isort","place")||"place";
 function qCount(){ const el=$("qCount"); if(!el) return; if((!state.q&&!state.onNow)||state.view!=="shoot"){ el.hidden=true; return; } const n=matches(false).length; el.hidden=false; el.textContent=n?n+" idea"+(n===1?"":"s")+(state.q?(n===1?" matches":" match"):"")+(state.onNow?(state.q?", on now":" on now"):"")+".":""; if(!n) el.hidden=true; }
 function syncOnNow(){ const b=$("onNow"); if(!b) return; b.setAttribute("aria-pressed",String(state.onNow)); b.textContent=state.onNow?"On now ✓":"On now"; }
@@ -6468,12 +6532,17 @@ $("fClear").addEventListener("click",()=>{ state.intent="all"; store.set("intent
 $("fActive").addEventListener("click",e=>{ if(e.target.closest("[data-fopen]")) { fSync(); sheetOpen("fSheet"); } else if(e.target.closest("[data-fclear]")) $("fClear").click(); });
 document.addEventListener("keydown",e=>{ if(e.key!=="Escape") return; for(const id of ["fSheet","setSheet"]) if(!$(id).hidden){ sheetClose(id); e.preventDefault(); } const es=document.getElementById("evSheet"); if(es){ evSheetClose(); e.preventDefault(); } });
 syncTheme();
+$("events").addEventListener("change",e=>{ if(e.target.id==="evWhenSel"){ state.evWhenF=e.target.value; store.set("evWhenF",state.evWhenF); renderEvents(); } else if(e.target.id==="evTypeSel"){ state.evType=e.target.value; renderEvents(); } });
 $("events").addEventListener("click",e=>{
   if(e.target.closest("[data-esclose]")){ evSheetClose(); return; }
+  const gs0=e.target.closest("[data-evgo]"); if(gs0){ e.preventDefault(); const inSheet=!!e.target.closest("#evSheet"); evGoToggle(gs0.dataset.evgo); if(inSheet&&state.evOpen) evSheetOpen(state.evOpen,true); return; }
   const sm=e.target.closest("details.event>summary"); if(sm){ e.preventDefault(); const id=sm.parentNode.dataset.id; state.evLast=id; evSheetOpen(id); return; }
   const inb=e.target.closest("[data-ideasnear]"); if(inb){ state.place="near"; state.ideasMode="list"; state.view=state.listView||"browse"; render(); fillPlaces(); syncNear(); refilter(); window.scrollTo({top:0}); return; }
   const nb=e.target.closest("[data-evnear]"); if(nb){ state.evNear=!state.evNear; store.set("evNear",state.evNear); if(state.evNear) evLocate(); renderEvents(); return; }
   const rb=e.target.closest("[data-evr]"); if(rb){ state.evRadius=+rb.dataset.evr; store.set("evRadius",state.evRadius); renderEvents(); return; }
+  const gs=e.target.closest("[data-evgo]"); if(gs){ e.preventDefault(); e.stopPropagation(); evGoToggle(gs.dataset.evgo); return; }
+  const dy=e.target.closest("[data-evday]"); if(dy){ const v=dy.dataset.evday; state.evDay = v&&state.evDay!==+v ? +v : null; renderEvents(); return; }
+  if(e.target.closest("[data-evlater]")){ state.evLaterOpen=!state.evLaterOpen; renderEvents(); return; }
   const q=e.target.closest(".evquick [data-q]"); if(q){ const k=q.dataset.q, Q=state.evQuick||(state.evQuick=new Set()); if(Q.has(k)) Q.delete(k); else Q.add(k); renderEvents(); return; }
   const pe=e.target.closest("[data-planev]"); if(pe){ planEvent(pe.dataset.planev); return; }
   const me=e.target.closest("[data-mapev]"); if(me){ const id=me.dataset.mapev, g=eventGeo(id); state.mapT=null; state.view="map"; render(); requestAnimationFrame(()=>requestAnimationFrame(()=>{ state.mapShowEv=true; state.mapEv=id; state.mapSel=null; state.mapSpot=null; state.mapLm=null; state.mapRun=null; state.mapFerry=null; mapPanel(); mapDraw(); if(g){ const [x,y]=mapXY(g[0],g[1]); mapFly(mapAim({cx:x,cy:y,w:Math.min(mapV.w,30)})); } setSheet("half"); })); return; }
