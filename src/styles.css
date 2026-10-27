@@ -1237,3 +1237,36 @@ body.sheetopen{overflow:hidden}
 .group.folded .group-head .where,.group.folded .group-head .maplink{display:none}
 .group-head[data-pid]{cursor:pointer}
 .group.folded .group-head{row-gap:2px;padding-top:10px;padding-bottom:10px}
+
+/* Map: edge to edge, one row on top, short button column, clusters, short place card, In view */
+body.onmap{overflow:hidden}
+body.onmap header.top{display:none}
+body.onmap #map:not(.full){position:fixed;top:0;left:0;right:0;bottom:var(--tabh);height:auto!important;min-height:0;border-radius:0;z-index:30;box-shadow:none}
+body.onmap #map:not(.full) .mtop{top:max(10px,env(safe-area-inset-top,0px))}
+body.onmap #map:not(.full) .mapbtns,body.onmap #map:not(.full) .mnorth{top:calc(max(10px,env(safe-area-inset-top,0px)) + 58px)}
+body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px)) + 58px)}
+#map .mapbtns,#map.full .mapbtns{top:calc(max(10px,env(safe-area-inset-top,0px)) + 58px)}
+.mintbtn{position:relative;display:inline-flex;align-items:center;gap:6px;min-height:46px;padding:0 12px;border:0;border-radius:23px;background:var(--bg);color:var(--fg);font:inherit;font-weight:700;font-size:15px;box-shadow:0 2px 10px rgba(0,0,0,.35);cursor:pointer;white-space:nowrap}
+.mintbtn i{width:12px;height:12px;border-radius:50%;flex:none} .mintbtn b{font-size:11px;color:var(--muted)}
+.mintbtn[aria-expanded="true"]{background:var(--fg);color:var(--bg)}
+.mlayersbtn{padding:0 13px} .mlayersbtn span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+#mapIntent{margin-top:0;display:flex;flex-wrap:wrap;gap:6px;padding:8px;border-radius:16px;background:var(--bg);box-shadow:0 4px 16px rgba(0,0,0,.35);align-self:flex-end;max-width:330px}
+#mapIntent[hidden]{display:none}
+#mapIntent .chip{box-shadow:none;border-color:var(--line)}
+.mapbtns button{order:5} .mapbtns button[data-locate]{order:1} .mapbtns button[data-lightf]{order:2} .mapbtns button[data-head]{order:3} .mapbtns .mbmore{order:4;font-size:22px;letter-spacing:1px}
+.mapbtns:not(.more) button[data-zoom],.mapbtns:not(.more) button[data-fit],.mapbtns:not(.more) button[data-full]{display:none}
+#map.full .mapbtns button[data-full]{display:block}
+.mapbtns.more .mbmore{background:var(--blue)}
+.m-clu{cursor:pointer} .m-cludot{fill:var(--mPinFace);stroke:var(--mPinNum)} .m-clu.fit .m-cludot{fill:var(--yellow);stroke:#14161a}
+.m-cluring{fill:none;stroke:var(--mPinNum);opacity:.35} .m-clu.fit .m-cluring{stroke:var(--yellow);opacity:.6}
+.m-clun{fill:var(--mPinNum);font-weight:800;pointer-events:none} .m-clu.fit .m-clun{fill:#14161a}
+.mcard{padding-bottom:4px} .mcard .group-head{padding-right:52px} .mcard .mapcount{margin:8px 14px 6px}
+.mcard .row{margin:0 10px;width:calc(100% - 20px);border:1px solid var(--line);border-radius:10px} .mcard .callinks{margin:10px 14px 4px}
+.mapsel .mwhere{padding:8px 14px 0;color:var(--muted)}
+.mapsel .mapselfig{margin-top:10px}
+.minview{display:block;width:100%;margin:6px 0 0;padding:6px 2px 0;border:0;border-top:1px solid var(--line);background:none;color:var(--fg);font:inherit;font-size:14px;font-weight:600;text-align:left;cursor:pointer}
+.minview:disabled{color:var(--muted);font-weight:500;cursor:default}
+.minv .row{width:100%} .ghnow2{color:#1e9e48;font-weight:700}
+#map.full .mnorth,#map.full .mguide{top:calc(max(10px,env(safe-area-inset-top,0px)) + 58px)}
+.mcard .callinks{flex-wrap:nowrap;overflow-x:auto} .mcard .callinks .chip{flex:none}
+.mapgo select{padding-right:36px;text-overflow:ellipsis;white-space:nowrap;overflow:hidden}
