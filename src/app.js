@@ -4590,6 +4590,7 @@ function nowLight(now){ const c=CITIES[state.city], sp=sunPos(now,c.lat,c.lon), 
   if(ph==="night") what="Night: signs, windows and street lamps light the street. Neon, reflections and interiors.";
   else if(ph==="blue") what="Blue hour: the sky and the city lights balance for a few minutes. Skylines, lit windows, wet streets.";
   else if(ph==="gold") what=dull?"Golden hour, but cloud is muting it: soft, even light for faces and colour.":"Golden hour: low warm light, long shadows. Backlight, silhouettes and faces.";
+  else if(sp.alt<22&&key!=="am") what=dull?"Late afternoon under cloud: soft, fading light. Faces, colour and lit windows coming on.":"Late afternoon sun: low enough to rake along the cross streets. Long shadows, warm edges; golden hour is close.";
   else if(key==="am") what=dull?"Morning under cloud: soft light with no shadows, good for faces, colour and detail.":"Morning sun: low, clean light from the east. Side light down the cross streets.";
   else what=dull?(sky==="rain"?"Rain: reflections, umbrellas and steamed windows. Shoot through glass or under cover.":"Overcast: flat, even light. Faces, colour, signs and interiors; no hard shadows."):"Midday sun: hard light overhead. Shadows as shapes, silhouettes in slots of light, canyons.";
   return {ph,key,sp,what}; }
@@ -4638,7 +4639,7 @@ const skyIcon = k => k==="clear" ? '<svg viewBox="0 0 20 20" aria-hidden="true">
   : '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="3" class="wi-none"/></svg>';
 function weekHtml(){ const D=weekDays(); if(!D.length) return ""; const anyKnown=D.some(d=>d.sky), sel=D.find(d=>d.k===state.weekSel);
   const cells=D.map(d=>'<button type="button" class="wday'+(d.best?' best':'')+(d.past?' past':'')+'" data-week="'+d.k+'" aria-pressed="'+(state.weekSel===d.k)+'" aria-label="'+esc(DAY_NAMES[d.day.getDay()]+', sunset '+hmText(d.L.set)+(d.sky?', '+SKY_WORD[d.sky]+' at golden hour':'')+(d.ev.length?', '+d.ev.length+' event'+(d.ev.length>1?'s':''):'')+(d.best?', best evening':''))+'">'+
-    '<span class="wdn">'+(d.k===0?'Today':DAY_SHORT[d.day.getDay()])+'</span>'+skyIcon(d.sky)+'<span class="wds">'+hmText(d.L.set).replace(/ pm$/,"")+'</span><span class="wde">'+(d.ev.length?'<i></i>'.repeat(Math.min(3,d.ev.length)):'')+'</span>'+(d.best?'<span class="wstar">Best</span>':'')+'</button>').join("");
+    '<span class="wdn">'+(d.k===0?'Today':DAY_SHORT[d.day.getDay()])+'</span>'+skyIcon(d.sky)+'<span class="wds">'+hmText(d.L.set).replace(/ pm$/,"").replace(/^(\d+)$/,"$1:00")+'</span><span class="wde">'+(d.ev.length?'<i></i>'.repeat(Math.min(3,d.ev.length)):'')+'</span>'+(d.best?'<span class="wstar">Best</span>':'')+'</button>').join("");
   let det=""; if(sel){ const d=sel, picks=todayPicks(new Date(+d.day+d.g.s*6e4)), top=picks[0], tg=top&&(START_GEO[top.id]||[PLACES[top.id].lat,PLACES[top.id].lon]);
     det='<div class="wdet"><p><b>'+d.day.toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"})+'</b> · golden hour '+hmText(d.g.s)+' to '+hmText(d.g.e)+(d.b?', blue hour to '+hmText(d.b.e):'')+' · sunset '+hmText(d.L.set)+'</p>'+
       (d.sky?'<p class="msg">'+SKY_WORD[d.sky]+' at golden hour'+(d.pop>=20?' ('+d.pop+'% chance of rain)':'')+'. '+SKY_WHY[d.sky]+'</p>':'<p class="msg">'+(anyKnown?'No forecast for this evening yet.':'The week’s forecast shows in the installed app.')+'</p>')+
@@ -4748,8 +4749,9 @@ function renderToday(){ const box=$("today"); if(!box) return;
       (eventGeo(r.e.id)?(w0=>leaveBy(eventGeo(r.e.id), st.k==="live"||!w0?nm:w0[0], null, st.k==="live"||!w0?"":"it starts"))(evWindow(r.e,new Date(now.getFullYear(),now.getMonth(),now.getDate()))):'')+'<div class="callinks"><button type="button" class="chip" data-event="'+esc(r.e.id)+'">Open in Events</button></div></div>').join("")
     : '<p class="msg">No events listed for today. <button type="button" class="linkbtn" data-goview="events">See what is coming up</button></p>';
   // outing
-  const eg=list.find(x=>x.name==="Golden hour"), planFor = eg&&eg.s-60>nm ? {when:"tonight",h:Math.max(6,Math.floor((eg.s-75)/60)),txt:'Starts about '+tf(Math.floor((eg.s-75)/60)*60)+' at the best place for that light and walks you through golden hour into blue hour.'}
-    : {when:"tomorrow morning",h:Math.max(6,Math.floor(((list.find(x=>x.name==="Morning golden hour")||{s:420}).s-30)/60)),txt:'Golden hour has passed, so this plans tomorrow morning, starting just before the morning light.'};
+  const eg=list.find(x=>x.name==="Golden hour"), planFor = eg&&eg.s-60>nm ? {when:"tonight",off:0,h:Math.max(6,Math.floor((eg.s-75)/60)),txt:'Starts about '+tf(Math.floor((eg.s-75)/60)*60)+' at the best place for that light and walks you through golden hour into blue hour.'}
+    : eg&&eg.e>nm ? {when:"from now",off:0,h:Math.floor(nm/60),txt:(eg.s>nm?'Golden hour starts at '+tf(eg.s)+'. This plans an outing from now':'Golden hour is on now. This plans an outing from now')+' at the best place for that light, through blue hour.'}
+    : {when:"tomorrow morning",off:1,h:Math.max(6,Math.floor(((list.find(x=>x.name==="Morning golden hour")||{s:420}).s-30)/60)),txt:'Golden hour has passed, so this plans tomorrow morning, starting just before the morning light.'};
   // a nudge
   const savedOpen=cityIdeas().filter(x=>state.saved.has(x.id)&&!state.done.has(x.id));
   const nudge = savedOpen.length ? (x=>'<p class="tlabel">From your saved ideas</p><button type="button" class="row" data-id="'+x.id+'"><span class="dot" style="background:'+INTENTS[x.i].color+'"></span><span class="t"><b>'+esc(x.t)+'</b><span>'+esc(PLACES[x.p].name)+(x.w.includes(key)?' · suits '+esc(lname):'')+'</span></span><span class="go" aria-hidden="true">›</span></button>')(savedOpen[dayN%savedOpen.length])
@@ -4763,7 +4765,7 @@ function renderToday(){ const box=$("today"); if(!box) return;
     '<section class="tcard"><p class="tlabel">Where to go</p><div class="intents tmoments">'+moments.map(m=>'<button type="button" class="chip" data-tat="'+(m.at===null?'now':m.at)+'" aria-pressed="'+(m.at===state.todayAt)+'">'+m.label+'</button>').join("")+locChip+'</div>'+
       '<p class="msg">Best places for '+esc(lname)+(state.todayAt===null?' now':' at '+tf(state.todayAt))+(state.pos?', nearest first among equals':'')+'.</p>'+homeHtml()+pickHtml+'</section>'+
     '<section class="tcard"><p class="tlabel">On today</p>'+evHtml+'</section>'+
-    '<section class="tcard tplan"><p class="tlabel">Plan an outing</p><p>'+planFor.txt+'</p>'+(planFor.when==="tonight"?(tp=>tp?leaveBy(START_GEO[tp.id]||[PLACES[tp.id].lat,PLACES[tp.id].lon],planFor.h*60+15,null,""):"")(todayPicks(atMin(planFor.h*60+60))[0]):'')+'<button type="button" class="btn primary" data-planday="'+planFor.h+'">Plan '+planFor.when+'</button></section>'+
+    '<section class="tcard tplan"><p class="tlabel">Plan an outing</p><p>'+planFor.txt+'</p>'+(planFor.when==="tonight"?(tp=>tp?leaveBy(START_GEO[tp.id]||[PLACES[tp.id].lat,PLACES[tp.id].lon],planFor.h*60+15,null,""):"")(todayPicks(atMin(planFor.h*60+60))[0]):'')+'<button type="button" class="btn primary" data-planday="'+planFor.h+'" data-planoff="'+planFor.off+'">Plan '+planFor.when+'</button></section>'+
     (nudge?'<section class="tcard">'+nudge+'</section>':''); }
 /* Shoot now: the one best idea for this light, nearest first, not yet shot. */
 function shootNow(){ const now=new Date(), key=lightAt(now), sky=nowInfo().sky, pool=cityIdeas().filter(x=>typeof PLACES[x.p].lat==="number"&&ideaOpen(x,now,sky)&&x.w.includes(key));
@@ -4780,9 +4782,9 @@ function planEvent(id){ const now=new Date(), today=new Date(now.getFullYear(),n
   const after=new Date(+at+dur*6e4+10*6e4); if(near&&near.km<2.5&&lightAt(after)!=="night"){ const k=lightAt(after); stops.push({place:near.p,at:after,key:k,ideas:pickIdeas(near.p,k,2,after)}); }
   state.plan={start:at,end:new Date(+(stops[stops.length-1].at)+(stops.length>1?2*25*6e4:dur*6e4)),stops,notes:[],skipped:[]}; if(stops.length>1) stops[0].leg={to:near.p,mins:10,mode:"walk"};
   savePlan(); state.view="plan"; render(); window.scrollTo({top:0}); }
-function planToday(h){ renderPlan(); const t=new Date(), best=todayPicks(atMin(Math.min(1435,(+h+1)*60)))[0];
+function planToday(h,off){ off=off||0; renderPlan(); const t=new Date(), best=todayPicks(new Date(+atMin(Math.min(1435,(+h+1)*60))+off*864e5))[0];
   if(best&&[...$("pStart").options].some(o=>o.value===best.id)) $("pStart").value=best.id;
-  $("pDay").value="0"; renderPlan(); $("pTime").value=(+h*60<=dayMin(new Date()))?"now":String(h); if(!$("pTime").value) $("pTime").selectedIndex=0; $("pLen").value="150"; state.plan=makePlan(); savePlan(); state.view="map"; render(); }
+  $("pDay").value=String(off); renderPlan(); $("pTime").value=(!off&&+h*60<=dayMin(new Date()))?"now":String(h); if(!$("pTime").value) $("pTime").selectedIndex=0; $("pLen").value="150"; state.plan=makePlan(); savePlan(); state.view="map"; render(); }
 function render(){
   openTip=null; tipSheet(); if(state.view!=="map"&&state.mapFull) mapFull(false); if(state.view!=="map"&&state.guide) guideStop(true);
   const shoot=state.view==="shoot", ev=state.view==="events", pl=state.view==="plan", mp=state.view==="map"||pl, ln=state.view==="learn", td=state.view==="today";
@@ -5066,7 +5068,7 @@ $("today").addEventListener("click",e=>{
   const tl=e.target.closest("[data-todayloc]"); if(tl){ tl.textContent="…"; const done=()=>{ renderToday(); if(!state.pos) $("today").insertAdjacentHTML("afterbegin",'<p class="msg">Your location is not available here. In the installed app, allow location access for Shot List when asked.</p>'); };
     if(!navigator.geolocation){ done(); return; } try{ navigator.geolocation.getCurrentPosition(p=>{ state.pos={lat:p.coords.latitude,lon:p.coords.longitude}; fillPlaces(); syncNear(); done(); }, done, {timeout:10000,maximumAge:120000}); }catch(err){ done(); } return; }
   const mg=e.target.closest("[data-mapgo]"); if(mg){ const id=mg.dataset.mapgo; state.mapT=state.todayAt; state.view="map"; render(); requestAnimationFrame(()=>requestAnimationFrame(()=>{ mapSelect(id); })); return; }
-  const pd=e.target.closest("[data-planday]"); if(pd){ planToday(pd.dataset.planday); return; }
+  const pd=e.target.closest("[data-planday]"); if(pd){ planToday(pd.dataset.planday,+pd.dataset.planoff||0); return; }
   const gv=e.target.closest("[data-goview]"); if(gv){ state.view=gv.dataset.goview; render(); window.scrollTo({top:0}); return; }
   const ev=e.target.closest("[data-event]"); if(ev){ showEvent(ev.dataset.event); return; }
   const r=e.target.closest(".row[data-id]"); if(r){ show(r.dataset.id); state.view="shoot"; render(); window.scrollTo({top:0}); }

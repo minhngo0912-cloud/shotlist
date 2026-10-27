@@ -634,6 +634,11 @@ def run(path, name):
         pg.evaluate("NEARBY.key=null; NEARBY.busy=true; renderEvents()"); sb=pg.evaluate("[...document.querySelectorAll('#events .evsearch .evlink')].map(a=>a.getAttribute('href'))")
         pg.evaluate("NEARBY.busy=false; state.evNear=false; store.set('evNear',false); state.pos=null")
         check("Search around here: town-based searches (Google, Maps at your position, Eventbrite, Meetup, Patch) and near-me ones before the town is known", len(sa)==6 and "events%20today%20in%20Demarest%2C%20NJ" in sa[0] and "@40.9573,-73.9632,15z" in sa[2] and "/d/nj--demarest/events--today/" in sa[3] and "us--nj--Demarest" in sa[4] and len(sb)==4 and "events%20near%20me%20today" in sb[0], [sa,sb])
+        # Today: the plan card never plans tomorrow before golden hour has ended; a sunset on the hour reads 6:00
+        pg.evaluate("state.view='today'; render()")
+        tdp=pg.evaluate("""(()=>{ const b=document.querySelector('#today [data-planday]'), g=todayWindows().list.find(x=>x.name==='Golden hour'); return [b.textContent, b.dataset.planoff, !!(g&&g.e>dayMin(new Date()))]; })()""")
+        check("Today's plan card plans tonight or from now while golden hour is still ahead or on", (tdp[2] and tdp[1]=="0" and "tomorrow" not in tdp[0]) or (not tdp[2] and tdp[1]=="1"), tdp)
+        check("A sunset on the hour reads with its minutes in the week strip", pg.evaluate("[...document.querySelectorAll('#today .wds')].every(e=>/:/.test(e.textContent))"))
         # Light here outside the city: real sun for the place, no building shade or street direction from NYC data
         ny=pg.evaluate("[inNYC({lat:40.758,lon:-73.9855}), inNYC({lat:40.7178,lon:-74.0431}), inNYC({lat:40.9573,lon:-73.9632}), inNYC({lat:40.7615,lon:-74.0035}), inNYC({lat:40.58,lon:-74.15}), inNYC({lat:42.3555,lon:-71.0565})]")
         check("Knows the five boroughs: Midtown, a Hudson pier and Staten Island are in; Jersey City, Demarest and Boston are out", ny==[True,False,False,True,True,False], ny)
