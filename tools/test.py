@@ -113,6 +113,12 @@ def run(path, name):
         check("A pick opens its idea in Shoot", pg.evaluate("state.view")=="shoot")
         pg.evaluate("state.view='today'; render()"); pg.click("[data-shootnow]"); pg.wait_for_timeout(150)
         check("Shoot now opens an idea that suits the light", pg.evaluate("state.view==='shoot' && IDEAS.find(x=>x.id===state.current).w.includes(lightAt(new Date()))"))
+        fw=pg.evaluate("""(()=>{ const x=IDEAS.find(y=>y.id===state.current), steps=()=>[...document.querySelectorAll('#card .fstep')].map(b=>b.classList.contains('done')?'done':b.classList.contains('next')?'next':'');
+          const s0=steps(); document.querySelector('#card [data-flow=set]').click(); const t=state.tab, s1=steps(); document.querySelector('#card [data-flow=shot]').click();
+          const nh=document.querySelector('#card [data-nexthere]'), nid=nh&&nh.dataset.nexthere, ny=nid&&IDEAS.find(y=>y.id===nid), lab=(document.querySelector('#card .nexthere .label')||{}).textContent||'';
+          if(nh) nh.click(); const after=[state.current===nid, state.place===(ny&&ny.p), steps()];
+          undoShot(x.id); toggleStay(ny.p); state.flow=null; render(); return [s0, t, s1[1], state.tab, !!ny&&(ny.p===x.p)===(lab==='Next here'), after[0], after[1], after[2][0]==='done'||ny.p!==x.p, !!document.querySelector('#card .flow')]; })()""")
+        check("Shoot now shows the four steps; Set camera opens Settings and ticks, Shot it offers Next here, which opens with Stay here on", fw[0]==["next","","",""] and fw[1]=="settings" and fw[2]=="done" and fw[4] and fw[5] and fw[6] and fw[7] and fw[8]==False, fw)
         # Leave-by times from home, and the week ahead
         tv=pg.evaluate("(()=>{ const H={lat:40.9585,lon:-73.9582}, W={lat:40.7308,lon:-73.9973}, sat=new Date(2026,9,17,17,0), tue=new Date(2026,9,13,17,0); return [travelMins(H,W,'car',sat), travelMins(H,W,'car',tue), travelMins(H,W,'transit',sat), travelMins(H,{lat:40.7316,lon:-73.9970},'car',sat)]; })()")
         check("Travel time from home: about an hour by car, longer in rush hour, longer by transit", 45<=tv[0]<=75 and tv[1]>tv[0] and tv[2]>tv[0] and tv[3]<=tv[0], tv)

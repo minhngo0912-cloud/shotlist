@@ -2121,7 +2121,7 @@ function renderCard(){ qCount();
     '<div class="band" style="background:'+it.color+'"></div>'+
     '<div class="sign-head"><div class="sign-top"><span class="intent-tag"><span class="dot" style="background:'+it.color+'"></span>'+esc(it.name)+'</span>'+
     '<span class="where">'+esc(pl.name)+' · '+esc(pl.stop||"")+' '+bullets(pl.lines, pl.city)+'</span></div><h2>'+esc(x.t)+'</h2><p class="why">'+shootWhy(x)+'</p>'+onlyOneHtml(x)+startHtml(x.p)+
-    '<div class="cardacts"><button type="button" class="chip" data-stay="1" aria-pressed="'+(state.place===x.p)+'">'+(state.place===x.p?'Staying at '+esc(pl.name)+' ✓':'Stay here')+'</button><button type="button" class="chip" data-street="1">Street mode</button></div></div>'+
+    '<div class="cardacts"><button type="button" class="chip" data-stay="1" aria-pressed="'+(state.place===x.p)+'">'+(state.place===x.p?'Staying at '+esc(pl.name)+' ✓':'Stay here')+'</button><button type="button" class="chip" data-street="1">Street mode</button></div></div>'+flowHtml(x)+
     '<div class="tabs" role="tablist">'+tabs.map(t=>'<button type="button" role="tab" data-tab="'+t[0]+'" aria-selected="'+(state.tab===t[0])+'">'+t[1]+'</button>').join("")+'</div>'+
     '<div class="pane">'+pane+'</div>';
   const s=state.saved.has(x.id), d=state.done.has(x.id);
@@ -2148,10 +2148,40 @@ const shotWhen = e => { const d=new Date(e.t), today=new Date(); today.setHours(
   return d>=today?'today at '+tm:d>=new Date(+today-864e5)?'yesterday at '+tm:d.toLocaleDateString("en-US",{month:"short",day:"numeric"})+(d.getFullYear()!==today.getFullYear()?', '+d.getFullYear():''); };
 const SHOT_LIGHT = {am:"morning light",mid:"midday light",gold:"late afternoon light",night:"after dark",rain:"rain or overcast"};
 const shotLight = e => e.s&&SKY_NAME[e.s] ? SKY_NAME[e.s].toLowerCase() : SHOT_LIGHT[e.k]||"";
+/* The outing loop on an idea opened from Shoot now or Next here: Go there → Set camera → Street mode → Shot it, each a tap, ticked as you go. */
+function flowShotRecent(id){ const e=lastShot(id); return !!e&&Date.now()-e.t<3*36e5; }
+function flowHtml(x){ const F=state.flow; if(!F||F.id!==x.id) return ""; if(state.tab==="settings") F.set=true; if(state.street) F.street=true;
+  const sp=spotFor(x), S=sp&&sp.S, near=state.pos&&S?kmBetween(state.pos,{lat:S[0],lon:S[1]})<0.08:false; if(near) F.go=true;
+  const steps=[["go","Go there",F.go],["set","Set camera",F.set],["street","Street mode",F.street],["shot","Shot it",flowShotRecent(x.id)]], next=steps.findIndex(s=>!s[2]);
+  return '<div class="flow" role="group" aria-label="Your next steps"><ol>'+steps.map(([k,l,done],i)=>'<li><button type="button" class="fstep'+(done?' done':'')+(i===next?' next':'')+'" data-flow="'+k+'"><span class="fn">'+(done?'✓':i+1)+'</span><span>'+l+'</span></button></li>').join("")+'</ol><button type="button" class="fx" data-flow="x" aria-label="Hide the steps">×</button></div>'; }
+function flowAct(k){ const x=IDEAS.find(y=>y.id===state.current), F=state.flow; if(!x||!F) return;
+  if(k==="x"){ state.flow=null; renderCard(); return; }
+  if(k==="go"){ F.go=true; const sp=spotFor(x);
+    if(sp&&state.pos){ const id=sp.id; state.mapT=null; state.view="map"; render(); guideStart(id); requestAnimationFrame(()=>requestAnimationFrame(()=>{ mapSelectSpot(id); guideRender(); })); return; }
+    const g=sp?[sp.S[0],sp.S[1]]:START_GEO[x.p]; if(g) window.open("https://www.google.com/maps/dir/?api=1&destination="+g[0]+","+g[1]+"&travelmode=walking","_blank","noopener"); renderCard(); return; }
+  if(k==="set"){ F.set=true; state.tab="settings"; renderCard(); cardToTop(); return; }
+  if(k==="street"){ F.street=true; streetOpen(); return; }
+  if(k==="shot"){ logShot(x.id); state.tab="idea"; render(); cardToTop(); return; } }
+/* After Shot it: what to shoot next. First an idea at the same place that is on now, best for the light; when the place is done, the nearest place
+   with an idea that suits the light now. Opening it keeps Stay here on, so Another idea stays put too. */
+function nextHere(x){ const t=new Date(), key=lightAt(t), sky=skyAt(t);
+  const here=cityIdeas().filter(y=>y.p===x.p&&y.id!==x.id&&!state.done.has(y.id)&&ideaOpen(y,t,sky)).sort((a,b)=>b.w.includes(key)-a.w.includes(key))[0];
+  if(here) return {y:here,same:true,fit:here.w.includes(key)};
+  const P=PLACES[x.p]; if(!P||typeof P.lat!=="number") return null;
+  const c=cityIdeas().filter(y=>y.p!==x.p&&!state.done.has(y.id)&&PLACES[y.p]&&typeof PLACES[y.p].lat==="number"&&ideaOpen(y,t,sky)&&y.w.includes(key)).map(y=>({y,km:kmBetween(P,PLACES[y.p])})).sort((a,b)=>a.km-b.km)[0];
+  return c?{y:c.y,same:false,fit:true,km:c.km}:null; }
+function nextHereHtml(x){ if(!flowShotRecent(x.id)) return ""; const n=nextHere(x);
+  if(!n) return '<div class="nexthere"><span class="label">Next</span><p class="msg">Nothing else here is on for this light. Try Light here, or In view on the map.</p></div>';
+  const P=PLACES[n.y.p], walk=n.km!=null?Math.max(1,Math.round(n.km*1000*1.25/80)):null;
+  return '<div class="nexthere"><span class="label">'+(n.same?'Next here':'Done here · next nearest')+'</span><button type="button" class="row" data-nexthere="'+n.y.id+'"><span class="dot" style="background:'+INTENTS[n.y.i].color+'"></span><span class="t"><b>'+esc(n.y.t)+'</b><span>'+
+    (n.same?esc(INTENTS[n.y.i].name)+(n.fit?' · suits the light now':''):esc(P.name)+' · '+mDist(n.km)+(walk<=40?', about '+walk+' min walk':'')+' · suits the light now')+'</span></span><span class="go" aria-hidden="true">›</span></button></div>'; }
+function goNextHere(id){ const y=IDEAS.find(z=>z.id===id); if(!y) return; const same=state.current&&IDEAS.find(z=>z.id===state.current)&&IDEAS.find(z=>z.id===state.current).p===y.p;
+  if(state.place!==y.p){ const cur=IDEAS.find(z=>z.id===state.current); if(!(cur&&state.place===cur.p)) state.stayPrev=state.place; state.place=y.p; store.set("place",state.place); const sel=$("place"); if(sel) sel.value=y.p; }
+  show(id); state.flow={id, go:!!same, set:!!(state.flow&&state.flow.set), street:!!state.street}; render(); if(state.street) renderStreet(); else cardToTop(); }
 function shotLogHtml(x){ if(!state.done.has(x.id)) return ""; const l=shotLog(x.id), e=lastShot(x.id), just=state.justShot===x.id;
   const line=!e ? 'Marked as shot.' : just ? 'Logged '+shotWhen(e).replace(/^today at /,'')+(shotLight(e)?', '+shotLight(e):'')+'. How did it go?' :
     'Shot '+(l.length>1?l.length+' times, last ':'')+shotWhen(e)+(shotLight(e)?', '+shotLight(e):'')+'.'+(e.r==="keep"?' A keeper.':e.r==="again"?' Try again.':'');
-  return '<div class="shotlog'+(just?' just':'')+'"><p>'+line+'</p>'+(e?'<div class="intents"><button type="button" class="chip" data-rate="keep" aria-pressed="'+(e.r==="keep")+'">Keeper</button><button type="button" class="chip" data-rate="again" aria-pressed="'+(e.r==="again")+'">Try again</button><button type="button" class="chip" data-undoshot="1">Undo'+(l.length>1?' last':'')+'</button></div>':'<div class="intents"><button type="button" class="chip" data-undoshot="1">Unmark</button></div>')+'</div>'; }
+  return '<div class="shotlog'+(just?' just':'')+'"><p>'+line+'</p>'+(e?'<div class="intents"><button type="button" class="chip" data-rate="keep" aria-pressed="'+(e.r==="keep")+'">Keeper</button><button type="button" class="chip" data-rate="again" aria-pressed="'+(e.r==="again")+'">Try again</button><button type="button" class="chip" data-undoshot="1">Undo'+(l.length>1?' last':'')+'</button></div>':'<div class="intents"><button type="button" class="chip" data-undoshot="1">Unmark</button></div>')+'</div>'+nextHereHtml(x); }
 /* Street mode: the card for glancing at with the camera in hand. Exposure in large type, how to focus, height and when to press, the rule,
    which way to face (with the compass, how far to turn), Next and Shot it within thumb reach. The screen is kept awake while it is open. */
 const FOCUS_SHORT = {"tsq-mood": {"q343": "{m} at 8 m · f/8, sharp from about 3.9 m", "q328": "{m} at 5 m · f/5.6, sharp from about 2.4 m", "other": "{s} on the reflection of the screens, not the wet ground · f/5.6 to f/8"}, "midtown-mood": "{s} on the lit patch · keep the half-press held", "chelsea-odd": "{s}, Spot on the figure in the metal", "rockaway-energy": "{c}, Zone area on the surfer, or {m} at infinity", "gct-energy": "{s} on the still person · keep the half-press held"};
@@ -2190,7 +2220,7 @@ function renderStreet(){ const el=$("street"); if(!el||!state.street) return; co
     row("Height",W?esc(W[1]):"")+row("Press",W?esc(W[3]):"")+row("Rule",esc(x.rule))+row("Stand",face)+
     (d?'<div class="st-log">'+shotLogHtml(x)+'</div>':'')+
     '</div><div class="st-bar"><button type="button" class="btn" data-st="back" aria-label="Previous idea"'+(state.history.length?'':' disabled')+'>‹</button><button type="button" class="btn primary" data-st="next">Next idea</button><button type="button" class="btn" data-st="shot" aria-pressed="'+d+'">'+(d?'Shot ✓'+(n>1?' '+n+'×':''):'Shot it')+'</button></div>'; }
-$("street").addEventListener("click",e=>{ const wd=e.target.closest("[data-widen]"); if(wd){ widen(wd.dataset.widen); return; } const b=e.target.closest("[data-st],[data-rate],[data-undoshot]"); if(!b) return; const x=state.current, k=b.dataset.st;
+$("street").addEventListener("click",e=>{ const wd=e.target.closest("[data-widen]"); if(wd){ widen(wd.dataset.widen); return; } const nh=e.target.closest("[data-nexthere]"); if(nh){ goNextHere(nh.dataset.nexthere); return; } const b=e.target.closest("[data-st],[data-rate],[data-undoshot]"); if(!b) return; const x=state.current, k=b.dataset.st;
   if(k==="close"){ streetClose(); return; } if(k==="next"){ goNext(); return; } if(k==="back"){ goBack(); return; }
   if(k==="shot"&&x){ logShot(x); render(); return; } if(k==="stay"&&x){ toggleStay(IDEAS.find(y=>y.id===x).p); return; }
   if(b.dataset.rate&&x){ rateShot(x,b.dataset.rate); state.justShot=null; renderStreet(); renderCard(); return; }
@@ -4915,7 +4945,7 @@ function renderToday(){ const box=$("today"); if(!box) return;
 function shootNow(){ const now=new Date(), key=lightAt(now), sky=nowInfo().sky, pool=cityIdeas().filter(x=>typeof PLACES[x.p].lat==="number"&&ideaOpen(x,now,sky)&&x.w.includes(key));
   const score=x=>(state.done.has(x.id)?-5:0)+(state.saved.has(x.id)?1:0)+(state.pos?-Math.min(10,milesTo(PLACES[x.p])||0)*0.6:0)+Math.random()*0.5;
   const best=(pool.length?pool:cityIdeas()).slice().sort((a,b)=>score(b)-score(a))[0]; if(!best) return;
-  state.view="shoot"; show(best.id); state.tab="idea"; render(); window.scrollTo({top:0}); }
+  state.view="shoot"; show(best.id); state.tab="idea"; state.flow={id:best.id}; render(); window.scrollTo({top:0}); }
 /* An outing built round an event: arrive an hour before, shoot the event with its own shots, then the nearest place while the light lasts. */
 function planEvent(id){ const now=new Date(), today=new Date(now.getFullYear(),now.getMonth(),now.getDate()), r=eventRows(today).find(x=>x.e.id===id); if(!r||!r.o) return;
   const day=evDay(r.o[0]<today?today:r.o[0]), w=evWindow(r.e,day)||[13*60,16*60], g=eventGeo(id); if(!g) return;
@@ -5255,7 +5285,7 @@ $("next").addEventListener("click",goNext);
 $("back").addEventListener("click",goBack);
 function toggle(set,key){ if(!state.current) return; set.has(state.current)?set.delete(state.current):set.add(state.current); store.set(key,[...set]); render(); }
 $("save").addEventListener("click",()=>toggle(state.saved,"saved"));
-$("done").addEventListener("click",()=>{ if(!state.current) return; logShot(state.current); render(); });
+$("done").addEventListener("click",()=>{ if(!state.current) return; logShot(state.current); const tabWas=state.tab; state.tab="idea"; render(); if(tabWas!=="idea") cardToTop(); });
 function notesText(){ return cityIdeas().filter(x=>state.notes[x.id]).map(x=>PLACES[x.p].name+" · "+x.t+" ["+x.id+"]: "+state.notes[x.id].trim()).join("\n"); }
 $("list").addEventListener("click",e=>{
   const lv=e.target.closest("[data-listv]"); if(lv){ state.view=lv.dataset.listv; render(); return; }
@@ -5288,6 +5318,8 @@ function rowAct(id,dir){ const x=IDEAS.find(y=>y.id===id); if(!x) return;
     if(e&&e.type==="pointerup"&&Math.abs(dx)>=90) rowAct(r.dataset.id,dx<0?-1:1); };
   L.addEventListener("pointerup",end); L.addEventListener("pointercancel",end); })();
 $("card").addEventListener("click",e=>{
+  const fl=e.target.closest("[data-flow]"); if(fl){ flowAct(fl.dataset.flow); return; }
+  const nh=e.target.closest("[data-nexthere]"); if(nh){ goNextHere(nh.dataset.nexthere); return; }
   if(e.target.closest("[data-stay]")){ const x=IDEAS.find(y=>y.id===state.current); if(x) toggleStay(x.p); return; }
   if(e.target.closest("[data-street]")){ streetOpen(); return; }
   const gp=e.target.closest("[data-gotoprices]"); if(gp){ openLearn("prices",".prices"); return; }

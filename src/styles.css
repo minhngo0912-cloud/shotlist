@@ -1296,3 +1296,14 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 .evfold{border:0;font:inherit;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);cursor:pointer}
 .evgo .evgroup{color:#b07d00}
 .tgoing{margin-top:4px} .tcard .tgoing+*,.tcard .tev+.tgoing{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}
+
+/* The outing loop: steps on the card and Next here after Shot it */
+.flow{position:relative;margin:0;padding:10px 40px 10px 12px;background:var(--sign);border-top:1px solid rgba(255,255,255,.12)}
+.flow ol{display:flex;gap:4px;margin:0;padding:0;list-style:none} .flow li{flex:1;min-width:0}
+.fstep{width:100%;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 2px;border:0;border-radius:10px;background:none;color:var(--sign-muted);font:inherit;font-size:12px;font-weight:700;line-height:1.15;text-align:center;cursor:pointer}
+.fstep .fn{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;border:1.5px solid var(--sign-muted);font-size:13px;font-weight:800}
+.fstep.done{color:#7ee2a0} .fstep.done .fn{background:#1e9e48;border-color:#1e9e48;color:#fff}
+.fstep.next{color:var(--sign-fg)} .fstep.next .fn{background:var(--yellow);border-color:var(--yellow);color:#14161a}
+.flow .fx{position:absolute;top:6px;right:6px;width:30px;height:30px;border:0;border-radius:15px;background:none;color:var(--sign-muted);font-size:18px;cursor:pointer}
+.nexthere{margin-top:10px} .nexthere .label{display:block;margin-bottom:6px} .nexthere .row{width:100%;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+.st-log .nexthere .row{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2);color:#fff} .st-log .nexthere .row span{color:rgba(255,255,255,.75)} .st-log .nexthere .label{color:rgba(255,255,255,.7)}
