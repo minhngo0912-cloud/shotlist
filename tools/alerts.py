@@ -11,6 +11,7 @@ Usage: python3 tools/alerts.py FORECAST.json [--now 2026-10-13T07:45:00] [--weat
        python3 tools/alerts.py --no-forecast          (only the alerts that need no forecast: Manhattanhenge, events)
        FORECAST.json is the Open-Meteo response for New York (hourly precipitation_probability, precipitation,
        cloud_cover, weather_code, temperature_2m; timezone America/New_York).
+       --weekend-out FILE writes the "This weekend" line (events on Saturday and Sunday with times and forecast), or an empty file.
        --weather-doc writes the forecast in the shape the Claude version of the app reads from its database
        (collection "weather", document "nyc"), so the artifact gets the hourly forecast too.
 """
@@ -69,6 +70,11 @@ def main():
         pg.goto("file://" + os.path.join(ROOT, "index.html"))
         if nofc: pg.wait_for_timeout(800)
         else: pg.wait_for_function("WEATHER.nyc && WEATHER.nyc.hourly", timeout=15000)
+        ev_path = os.path.join(ROOT, "events.json")   # the page cannot fetch files from disk, so hand it the events
+        if os.path.exists(ev_path): pg.evaluate("j=>{ EVENT_DOCS=j; }", json.load(open(ev_path, encoding="utf-8")))
+        if "--weekend-out" in sys.argv:
+            wk = pg.evaluate("weekendPreview().text")
+            open(sys.argv[sys.argv.index("--weekend-out") + 1], "w", encoding="utf-8").write(wk or "")
         out = pg.evaluate("""(()=>{ const p2=n=>String(n).padStart(2,'0'), hm=m=>p2(Math.floor(m/60)%24)+':'+p2(m%60),
             ymd=d=>d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());
           return shootAlerts().map(a=>({kind:a.kind, score:a.score, date:ymd(a.day), start:hm(a.at), end:hm(Math.min(a.end,1439)),

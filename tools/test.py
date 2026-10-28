@@ -319,7 +319,7 @@ def run(path, name):
         pg.evaluate("state.evLaterOpen=true; renderEvents()"); check("Events lists events", pg.evaluate("document.querySelectorAll('#events details.event').length") > 10); no_overflow("Events"); shot("events")
         el=pg.evaluate("eventLight(EVENTS.find(e=>e.id==='thanksgiving'), new Date(2026,10,26))")
         check("The light during an event: window, sun, sunset and the sunny side of the street", el[0].startswith("8:30 am to 12 pm") and "Sunset" in el[0] and el[1].startswith("Stand on the west side"), el)
-        check("Events carry arrival advice and one row of filters (Near me now, When, Type, Confirmed)", pg.evaluate("[document.querySelectorAll('#events .evquick .chip').length, document.querySelectorAll('#events .evquick select').length, [...document.querySelectorAll('#events .label')].some(l=>l.textContent==='Getting there and when')]")==[2,2,True])
+        check("Events carry arrival advice and one row of filters (Near me now, When, Type, Confirmed)", pg.evaluate("[document.querySelectorAll('#events .evquick .chip').length, document.querySelectorAll('#events .evquick select').length, [...document.querySelectorAll('#events .label')].some(l=>l.textContent==='Getting there and when')]")==[3,2,True])
         ev5=pg.evaluate("""(()=>{ const secs=()=>[...document.querySelectorAll('#events .evsec>.evgroup')].map(x=>x.textContent.replace(/ ·.*/,''));
           state.evLaterOpen=false; renderEvents(); const s0=secs(), fold=document.querySelector('#events [data-evlater]'), n0=document.querySelectorAll('#events details.event').length; fold.click(); const n1=document.querySelectorAll('#events details.event').length; document.querySelector('#events [data-evlater]').click();
           const star=document.querySelector('#events [data-evgo]'), id=star.dataset.evgo; star.click(); const s1=secs(), sheet=!!document.getElementById('evSheet'); document.querySelector('#events .evgo [data-evgo]').click();
@@ -328,6 +328,18 @@ def run(path, name):
           document.querySelector('#events .evdayf [data-evday]').click();
           return [s0.includes('Later')&&!!fold, n1>n0, s1[0], state.evGoing.has(id)===false, sheet, meta.length>0&&meta.every(t=>/(am|pm)/.test(t)), dayN>=1&&dayLine, state.evDay]; })()""")
         check("Events: Later folds, a star moves an event to Going without opening it, cards give the time and light, and a day in the strip filters to that day", ev5==[True,True,"Going",True,False,True,True,None], ev5)
+        ev6=pg.evaluate("""(()=>{ const d=new Date(2026,9,17), today=evDay(new Date());
+          EVENT_DOCS.tgl={name:"Test dusk parade",type:"parade",start:"2026-10-17",time:"5 pm to 7 pm",lat:40.70,lon:-73.99,ideas:[{intent:"moment",title:"A",text:"a",recipe:"zone"},{intent:"mood",title:"B",text:"b",recipe:"night"}]};
+          const r=eventRows(today).find(x=>x.e.id==='tgl'); const gl=evGreatLight(r,today);
+          const t=[],pop=[],cc=[],code=[],tt=[]; for(let k=0;k<8;k++){ const dd=new Date(2026,9,11+k); for(let h=0;h<24;h++){ t.push(dd.getFullYear()+"-"+String(dd.getMonth()+1).padStart(2,"0")+"-"+String(dd.getDate()).padStart(2,"0")+"T"+String(h).padStart(2,"0")+":00"); const rain=k===6&&h>=16&&h<20; pop.push(rain?80:5); cc.push(rain?100:10); code.push(rain?63:1); tt.push(12);} }
+          const was=WEATHER.nyc; WEATHER.nyc={updated:new Date().toISOString(),temp_c:12,condition_text:"Clear",hourly:{time:t,pop,mm:pop.map(p=>p>50?2:0),cc,code,t:tt}};
+          const rn=evRain(r,today); state.evGoing.add('tgl'); renderEvents(); const card=document.querySelector('#events details.event[data-id=tgl]');
+          const tags=[!!card.querySelector('.evgl'), !!card.querySelector('.evrain'), !!card.querySelector('.evrainplan'), !!card.querySelector('[data-evshoot]'), !!card.querySelector('[data-evshare]')];
+          const sh=evShareText(r); evShootOpen('tgl'); document.querySelector('#evShoot [data-evs=shot]').click(); const done=Object.keys(evShots('tgl')).length, prog=document.querySelector('#evShoot .st-where').textContent; evShootClose();
+          const wk=weekendPreview(new Date(2026,9,15,18,0));
+          delete EVENT_DOCS.tgl; delete state.evShots.tgl; store.set('evShots',state.evShots); state.evGoing.delete('tgl'); WEATHER.nyc=was; renderEvents();
+          return [gl, !!rn&&rn.t===17*60, tags, /Test dusk parade · Sat, Oct 17 5 pm/.test(sh.text), done, /1 of 2 shot/.test(prog), wk.items.some(x=>x.r.e.id==='tgl'), /^This weekend: /.test(wk.text)&&wk.text.length<=178]; })()""")
+        check("Events: a dusk event is tagged great light; rain at the start of a Going event shows on the card with a rain plan; Shoot this event ticks shots; Share has the date and time; the weekend preview lists it", ev6==["golden hour",True,[True,True,True,True,True],True,1,True,True,True], ev6)
         pg.click("#events .evquick [data-q=confirmed]"); pg.wait_for_timeout(100)
         cf=pg.evaluate("[...document.querySelectorAll('#events details.event')].filter(d=>!(d.querySelector('.pill')&&d.querySelector('.pill').textContent==='Confirmed')).map(d=>d.dataset.id+'|'+d.className+'|'+((d.querySelector('.pill')||{}).textContent))"); check("Confirmed filter keeps only confirmed events", pg.evaluate("[...document.querySelectorAll('#events details.event')].every(d=>d.querySelector('.pill')&&d.querySelector('.pill').textContent==='Confirmed')"), cf)
         pg.click("#events .evquick [data-q=confirmed]"); pg.wait_for_timeout(100)
@@ -934,6 +946,10 @@ with tempfile.TemporaryDirectory() as _td:
     _fc["hourly"]["cloud_cover"]=_fc["hourly"]["cloud_cover"][:40]; _json.dump(_fc,open(_f,"w"))
     _r=_sp.run([sys.executable,os.path.join(ROOT,"tools","alerts.py"),_f],capture_output=True,text=True)
     check("Alert tool refuses a forecast cut short", _r.returncode!=0 and "wrong length" in _r.stderr, _r.stderr[-200:])
+    _fc["hourly"]["cloud_cover"]=[100 if c in (61,45) else 20 for c in _code]; _json.dump(_fc,open(_f,"w")); _k=os.path.join(_td,"wk.txt")
+    _r=_sp.run([sys.executable,os.path.join(ROOT,"tools","alerts.py"),_f,"--now","2026-10-15T18:00:00","--weekend-out",_k],capture_output=True,text=True)
+    _t=open(_k).read() if os.path.exists(_k) else None
+    check("Alert tool writes the weekend line for the Thursday push", _r.returncode==0 and _t is not None and (_t=="" or (_t.startswith("This weekend: ") and len(_t)<=178)), (_t, _r.stderr[-200:]))
 
 print("\n" + ("All checks passed." if not failures else "%d check(s) failed: %s" % (len(failures), "; ".join(failures))))
 sys.exit(1 if failures else 0)
