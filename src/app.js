@@ -1982,7 +1982,7 @@ function guideStart(id){
   const fail=()=>{ if(state.guide!==g) return; if(!g.fix){ g.err=true; } guideRender(); };
   if(!navigator.geolocation){ g.err=true; guideRender(); return; }
   try{ g.watch=navigator.geolocation.watchPosition(p=>{ if(state.guide!==g) return; state.pos={lat:p.coords.latitude,lon:p.coords.longitude}; g.acc=p.coords.accuracy; g.err=false;
-      if(!g.fix){ g.fix=true; guideFit(); } mapDraw(); guideRender(); }, fail, {enableHighAccuracy:true, maximumAge:5000, timeout:20000}); }catch(e){ g.err=true; }
+      state.posAcc=p.coords.accuracy; if(!g.fix){ g.fix=true; guideFit(); } mapDraw(); guideRender(); }, fail, {enableHighAccuracy:true, maximumAge:5000, timeout:20000}); }catch(e){ g.err=true; }
   guideRender(); mapPanel(); }
 function guideStop(silent){ const g=state.guide; if(!g) return; try{ if(g.watch!=null) navigator.geolocation.clearWatch(g.watch); }catch(e){}
   state.guide=null; if(!state.mapHead) headingStop(); if(!silent){ guideRender(); mapDraw(); mapPanel(); } }
@@ -2003,7 +2003,14 @@ function guideRender(){ const box=$("mapGuide"); if(!box) return; const g=state.
     h=arrowSvg(rel)+'<div class="gtxt"><b>'+(d===null?'You are here. Face '+compass(S[2])+'.':Math.abs(d)<=12?'You are here, facing the shot.':'You are here. Turn '+(d>0?'right':'left')+' '+Math.round(Math.abs(d))+'°.')+'</b><span>'+(hd===null?'The arrow points that way on the map, with north up; your phone has not shared a compass.':'Face '+compass(S[2])+'; the arrow points straight up when you do.')+' '+esc(lf.txt)+' now.</span></div>'; }
   else { const hd=state.heading, rel=hd===null?G.brg:G.brg-hd;
     h=arrowSvg(rel)+'<div class="gtxt"><b>'+mDist(G.km)+' · about '+walkMin(G.km)+' min</b><span>Head '+compass(G.brg)+' to '+num+' '+esc(spotShort(S))+(hd===null?' (arrow on map north)':'')+(g.acc>40?'. GPS is rough here, ±'+Math.round(g.acc)+' m':'')+'</span></div>'; }
-  box.innerHTML=h+stop; box.hidden=false; box.classList.toggle("here",!!(G&&G.here)); }
+  // one line unless opened: distance and direction while walking, which way to face once there
+  let sh; const lf0=S&&lightFacing(S[2],new Date());
+  if(g.err&&!G) sh='Location not available'; else if(!G) sh='Finding you…';
+  else if(G.here){ const hd=state.heading, d=hd===null?null:((S[2]-hd)%360+540)%360-180; sh=(d===null?'Here · face '+cShort(S[2]):Math.abs(d)<=12?'Here · facing the shot ✓':'Here · turn '+(d>0?'right':'left')+' '+Math.round(Math.abs(d))+'°')+' · '+lf0.txt.toLowerCase(); }
+  else sh=mDist(G.km)+' · '+walkMin(G.km)+' min · head '+cShort(G.brg);
+  const open=!!state.guideOpen, arrow=h.startsWith('<svg')?h.slice(0,h.indexOf('</svg>')+6):'';
+  box.innerHTML=open?h.replace('<div class="gtxt">','<div class="gtxt" data-gexp="1" role="button" tabindex="0" aria-label="Show less">')+stop:arrow+'<div class="gtxt gslim" data-gexp="1" role="button" tabindex="0" aria-label="Show more"><b>'+esc(sh)+'</b></div>'+stop;
+  box.hidden=false; box.classList.toggle("here",!!(G&&G.here)); box.classList.toggle("slim",!open); }
 
 /* The phone's compass: which way you are facing. Shared by Guide me there and the heading-up map. iPhones ask once for permission, which has to
    come from a tap. Android gives the absolute heading from the deviceorientationabsolute event; alpha counts anticlockwise, so it is reversed. */
@@ -2857,7 +2864,7 @@ function mapShell(box){
     '<div class="mnorth" id="mapNorth" hidden aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2 17 14H7Z" class="n"/><path d="M12 22 7 14h10Z" class="s"/></svg><span>N</span></div>'+
     '<div class="mapscale" id="mapScale"></div>'+
     '<section class="msheet" id="mapSheet" aria-label="Map details"><div class="mgrab" id="mapGrab" role="button" tabindex="0" aria-label="Show more or less"><i></i></div>'+
-      '<div class="sunbar"><div class="sunrow"><div class="slidecol"><input type="range" id="mapTime" min="0" max="1435" step="5" aria-label="Time of day on the map"><div id="lightTicks" class="lticks"></div><div id="wxStrip"></div></div><button type="button" class="chip" id="mapTimeNow">Now</button></div><div class="intents mdays" id="mapDays"></div><p id="mapStatus" class="mstatus"></p><button type="button" class="minview" id="mapInView" data-inview="1" hidden></button></div>'+
+      '<div class="sunbar"><div class="sunrow"><div class="slidecol"><input type="range" id="mapTime" min="0" max="1435" step="5" aria-label="Time of day on the map"><output class="tbubble" id="mapTimeBubble" hidden></output><div id="lightTicks" class="lticks"></div><div id="wxStrip"></div></div><button type="button" class="chip" id="mapTimeNow">Now</button><button type="button" class="chip mdaybtn" id="mapDayBtn" aria-expanded="false" aria-controls="mapDays"></button></div><div class="intents mdays" id="mapDays" hidden></div><p id="mapStatus" class="mstatus"></p><button type="button" class="minview" id="mapInView" data-inview="1" hidden></button></div>'+
       '<div class="mbody" id="mapBody"><div id="mapPlanSheet" class="mplansheet" hidden><div class="mplanhead"><b>Plan an outing</b><button type="button" class="mapselx" data-closeplan="1" aria-label="Close the plan">×</button></div><div id="mapPlanBody"></div></div><div id="mapPanel"></div><div id="mapPlan"></div><div class="msec"><div id="lightMarks" class="intents lmarks"></div><div id="wxBar"></div><p id="sunLine" class="sunline"></p></div><div id="mapLegend" class="msec"></div></div></section>';
   mapGestures($("mapSvg")); sheetGestures();
 }
@@ -2895,7 +2902,14 @@ function mapLayout(){ const m=$("map"); if(!m||state.view!=="map") return; if(st
 /* Map layers you can turn on and off */
 const MAP_LAYERS = [["mapShowEv","Events","Upcoming events, and what is on now","lg ev"],["mapShowLm","Landmarks","Buildings, views and bridge walkway entrances, with tips","lg lmk"],["mapShowSub","Subway lines","In MTA colours","lg sub"],["mapShowStn","Stations","Every subway station when zoomed in","lg stn"],
   ["mapShowSunny","Sunny side","Which side of each street is in sun, while the sun is up","lg sunny"],["mapShowHenge","Light down the street","Streets that line up with the low sun on this day, and when","lg henge"],["mapShowFerry","Ferries","NYC Ferry and Staten Island Ferry routes, and which side of the boat has the light","lg ferry"],["mapShowSpots","Where to stand","Spots and lens wedges when zoomed in","lg spot"],["mapShowNames","Street and area names","","lg names"]];
-function mapLayersHtml(nLive){ return '<div class="mlayers-head"><b>Map layers</b><button type="button" class="mapselx" data-layersclose="1" aria-label="Close">×</button></div>'+
+/* Three ready-made sets of layers; single layers can still be changed below them. */
+const LAYER_SETS = {shoot:["mapShowEv","mapShowSub","mapShowSpots","mapShowNames"], light:["mapShowEv","mapShowSub","mapShowSpots","mapShowNames","mapShowSunny","mapShowHenge"], all:MAP_LAYERS.map(l=>l[0])};
+const layerSetNow = () => Object.keys(LAYER_SETS).find(k=>MAP_LAYERS.every(([L])=>!!state[L]===LAYER_SETS[k].includes(L)))||"custom";
+function layerSet(k){ const S=LAYER_SETS[k]; if(!S) return; MAP_LAYERS.forEach(([L])=>{ state[L]=S.includes(L); store.set(L,state[L]); }); store.set("mapSet",k);
+  if(!state.mapShowEv) state.mapEv=null; if(!state.mapShowLm) state.mapLm=null; if(!state.mapShowHenge) state.mapRun=null; if(!state.mapShowFerry) state.mapFerry=null; }
+if(store.get("mapSet",null)===null) layerSet("shoot");
+function mapLayersHtml(nLive){ const cur=layerSetNow(); return '<div class="mlayers-head"><b>Map layers</b><button type="button" class="mapselx" data-layersclose="1" aria-label="Close">×</button></div>'+
+  '<div class="lsets" role="group" aria-label="Layer sets">'+[["shoot","Shoot","Pins, subway, events"],["light","Light","Adds sunny side and light down the street"],["all","Everything","Every layer"]].map(([k,t,sub])=>'<button type="button" class="lset" data-lset="'+k+'" aria-pressed="'+(cur===k)+'"><b>'+t+'</b><span>'+sub+'</span></button>').join("")+'</div>'+(cur==="custom"?'<p class="mlayers-sub">Your own mix</p>':'<p class="mlayers-sub">Or choose single layers</p>')+
   MAP_LAYERS.map(([k,t,sub,ic])=>'<button type="button" class="mlayer" data-layer="'+k+'" aria-pressed="'+!!state[k]+'"><span class="'+ic+'"></span><span class="t"><b>'+t+(k==="mapShowEv"&&nLive?' · '+nLive+' on now':'')+'</b>'+(sub?'<span>'+sub+'</span>':'')+'</span><span class="sw" aria-hidden="true"></span></button>').join("")+
   '<p class="mlayers-sub">Jump to</p><div class="intents" id="mapZoom">'+MAP_PRESETS.concat(posOnMap()?[["me","Near me"]]:[]).map(z=>'<button type="button" class="chip" data-z="'+z[0]+'">'+z[1]+'</button>').join("")+'<button type="button" class="chip" data-nearspots="1">Spots near me</button></div>'; }
 
@@ -3558,7 +3572,7 @@ function lfRender0(el,pos){ const real=new Date(), t=new Date(+real+(LF.off||0)*
   const rows=S.su?[["Mode",subj==="blur"?"PASM · S (shutter priority)":S.su[4]],["Focus",S.su[0]+(S.su[1]&&!/Not used/.test(S.su[1])?' · '+S.su[1]:'')],["Metering",S.su[2]],["Exposure comp.",S.comp||S.su[3]],["White balance",S.su[7]]]:[["Exposure comp.",S.comp]];
   const sc=el.querySelector(".st-in"), keep=sc?sc.scrollTop:0; const rng=$("lfTime");   // the slider being dragged is kept, so the drag is not cut off by the redraw
   el.innerHTML='<div class="st-in lf-in"><div class="st-top"><span class="st-where"><b>Light here</b> · '+hmText(t.getHours()*60+t.getMinutes())+(LF.off?' (in '+(LF.off>=60?Math.floor(LF.off/60)+' h '+(LF.off%60?LF.off%60+' min':''):LF.off+' min')+')':'')+(hood&&!here?' · '+(LF.spot?'★ ':'')+esc(hood):'')+'</span><button type="button" class="st-x" data-lf="close" aria-label="Close">×</button></div>'+
-    (LF.spot?'<p class="lf-note lf-spotn">Showing your saved spot, not where you are. <button type="button" class="chip" data-lf="unspot">Back to where I am</button></p>':'')+
+    (LF.spot?'<p class="lf-note lf-spotn">'+(LF.spot.picked?'Showing the corner you picked on the map, not where you are. Save it to come back to it.':'Showing your saved spot, not where you are.')+' <button type="button" class="chip" data-lf="unspot">Back to where I am</button></p>':'')+
     (here?'<p class="lf-note">'+(LF.fallback?'Location is off, so this is for Midtown. Allow location for advice on the street you are on.':'Finding where you are… meanwhile this is for Midtown.')+'</p>':'')+
     (out?'<p class="lf-note">Outside New York City: the sun, times and directions are for '+(LF.spot?'this spot':'where you are')+', but there is no building shade or street direction here'+(WX_KEY==="none"?', and no forecast yet, so check the sky yourself':'')+'.</p>':'')+
     '<p class="lf-sky">'+(sp.alt>0?'Sun '+Math.round(sp.alt)+'° up in the '+compass(sp.az):sp.alt>-6?'Sun just below the horizon to the '+compass(sp.az):'Sun down')+' · '+SUN_PHASE[ph]+(skyWord?' · '+skyWord:'')+moonLine+'</p>'+
@@ -3832,7 +3846,8 @@ function mapDraw(){
     if(!v){ if(im.style.display!=="none") im.style.display="none"; return; }
     const [x,y,r]=v, c=document.querySelector("#pc-"+id+" circle"); c.setAttribute("cx",f(x)); c.setAttribute("cy",f(y)); c.setAttribute("r",f(r-0.6*u));
     im.setAttribute("x",f(x-r)); im.setAttribute("y",f(y-r)); im.setAttribute("width",f(2*r)); im.setAttribute("height",f(2*r)); im.style.display=""; });
-  let you=""; if(state.pos){ const [x,y]=mapXY(state.pos.lat,state.pos.lon); you='<circle cx="'+f(x)+'" cy="'+f(y)+'" r="'+f(13*u)+'" class="m-youhalo"/><circle cx="'+f(x)+'" cy="'+f(y)+'" r="'+f(6*u)+'" stroke-width="'+f(2.5*u)+'" class="m-you"/>'; }
+  let you=""; if(state.pos){ const [x,y]=mapXY(state.pos.lat,state.pos.lon), ar=state.posAcc&&state.posAcc>12&&state.posAcc<800?state.posAcc/1609.34*28.9:0;
+    you=(ar>13*u?'<circle cx="'+f(x)+'" cy="'+f(y)+'" r="'+f(ar)+'" class="m-youacc" stroke-width="'+f(1*u)+'"/>':'')+'<circle cx="'+f(x)+'" cy="'+f(y)+'" r="'+f(13*u)+'" class="m-youhalo"/><circle cx="'+f(x)+'" cy="'+f(y)+'" r="'+f(6*u)+'" stroke-width="'+f(2.5*u)+'" class="m-you'+(state.mapFollow?' follow':'')+'"/>'; }
   const cc=CITIES[state.city], sp=sunPos(mapNow(),cc.lat,cc.lon), ph=sunPhase(sp.alt); if($("map").dataset.sky!==ph) $("map").dataset.sky=ph;
   const tint='<rect x="'+f(x0)+'" y="'+f(y0)+'" width="'+f(wb)+'" height="'+f(h)+'" class="m-tint '+ph+'"/>';
   let sun=""; if(sp.alt>-6){ const [sx,sy,dx,dy]=edge(sp.az);
@@ -3893,8 +3908,8 @@ function mapDraw(){
   let headCone=""; if(state.pos&&state.heading!==null&&w<330){ const [hx,hy]=mapXY(state.pos.lat,state.pos.lon), fov=camFov(), L=Math.min(w*0.35,46*u), a0=-fov/2*Math.PI/180, a1=fov/2*Math.PI/180;
     headCone='<g id="mapHeadG" class="m-head" data-x="'+f(hx)+'" data-y="'+f(hy)+'" transform="rotate('+f(state.heading)+' '+f(hx)+' '+f(hy)+')"><path d="M'+f(hx)+' '+f(hy)+' L'+f(hx+Math.sin(a0)*L)+' '+f(hy-Math.cos(a0)*L)+' A'+f(L)+' '+f(L)+' 0 0 1 '+f(hx+Math.sin(a1)*L)+' '+f(hy-Math.cos(a1)*L)+'Z" class="m-headcone" stroke-width="'+f(0.8*u)+'"/></g>'; }
   const clus=CL.cl.map(c=>'<g class="m-clu'+(c.fit?' fit':'')+'" data-cl="'+c.ids.join(",")+'" tabindex="0" role="button" aria-label="'+c.ids.length+' places here: '+esc(c.ids.map(id=>PLACES[id].name).join(", "))+'. Tap to zoom in"><circle cx="'+f(c.x)+'" cy="'+f(c.y)+'" r="'+f(c.r+8*u)+'" class="m-hit"/><circle cx="'+f(c.x)+'" cy="'+f(c.y)+'" r="'+f(c.r+3*u)+'" class="m-cluring" stroke-width="'+f(1.5*u)+'"/><circle cx="'+f(c.x)+'" cy="'+f(c.y)+'" r="'+f(c.r)+'" class="m-cludot" stroke-width="'+f(1.5*u)+'"/><text x="'+f(c.x)+'" y="'+f(c.y+4.2*u)+'" text-anchor="middle" font-size="'+f(12*u)+'" class="m-clun">'+c.ids.length+'</text></g>').join("");
-  $("mapDyn").innerHTML=tint+wxSvg(x0,y0,wb,h,u)+sun+moonSvg+bridges+ferries+sunny+henge+detail+allStn+hengeLabs+route+ring+stations+flags+labels+lms+dim+comp+(w<60?"":sunLines+spotsSvg+spotLabs)+evs+guideLine+you+clus+pins;
-  $("mapOver").innerHTML=over+badges+(w<60?sunLines+spotsSvg+spotLabs:"")+headCone;
+  $("mapDyn").innerHTML=tint+wxSvg(x0,y0,wb,h,u)+sun+moonSvg+bridges+ferries+sunny+henge+detail+allStn+hengeLabs+route+ring+stations+flags+labels+lms+dim+comp+(w<60?"":sunLines+spotsSvg+spotLabs)+evs+guideLine+clus+pins;
+  $("mapOver").innerHTML=over+badges+(w<60?sunLines+spotsSvg+spotLabs:"")+headCone+you;
   const sl=$("sunLine"); if(sl) sl.innerHTML=sunLine();
 }
 /* Pins that would overlap at this zoom merge into one bubble with a count; a tap zooms in until they separate.
@@ -3931,11 +3946,29 @@ function mapCard(sel,pl,d,mine,key){ const best=mine.find(x=>x.w.includes(key)&&
     '<button type="button" class="chip" data-go="'+sel.id+'">All ideas</button><button type="button" class="chip" data-mapmore="1">More ▴</button></div></div>'; }
 const INTENT_SHORT={place:"Place",moment:"Moment",energy:"Energy",mood:"Mood",odd:"Unusual"};
 function mapIntentPop(on){ const p=$("mapIntent"), b=$("mapIntentBtn"); if(!p||!b) return; p.hidden=!on; b.setAttribute("aria-expanded",on); }
+const cShort = d => ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"][Math.round(((d%360)+360)%360/22.5)%16];
+/* Follow me: after Find me, the map keeps you in the middle as you walk, until you drag it or tap Find me again. */
+const FOLLOWME={watch:null};
+function followStart(){ if(state.mapFollow||!navigator.geolocation) return; state.mapFollow=true; const b=document.querySelector("#map [data-locate]"); if(b){ b.setAttribute("aria-pressed","true"); b.title="Following you: tap to stop"; }
+  try{ FOLLOWME.watch=navigator.geolocation.watchPosition(p=>{ state.pos={lat:p.coords.latitude,lon:p.coords.longitude}; state.posAcc=p.coords.accuracy;
+      if(state.mapFollow&&!state.mapHead&&posOnMap()&&mapV){ const [x,y]=mapXY(state.pos.lat,state.pos.lon); mapV=mapClamp(mapAim({cx:x,cy:y,w:mapV.w})); } mapDraw(); },()=>{},{enableHighAccuracy:true,maximumAge:3000,timeout:20000}); }catch(e){}
+  mapDraw(); }
+function followStop(){ if(!state.mapFollow) return; state.mapFollow=false; try{ if(FOLLOWME.watch!=null) navigator.geolocation.clearWatch(FOLLOWME.watch); }catch(e){} FOLLOWME.watch=null;
+  const b=document.querySelector("#map [data-locate]"); if(b){ b.setAttribute("aria-pressed","false"); b.title="Find me"; } mapDraw(); }
+/* Press and hold on the map: the light at that corner, in Light here. */
+function mapLongPress(x,y){ const lat=40.95-y/2000, lon=x/(0.758*2000)-74.30; try{ navigator.vibrate&&navigator.vibrate(12); }catch(e){}
+  lfOpen({id:"pick",name:"The corner you picked · "+nearestHood(lat,lon),lat:+lat.toFixed(5),lon:+lon.toFixed(5),picked:true}); }
+/* While the time slider moves: the time and the light, over the thumb. */
+let TBT=0;
+function timeBubble(v){ const b=$("mapTimeBubble"), inp=$("mapTime"); if(!b||!inp) return; const t=mapNow(), c=CITIES[state.city], ph=sunPhase(sunPos(t,c.lat,c.lon).alt);
+  b.textContent=hmText(v)+' · '+(ph==="day"?'daylight':ph==="night"?'after dark':SUN_PHASE[ph].toLowerCase()); b.hidden=false;
+  const W=inp.clientWidth||300, x=13+(W-26)*v/1435; b.style.left=Math.max(60,Math.min(W-60,x))+"px"; clearTimeout(TBT); TBT=setTimeout(()=>{ b.hidden=true; },1400); }
 function mapPanel(){
   const key=lightAt(mapNow()), pts=mapPts(), sel=state.mapSel&&pts.find(p=>p.id===state.mapSel), pl=sel&&PLACES[sel.id], d=sel?milesText(milesTo(pl)):"";
   if($("mapPlan")) $("mapPlan").innerHTML=mapPlanBar();
   if($("wxBar")) $("wxBar").innerHTML=wxBar();
   if($("lightMarks")){ $("lightMarks").innerHTML=lightMarks(); $("mapTime").style.setProperty("--band",lightBand()); }
+  { const db=$("mapDayBtn"); if(db){ db.innerHTML=esc(state.mapD?mapDayName():"Today")+' <b aria-hidden="true">▾</b>'; db.setAttribute("aria-label","Day: "+mapDayName()+". Change"); db.classList.toggle("on",!!state.mapD); } }
   if($("mapDays")){ const n=new Date(); $("mapDays").innerHTML=[0,1,2,3,4,5,6].map(k=>{ const d=new Date(n.getFullYear(),n.getMonth(),n.getDate()+k); return '<button type="button" class="chip" data-day="'+k+'" aria-pressed="'+(state.mapD===k)+'">'+(k===0?'Today':k===1?'Tomorrow':DAY_SHORT[d.getDay()])+'</button>'; }).join(""); }
   const order=placeOrder().filter(id=>typeof PLACES[id].lat==="number");
   $("mapGo").innerHTML='<option value="">Go to a place…</option>'+groupOptions(order, id=>{ const dd=milesText(milesTo(PLACES[id])); return '<option value="'+id+'"'+(id===state.mapSel?" selected":"")+'>'+esc(PLACES[id].name)+(dd?' · '+dd:'')+'</option>'; });
@@ -3970,7 +4003,7 @@ function mapPanel(){
         '<div class="callinks">'+(planIndex(sel.id)<0?'<button type="button" class="chip primary" data-addplan="'+sel.id+'">+ Add to today</button>':'<span class="pill instop">Stop '+(planIndex(sel.id)+1)+' · '+state.plan.stops[planIndex(sel.id)].at.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}).toLowerCase()+'</span><button type="button" class="chip" data-rmplan="'+sel.id+'">Remove from today</button>')+(START[sel.id]?'<a class="chip" href="https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(mapAddr(sel.id))+'&travelmode=transit" target="_blank" rel="noopener">Directions from where I am ↗</a>':'')+'<button type="button" class="chip" data-plan="'+sel.id+'">Plan an outing from here</button><button type="button" class="chip" data-go="'+sel.id+'">Open in Browse</button></div></section>'
       : state.mapInView ? inViewPanel() : state.mapNear ? nearPanel() : '<p class="lead mlead">Tap a pin to see a place and its ideas. Drag the bar above to see more.</p><div class="callinks mleadcta"><button type="button" class="chip primary" data-nearspots="1">Spots near me</button></div>');
   guideRender(); if(state.mapHead) headMsgShow();
-  if($("mapLegend")) $("mapLegend").innerHTML=legendHtml+'<p class="msg">Drag to move the map, pinch or use + and − to zoom, double-tap to zoom in. ⌂ shows the whole city and ◎ finds you. Zoom in for neighbourhoods, landmarks, stations, street names and spots. The number on a pin is how many of its ideas suit the light now. Streets come from the US Census street files and subway lines from the MTA; landmarks and spots are placed by hand. On the subway has no pin because it is everywhere.</p>';
+  if($("mapLegend")) $("mapLegend").innerHTML=legendHtml+'<p class="msg">Drag to move the map, pinch or use + and − (under ⋯) to zoom, double-tap to zoom in. Press and hold anywhere for the light at that corner. Tap ◎ to find you; the map then follows you until you drag it. ⌂ shows the whole city and ◎ finds you. Zoom in for neighbourhoods, landmarks, stations, street names and spots. The number on a pin is how many of its ideas suit the light now. Streets come from the US Census street files and subway lines from the MTA; landmarks and spots are placed by hand. On the subway has no pin because it is everywhere.</p>';
   const placeCard=!!sel&&!spotSel&&!runSel&&!ferrySel&&!lmSel&&!evSel, anySel=!!(sel||evSel||lmSel||spotSel||runSel||ferrySel);
   if(placeCard&&(state.sheet==="peek"||state.sheet==="card")) setSheet("card"); else if(anySel&&(state.sheet==="peek"||state.sheet==="card")) setSheet("half");
   else if(!anySel&&state.sheet==="card") setSheet(state.mapInView?"half":"peek");
@@ -4133,17 +4166,19 @@ function mapGestures(svg){
   const at=(e,v)=>{ const r=svg.getBoundingClientRect(), k=v.w/r.width; return [v.cx-v.w/2+(e.clientX-r.left)*k, v.cy-v.w*MAP_ASPECT/2+(e.clientY-r.top)*k, k]; };
   const zoomAt=(e,factor,fly)=>{ if(state.mapHead){ mapV=mapClamp({cx:mapV.cx,cy:mapV.cy,w:mapV.w*factor}); redraw(); return; } const [mx,my]=at(e,mapV), w=Math.min(MAP_LIM.w[1],Math.max(MAP_LIM.w[0],mapV.w*factor)), k=w/mapV.w, to={cx:mx+(mapV.cx-mx)*k, cy:my+(mapV.cy-my)*k, w}; if(fly) mapFly(to); else { mapV=mapClamp(to); redraw(); } };
   const start=()=>{ const p=[...ptr.values()]; g={v:Object.assign({},mapV), moved:g?g.moved:false, pin:g?g.pin:null, ev:g?g.ev:null, lm:g?g.lm:null, spot:g?g.spot:null, run:g?g.run:null, ferry:g?g.ferry:null, cl:g?g.cl:null, p0:p.map(q=>({x:q.clientX,y:q.clientY}))}; };
-  svg.addEventListener("pointerdown",e=>{ cancelAnimationFrame(mapAnim); const pin=e.target.closest&&e.target.closest(".m-pin"), ev=e.target.closest&&e.target.closest(".m-ev"), lm=e.target.closest&&e.target.closest(".m-lm"), sp=e.target.closest&&e.target.closest(".m-spotg"), rn=e.target.closest&&e.target.closest("[data-r]"), fy=e.target.closest&&e.target.closest(".m-ferryg"), cl=e.target.closest&&e.target.closest(".m-clu"); ptr.set(e.pointerId,e); if(ptr.size===1) g={moved:false,cl:cl?cl.dataset.cl:null,pin:pin?pin.dataset.p:null,ev:ev?ev.dataset.e:null,lm:lm?+lm.dataset.l:null,spot:sp?sp.dataset.s:null,run:rn?+rn.dataset.r:null,ferry:fy?fy.dataset.f:null}; start(); try{ svg.setPointerCapture(e.pointerId); }catch(err){} });
+  let lpT=0; const lpClear=()=>{ clearTimeout(lpT); lpT=0; };
+  svg.addEventListener("pointerdown",e=>{ cancelAnimationFrame(mapAnim); lpClear();
+    if(!state.mapHead&&!(e.target.closest&&e.target.closest(".m-pin,.m-ev,.m-lm,.m-spotg,.m-clu,[data-r],.m-ferryg"))){ const e0={clientX:e.clientX,clientY:e.clientY}; lpT=setTimeout(()=>{ lpT=0; if(!g||g.moved||ptr.size!==1) return; g.moved=true; const [mx,my]=at(e0,mapV); mapLongPress(mx,my); },560); } const pin=e.target.closest&&e.target.closest(".m-pin"), ev=e.target.closest&&e.target.closest(".m-ev"), lm=e.target.closest&&e.target.closest(".m-lm"), sp=e.target.closest&&e.target.closest(".m-spotg"), rn=e.target.closest&&e.target.closest("[data-r]"), fy=e.target.closest&&e.target.closest(".m-ferryg"), cl=e.target.closest&&e.target.closest(".m-clu"); ptr.set(e.pointerId,e); if(ptr.size===1) g={moved:false,cl:cl?cl.dataset.cl:null,pin:pin?pin.dataset.p:null,ev:ev?ev.dataset.e:null,lm:lm?+lm.dataset.l:null,spot:sp?sp.dataset.s:null,run:rn?+rn.dataset.r:null,ferry:fy?fy.dataset.f:null}; start(); try{ svg.setPointerCapture(e.pointerId); }catch(err){} });
   svg.addEventListener("pointermove",e=>{ if(!ptr.has(e.pointerId)||!g) return; ptr.set(e.pointerId,e); const p=[...ptr.values()], r=svg.getBoundingClientRect(), k=g.v.w/r.width;
     if(p.length===1){ const dx=p[0].clientX-g.p0[0].x, dy=p[0].clientY-g.p0[0].y; if(!g.moved && Math.hypot(dx,dy)<7) return; g.moved=true;
       if(state.mapHead){ if(Math.hypot(dx,dy)<24) return; headUp(false); g.v=Object.assign({},mapV); g.p0=[{x:p[0].clientX,y:p[0].clientY}]; return; }
-      mapV=mapClamp({cx:g.v.cx-dx*k, cy:g.v.cy-dy*k, w:g.v.w}); }
+      if(state.mapFollow) followStop(); mapV=mapClamp({cx:g.v.cx-dx*k, cy:g.v.cy-dy*k, w:g.v.w}); }
     else if(p.length>=2 && g.p0.length>=2){ g.moved=true;
       if(state.mapHead){ const d0=Math.hypot(g.p0[0].x-g.p0[1].x,g.p0[0].y-g.p0[1].y)||1, d1=Math.hypot(p[0].clientX-p[1].clientX,p[0].clientY-p[1].clientY)||1; mapV=mapClamp({cx:mapV.cx,cy:mapV.cy,w:g.v.w*d0/d1}); redraw(); return; } const d0=Math.hypot(g.p0[0].x-g.p0[1].x,g.p0[0].y-g.p0[1].y)||1, d1=Math.hypot(p[0].clientX-p[1].clientX,p[0].clientY-p[1].clientY)||1;
       const m0={clientX:(g.p0[0].x+g.p0[1].x)/2,clientY:(g.p0[0].y+g.p0[1].y)/2}, m1x=(p[0].clientX+p[1].clientX)/2, m1y=(p[0].clientY+p[1].clientY)/2, [ax,ay]=at(m0,g.v);
       const w=Math.min(MAP_LIM.w[1],Math.max(MAP_LIM.w[0],g.v.w*d0/d1)), k2=w/r.width; mapV=mapClamp({cx:ax-(m1x-r.left)*k2+w/2, cy:ay-(m1y-r.top)*k2+w*MAP_ASPECT/2, w}); }
     redraw(); });
-  const end=e=>{ if(!ptr.has(e.pointerId)) return; ptr.delete(e.pointerId); if(ptr.size){ start(); return; } const was=g; g=null; if(!was||was.moved||e.type==="pointercancel") return;
+  const end=e=>{ lpClear(); if(!ptr.has(e.pointerId)) return; ptr.delete(e.pointerId); if(ptr.size){ start(); return; } const was=g; g=null; if(!was||was.moved||e.type==="pointercancel") return;
     const now=Date.now(); if(was.cl){ lastTap=0; mapZoomCluster(was.cl.split(",")); return; } if(was.spot){ lastTap=0; mapSelectSpot(was.spot); return; } if(was.pin){ lastTap=0; mapSelect(was.pin); return; } if(was.ev){ lastTap=0; mapSelectEv(was.ev); return; } if(was.lm!==null&&was.lm!==undefined){ lastTap=0; mapSelectLm(was.lm); return; } if(was.run!==null&&was.run!==undefined){ lastTap=0; mapSelectRun(was.run); return; } if(was.ferry){ lastTap=0; mapSelectFerry(was.ferry); return; }
     if(now-lastTap<320){ lastTap=0; zoomAt(e,0.5,true); return; } lastTap=now; if(state.mapSel||state.mapEv||state.mapLm!==null&&state.mapLm!==undefined||state.mapRun!==null||state.mapFerry) mapSelect(null); };
   svg.addEventListener("pointerup",end); svg.addEventListener("pointercancel",end);
@@ -4963,6 +4998,7 @@ function render(){ { const rt=document.getElementById("rowToast"); if(rt&&!["bro
   openTip=null; tipSheet(); if(state.view!=="map"&&state.mapFull) mapFull(false); if(state.view!=="map"&&state.guide) guideStop(true);
   const shoot=state.view==="shoot", ev=state.view==="events", pl=state.view==="plan", mp=state.view==="map"||pl, ln=state.view==="learn", td=state.view==="today";
   if(document.body.classList.contains("onmap")!==mp){ document.body.classList.toggle("onmap",mp); TOP_PX.t=-1e9; }
+  if(!mp&&state.mapFollow) followStop();
   $("viewToday").hidden=!td; if(td) renderToday();
   $("viewLearn").hidden=!ln; if(ln) renderLearn();
   $("viewMap").hidden=!mp; if(mp) renderMap();
@@ -5142,7 +5178,9 @@ $("map").addEventListener("click",e=>{
   const sc=e.target.closest("[data-stop]"); if(sc){ mapGoStop(+sc.dataset.stop); return; }
   if(e.target.closest("[data-nextstop]")){ mapGoStop(nextStopIndex()); return; }
   if(e.target.closest("[data-clearplan]")){ state.plan=null; savePlan(); mapPanel(); mapDraw(); return; }
-  const dc=e.target.closest("#mapDays [data-day]"); if(dc){ const k=+dc.dataset.day, n=new Date(); state.mapD=k; if(k&&state.mapT===null) state.mapT=Math.round((n.getHours()*60+n.getMinutes())/5)*5; if(!k&&state.mapT!==null&&Math.abs(state.mapT-(n.getHours()*60+n.getMinutes()))<5) state.mapT=null;
+  if(e.target.closest("#mapDayBtn")){ const d=$("mapDays"), on=d.hidden; d.hidden=!on; $("mapDayBtn").setAttribute("aria-expanded",on); if(state.sheet) setSheet(state.sheet,true); return; }
+  if(e.target.closest("[data-gexp]")){ state.guideOpen=!state.guideOpen; guideRender(); return; }
+  const dc=e.target.closest("#mapDays [data-day]"); if(dc){ $("mapDays").hidden=true; $("mapDayBtn").setAttribute("aria-expanded","false"); setTimeout(()=>setSheet(state.sheet||"peek",true),0); const k=+dc.dataset.day, n=new Date(); state.mapD=k; if(k&&state.mapT===null) state.mapT=Math.round((n.getHours()*60+n.getMinutes())/5)*5; if(!k&&state.mapT!==null&&Math.abs(state.mapT-(n.getHours()*60+n.getMinutes()))<5) state.mapT=null;
     $("mapTime").value=state.mapT===null?n.getHours()*60+n.getMinutes():state.mapT; mapDraw(); mapPanel(); return; }
   const jm=e.target.closest("[data-jump]"); if(jm){ state.mapT=Math.round(+jm.dataset.jump/5)*5; $("mapTime").value=state.mapT; mapDraw(); mapPanel(); return; }
   if(e.target.closest("#mapTimeNow")){ state.mapT=null; state.mapD=0; const n=new Date(); $("mapTime").value=n.getHours()*60+n.getMinutes(); mapDraw(); mapPanel(); return; }
@@ -5155,12 +5193,13 @@ $("map").addEventListener("click",e=>{
   const mev=e.target.closest("[data-mev]"); if(mev){ state.mapInView=false; mapSelectEv(mev.dataset.mev); return; }
   if(e.target.closest("[data-mapmore]")){ setSheet("full"); return; }
   const ft=e.target.closest("[data-fit]"); if(ft){ mapFly(mapPreset("city")); return; }
-  const lc=e.target.closest("[data-locate]"); if(lc){ if(state.pos){ if(posOnMap()) mapFly(mapPreset("me")); else offMapMsg(); return; } const b=lc; b.textContent="…";
-    const done=()=>{ b.textContent="◎"; mapPanel(); if(state.pos&&!posOnMap()) offMapMsg(); else if(state.pos) mapFly(mapPreset("me")); else { $("mapPanel").insertAdjacentHTML("afterbegin",'<p class="msg">Your location is not available here. In the installed app, allow location access for Shot List when asked.</p>'); } };
+  const lc=e.target.closest("[data-locate]"); if(lc){ if(state.mapFollow){ followStop(); return; } if(state.pos){ if(posOnMap()){ mapFly(mapPreset("me")); followStart(); } else offMapMsg(); return; } const b=lc; b.textContent="…";
+    const done=()=>{ b.textContent="◎"; mapPanel(); if(state.pos&&!posOnMap()) offMapMsg(); else if(state.pos){ mapFly(mapPreset("me")); followStart(); } else { $("mapPanel").insertAdjacentHTML("afterbegin",'<p class="msg">Your location is not available here. In the installed app, allow location access for Shot List when asked.</p>'); } };
     if(!navigator.geolocation){ done(); return; }
-    try{ navigator.geolocation.getCurrentPosition(p=>{ state.pos={lat:p.coords.latitude,lon:p.coords.longitude}; fillPlaces(); syncNear(); done(); }, done, {timeout:10000,maximumAge:120000}); }catch(err){ done(); } return; }
+    try{ navigator.geolocation.getCurrentPosition(p=>{ state.pos={lat:p.coords.latitude,lon:p.coords.longitude}; state.posAcc=p.coords.accuracy; fillPlaces(); syncNear(); done(); }, done, {timeout:10000,maximumAge:120000}); }catch(err){ done(); } return; }
   if(e.target.closest("#mapLayersBtn")){ const L=$("mapLayers"), open=L.hidden; L.hidden=!open; $("mapLayersBtn").setAttribute("aria-expanded",open); return; }
   if(e.target.closest("[data-layersclose]")){ $("mapLayers").hidden=true; $("mapLayersBtn").setAttribute("aria-expanded","false"); return; }
+  const ls=e.target.closest("[data-lset]"); if(ls){ layerSet(ls.dataset.lset); $("mapLayers").innerHTML=mapLayersHtml(mapEvents().filter(x=>x.st.k==="live").length); mapPanel(); mapDraw(); return; }
   const ly=e.target.closest("[data-layer]"); if(ly){ const k=ly.dataset.layer; state[k]=!state[k]; store.set(k,state[k]); if(k==="mapShowEv"&&!state[k]) state.mapEv=null; if(k==="mapShowLm"&&!state[k]) state.mapLm=null; if(k==="mapShowHenge"&&!state[k]) state.mapRun=null; if(k==="mapShowFerry"&&!state[k]) state.mapFerry=null; state.mapRun=null; state.mapFerry=null; mapPanel(); mapDraw(); return; }
   const ssp=e.target.closest("[data-spot]"); if(ssp){ mapSelectSpot(ssp.dataset.spot); return; }
   const gs=e.target.closest("[data-gosel]"); if(gs){ const id=gs.dataset.gosel; mapSelect(id); return; }
@@ -5175,7 +5214,7 @@ $("map").addEventListener("click",e=>{
   const q=e.target.closest("[data-plan]"); if(q){ state.view="plan"; render(); if(state.mapD&&$("pDay")){ $("pDay").value=String(state.mapD); renderPlan(); } $("pStart").value=q.dataset.plan; window.scrollTo({top:0}); }
 });
 let mapTimeRaf=0;
-$("map").addEventListener("input",e=>{ if(e.target.id!=="mapTime") return; state.mapT=+e.target.value; if(!mapTimeRaf) mapTimeRaf=requestAnimationFrame(()=>{ mapTimeRaf=0; mapDraw(); mapPanel(); }); });
+$("map").addEventListener("input",e=>{ if(e.target.id!=="mapTime") return; state.mapT=+e.target.value; timeBubble(+e.target.value); if(!mapTimeRaf) mapTimeRaf=requestAnimationFrame(()=>{ mapTimeRaf=0; mapDraw(); mapPanel(); }); });
 $("map").addEventListener("change",e=>{ if(e.target.id!=="mapGo"||!e.target.value) return; const id=e.target.value; state.mapSel=id; state.mapEv=null; state.mapLm=null; state.mapRun=null; state.mapFerry=null; state.mapSpot=null; mapPanel(); mapDraw(); mapZoomPlace(id); });
 $("map").addEventListener("keydown",e=>{ if(e.key!=="Enter"&&e.key!==" ") return; const p=e.target.closest(".m-pin"); const v=e.target.closest(".m-ev"); const spk=e.target.closest(".m-spotg"); if(spk){ e.preventDefault(); mapSelectSpot(spk.dataset.s); return; } const lmk=e.target.closest(".m-lm"); if(lmk){ e.preventDefault(); mapSelectLm(+lmk.dataset.l); return; } const fyk=e.target.closest(".m-ferryg"); if(fyk){ e.preventDefault(); mapSelectFerry(fyk.dataset.f); return; } if(v){ e.preventDefault(); mapSelectEv(v.dataset.e); return; }
   if(p){ e.preventDefault(); mapSelect(p.dataset.p); const n=document.querySelector('.m-pin[data-p="'+p.dataset.p+'"]'); if(n) n.focus(); } });

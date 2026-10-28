@@ -346,6 +346,9 @@ def run(path, name):
         pg.evaluate("state.plan=null; savePlan(); state.view='events'; render()"); pg.wait_for_timeout(100)
         # Map
         pg.click("#vMap"); pg.wait_for_timeout(400)
+        ls=pg.evaluate("[layerSetNow(), !state.mapShowSunny&&!state.mapShowHenge&&!state.mapShowLm&&state.mapShowEv&&state.mapShowSub]")
+        check("The map opens with the Shoot set of layers: pins, subway and events", ls==["shoot",True], ls)
+        pg.evaluate("layerSet('all'); mapDraw(); mapPanel()")
         box=pg.evaluate("(()=>{const m=document.getElementById('map').getBoundingClientRect(); return [Math.round(m.height), Math.round(m.bottom)]})()")
         check("Map fills the screen under the header", box[0]>=500 and box[1]<=900, box)
         check("Real streets and subway lines are drawn", pg.evaluate("[document.querySelectorAll('.m-rdf .m-rd').length, document.querySelectorAll('.m-subway path').length]")==[4,len(pg.evaluate("MAPD_SUBWAY"))] and len(pg.evaluate("MAPD_SUBWAY"))>=8)
@@ -466,7 +469,7 @@ def run(path, name):
         pg.click("#mapPanel .lstrip-runs .chip"); pg.wait_for_timeout(200)
         check("Tapping a run moves the slider to its start", pg.evaluate("state.mapT!==null && +$('mapTime').value===state.mapT && document.querySelector('#mapPanel .lstrip-runs .chip').classList.contains('on')"))
         # Day chips: the light, sun and status follow the chosen day; Now returns to today
-        pg.click("#mapDays [data-day='6']"); pg.wait_for_timeout(300)
+        pg.click("#mapDayBtn"); pg.click("#mapDays [data-day='6']"); pg.wait_for_timeout(300)
         dy=pg.evaluate("[state.mapD, mapNow().getDay(), (new Date(Date.now()+6*864e5)).getDay(), document.querySelector('#mapStatus').textContent, document.querySelector('#mapDays [data-day=\"6\"]').getAttribute('aria-pressed'), lightDay().key.split(':')[1]===String(+mapDay())]")
         check("Day chips move the map to that day", dy[0]==6 and dy[1]==dy[2] and "Sat Oct 17" in dy[3] and dy[4]=="true" and dy[5], dy)
         pg.evaluate("""()=>{ EVENT_DOCS.testsat={name:"Saturday test fair",type:"festival",start:"2026-10-17",time:"11 am to 4 pm",lat:40.7355,lon:-73.9912,ideas:[]}; state.mapShowEv=true; mapDraw(); }"""); pg.wait_for_timeout(200)
@@ -494,9 +497,13 @@ def run(path, name):
         pg.evaluate("""()=>{ navigator.geolocation.watchPosition=(ok)=>{ window._gok=ok; ok({coords:{latitude:40.7360,longitude:-73.9950,accuracy:12}}); return 7; }; navigator.geolocation.clearWatch=()=>{}; }""")
         pg.evaluate("guideStart(state.mapSpot)"); pg.wait_for_timeout(300)
         g1=pg.evaluate("[document.getElementById('mapGuide').hidden, document.getElementById('mapGuide').textContent, !!document.querySelector('.m-guide')]")
-        check("Guide me there shows the distance, time and a line to the spot", g1[0]==False and " min" in g1[1] and "Head " in g1[1] and g1[2], g1)
+        check("Guide me there starts as one line: distance, minutes and the direction, with a line to the spot", g1[0]==False and " min · head " in g1[1] and g1[2] and pg.evaluate("document.getElementById('mapGuide').classList.contains('slim')"), g1)
+        pg.click("#mapGuide [data-gexp]"); pg.wait_for_timeout(100)
+        check("Tapping the guide line opens the full directions", "Head " in pg.evaluate("document.getElementById('mapGuide').textContent") and not pg.evaluate("document.getElementById('mapGuide').classList.contains('slim')"))
         pg.evaluate("(()=>{ const S=SPOTS[state.guide.id.split(':')[0]][+state.guide.id.split(':')[1]]; window._gok({coords:{latitude:S[0],longitude:S[1]+0.0001,accuracy:10}}); })()"); pg.wait_for_timeout(200)
         check("Arriving says you are here and which way to face", "You are here. Face" in pg.evaluate("document.getElementById('mapGuide').textContent"))
+        pg.click("#mapGuide [data-gexp]"); pg.wait_for_timeout(100)
+        check("Folded, arriving reads Here and the way to face", pg.evaluate("document.getElementById('mapGuide').textContent").startswith("Here · face "))
         shot("map-guide")
         pg.click("#mapGuide [data-guidestop]"); pg.wait_for_timeout(100)
         check("The guide stops", pg.evaluate("state.guide===null && document.getElementById('mapGuide').hidden"))
@@ -570,6 +577,21 @@ def run(path, name):
         iv=pg.evaluate("(()=>{ const b=document.getElementById('mapInView'), t=b.textContent; b.click(); const rows=[...document.querySelectorAll('#mapPanel .minv [data-mpick]')].map(r=>r.dataset.mpick); const r=[/^In view: \\d+ place/.test(t), rows.length>=1&&t.startsWith('In view: '+rows.length+' place'), state.sheet]; document.querySelector('#mapPanel [data-mpick]').click(); r.push(state.mapSel===rows[0], state.mapInView); return r; })()")
         check("In view lists the places on screen, best for the light first, and a row opens that place", iv==[True,True,"half",True,False], iv)
         pg.evaluate("mapSelect(null); setSheet('peek')")
+        # press and hold, follow me, you on top, time bubble
+        pg.evaluate("mapSelect(null); mapV=mapPreset('man'); mapDraw()"); pg.wait_for_timeout(150)
+        bx=pg.locator("#mapSvg").bounding_box(); pg.mouse.move(bx["x"]+bx["width"]*0.35, bx["y"]+bx["height"]*0.42); pg.mouse.down(); pg.wait_for_timeout(750); pg.mouse.up(); pg.wait_for_timeout(200)
+        lp=pg.evaluate("[LF.open, !!(LF.spot&&LF.spot.picked), LF.spot&&LF.spot.lat>40.5&&LF.spot.lat<40.95, /corner you picked/.test(document.getElementById('lightf').textContent)]")
+        pg.evaluate("lfClose()")
+        check("Press and hold on the map opens Light here for that corner", lp==[True,True,True,True], lp)
+        fo=pg.evaluate("""(()=>{ navigator.geolocation.watchPosition=(ok)=>{ window._fok=ok; ok({coords:{latitude:40.7308,longitude:-73.9973,accuracy:60}}); return 9; }; navigator.geolocation.clearWatch=()=>{};
+          state.pos={lat:40.7308,lon:-73.9973}; document.querySelector('#map [data-locate]').click(); const on=state.mapFollow, pressed=document.querySelector('#map [data-locate]').getAttribute('aria-pressed');
+          window._fok({coords:{latitude:40.7400,longitude:-73.9900,accuracy:60}}); const [x,y]=mapXY(40.74,-73.99), near=Math.abs(mapV.cx-x)<1;
+          const top=!!document.querySelector('#mapOver .m-you'), acc=!!document.querySelector('#mapOver .m-youacc');
+          document.querySelector('#map [data-locate]').click(); return [on, pressed, near, top, acc, state.mapFollow]; })()""")
+        check("Find me follows you as you move, with your dot on top and an accuracy ring; a second tap stops", fo==[True,"true",True,True,True,False], fo)
+        tb=pg.evaluate("(()=>{ const i=document.getElementById('mapTime'); i.value=1050; i.dispatchEvent(new Event('input',{bubbles:true})); const b=document.getElementById('mapTimeBubble'); return [b.hidden, /5:30 pm · /.test(b.textContent)]; })()")
+        check("Dragging the time shows a bubble with the time and the light", tb==[False,True], tb)
+        pg.evaluate("state.pos=null; state.mapT=null; mapDraw(); mapPanel()")
         # Learn
         pg.click("#vLearn"); pg.wait_for_timeout(150)
         pg.evaluate("store.set('learnSeen',[]); store.set('learnLast',null); state.learnId=null; renderLearn()"); pg.wait_for_timeout(50)
