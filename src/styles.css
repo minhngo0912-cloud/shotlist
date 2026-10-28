@@ -1352,3 +1352,27 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 .tweekend .row{width:100%}
 .event .t .evgl,.evmeta .evgl{color:#2b1700!important} .event .t .evrain,.evmeta .evrain{color:#fff!important}
 .street.evshoot{z-index:1600}
+
+/* Reading the light: the street scene and its slider */
+.lscene{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px;margin:10px 0 14px}
+.ls-art svg{display:block;width:100%;height:auto;border-radius:8px}
+.ls-ctl{display:flex;align-items:flex-start;gap:10px;margin-top:10px} .ls-play{flex:none} .ls-play.on{background:var(--yellow);color:var(--on-yellow,#14161a)}
+.ls-range{flex:1;min-width:0;position:relative;padding-bottom:20px} .ls-range input{width:100%;margin:8px 0 0;accent-color:var(--yellow)}
+.ls-ticks{position:absolute;left:8px;right:8px;bottom:0;height:16px} .ls-ticks span{position:absolute;transform:translateX(-50%);font-size:11px;color:var(--muted);white-space:nowrap}
+.ls-ticks span:first-child{transform:translateX(-20%)} .ls-ticks span:last-child{transform:translateX(-80%)}
+.ls-now{flex:none;margin-top:2px}
+.ls-info{margin-top:6px;min-height:118px} .ls-info p{margin:4px 0;line-height:1.45} .ls-t b{font-size:16px} .ls-sh{color:var(--muted)} .ls-info .chip{margin-top:6px}
+.lscene .hint{margin:10px 0 0;font-size:12px;color:var(--muted)}
+/* What would you do? */
+.wwyd{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px;margin:14px 0}
+.ww-top{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:13px}
+.ww-dots{display:inline-flex;gap:5px} .ww-dots i{width:8px;height:8px;border-radius:50%;background:var(--line)} .ww-dots i.cur{outline:2px solid var(--fg);outline-offset:1px}
+.ww-dots i.ok{background:#1e9e48} .ww-dots i.no{background:var(--orange,#e07a2e)}
+.ww-s{font-weight:700;font-size:16px;line-height:1.4;margin:10px 0}
+.ww-o{display:flex;flex-direction:column;gap:8px}
+.ww-b{display:flex;gap:8px;align-items:flex-start;text-align:left;width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--fg);font:inherit;font-size:15px;line-height:1.35;cursor:pointer}
+.ww-b[aria-disabled=true]{cursor:default} .ww-b.best{border-color:#1e9e48;background:rgba(30,158,72,.12)} .ww-b.miss{border-color:var(--orange,#e07a2e);background:rgba(224,122,46,.1)}
+.ww-m{flex:none;font-weight:800} .ww-b.best .ww-m{color:#1e9e48} .ww-b.miss .ww-m{color:var(--orange,#e07a2e)}
+.ww-why{margin:10px 0 8px;line-height:1.45} .ww-next{margin-top:2px}
+.ww-end{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin-top:6px} .ww-end b{font-size:22px}
+.ls-play{width:38px}

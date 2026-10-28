@@ -681,6 +681,36 @@ def run(path, name):
         wd=pg.evaluate("[document.querySelector('.wdeck-t span').textContent, document.querySelector('.learnwhy figure').classList.contains('why')]")
         check("Example photos page through with prev and next, wrapping round, lines shown", wd[0].startswith("11 of 11") and wd[1], wd)
         # Cameras lesson: chips, what each lens sees, bars with each sensor's own depth of field
+        # Reading the light: the street scene follows the real sun; lamps at night; slider, Now and the ideas chip
+        pg.evaluate("state.lsM=null; openLearn('light')"); pg.wait_for_timeout(80)
+        ls=pg.evaluate("""(()=>{ const D=lsDay(), q=s=>document.querySelector('.lscene '+s); const out=[];
+          lsRedraw(720); out.push([q('.ls-t').textContent.includes('Daylight'), q('svg').querySelectorAll('polygon').length, !!q('.ls-sh'), q('svg').querySelectorAll('ellipse').length]);
+          lsRedraw(D.set-25); out.push([q('.ls-t').textContent.includes('Golden hour'), q('svg').querySelectorAll('polygon').length, q('[data-light]').dataset.light]);
+          lsRedraw(D.max); out.push([q('.ls-t').textContent.includes('Night'), q('svg').querySelectorAll('ellipse').length, q('[data-light]').dataset.light]);
+          return [out, learnMeta(LEARN.find(L=>L.id==='light')).includes('Interactive'), !document.querySelector('#learn').textContent.includes('Now strip')]; })()""")
+        check("Light scene: noon has short sun shadows, golden hour long ones, night has lamps and no sun shadows", ls==[[[True,2,True,0],[True,2,"gold"],[True,1,"night"]],True,True], ls)
+        pg.evaluate("const r=document.querySelector('.lscene [data-ls]'); r.value=String(Math.round((lsDay().rise+30)/5)*5); r.dispatchEvent(new Event('input',{bubbles:true}))"); pg.wait_for_timeout(80)
+        sl=pg.evaluate("(()=>{ const m=Math.round((lsDay().rise+30)/5)*5; return [state.lsM===m, document.querySelector('.lscene .ls-t b').textContent===hmText(m)]; })()")
+        pg.click(".lscene [data-lsplay]"); pg.wait_for_timeout(400); pl=pg.evaluate("[!!LSPLAY.raf, state.lsM>lsDay().rise+35]"); pg.click(".lscene [data-lsplay]"); pg.wait_for_timeout(50)
+        pl.append(pg.evaluate("LSPLAY.raf"))
+        check("Light scene: the slider moves the time, and Play runs the day and pauses", sl==[True,True] and pl==[True,True,0], [sl,pl])
+        no_overflow("Light scene")
+        pg.click(".lscene [data-light]"); pg.wait_for_timeout(80)
+        check("Light scene: the ideas chip lists ideas for that light", pg.evaluate("[state.view, state.when]")==["browse","am"], pg.evaluate("[state.view, state.when]"))
+        pg.evaluate("state.when='all'; store.set('when','all'); $('when').value='all'; refilter()")
+        # Photographing people: What would you do? and the rechecked legal points
+        pg.evaluate("state.wwyd=null; openLearn('people')"); pg.wait_for_timeout(80)
+        pg.click(".wwyd [data-wwyd='0']"); pg.wait_for_timeout(50)
+        w1=pg.evaluate("[document.querySelector('.wwyd .ww-b.best').dataset.wwyd, !!document.querySelector('.wwyd .ww-b.miss'), document.querySelector('.ww-why').textContent.startsWith('Better')]")
+        for k in range(5):
+            pg.click(".wwyd [data-wwyd='next']"); pg.wait_for_timeout(30)
+            pg.evaluate("document.querySelector('.wwyd [data-wwyd=\"'+WWYD[state.wwyd.i].b+'\"]').click()"); pg.wait_for_timeout(30)
+        pg.click(".wwyd [data-wwyd='next']"); pg.wait_for_timeout(50)
+        w2=pg.evaluate("[document.querySelector('.ww-end b').textContent, document.querySelectorAll('.ww-dots i.ok').length, learnMeta(LEARN.find(L=>L.id==='people')).includes('Interactive')]")
+        lt=pg.evaluate("document.querySelector('#learn .lpoints').textContent")
+        check("People: six situations with a reason for each, a score at the end", w1==["1",True,True] and w2==["5 of 6",5,True], [w1,w2])
+        check("People: legal points cite the MTA rule, the right to record (incl. Reyes 2026) and Grand Central's permit rule", all(x in lt for x in ["1050.9","79-p","Reyes","Foster v. Svenson","Grand Central allows handheld"]) and "flash, tripods" not in lt)
+        no_overflow("People lesson")
         pg.evaluate("state.camCmp=['q343','griv']; openLearn('cameras')"); pg.wait_for_timeout(80)
         pg.click(".camcmp [data-campick='q328']"); pg.wait_for_timeout(50); pg.click(".camcmp [data-campick='x100vi']"); pg.wait_for_timeout(50)
         cm=pg.evaluate("[state.camCmp, document.querySelectorAll('.camcmp .camfov rect[stroke]').length, document.querySelectorAll('.camcmp .cb').length, [...document.querySelectorAll('.camcmp .cb')[2].querySelectorAll('.cb-v')].map(e=>e.textContent), !!document.querySelector('.camcmp .cam-phone')]")
