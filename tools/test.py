@@ -586,7 +586,7 @@ def run(path, name):
         check("Press and hold on the map opens Light here for that corner", lp==[True,True,True,True], lp)
         fo=pg.evaluate("""(()=>{ navigator.geolocation.watchPosition=(ok)=>{ window._fok=ok; ok({coords:{latitude:40.7308,longitude:-73.9973,accuracy:60}}); return 9; }; navigator.geolocation.clearWatch=()=>{};
           state.pos={lat:40.7308,lon:-73.9973}; document.querySelector('#map [data-locate]').click(); const on=state.mapFollow, pressed=document.querySelector('#map [data-locate]').getAttribute('aria-pressed');
-          window._fok({coords:{latitude:40.7400,longitude:-73.9900,accuracy:60}}); const [x,y]=mapXY(40.74,-73.99), near=Math.abs(mapV.cx-x)<1;
+          window._fok({coords:{latitude:40.7400,longitude:-73.9900,accuracy:200}}); const [x,y]=mapXY(40.74,-73.99), near=Math.abs(mapV.cx-x)<1; mapV=mapClamp({cx:mapV.cx,cy:mapV.cy,w:30}); mapDraw();
           const top=!!document.querySelector('#mapOver .m-you'), acc=!!document.querySelector('#mapOver .m-youacc');
           document.querySelector('#map [data-locate]').click(); return [on, pressed, near, top, acc, state.mapFollow]; })()""")
         check("Find me follows you as you move, with your dot on top and an accuracy ring; a second tap stops", fo==[True,"true",True,True,True,False], fo)
