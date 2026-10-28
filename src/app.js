@@ -5450,7 +5450,7 @@ Object.assign(COMPOSE,{"soho-halloween":["juxta","The costume and an ordinary mo
  "chinatown-lunar":["fill","The lion's head and the shopkeeper's hands with the red envelope fill the frame; let the confetti and the crowd soften behind."]});
 Object.assign(STANCE_OF,{"soho-halloween":"side","wburg-marathon":"anchor","cpark-balloons":"wait","midtown-parade":"wait","midtown-windows":"side","midtown-rink":"anchor","union-market":"side","wsp-snow":"down","chinatown-lunar":"side"});
 Object.assign(AVAIL,{"soho-halloween":{ev:"halloween",h:[[18,23]]},"wburg-marathon":{ev:"marathon",h:[[9,15]]},"cpark-balloons":{ev:"balloons",h:[[12,18]]},"midtown-parade":{ev:"thanksgiving",h:[[8,12]]},
- "midtown-windows":{span:[[11,20],[1,6]],h:[[16,23]]},"midtown-rink":{span:[[10,30],[3,1]],h:[[8,22]]},"union-market":{span:[[11,14],[12,24]],h:[[11,21]]},"wsp-snow":{wx:"snow"},"chinatown-lunar":{ev:"lunar",h:[[10,17]]}});
+ "midtown-windows":{span:[[11,23],[1,6]],h:[[16,23]]},"midtown-rink":{span:[[10,28],[2,28]],h:[[8,22]]},"union-market":{span:[[11,14],[12,24]],h:[[11,21]]},"wsp-snow":{wx:"snow"},"chinatown-lunar":{ev:"lunar",h:[[10,17]]}});
 SPOTS.soho.push([40.725152,-74.004165,15,"Sixth Avenue at Spring Street","The marchers line up along Sixth Avenue from Canal Street before the 7 pm start; work along the queue.","soho-halloween"]);
 SPOTS.wburg.push([40.715805,-73.959911,210,"Bedford Avenue at North 3rd Street","Face south down Bedford Avenue so the runners come toward you; brace on the barrier.","wburg-marathon"]);
 SPOTS.cpark.push([40.782558,-73.972881,119,"West 81st Street near Central Park West","The viewing line runs along this block toward Central Park West, past the balloons.","cpark-balloons"]);
