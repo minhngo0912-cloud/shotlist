@@ -1809,6 +1809,13 @@ const IDEAS = [
 ["union", "mood", "Holiday market lanterns", "The red-and-white stalls of the Union Square Holiday Market after dark, steam from the cider stands, and shoppers lit by the stalls in the narrow lanes.", "Walk the lanes after dark and stop where a stall's light falls on a face from the side. Shoot across the lane with that light, not into the bare bulbs.", "One lit face, the rest in shadow.", "night", ["night"], [11, 12], "market"],
 ["wsp", "place", "Snow under the arch", "Washington Square Arch in falling snow, the paths white and a few walkers leaving tracks.", "Go while it is still snowing. Stand south of the fountain, centre the arch and add about one stop of exposure so the snow stays white; wait for one walker on the path.", "Falling snow, not just snow on the ground: go while it is coming down.", "deep", ["rain"], [12, 1, 2, 3], "snow"],
 ["chinatown", "moment", "Lion dance at the shop door", "Lion dancers going from shop to shop on Mott and Bayard Street for Lunar New Year, drums behind them, shopkeepers holding out red envelopes, confetti in the air.", "Follow the drums. Stand to one side of the shop door the lion is facing, so the lion's head and the shopkeeper with the envelope are in the frame together, and shoot a short burst as it rears up.", "The lion and a human face in the same frame.", "freeze", ["am", "mid"], [1, 2], "lunar"],
+["ferry", "mood", "Night crossing", "The lit skyline of Lower Manhattan and the Statue of Liberty in its floodlights from the open stern deck, with one rider at the rail in silhouette.", "Board at Whitehall and go straight to the open deck at the back of the boat. Stand a few steps behind the rail so one rider stands between you and the lights, and brace against a post: the boat moves, so keep the shutter at 1/60 s or faster and let the skyline go soft rather than shake.", "One dark figure against the lights; nothing else in the foreground.", "night", ["night"], null, "night"],
+["wsp", "place", "The arch under the lamps", "Washington Square Arch floodlit after dark, the park lamps along the paths, chess players and late walkers in pools of light.", "Stand on the path south of the fountain with the arch centred and Fifth Avenue's lights running away behind it. Wait for a walker to cross a pool of lamp light between you and the arch.", "Arch centred, one figure in the light below it.", "night", ["night"], null, "night"],
+["fidi", "mood", "Wall Street after hours", "The empty canyon of Wall Street at night: Federal Hall floodlit, the Exchange's columns glowing, and one late worker crossing the lit pavement.", "Stand on Broad Street by Exchange Place and look north up to Federal Hall. The street empties after 7 pm; wait for a single figure walking through the floodlight on the steps or the pavement.", "One person, small, in a lot of stone.", "night", ["night"], null, "night"],
+["wburg", "place", "Domino Park at blue hour", "The Williamsburg Bridge lights and the Midtown skyline across the river at blue hour, with people on the waterfront walk in silhouette.", "Stand on the waterfront walk near the south end of the park, facing the bridge and the skyline. Expose for the sky just after sunset so the figures on the railing go dark and the bridge lights hold their colour.", "Shoot in the twenty minutes after sunset, while the sky still has colour.", "silhouette", ["gold", "night"], null, "blue"],
+["gct", "energy", "Rush hour in the dark", "Commuters streaming out of Grand Central onto 42nd Street at 5:30 pm under the lit facade and the clock over the doors, collars up, the headlights on Park Avenue behind.", "Stand across 42nd Street on the south side, a little east of the doors, and brace on a lamp post or a railing. Use a slow shutter so the crowd streams past while one person waiting at the kerb stays sharp.", "One still person in the stream.", "drag", ["night"], [11, 12, 1, 2], "rush"],
+["midtown", "mood", "Steam from the street", "On cold mornings, white steam pouring from the orange-and-white Con Edison stacks in the middle of the cross streets, lit from behind by the low sun, with commuters walking through it.", "Find a steam stack on an east-west street between Fifth and Sixth Avenue and stand on its west side, so the low morning sun is behind the steam. Expose for the bright steam and let the walkers go dark as they pass through.", "The steam lit from behind; a person inside it.", "silhouette", ["am"], [11, 12, 1, 2, 3], "steam"],
+["midtown", "moment", "Faces at the tree", "The Rockefeller Center tree at the end of the Channel Gardens, the lit angels along the path, and the faces of people seeing it for the first time.", "Stand at the Fifth Avenue end of the Channel Gardens, a little to one side of the path, and face west toward the tree. Watch the people walking in rather than the tree: the moment is the first look up.", "Photograph the people looking up, not the tree.", "night", ["night", "gold"], [12, 1], "tree"],
 ].map((a,n)=>({id:a[9]?a[0]+"-"+a[9]:a[0]+"-"+a[1]+(a[8]?"-s":""),p:a[0],i:a[1],t:a[2],look:a[3],work:a[4],rule:a[5],r:a[6],w:a[7],m:a[8]||null}));
 
 /* Work it details per idea: [what to keep sharp, camera height, distance to it in metres, when to press, crop frame in mm when the subject is far].
@@ -3442,7 +3449,7 @@ const SV_PANO = {"chinatown:0":["Nozhzjl9Q6UV7wUXZwT5YQ",0,null,null],
 "rockaway:2":["CIHM0ogKEICAgIDqo8-A0gE",1,40.583558,-73.812771,"The photo is on the sand about 50 m east of the jetty."],
 "rockaway:3":["CIHM0ogKEICAgIDqvYGhSQ",1,40.583708,-73.808209,"The nearest photo is on the jetty just east of the steps."],
 "chelsea:2":["CIABIhC7STCT9YCAultfC-SOaMAt",1,40.741597,-74.01,"A visitor's photo from the entrance bridge."]};
-const svUrl = (S,id) => { const P=id&&SV_PANO[id], far=P&&P[2]!==null&&kmBetween({lat:P[2],lon:P[3]},{lat:S[0],lon:S[1]})>0.025;
+const svUrl = (S,id) => { const P=id&&SV_PANO[id]&&SV_PANO[id][1]!==2?SV_PANO[id]:null, far=P&&P[2]!==null&&kmBetween({lat:P[2],lon:P[3]},{lat:S[0],lon:S[1]})>0.025;
   const h=Math.round(far?bearingTo({lat:P[2],lon:P[3]},{lat:S[0],lon:S[1]}):S[2]);
   if(!P) return 'https://www.google.com/maps/@?api=1&map_action=pano&viewpoint='+S[0].toFixed(6)+','+S[1].toFixed(6)+'&heading='+h+'&pitch=0&fov=80';
   if(P[1]===1) return 'https://www.google.com/maps/@'+P[2].toFixed(6)+','+P[3].toFixed(6)+',3a,80y,'+h+'h,90t/data=!3m6!1e1!3m4!1s'+P[0]+'!2e10!7i5376!8i2688';
@@ -6949,6 +6956,46 @@ $("card").addEventListener("input",e=>{ if(e.target.id!=="note"||!state.current)
 document.addEventListener("click",e=>{ if(e.target.closest&&e.target.closest("[data-setopen]")){ renderSettings(); sheetOpen("setSheet"); } });
 $("card").addEventListener("change",e=>{ if(e.target.id==="camera"){ state.camera=e.target.value; store.set("camera",state.camera); openTip=null; renderCard(); } });
 
+/* Night and winter ideas (October 2026): the dark evenings after the clocks change, and the holiday season. */
+Object.assign(WORKX,{"ferry-night":["the figure at the rail","Eye level, braced on a post",4,"When a rider steps to the rail and stands still against the lights"],
+ "wsp-night":["the walker in the lamp light","Eye level, centred on the arch",15,"When one walker crosses a pool of lamp light below the arch"],
+ "fidi-night":["the late walker","Eye level from across Broad Street",20,"When one person crosses the floodlit pavement in front of Federal Hall"],
+ "wburg-blue":["the figures at the railing","Eye level, facing the bridge",8,"When a figure at the railing turns side-on against the sky"],
+ "gct-rush":["the person waiting at the kerb","Eye level, braced on a post",5,"When the crowd surges out and one person stands still"],
+ "midtown-steam":["the walker inside the steam","Eye level, low sun behind the steam",8,"As a walker steps into the brightest part of the steam"],
+ "midtown-tree":["the face looking up","Eye level, beside the path",3,"At the first look up, when the tree comes into view"]});
+Object.assign(WORK_TIPS,{"ferry-night":["Boats leave every 20 to 30 minutes in the evening; the crossing takes 25 minutes each way.","You can't stay on board: get off at St. George and walk round to board the next boat back."],
+ "wsp-night":["The arch is floodlit every night; the park is quietest after 9 pm.","Keep the lamps out of the top corners so they don't flare."],
+ "fidi-night":["Weeknights after 7 pm the street is nearly empty; weekends emptier still.","The floodlights make Federal Hall bright: expose for the steps, not the shadows."],
+ "wburg-blue":["Sunset is about 4:45 pm from November; blue hour follows straight after.","The park is busiest on weekend evenings; weekdays leave the railing to a few figures."],
+ "gct-rush":["The peak is 5 to 6:30 pm on weekdays.","Try 1/8 s braced; 1/15 s if the crowd is thin."],
+ "midtown-steam":["The colder the morning, the bigger the plume: below about 5 °C is best.","Stacks move as repairs finish; walk a few cross streets to find one."],
+ "midtown-tree":["The tree is lit from the evening of December 2; weekday evenings are calmer than weekends.","The crowd is held to one-way paths in the evening; keep moving and shoot as you walk."]});
+Object.assign(COMPOSE,{"ferry-night":["space","Let the dark water and sky fill most of the frame: the skyline a thin band of lights, one rider small against it."],
+ "wsp-night":["sym","Centre the arch exactly, with the avenue's lights running through it, and let one figure break the symmetry below."],
+ "fidi-night":["space","A lot of dark stone and one small lit figure: keep the person low in the frame so the columns tower over them."],
+ "wburg-blue":["layers","Three layers: dark figures at the railing, the bridge lights, then the skyline against the blue sky."],
+ "gct-rush":["juxta","One still person against the blurred stream; keep the lit facade and the clock along the top."],
+ "midtown-steam":["light","The backlit steam is the subject; let the street around it fall dark and put the walker inside the brightest part."],
+ "midtown-tree":["frame","Use the lit angels along the gardens to frame the faces, with the tree soft at the end of the path."]});
+Object.assign(STANCE_OF,{"ferry-night":"anchor","wsp-night":"wait","fidi-night":"wait","wburg-blue":"backlight","gct-rush":"anchor","midtown-steam":"backlight","midtown-tree":"side"});
+Object.assign(AVAIL,{"gct-rush":{d:[1,2,3,4,5],h:[[16,19]]},"midtown-steam":{h:[[7,10]]},"midtown-tree":{span:[[12,2],[1,10]],h:[[16,23]]}});
+SPOTS.ferry.push([40.693,-74.02,30,"Open stern deck, heading out","The lit skyline and the Statue behind the boat; stand behind a rider at the rail.","ferry-night"]);
+SPOTS.wsp.push([40.7305,-73.9973,29,"Path south of the fountain","The floodlit arch centred, the lamps along the path below it.","wsp-night"]);
+SPOTS.fidi.push([40.7058,-74.0112,25,"Broad Street at Exchange Place","Looking north up Broad Street to Federal Hall's floodlit steps.","fidi-night"]);
+SPOTS.wburg.push([40.7137,-73.9688,235,"Domino Park, south end of the waterfront walk","The Williamsburg Bridge and the skyline across the river; figures at the railing.","wburg-blue"]);
+SPOTS.gct.push([40.7517,-73.9771,29,"South side of 42nd Street, east of the doors","Across from the main doors, looking up at the lit facade and the clock.","gct-rush"]);
+SPOTS.midtown.push([40.7559,-73.9838,119,"West 44th Street off Sixth Avenue","On the west side of a steam stack, facing east into the low morning sun.","midtown-steam"]);
+SPOTS.midtown.push([40.7589,-73.9776,299,"Channel Gardens at Fifth Avenue","At the Fifth Avenue end of the gardens, facing west toward the tree.","midtown-tree"]);
+IDEA_SET["wburg-blue"]={"rec":["f/2.8 · 1/60 s · Auto ISO, max 3200 · −1 EV","At blue hour, ISO 100 at f/5.6 would need about 1/8 s, too slow to hold. Keep 1/60 s and let Auto ISO rise; −1 EV keeps the sky a deep blue and the figures black."],"setup":{"3":"−1, so the figures go black and the sky stays blue"}};
+/* Street View for the new spots: a checked picture nearby where there is one, looking toward the spot; type 2 opens Google's nearest picture at the corner. */
+(()=>{ const L=k=>SPOTS[k].length-1, sv=(k,i)=>SV_PANO[k+":"+i]&&SV_PANO[k+":"+i][0];
+  SV_PANO["wsp:"+L("wsp")]=SV_PANO["wsp:0"];
+  SV_PANO["wburg:"+L("wburg")]=[sv("wburg",0),0,40.7143,-73.968,"The nearest checked picture is a few steps north on the waterfront walk."];
+  SV_PANO["fidi:"+L("fidi")]=[sv("fidi",3),0,40.7064,-74.0098,"The nearest checked picture is on Exchange Place, looking toward Broad Street; it is a daytime picture."];
+  SV_PANO["gct:"+L("gct")]=[null,2,null,null,"Opens Google's nearest picture on 42nd Street; it is a daytime picture."];
+  SV_PANO["midtown:"+(L("midtown")-1)]=[null,2,null,null,"Opens Google's nearest picture on 44th Street; steam stacks move, so the picture won't show one."];
+  SV_PANO["midtown:"+L("midtown")]=[sv("midtown",2),0,40.7588,-73.977,"From Fifth Avenue at 50th Street, looking toward the gardens; Google's picture is not from the holiday season."]; })();
 /* Seasonal and event ideas: Work it, tips, Compose, stance, availability and where to stand. */
 Object.assign(WORKX,{"soho-halloween":["the face under the costume","Eye level, close",2,"When they do something ordinary: fix a mask, check a phone, laugh with a friend"],
  "wburg-marathon":["one still spectator or sign at the barrier", "Eye level, braced on the barrier", 4, "When a runner high-fives or reacts to the spectator you have focused on: the runner blurs, the spectator stays sharp"],
