@@ -58,6 +58,8 @@ def run(path, name):
         png=_b.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==")
         pg.route("**/upload.wikimedia.org/**", lambda r: r.fulfill(status=200, content_type="image/png", body=png))   # stand-in for the place photos
         pg.route("**/api.open-meteo.com/**", lambda r: r.fulfill(status=200, content_type="application/json", body=_j.dumps(fake)))
+        pg.route("**/api.rainviewer.com/**", lambda r: r.fulfill(status=200, content_type="application/json", body=_j.dumps({"host":"https://tilecache.rainviewer.com","radar":{"past":[{"time":1791745800,"path":"/v2/radar/test"}]}})))
+        pg.route("**/tilecache.rainviewer.com/**", lambda r: r.fulfill(status=200, content_type="image/png", body=png))
         import math as _m
         _kx=111320*_m.cos(40.723*_m.pi/180); _ll=lambda x,y:[-73.999+x/_kx, 40.723+y/110540]
         _bld=[{"height_roof":"200","ground_elevation":"30","the_geom":{"type":"MultiPolygon","coordinates":[[[_ll(-40,-40),_ll(-15,-40),_ll(-15,-15),_ll(-40,-15),_ll(-40,-40)]]]}}]
@@ -366,7 +368,7 @@ def run(path, name):
         check("Real streets and subway lines are drawn", pg.evaluate("[document.querySelectorAll('.m-rdf .m-rd').length, document.querySelectorAll('.m-subway path').length]")==[4,len(pg.evaluate("MAPD_SUBWAY"))] and len(pg.evaluate("MAPD_SUBWAY"))>=8)
         check("Every subway station is listed with its lines", pg.evaluate("MAPD_STATIONS.length")>=470 and pg.evaluate("MAPD_STATIONS.every(s=>s[3]&&s[1]>40.5&&s[1]<40.92&&s[2]>-74.26&&s[2]<-73.7)"))
         pg.click("#mapLayersBtn"); pg.wait_for_timeout(150)
-        check("Layers menu opens", pg.evaluate("!document.getElementById('mapLayers').hidden && document.querySelectorAll('#mapLayers [data-layer]').length")==10)
+        check("Layers menu opens", pg.evaluate("!document.getElementById('mapLayers').hidden && document.querySelectorAll('#mapLayers [data-layer]').length===MAP_LAYERS.length && MAP_LAYERS.length===(PHOTOS_INLINE?13:12)"))
         pg.click("[data-z=man]"); pg.wait_for_timeout(500)
         check("Jump to Manhattan closes the menu", pg.evaluate("document.getElementById('mapLayers').hidden"))
         check("Map draws pins", pg.evaluate("document.querySelectorAll('.m-pin').length") > 10)
@@ -592,7 +594,7 @@ def run(path, name):
         pg.evaluate("mapSelect(null); setSheet('peek')")
         # press and hold, follow me, you on top, time bubble
         pg.evaluate("mapSelect(null); mapV=mapPreset('man'); mapDraw()"); pg.wait_for_timeout(150)
-        bx=pg.locator("#mapSvg").bounding_box(); pg.mouse.move(bx["x"]+bx["width"]*0.35, bx["y"]+bx["height"]*0.42); pg.mouse.down(); pg.wait_for_timeout(750); pg.mouse.up(); pg.wait_for_timeout(200)
+        bx=pg.locator("#mapSvg").bounding_box(); pg.mouse.move(bx["x"]+bx["width"]*0.35, bx["y"]+bx["height"]*0.42); pg.mouse.down(); pg.wait_for_timeout(1000); pg.mouse.up(); pg.wait_for_timeout(300)
         lp=pg.evaluate("[LF.open, !!(LF.spot&&LF.spot.picked), LF.spot&&LF.spot.lat>40.5&&LF.spot.lat<40.95, /corner you picked/.test(document.getElementById('lightf').textContent)]")
         pg.evaluate("lfClose()")
         check("Press and hold on the map opens Light here for that corner", lp==[True,True,True,True], lp)
@@ -951,6 +953,43 @@ def run(path, name):
         check("Light here closes", pg.evaluate("[document.getElementById('lightf').hidden, LF.open]")==[True,False])
         pg.evaluate("state.view='map'; render()"); pg.wait_for_timeout(200)
         check("The map has a Light here button too", pg.evaluate("!!document.querySelector('#map .mapbtns [data-lightf]')"))
+        # Map: travel times and "in time", night view, the moon card and lines, walks, and the radar (installed app)
+        pg.evaluate("moonClose(); state.mapSel=null; state.mapSpot=null; state.mapD=0; state.mapT=null; state.pos={lat:40.7411,lon:-73.9897}; state.mapShowReach=true; mapV=mapClamp({cx:mapXY(40.74,-73.99)[0],cy:mapXY(40.74,-73.99)[1],w:90}); mapDraw(); lightPill()"); pg.wait_for_timeout(100)
+        rc=pg.evaluate("""(()=>{ const a='union', r=tripTo(a), t=tripTo('rockaway'), labs=[...document.querySelectorAll('#mapDyn .m-lab')].map(e=>e.textContent);
+          return [!!reachWin()&&!!reachWin().W, document.querySelector('#mapLightPill').textContent.includes('in time'), document.querySelectorAll('.m-reachr').length, labs.some(x=>/ · \\d+ min/.test(x)), r&&r.by, t&&t.by, t&&t.min>r.min,
+            reachLate({m:0,W:{e:r.min+5}},a), reachLate({m:0,W:{e:r.min+30}},a)]; })()""")
+        check("Map: minutes to each place from you (walk or train), 15 and 30 min rings, and places out of reach before the light ends fade", rc==[True,True,2,True,"walk","train",True,True,False], rc)
+        pg.evaluate("state.mapT=1350; mapDraw(); lightPill()"); pg.wait_for_timeout(80)
+        nv=pg.evaluate("[document.querySelectorAll('.m-pin.nglow').length>0, document.querySelectorAll('.m-pin.ndim').length>=0, /^Night · \\d+ night idea/.test(document.querySelector('#mapLightPill').textContent), !!document.querySelector('#nglowG')]")
+        pg.evaluate("state.mapT=720; mapDraw(); lightPill()"); pg.wait_for_timeout(50)
+        nv.append(pg.evaluate("document.querySelectorAll('.m-pin.nglow,.m-pin.ndim').length"))
+        check("Map at night: places with night ideas open glow, the rest dim, and the pill counts them; not by day", nv==[True,True,True,True,0], nv)
+        mo=pg.evaluate("""(()=>{ const F=nextFullMoon(); moonOpen(); const b=document.querySelector('#mapMoon'), txt=b.innerText; const r=[!b.hidden, F&&F.day.toDateString(), txt.includes('Full moon Sun, Oct 25'), /Rises \\d/.test(txt), !b.querySelector('[data-moonshow]')]; moonClose(); return r; })()""")
+        check("Moon card: phase, rise and set, the next full moon with where to stand", mo==[True,"Sun Oct 25 2026",True,True,True], mo)
+        pg.evaluate("state.mapD=6; state.mapT=1200; mapSelectSpot('gct:0')"); pg.wait_for_timeout(700)
+        ml=pg.evaluate("[document.querySelectorAll('.m-tomoon').length, [...document.querySelectorAll('.m-moonlab')].map(e=>e.textContent.split(' ')[0]).sort().join(',')]")
+        check("Moon lines from a spot towards moonrise and moonset", ml==[2,"moonrise,moonset"], ml)
+        pg.evaluate("mapSelect(null); state.mapD=0; state.mapT=null; moonOpen()"); pg.wait_for_timeout(50)
+        pg.evaluate("state.mapD=0; document.querySelector('#mapMoon [data-moonclose]').click()")
+        wk=pg.evaluate("""(()=>{ state.walks=[]; store.set('walks',[]); state.walkSel=null; state.mapShowWalk=true; const t0=Math.round(Date.now()/1000)-3000, fix=(la,lo,t,a)=>walkRec({coords:{latitude:la,longitude:lo,accuracy:a||10},timestamp:t*1000});
+          for(let i=0;i<20;i++) fix(40.7411+i*0.0005,-73.9897,t0+i*60); fix(40.7411+19*0.0005,-73.9897,t0+21*60); fix(40.70,-73.99,t0+20*60,200);
+          const n1=state.walks[0].pts.length; fix(40.75,-73.98,t0+20*60+46*60); fix(40.752,-73.98,t0+20*60+47*60); const r=[n1, state.walks.length, state.walks[1].id];
+          mapV=mapClamp({cx:mapXY(40.745,-73.99)[0],cy:mapXY(40.745,-73.99)[1],w:60}); state.walkSel=state.walks[0].id; mapDraw(); r.push(document.querySelectorAll('.m-walkl').length, walksHtml().includes('Today')); return r; })()""")
+        pg.click("#mapLayersBtn"); pg.wait_for_timeout(80)
+        wk.append(pg.evaluate("document.querySelectorAll('#mapLayers .mwalk').length"))
+        pg.click("#mapLayers [data-walkclear]"); pg.wait_for_timeout(30); pg.click("#mapLayers [data-walkclear]"); pg.wait_for_timeout(50)
+        wk.append(pg.evaluate("[walksAll().length, document.querySelectorAll('.m-walkl').length]"))
+        pg.evaluate("document.querySelector('#mapLayersBtn').click()")
+        check("Walks: Follow me fixes become a walk (close fixes and poor accuracy skipped, a 45 min gap starts a new one), drawn and listed, and can be cleared", wk==[20,2,"2026-10-11-2",1,True,2,[0,0]], wk)
+        if pg.evaluate("PHOTOS_INLINE"):
+            pg.evaluate("state.mapShowRadar=true; RADAR.at=0; mapV=mapClamp({cx:mapXY(40.72,-73.95)[0],cy:mapXY(40.72,-73.95)[1],w:400}); mapDraw()"); pg.wait_for_timeout(400)
+            rd=pg.evaluate("[document.querySelectorAll('#mapRadar image').length>0, (document.querySelector('#mapRadar image')||{getAttribute:()=>''}).getAttribute('href').includes('/v2/radar/test/512/7/37/'), document.querySelector('#mapScale').textContent.includes('Rain radar'), MAP_LAYERS.some(l=>l[0]==='mapShowRadar')]")
+            pg.evaluate("state.mapShowRadar=false; mapDraw()")
+            rd.append(pg.evaluate("document.querySelectorAll('#mapRadar image').length"))
+            check("Rain radar (installed app): the latest frame drawn on the map with its time, removed when the layer is off", rd==[True,True,True,True,0], rd)
+        else:
+            check("Rain radar is not offered in the Claude version", not pg.evaluate("MAP_LAYERS.some(l=>l[0]==='mapShowRadar')"))
+        no_overflow("Map with the new layers")
         # Dark theme renders too
         pg.evaluate("document.documentElement.dataset.theme='dark'; state.view='shoot'; render()"); pg.wait_for_timeout(80)
         check("no script errors", not errors, errors[:3])

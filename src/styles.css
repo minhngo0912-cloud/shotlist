@@ -1376,3 +1376,27 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 .ww-why{margin:10px 0 8px;line-height:1.45} .ww-next{margin-top:2px}
 .ww-end{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin-top:6px} .ww-end b{font-size:22px}
 .ls-play{width:38px}
+
+/* The moon card, moon lines, travel times, night glow, walks and radar */
+.m-moon{pointer-events:auto;cursor:pointer} .m-moontx{fill:#e8ecf5;stroke:rgba(10,12,20,.8);paint-order:stroke;font-weight:700}
+.mmoon{position:absolute;top:64px;left:10px;z-index:6;width:min(330px,calc(100% - 20px));max-height:calc(100% - 80px);overflow:auto;padding:12px 16px 14px;border-radius:16px;background:var(--bg);color:var(--fg);box-shadow:0 12px 34px rgba(0,0,0,.45);font-size:14px;line-height:1.45}
+.mmoon p{margin:6px 0} .mmoon .hint{color:var(--muted);font-size:12.5px}
+.mmoon-head{display:flex;align-items:center;gap:10px} .mmoon-head>div{flex:1;min-width:0} .mmoon-head b{display:block;font-size:16px} .mmoon-head span{color:var(--muted);font-size:13px}
+.mmoon-ico svg{display:block;width:30px;height:30px} .mmoon .mapselx{position:static;background:var(--line);color:var(--fg)}
+.mmoon-ico .m-moondark{fill:#3a3f4d;stroke:#cfd6e6;stroke-width:.6} .mmoon-ico .m-moonlit{fill:#f2f2e6}
+.mmoon-full{margin-top:10px;padding:10px 12px;border-radius:12px;background:var(--panel);border:1px solid var(--line)} .mmoon-full b{display:block} .mmoon-full span{display:block;margin-top:2px}
+.mmoon-full .chip{margin-top:4px}
+.m-tomoon{fill:none;stroke:#dfe6ff;opacity:.9;pointer-events:none;stroke-linecap:round} .m-moonlab{fill:#e8ecff;stroke:rgba(10,12,20,.85);paint-order:stroke;font-weight:700;pointer-events:none}
+.m-reachr{opacity:.65} .m-reacht{fill:#a9c6ff;stroke:rgba(12,14,20,.8);paint-order:stroke;font-weight:700;pointer-events:none}
+.m-pin.late{opacity:.32} .m-pin.ndim{opacity:.42} .m-nglow{pointer-events:none}
+.m-pin.nglow .m-dot,.m-pin.nglow .m-face{stroke:#ffd66b}
+.m-walkc{fill:none;stroke:rgba(8,10,16,.7);stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.m-walkl{fill:none;stroke:#47d1ff;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.m-walks{fill:#fff;stroke:#47d1ff;pointer-events:none} .m-walke{fill:#47d1ff;stroke:#fff;pointer-events:none}
+.mwalks{display:flex;flex-direction:column;gap:6px;padding:0 16px} .mwalk{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--fg);font:inherit;font-size:14px;text-align:left;cursor:pointer}
+.mwalk span{color:var(--muted);font-size:12.5px} .mwalk[aria-pressed=true]{border-color:#47d1ff;box-shadow:inset 0 0 0 1px #47d1ff}
+.mwalkclr{align-self:flex-start} .mlayers-note{margin:4px 16px 8px;color:var(--muted);font-size:12.5px;line-height:1.4}
+.m-radar{opacity:.62;pointer-events:none;image-rendering:auto} .mapscale .mradar{margin-bottom:6px;color:#bfe3ff}
+.mlayer .lg.reach{border-style:dashed;border-color:#7fb0ff;background:none} .mlayer .lg.walk{border:0;border-radius:3px;height:4px;width:16px;background:#47d1ff;align-self:center}
+.mlayer .lg.radar{border:0;background:radial-gradient(circle at 40% 40%,#3fd27a,#2a6fdb 60%,transparent 62%)}
+.sunline .linkbtn{border:0;padding:0;background:none;color:var(--blue);font:inherit;font-weight:700;cursor:pointer}
