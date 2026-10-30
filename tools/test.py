@@ -1046,6 +1046,27 @@ def run(path, name):
         check("Place sheet: back, side and front light as chips; one line per idea with its spot number to tap", ps==[True,True,True,True,True], ps)
         pg.evaluate("mapSelect(null); setSheet('peek')")
         no_overflow("Map with search and cards")
+        # Parade and marathon routes with viewing spots
+        rd=pg.evaluate("""(()=>{ const bad=[]; for(const [id,R] of Object.entries(EV_ROUTE)){ if(!EVENTS.some(e=>e.id===id)) bad.push(id+':no event'); if(!(R.line.length>=2&&R.spots.length>=1)) bad.push(id+':short');
+            R.line.concat(R.spots).forEach(p=>{ if(!(p[0]>40.5&&p[0]<40.9&&p[1]>-74.3&&p[1]<-73.7)) bad.push(id+':geo'); }); R.spots.forEach(S=>{ if(!(S[2]>=0&&S[2]<360&&S[3]&&S[4])) bad.push(id+':spot'); }); }
+          return [Object.keys(EV_ROUTE).length, bad]; })()""")
+        check("Event routes: every route belongs to an event, lies in the city, and has viewing spots with a facing", rd[0]>=14 and rd[1]==[], rd)
+        pg.wait_for_timeout(500); pg.evaluate("cancelAnimationFrame(mapAnim); mapSelect(null); state.mapShowEv=true; state.mapD=0; state.mapT=null; mapV=mapPreset('city'); mapDraw()"); pg.wait_for_timeout(100)
+        r0=pg.evaluate("document.querySelectorAll('.m-evrt').length")
+        r1=pg.evaluate("""(()=>{ for(let k=1;k<7;k++){ state.mapD=k; const d=mapDay(), want=mapEvents().filter(e=>EV_ROUTE[e.id]&&evOnDay(e.r,d,false)).map(e=>e.id); if(!want.length) continue; state.mapT=600; mapDraw();
+          return [k, want, [...document.querySelectorAll('.m-evrt')].map(g=>g.dataset.evrt)]; } return null; })()""")
+        pg.evaluate("mapSelectEv('columbus',true)"); pg.wait_for_timeout(900)
+        r2=pg.evaluate("[document.querySelectorAll('.m-evrt.on').length, document.querySelectorAll('.m-evsp').length, mapV.w<60, state.sheet, document.querySelector('#mapPanel').textContent.includes('Where to watch')]")
+        pg.click("#mapPanel .srow[data-evsp]"); pg.wait_for_timeout(900)
+        r3=pg.evaluate("[state.mapEvSpot, document.querySelectorAll('.m-evsp.on .m-cone').length, !!document.querySelector('#mapPanel .evspsel'), !!document.querySelector('#mapPanel [data-guide^=\"evs:\"]'), guideTarget('evs:'+state.mapEvSpot)[3]]")
+        pg.click("#mapPanel [data-evrtfit]"); pg.wait_for_timeout(900); r4=pg.evaluate("[state.mapEvSpot, mapV.w>14]")
+        pg.evaluate("mapSelect(null); state.mapD=0; state.mapT=null; mapDraw()")
+        check("Routes draw on the event's day, a chosen route turns gold with numbered spots, a spot shows its cone, light and Guide me there, and Whole route fits it",
+              r0==0 and r1 and r1[1]==r1[2] and r2==[1,1,True,"peek",True] and r3[0]=="columbus:0" and r3[1]==1 and r3[2] and r3[3] and "Cathedral" in r3[4] and r4[0] is None and r4[1], [r0,r1,r2,r3,r4])
+        pg.fill("#mapQ","marathon"); pg.wait_for_timeout(150); pg.click("#mapQres .mq-it"); pg.wait_for_timeout(900)
+        r5=pg.evaluate("[state.mapEv, document.querySelectorAll('.m-evrt.on').length, mapV.w>200]")
+        check("Searching for the marathon shows its whole route", r5==["marathon",1,True], r5)
+        pg.evaluate("mapSelect(null); mapV=mapPreset('city'); mapDraw(); mapPanel()")
         # Dark theme renders too
         pg.evaluate("document.documentElement.dataset.theme='dark'; state.view='shoot'; render()"); pg.wait_for_timeout(80)
         check("no script errors", not errors, errors[:3])

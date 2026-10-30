@@ -1443,3 +1443,13 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 .irow1 .row .t b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block} .inow{flex:none;margin-left:auto;padding:2px 7px;border-radius:9px;background:var(--yellow);color:#14161a;font-size:11.5px;font-weight:800}
 .sbadge{flex:none;width:30px;height:30px;border-radius:50%;font:inherit;font-weight:800;font-size:13px;cursor:pointer} .sbadge.none{border:0;background:none;cursor:default}
 .m-youhalo{opacity:.32;stroke:#fff;stroke-opacity:.85}
+
+/* Parade and marathon routes on the map, with their viewing spots */
+.m-evrtc{fill:none;stroke:rgba(255,255,255,.85);stroke-linecap:round;stroke-linejoin:round;pointer-events:stroke}
+.m-evrtl{fill:none;stroke:#d6453d;stroke-linecap:round;stroke-linejoin:round;pointer-events:stroke} .m-evrt.on .m-evrtl{stroke:#e0a100}
+.m-evrtv{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;opacity:.9;pointer-events:none}
+.m-evrt.fest .m-evrtl{stroke:#e0a100}
+[data-sky="night"] .m-evrtc{stroke:rgba(0,0,0,.6)}
+.m-spotpt.ev{fill:#d6453d;stroke:#fff} .m-evsp.on .m-spotpt.ev{fill:#e0a100}
+.evspsel{margin:6px 0 10px;padding:10px 12px;border-radius:12px;background:var(--panel);border:1px solid var(--line)} .evspsel>b{display:flex;gap:8px;align-items:center} .evspsel .mapcount{margin:6px 0}
+.srow.on{box-shadow:inset 0 0 0 2px var(--yellow);border-radius:10px}
