@@ -495,7 +495,7 @@ def run(path, name):
         check("Light compass round the selected place", pg.evaluate("document.querySelectorAll('.m-comp').length")==4 and "Backlight" in pg.evaluate("document.querySelector('#mapPanel .lchips').textContent"))
         check("Place lists where to stand", pg.evaluate("document.querySelectorAll('#mapPanel [data-spot]').length")>=2)
         pg.evaluate("setSheet('half')"); pg.wait_for_timeout(300)
-        pg.click("#mapPanel [data-spot]"); pg.wait_for_timeout(900)
+        pg.click("#mapPanel [data-spot='union:0']"); pg.wait_for_timeout(900)
         check("Spot shows its lens wedge and panel", pg.evaluate("[!!document.querySelector('.m-spotg.on .m-cone'), !!document.querySelector('#mapPanel .spotfov'), !!document.querySelector('#mapPanel .row[data-id]')]")==[True,True,True])
         shot("map-spot")
         sv=pg.evaluate("document.querySelector('#mapPanel a[href*=map_action]')?.href||''")
