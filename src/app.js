@@ -2999,7 +2999,7 @@ function moonPos(date,lat,lon){ const rad=Math.PI/180, e=rad*23.4397, d=date/864
   return {az:((az/rad+180)%360+360)%360, alt:alt/rad, frac:(1+Math.cos(inc))/2, phase:0.5+0.5*inc*(ang<0?-1:1)/Math.PI}; }
 /* Rise and set within the local day of `day`, in minutes after midnight (null if it does not happen that day). */
 function moonTimes(day,lat,lon){ const d0=new Date(day); d0.setHours(0,0,0,0); const h0=0.133; let rise=null, set=null, prev=moonPos(d0,lat,lon).alt-h0;
-  for(let m=10;m<=1440;m+=10){ const cur=moonPos(new Date(+d0+m*6e4),lat,lon).alt-h0;
+  for(let m=10;m<=1440;m+=10){ const cur=moonPos(clk(d0,m),lat,lon).alt-h0;
     if(prev<0&&cur>=0&&rise===null) rise=Math.round(m-10+10*(-prev)/(cur-prev)); if(prev>=0&&cur<0&&set===null) set=Math.round(m-10+10*prev/(prev-cur)); prev=cur; }
   return {rise,set}; }
 const moonName = m => { const wax=m.phase<0.5; return m.frac>=0.97?"Full moon":m.frac<=0.03?"New moon":m.frac>=0.45&&m.frac<=0.55?(wax?"First quarter":"Last quarter"):(wax?"Waxing ":"Waning ")+(m.frac<0.5?"crescent":"gibbous"); };
@@ -3008,7 +3008,7 @@ const compass = a => COMPASS[Math.round(((a%360)+360)%360/22.5)%16];
 /* The map's day and time: today and now unless a day chip (mapD, days ahead) or the slider (mapT, minutes) has been set. */
 const mapDay = () => { const d=new Date(); d.setHours(0,0,0,0); if(state.mapD) d.setDate(d.getDate()+state.mapD); return d; };
 const mapIsNow = () => state.mapT===null && !state.mapD;
-const mapNow = () => { if(mapIsNow()) return new Date(); const n=new Date(); return new Date(+mapDay()+(state.mapT===null?n.getHours()*60+n.getMinutes():state.mapT)*6e4); };
+const mapNow = () => { if(mapIsNow()) return new Date(); const n=new Date(); return clk(mapDay(),state.mapT===null?n.getHours()*60+n.getMinutes():state.mapT); };
 const mapDayName = () => { const t=mapDay(); return !state.mapD?"Today":state.mapD===1?"Tomorrow":DAY_SHORT[t.getDay()]+" "+t.toLocaleDateString("en-US",{month:"short",day:"numeric"}); };
 function sunPhase(alt){ return alt>6?"day":alt>-4?"gold":alt>-6?"blue":"night"; }
 const SUN_PHASE = {day:"Daylight",gold:"Golden hour",blue:"Blue hour",night:"Night"};
@@ -3043,7 +3043,7 @@ function sunRel(face,t){ const c=CITIES[state.city], sp=sunPos(t,c.lat,c.lon); i
   return {sp, d, txt:"Sun "+where+", "+Math.round(sp.alt)+"° up. Shadows fall "+compass(sp.az+180)+", "+len+"."}; }
 /* The light facing one way through the map's day: a bar of backlit, side-lit, front-lit and dark, with the hours each one runs. */
 function lightStrip(face){ const d=mapDay(), runs=[]; let cur=null;
-  for(let m=0;m<1440;m+=5){ const lf=lightFacing(face,new Date(+d+m*6e4)), k=lf.k==="dark"&&lf.txt==="Blue hour"?"blue":lf.k; if(cur&&cur.k===k) cur.e=m+5; else { cur={k,s:m,e:m+5}; runs.push(cur); } }
+  for(let m=0;m<1440;m+=5){ const lf=lightFacing(face,clk(d,m)), k=lf.k==="dark"&&lf.txt==="Blue hour"?"blue":lf.k; if(cur&&cur.k===k) cur.e=m+5; else { cur={k,s:m,e:m+5}; runs.push(cur); } }
   const col={back:"#f28a28",side:"#fccc0a",front:"#fff3c4",blue:"#3e63d8",dark:"#1c2340"}, name={back:"Backlit",side:"Side light",front:"Front-lit",blue:"Blue hour",dark:"Dark"};
   const bar='linear-gradient(to right,'+runs.map(r=>col[r.k]+' '+(r.s/1440*100).toFixed(2)+'%,'+col[r.k]+' '+(r.e/1440*100).toFixed(2)+'%').join(",")+')';
   const t=mapNow(), cur_m=t.getHours()*60+t.getMinutes();
@@ -3214,12 +3214,12 @@ function lfHeading(){ if(!LF.open) return; const hd=oriHeading(), r=$("lfRot"), 
 function lfNext(pos){ const now=new Date(), nm=now.getHours()*60+now.getMinutes(), d0=new Date(now.getFullYear(),now.getMonth(),now.getDate()), out=[], add=(m,txt,k)=>{ if(m>nm&&m<=nm+180) out.push({m,txt,k}); };
   const {L,list}=todayWindows(d0); list.forEach(x=>{ add(x.s,x.name+" starts",x.k); if(!list.some(y=>y!==x&&Math.abs(y.s-x.e)<=2)) add(x.e,x.name+" ends",x.k); }); add(L.rise,"Sunrise","sun"); add(L.set,"Sunset","sun");
   // the sun getting too low for the sidewalks, on a street of five or six storeys
-  let prev=sunPos(now,pos.lat,pos.lon).alt; for(let m=nm+5;m<=nm+180;m+=5){ const a=sunPos(new Date(+d0+m*6e4),pos.lat,pos.lon).alt; if(prev>=15&&a<15){ add(m,"Sun below 15°: most sidewalks fall into shade, except along streets that face it","shade"); break; } if(prev<15&&a>=15){ add(m,"Sun above 15°: it clears the low buildings and reaches the sidewalks","sun"); break; } prev=a; }
+  let prev=sunPos(now,pos.lat,pos.lon).alt; for(let m=nm+5;m<=nm+180;m+=5){ const a=sunPos(clk(d0,m),pos.lat,pos.lon).alt; if(prev>=15&&a<15){ add(m,"Sun below 15°: most sidewalks fall into shade, except along streets that face it","shade"); break; } if(prev<15&&a>=15){ add(m,"Sun above 15°: it clears the low buildings and reaches the sidewalks","sun"); break; } prev=a; }
   // a long street near you lining up with the sun
   if(state.city==="nyc"){ const H=hengeDay(new Date()), near=H.runs.filter(r=>r.m>nm&&r.m<=nm+180).map(r=>{ const R=MAPD_RUNS[r.i], [la,lo]=mapLL((R[0]+R[2])/20,(R[1]+R[3])/20); return {r,km:kmBetween(pos,{lat:la,lon:lo})}; }).filter(x=>x.km<1.2).sort((a,b)=>a.km-b.km)[0];
     if(near) add(near.r.m,"A long street "+mDist(near.km)+" away lines up with the sun, looking "+compass(near.r.az),"henge"); }
   // the moon
-  const mt=moonTimes(now,pos.lat,pos.lon), mo=moonPos(now,pos.lat,pos.lon); if(mo.frac>0.25){ if(mt.rise!==null) add(mt.rise,"Moonrise, "+Math.round(mo.frac*100)+"% lit, in the "+compass(moonPos(new Date(+d0+mt.rise*6e4),pos.lat,pos.lon).az),"moon"); if(mt.set!==null) add(mt.set,"Moonset","moon"); }
+  const mt=moonTimes(now,pos.lat,pos.lon), mo=moonPos(now,pos.lat,pos.lon); if(mo.frac>0.25){ if(mt.rise!==null) add(mt.rise,"Moonrise, "+Math.round(mo.frac*100)+"% lit, in the "+compass(moonPos(clk(d0,mt.rise),pos.lat,pos.lon).az),"moon"); if(mt.set!==null) add(mt.set,"Moonset","moon"); }
   // the rain
   const wx=wxNext(now); if(wx){ const mm=/(\d+)(?::(\d\d))?\s*(am|pm)/.exec(wx); if(mm){ let h=+mm[1]%12+(mm[3]==="pm"?12:0), m=h*60+(+mm[2]||0); if(m<nm) m+=1440; add(m,wx.charAt(0).toUpperCase()+wx.slice(1),"rain"); } }
   if(LF.shadeNext) add(LF.shadeNext.m,LF.shadeNext.txt,"sun");
@@ -3557,9 +3557,9 @@ function lfcDraw(){ LFC.raf=0; if(!LFC.on) return; const ov=$("lfcOv"), v=$("lfc
 state.lightSpots=store.get("lightSpots",[])||[];
 const LFD = {key:"", val:null};
 function lfDay(pos,now){ now=now||new Date(); const T=lfbOn(pos)?lfbTile(pos):null;
-  const build=d0=>{ const steps=[]; for(let m=0;m<1440;m+=5){ const t=new Date(+d0+m*6e4), sp=sunPos(t,pos.lat,pos.lon); steps.push({m,alt:sp.alt,ph:sunPhase(sp.alt)}); }
+  const build=d0=>{ const steps=[]; for(let m=0;m<1440;m+=5){ const t=clk(d0,m), sp=sunPos(t,pos.lat,pos.lon); steps.push({m,alt:sp.alt,ph:sunPhase(sp.alt)}); }
     const lit=steps.filter(x=>x.ph!=="night"); if(!lit.length) return null; const from=Math.max(0,lit[0].m-30), to=Math.min(1435,lit[lit.length-1].m+35), S=steps.filter(x=>x.m>=from&&x.m<=to);
-    if(T) for(const x of S){ if(x.alt>0.5){ const r=lfbSun(T,pos,new Date(+d0+x.m*6e4)); x.sun=!r.down&&r.sun; } else x.sun=false; }
+    if(T) for(const x of S){ if(x.alt>0.5){ const r=lfbSun(T,pos,clk(d0,x.m)); x.sun=!r.down&&r.sun; } else x.sun=false; }
     const runs=(f)=>{ const out=[]; let c=null; for(const x of S){ if(f(x)){ if(c&&c.e===x.m) c.e=x.m+5; else { c={s:x.m,e:x.m+5}; out.push(c); } } } return out; };
     const sun=T?runs(x=>x.sun).filter(r=>r.e-r.s>=10):null, gold=runs(x=>x.ph==="gold"), blue=runs(x=>x.ph==="blue");
     const [rise,set]=sunTimes(new Date(+d0+12*36e5),pos.lat,pos.lon), mm=t=>t.getHours()*60+t.getMinutes(), lights=mm(set)+5;
@@ -3578,7 +3578,7 @@ function lfDay(pos,now){ now=now||new Date(); const T=lfbOn(pos)?lfbTile(pos):nu
   const key=pos.lat.toFixed(4)+","+pos.lon.toFixed(4)+":"+(+d0)+":"+(T?1:0)+":"+Math.floor(nm/15)+":"+state.city; if(LFD.key===key) return LFD.val;
   let D=build(d0), tomorrow=false, best=D&&D.cands.find(c=>c.e>nm);
   if(!best){ D=build(new Date(+d0+864e5)); tomorrow=true; best=D&&D.cands[0]; }
-  if(D){ D.tomorrow=tomorrow; D.best=best; const at=new Date(+D.d0+(best?best.s:720)*6e4), sk=best?skyAt(at):undefined; D.sky=sk===undefined?"":({cloud:"overcast",rain:"rain",snow:"snow",fog:"fog",partly:"some cloud",storm:"storms"})[sk]||(sk===null?"clear":""); }
+  if(D){ D.tomorrow=tomorrow; D.best=best; const at=clk(D.d0,best?best.s:720), sk=best?skyAt(at):undefined; D.sky=sk===undefined?"":({cloud:"overcast",rain:"rain",snow:"snow",fog:"fog",partly:"some cloud",storm:"storms"})[sk]||(sk===null?"clear":""); }
   LFD.key=key; LFD.val=D; return D; }
 const hmSpan = (a,b) => { const x=hmText(a), y=hmText(b), pa=x.slice(-2); return (pa===y.slice(-2)?x.slice(0,-3):x)+"–"+y; };
 function lfDayHtml(pos,name){ return withWx(pos,()=>lfDayHtml0(pos,name)); }
@@ -3600,16 +3600,16 @@ function lfDayHtml0(pos,name){ if(lfbOn(pos)&&!lfbTile(pos)) lfbLoad(pos); const
     (B?'<p class="lf-st lfd-bl">Best light here'+(D.tomorrow?' tomorrow':'')+': <b>'+hmSpan(B.s,B.e)+'</b>, '+esc(B.txt)+'.'+(D.sky?' Forecast: '+esc(D.sky)+'.':'')+'</p>':'')+
     '<p class="lf-st lfd-list">'+list.map(esc).join(" · ")+'.'+(!D.hasB&&lfbOn(pos)?' <span class="lf-src">Checking the buildings for direct sun…</span>':'')+'</p>'+
     '<div class="lfd-act">'+(LF.spot||state.pos?'<button type="button" class="chip" data-lf="spot"'+(saved?' aria-pressed="true"':'')+'>'+(saved?'★ Saved spot':'☆ Save this spot')+'</button>':'')+
-    (B?(typeof loadWeather==="function"?'<button type="button" class="chip" data-lf="ics">📅 Calendar (.ics)</button>':(T=>calBtn({summary:T.title,start:calIso(new Date(+D.d0+B.s*6e4)),end:calIso(new Date(+D.d0+B.e*6e4)),location:pos.lat.toFixed(5)+", "+pos.lon.toFixed(5),description:T.desc,remind:30}))(lfCalText(name,D)))+'<a class="chip" target="_blank" rel="noopener" href="'+esc(lfGcal(pos,name,D))+'">Google Calendar</a>':'')+'</div>'; }
+    (B?(typeof loadWeather==="function"?'<button type="button" class="chip" data-lf="ics">📅 Calendar (.ics)</button>':(T=>calBtn({summary:T.title,start:calIso(clk(D.d0,B.s)),end:calIso(clk(D.d0,B.e)),location:pos.lat.toFixed(5)+", "+pos.lon.toFixed(5),description:T.desc,remind:30}))(lfCalText(name,D)))+'<a class="chip" target="_blank" rel="noopener" href="'+esc(lfGcal(pos,name,D))+'">Google Calendar</a>':'')+'</div>'; }
 function lfSpotNear(pos){ return state.lightSpots.find(x=>kmBetween(x,pos)<0.04)||null; }
 function lfSpotsHtml(){ const L=state.lightSpots; if(!L.length) return ""; const d0=new Date(); d0.setHours(0,0,0,0);
   return '<p class="stk lf-ideah">Your spots</p><div class="lfd-spots">'+L.map(x=>{ const b=x.best&&(x.best.day===+d0||x.best.day===+d0+864e5)?x.best:null;
     return '<div class="lfd-spot'+(LF.spot&&LF.spot.id===x.id?' on':'')+'"><button type="button" class="lfd-go" data-lfspot="'+x.id+'"><b>'+esc(x.name)+'</b><span>'+(b?(b.day===+d0?'Today ':'Tomorrow ')+hmSpan(b.s,b.e)+' · '+esc(b.txt.split(":")[0]):'Tap to see its light')+'</span></button><button type="button" class="st-x lfd-del" data-lfspotdel="'+x.id+'" aria-label="Remove '+esc(x.name)+'">×</button></div>'; }).join("")+'</div>'; }
 function lfCalText(name,D){ const B=D.best, cam=CAMERAS[state.camera]||CAMERAS.q343; return {title:"Light: "+name, desc:"Best light at "+name+": "+B.txt+". "+(D.sun&&D.sun.length?"Direct sun here "+D.sun.map(r=>hmSpan(r.s,r.e)).join(", ")+". ":"")+"Streetlights on about "+hmText(D.lights)+". Camera: "+cam.name+". From Shot List."}; }
 const lfStamp = t => t.toISOString().replace(/[-:]/g,"").replace(/\.\d+Z$/,"Z");
-function lfGcal(pos,name,D){ const B=D.best, a=new Date(+D.d0+B.s*6e4), b=new Date(+D.d0+B.e*6e4), T=lfCalText(name,D);
+function lfGcal(pos,name,D){ const B=D.best, a=clk(D.d0,B.s), b=clk(D.d0,B.e), T=lfCalText(name,D);
   return "https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent(T.title)+"&dates="+lfStamp(a)+"/"+lfStamp(b)+"&details="+encodeURIComponent(T.desc)+"&location="+encodeURIComponent(pos.lat.toFixed(5)+","+pos.lon.toFixed(5)); }
-function lfIcs(pos,name,D){ const B=D.best, a=new Date(+D.d0+B.s*6e4), b=new Date(+D.d0+B.e*6e4), T=lfCalText(name,D), e=x=>String(x).replace(/\\/g,"\\\\").replace(/[,;]/g,m=>"\\"+m).replace(/\n/g,"\\n");
+function lfIcs(pos,name,D){ const B=D.best, a=clk(D.d0,B.s), b=clk(D.d0,B.e), T=lfCalText(name,D), e=x=>String(x).replace(/\\/g,"\\\\").replace(/[,;]/g,m=>"\\"+m).replace(/\n/g,"\\n");
   return ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Shot List//Light here//EN","CALSCALE:GREGORIAN","BEGIN:VEVENT","UID:"+lfStamp(a)+"-"+pos.lat.toFixed(4)+"-"+pos.lon.toFixed(4)+"@shotlist","DTSTAMP:"+lfStamp(new Date()),"DTSTART:"+lfStamp(a),"DTEND:"+lfStamp(b),
     "SUMMARY:"+e(T.title),"DESCRIPTION:"+e(T.desc),"LOCATION:"+e(pos.lat.toFixed(5)+", "+pos.lon.toFixed(5)),"GEO:"+pos.lat.toFixed(5)+";"+pos.lon.toFixed(5),"BEGIN:VALARM","TRIGGER:-PT30M","ACTION:DISPLAY","DESCRIPTION:"+e(T.title),"END:VALARM","END:VEVENT","END:VCALENDAR"].join("\r\n")+"\r\n"; }
 function lfIcsSave(){ const pos=LF.curPos, D=pos&&lfDay(pos); if(!D||!D.best) return; const txt=lfIcs(pos,LF.curPlace||"Light here",D), f="shot-list-light.ics";
@@ -3692,7 +3692,7 @@ let LIGHT_DAY = null;
 function lightDay(day){ const c=CITIES[state.city], d=day?new Date(day):mapDay(); d.setHours(0,0,0,0); const key=state.city+":"+(+d);
   if(LIGHT_DAY&&LIGHT_DAY.key===key) return LIGHT_DAY;
   const runs=[]; let cur=null;
-  for(let m=0;m<1440;m++){ const ph=sunPhase(sunPos(new Date(+d+m*6e4),c.lat,c.lon).alt); if(cur&&cur.ph===ph) cur.e=m+1; else { cur={ph,s:m,e:m+1}; runs.push(cur); } }
+  for(let m=0;m<1440;m++){ const ph=sunPhase(sunPos(clk(d,m),c.lat,c.lon).alt); if(cur&&cur.ph===ph) cur.e=m+1; else { cur={ph,s:m,e:m+1}; runs.push(cur); } }
   const [rise,set]=sunTimes(new Date(+d+12*36e5),c.lat,c.lon), mm=t=>t.getHours()*60+t.getMinutes();
   return LIGHT_DAY={key,runs,rise:mm(rise),set:mm(set)}; }
 const LIGHT_COL = {night:"#1c2340",blue:"#3e63d8",gold:"#f2ad3a",day:"#f4e7b4"};
@@ -3799,11 +3799,11 @@ setTimeout(()=>{ const go=()=>{ try{ if(typeof MAPD_SN!=="undefined") snLoad(); 
 /* The moon: tap it on the map for its phase, rise and set, and the next full moon, with where to stand for it over the skyline. */
 const MOONC = {};
 function moonDay(day){ const c=CITIES[state.city], d0=new Date(day); d0.setHours(0,0,0,0); const key=state.city+":"+(+d0); if(MOONC[key]) return MOONC[key];
-  const mt=moonTimes(d0,c.lat,c.lon), at=m=>new Date(+d0+m*6e4), [,sset]=sunTimes(new Date(+d0+12*36e5),c.lat,c.lon);
+  const mt=moonTimes(d0,c.lat,c.lon), at=m=>clk(d0,m), [,sset]=sunTimes(new Date(+d0+12*36e5),c.lat,c.lon);
   return MOONC[key]={d0,rise:mt.rise,set:mt.set,riseAz:mt.rise!==null?moonPos(at(mt.rise),c.lat,c.lon).az:null,setAz:mt.set!==null?moonPos(at(mt.set),c.lat,c.lon).az:null,
     frac:moonPos(new Date(+d0+21*36e5),c.lat,c.lon).frac, sunset:sset.getHours()*60+sset.getMinutes()}; }
 /* The next full moon from today: the evening (9 pm) nearest to full, within the next month. k is days from today. */
-function nextFullMoon(){ const c=CITIES[state.city], n=new Date(), f=k=>moonPos(new Date(n.getFullYear(),n.getMonth(),n.getDate()+k,21),c.lat,c.lon).frac;
+function nextFullMoon(from){ const c=CITIES[state.city], n=from?new Date(from):new Date(), f=k=>moonPos(new Date(n.getFullYear(),n.getMonth(),n.getDate()+k,21),c.lat,c.lon).frac;
   let prev=f(-1), cur=f(0); for(let k=0;k<32;k++){ const nx=f(k+1); if(cur>=0.95&&cur>=prev&&cur>=nx) return {k,day:new Date(n.getFullYear(),n.getMonth(),n.getDate()+k),frac:cur}; prev=cur; cur=nx; } return null; }
 function moonGlyph(mp,R){ const rx=R*Math.abs(1-2*mp.frac), lit='M0 '+(-R)+' A'+R+' '+R+' 0 0 1 0 '+R+' A'+rx.toFixed(2)+' '+R+' 0 0 '+(mp.frac>0.5?1:0)+' 0 '+(-R)+'Z';
   return '<svg viewBox="'+(-R-1)+' '+(-R-1)+' '+(2*R+2)+' '+(2*R+2)+'" aria-hidden="true"><circle r="'+R+'" class="m-moondark"/>'+(mp.frac>0.02?'<path d="'+lit+'" class="m-moonlit"'+(mp.phase>0.5?' transform="scale(-1 1)"':'')+'/>':'')+'</svg>'; }
@@ -3832,7 +3832,7 @@ function tripTo(id){ const P=PLACES[id]; if(!state.pos||!P||typeof P.lat!=="numb
   if(walk>20&&REACH.me){ const st=REACH.stn[id]||(REACH.stn[id]=nearStn(P.lat,P.lon)); if(st){ const ride=kmBetween(REACH.me,st)*2.9, t=Math.round(walkMin(REACH.me.d)+6+ride+(ride>14?5:0)+walkMin(st.d)); if(t<walk) r={min:t,by:"train"}; } }
   return REACH.map[id]=r; }
 function reachWin(){ if(!state.mapShowReach||!state.pos||!mapIsNow()||!posOnMap()) return null; const n=new Date(), m=n.getHours()*60+n.getMinutes(), {list}=todayWindows(mapDay());
-  const W=list.find(x=>x.s<=m&&x.e>m)||list.find(x=>x.s>m&&x.s-m<=180)||null; return {m,W,key:W?lightAt(new Date(+mapDay()+Math.max(m,W.s)*6e4)):null}; }
+  const W=list.find(x=>x.s<=m&&x.e>m)||list.find(x=>x.s>m&&x.s-m<=180)||null; return {m,W,key:W?lightAt(clk(mapDay(),Math.max(m,W.s))):null}; }
 const reachLate = (RW,id) => { if(!RW||!RW.W) return false; const r=tripTo(id); return !!r&&RW.m+r.min>RW.W.e-10; };
 function reachCount(RW){ if(!RW||!RW.W) return 0; return Object.keys(CITIES[state.city].places).filter(id=>typeof PLACES[id].lat==="number"&&cityIdeas().some(i=>i.p===id&&i.w.includes(RW.key))&&!reachLate(RW,id)).length; }
 const reachTxt = (id,w) => { if(!state.mapShowReach||!state.pos||w>=150) return ""; const r=tripTo(id); return r&&r.min<=120?' · '+r.min+' min'+(r.by==="train"?' by train':''):""; };
@@ -4264,7 +4264,7 @@ function hengeDay(day){ const c=CITIES[state.city], d=day?new Date(day):mapDay()
   if(HENGE&&HENGE.key===key) return HENGE;
   const runs=[]; if(state.city!=="nyc"||typeof MAPD_RUNS==="undefined") return HENGE={key,runs,peaks:[]};
   const L=lightDay(d), samp=[];
-  for(const [a,b] of [[L.rise-5,L.rise+160],[L.set-160,L.set+5]]) for(let m=a;m<=b;m++){ const p=sunPos(new Date(+d+m*6e4),c.lat,c.lon); if(p.alt>=-0.3&&p.alt<=10) samp.push([m,p.az,p.alt]); }
+  for(const [a,b] of [[L.rise-5,L.rise+160],[L.set-160,L.set+5]]) for(let m=a;m<=b;m++){ const p=sunPos(clk(d,m),c.lat,c.lon); if(p.alt>=-0.3&&p.alt<=10) samp.push([m,p.az,p.alt]); }
   // streets sorted by bearing (0 to 180°), so each minute of low sun only looks at the few streets within 2.5° of it
   const B=runBearings(), n=B.b.length, best=new Float32Array(n).fill(99), bm=new Int16Array(n), baz=new Float32Array(n), balt=new Float32Array(n), first=new Int16Array(n).fill(-1), last=new Int16Array(n);
   const lower=x=>{ let lo=0, hi=n; while(lo<hi){ const mid=(lo+hi)>>1; if(B.sb[mid]<x) lo=mid+1; else hi=mid; } return lo; };
@@ -4657,7 +4657,7 @@ function lsAt(tab,alt,k){ if(alt<=tab[0][0]) return tab[0][k]; for(let i=1;i<tab
 function lsGeo(){ const c=CITIES[state.city]; return typeof c.lat==="number"?[c.lat,c.lon]:[40.7128,-74.006]; }
 function lsDay(){ const [lat,lon]=lsGeo(), d=new Date(); d.setHours(0,0,0,0); const [rise,set]=sunTimes(new Date(+d+12*36e5),lat,lon), mm=t=>t.getHours()*60+t.getMinutes();
   const r=mm(rise), s=mm(set); return {d,lat,lon,rise:r,set:s,min:Math.floor((r-80)/5)*5,max:Math.ceil((s+100)/5)*5}; }
-function lsState(m){ const D=lsDay(), t=new Date(+D.d+m*6e4), p=sunPos(t,D.lat,D.lon), alt=p.alt, az=p.az;
+function lsState(m){ const D=lsDay(), t=clk(D.d,m), p=sunPos(t,D.lat,D.lon), alt=p.alt, az=p.az;
   const sx=Math.max(6,Math.min(354,(az-90)/180*360)), sy=176-alt*3.4, b=LS_BLD.find(([a,z])=>sx>=a&&sx<z), top=b?b[2]:176;
   const lit=alt>0.5&&sy<top, ph=sunPhase(alt), am=m<720;
   let say;
@@ -5038,7 +5038,9 @@ function learnHome(){ const seen=learnSeen(), last=store.get("learnLast",null), 
 
 /* Today: the day's light and weather, where to go for the next good light, what is on, and a one-tap outing. */
 const dayMin = d => d.getHours()*60+d.getMinutes();
-const atMin = m => { const d=new Date(); d.setHours(0,0,0,0); return new Date(+d+m*6e4); };
+/* A clock time on a given day: midnight plus m minutes, corrected on the two days a year the clocks change, so 5 pm is 5 pm. */
+function clk(d,m){ const z=new Date(d); z.setHours(0,0,0,0); const r=new Date(+z+m*6e4); return new Date(+r+(r.getTimezoneOffset()-z.getTimezoneOffset())*6e4); }
+const atMin = m => { const d=new Date(); d.setHours(0,0,0,0); return clk(d,m); };
 function todayWindows(day){ const L=lightDay(day||new Date()), gold=L.runs.filter(r=>r.ph==="gold"), blue=L.runs.filter(r=>r.ph==="blue"), out=[];
   const mg=gold.find(r=>r.s<720), eg=gold.find(r=>r.s>=720), mb=blue.find(r=>r.s<720), eb=blue.find(r=>r.s>=720);
   if(mb) out.push({k:"blue",s:mb.s,e:mb.e,name:"Morning blue hour"});
@@ -5081,7 +5083,7 @@ const homeRoute = (to,mode) => 'https://www.google.com/maps/dir/?api=1&origin='+
 const durText = m => m>=60 ? Math.floor(m/60)+' h'+(m%60?' '+(m%60)+' min':'') : m+' min';
 /* "Leave home by 4:35 pm" for arriving 15 minutes before `startMin` on `day` at `to` ([lat,lon]); or, if that time has passed, when you would get there. */
 function leaveBy(to,startMin,day,what){ const H=fromHome(); if(!H||!to) return ""; const d=day?new Date(day):new Date(); d.setHours(0,0,0,0);
-  const arrive=new Date(+d+(startMin-15)*6e4), m=travelMins(H,{lat:to[0],lon:to[1]},H.mode,arrive), leave=new Date(Math.floor((+arrive-m*6e4)/3e5)*3e5), now=new Date(), link=' <a class="tleave-link" href="'+homeRoute(to,H.mode)+'" target="_blank" rel="noopener">Live route ↗</a>';
+  const arrive=clk(d,startMin-15), m=travelMins(H,{lat:to[0],lon:to[1]},H.mode,arrive), leave=new Date(Math.floor((+arrive-m*6e4)/3e5)*3e5), now=new Date(), link=' <a class="tleave-link" href="'+homeRoute(to,H.mode)+'" target="_blank" rel="noopener">Live route ↗</a>';
   if(leave>now) return '<p class="tleave"><b>Leave home by '+hmText(dayMin(leave))+'</b> · about '+durText(m)+' '+HOME_MODES[H.mode]+(what?', there 15 min before '+esc(what):'')+'.'+link+'</p>';
   const there=new Date(Math.ceil((+now+travelMins(H,{lat:to[0],lon:to[1]},H.mode,now)*6e4)/3e5)*3e5), late=Math.round((there-(+d+startMin*6e4))/6e4);
   return '<p class="tleave late"><b>Leaving now, you would get there about '+hmText(dayMin(there))+'</b>'+(late>0&&what?', '+durText(late)+' into '+esc(what):'')+'.'+link+'</p>'; }
@@ -5097,7 +5099,7 @@ function homeHtml(){ const H=state.home;
 function weekDays(){ const now=new Date(), today=new Date(now.getFullYear(),now.getMonth(),now.getDate()), rows=eventRows(today), out=[];
   for(let k=0;k<7;k++){ const day=new Date(today.getFullYear(),today.getMonth(),today.getDate()+k), {L,list}=todayWindows(day), g=list.find(x=>x.name==="Golden hour"), b=list.find(x=>x.name==="Blue hour");
     if(!g) continue; const s0=g.s, e0=b?b.e:g.e; let n=0, cc=0, pop=0, rain=false, known=true;
-    for(let m=Math.floor(s0/60)*60;m<e0;m+=60){ const t=new Date(+day+m*6e4), f=hourlyAt(t); if(!f){ known=false; break; } n++; cc+=f.cc||0; pop=Math.max(pop,f.pop||0); const sk=skyAt(t); if(sk==="rain"||sk==="snow") rain=true; }
+    for(let m=Math.floor(s0/60)*60;m<e0;m+=60){ const t=clk(day,m), f=hourlyAt(t); if(!f){ known=false; break; } n++; cc+=f.cc||0; pop=Math.max(pop,f.pop||0); const sk=skyAt(t); if(sk==="rain"||sk==="snow") rain=true; }
     const sky=!known||!n?null:rain?"rain":cc/n>=80?"overcast":cc/n>=35?"cloud":"clear";
     const ev=rows.filter(r=>r.o&&!r.cancelled&&evDay(r.o[0])<=day&&evDay(r.o[1]||r.o[0])>=day), past=k===0&&dayMin(now)>=e0;
     const score=past?-9:(sky==="cloud"?3.2:sky==="clear"?3:sky==="rain"?2.2:sky==="overcast"?1:0)+(ev.length?0.6:0);
@@ -5114,7 +5116,7 @@ const skyIcon = k => k==="clear" ? '<svg viewBox="0 0 20 20" aria-hidden="true">
 function weekHtml(){ const D=weekDays(); if(!D.length) return ""; const anyKnown=D.some(d=>d.sky), sel=D.find(d=>d.k===state.weekSel);
   const cells=D.map(d=>'<button type="button" class="wday'+(d.best?' best':'')+(d.past?' past':'')+'" data-week="'+d.k+'" aria-pressed="'+(state.weekSel===d.k)+'" aria-label="'+esc(DAY_NAMES[d.day.getDay()]+', sunset '+hmText(d.L.set)+(d.sky?', '+SKY_WORD[d.sky]+' at golden hour':'')+(d.ev.length?', '+d.ev.length+' event'+(d.ev.length>1?'s':''):'')+(d.best?', best evening':''))+'">'+
     '<span class="wdn">'+(d.k===0?'Today':DAY_SHORT[d.day.getDay()])+'</span>'+skyIcon(d.sky)+'<span class="wds">'+hmText(d.L.set).replace(/ pm$/,"").replace(/^(\d+)$/,"$1:00")+'</span><span class="wde">'+(d.ev.length?'<i></i>'.repeat(Math.min(3,d.ev.length)):'')+'</span>'+(d.best?'<span class="wstar">Best</span>':'')+'</button>').join("");
-  let det=""; if(sel){ const d=sel, picks=todayPicks(new Date(+d.day+d.g.s*6e4)), top=picks[0], tg=top&&(START_GEO[top.id]||[PLACES[top.id].lat,PLACES[top.id].lon]);
+  let det=""; if(sel){ const d=sel, picks=todayPicks(clk(d.day,d.g.s)), top=picks[0], tg=top&&(START_GEO[top.id]||[PLACES[top.id].lat,PLACES[top.id].lon]);
     det='<div class="wdet"><p><b>'+d.day.toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"})+'</b> · golden hour '+hmText(d.g.s)+' to '+hmText(d.g.e)+(d.b?', blue hour to '+hmText(d.b.e):'')+' · sunset '+hmText(d.L.set)+'</p>'+
       (d.sky?'<p class="msg">'+SKY_WORD[d.sky]+' at golden hour'+(d.pop>=20?' ('+d.pop+'% chance of rain)':'')+'. '+SKY_WHY[d.sky]+'</p>':'<p class="msg">'+(anyKnown?'No forecast for this evening yet.':'The week’s forecast shows in the installed app.')+'</p>')+
       (d.ev.length?'<p class="msg">On: '+d.ev.slice(0,4).map(r=>esc(evTitle(r))+(r.game?' ('+hmText(dayMin(r.game.at))+')':'')).join(" · ")+(d.ev.length>4?' and more':'')+'</p>':'')+
@@ -5122,7 +5124,7 @@ function weekHtml(){ const D=weekDays(); if(!D.length) return ""; const anyKnown
       '<div class="callinks"><button type="button" class="chip primary" data-weekplan="'+d.k+'">Plan this evening</button><button type="button" class="chip" data-weekmap="'+d.k+'">See it on the map</button></div></div>'; }
   return '<section class="tcard tweek"><p class="tlabel">The week ahead</p><div class="wrow">'+cells+'</div>'+
     '<p class="msg">'+(anyKnown?'Sky at golden hour, sunset time and events each evening. Tap a day for details.':'Sunset and events each evening; the forecast shows in the installed app. Tap a day for details.')+'</p>'+det+'</section>'; }
-function weekPlan(k){ const D=weekDays().find(d=>d.k===+k); if(!D) return; const t=new Date(+D.day+D.g.s*6e4), best=todayPicks(t)[0]; state.view="plan"; render();
+function weekPlan(k){ const D=weekDays().find(d=>d.k===+k); if(!D) return; const t=clk(D.day,D.g.s), best=todayPicks(t)[0]; state.view="plan"; render();
   $("pDay").value=String(D.k); renderPlan(); if(best&&[...$("pStart").options].some(o=>o.value===best.id)) $("pStart").value=best.id;
   const h=Math.max(6,Math.floor((D.g.s-75)/60)); if([...$("pTime").options].some(o=>o.value===String(h))) $("pTime").value=String(h); $("pLen").value="150"; state.plan=makePlan(); savePlan(); renderPlan(); window.scrollTo({top:0}); }
 function weekMap(k){ const D=weekDays().find(d=>d.k===+k); if(!D) return; state.mapD=D.k; state.mapT=Math.round(D.g.s/5)*5; state.view="map"; render(); window.scrollTo({top:0}); }
@@ -5138,7 +5140,7 @@ const SKY_PLACES = new Set(["dumbo","ferry","wburg","coney","brighton","rockaway
 const refl = o => o.ideas.some(x=>COMPOSE[x.id]&&COMPOSE[x.id][0]==="reflect") ? 1 : 0;
 const wetOut = x => x.w.includes("rain")&&x.r!=="interior"&&x.p!=="subway";
 function shootAlerts(){ if(state.city!=="nyc") return []; const now=new Date(), t0=new Date(now.getFullYear(),now.getMonth(),now.getDate()), nm=dayMin(now), out=[];
-  const at=(day,m)=>new Date(+day+m*6e4), sk=(day,m)=>skyAt(at(day,m)), wet=s=>s==="rain"||s==="snow", hr=(day,m)=>hourlyAt(at(day,m));
+  const at=(day,m)=>clk(day,m), sk=(day,m)=>skyAt(at(day,m)), wet=s=>s==="rain"||s==="snow", hr=(day,m)=>hourlyAt(at(day,m));
   const withPlace=(a,P)=>Object.assign(a,{place:P?P.id:null,ideas:P?P.ideas.slice(0,2).map(x=>x.id):[]});
   const rows=eventRows(t0);
   for(let k=0;k<3;k++){ const day=new Date(t0.getFullYear(),t0.getMonth(),t0.getDate()+k), {L,list}=todayWindows(day), g=list.find(x=>x.name==="Golden hour"), b=list.find(x=>x.name==="Blue hour"), mg=list.find(x=>x.name==="Morning golden hour");
@@ -5166,13 +5168,13 @@ function shootAlerts(){ if(state.city!=="nyc") return []; const now=new Date(), 
       push({kind:"event",score:2.4,at:w0[0],end:Math.max(w0[1]||0,w0[0]+90),ev:r.e.id,place:null,ideas:[],title:evTitle(r)+(s===undefined?"":", and it should be dry"),why:r.e.why||((EVENT_TYPES[r.e.type]||"Event")+(r.e.where?" · "+r.e.where:""))}); } }
   return out.sort((a,b)=>b.score-a.score||a.k-b.k||a.at-b.at).slice(0,6); }
 const ALERT_ICON = {wet:"rain",rain:"rain",sky:"cloud",fog:"overcast",snow:"overcast",henge:"clear",event:"clear"};
-function alertsHtml(){ const A=shootAlerts(), hasWx=!!(WEATHER[state.city]&&WEATHER[state.city].hourly); if(state.city!=="nyc") return "";
+function alertsHtml(){ const All=shootAlerts(), A=All.filter(a=>a.kind!=="event"), hasWx=!!(WEATHER[state.city]&&WEATHER[state.city].hourly); if(state.city!=="nyc") return "";
   if(!A.length) return hasWx?'<section class="tcard tquiet talerts"><p class="msg"><span class="tqk" aria-hidden="true">✓</span> <b>Worth going out:</b> nothing special in the next three days.</p></section>':'';
   return '<section class="tcard talerts"><p class="tlabel">Worth going out · next three days</p>'+A.slice(0,4).map((a,n)=>{ const when=(a.k===0?'Today':a.k===1?'Tomorrow':DAY_NAMES[a.day.getDay()])+' · '+hmText(a.at);
     const idea=a.ideas[0]&&IDEAS.find(x=>x.id===a.ideas[0]);
     return '<div class="talert '+a.kind+'"><span class="taico">'+skyIcon(ALERT_ICON[a.kind])+'</span><div class="tab"><b>'+esc(a.title)+'</b><span class="msg">'+when+(a.place?' · '+esc(PLACES[a.place].name):'')+'</span><p class="msg">'+esc(a.why)+'</p>'+
       (idea?'<button type="button" class="row" data-id="'+idea.id+'"><span class="dot" style="background:'+INTENTS[idea.i].color+'"></span><span class="t"><b>'+esc(idea.t)+'</b><span>'+esc(PLACES[idea.p].name)+'</span></span><span class="go" aria-hidden="true">›</span></button>':'')+
-      '<div class="callinks"><button type="button" class="chip" data-alert="'+n+'">See it on the map</button></div></div></div>'; }).join("")+
+      '<div class="callinks"><button type="button" class="chip" data-alert="'+All.indexOf(a)+'">See it on the map</button></div></div></div>'; }).join("")+
     (hasWx?'':'<p class="msg">Rain, fog, snow and sunset alerts need the forecast, which the installed app has.</p>')+'</section>'; }
 function alertMap(n){ const a=shootAlerts()[+n]; if(!a) return; state.mapD=a.k; state.mapT=Math.round(a.at/5)*5; state.view="map"; render(); window.scrollTo({top:0});
   requestAnimationFrame(()=>requestAnimationFrame(()=>{ if(a.run!=null){ state.mapShowHenge=true; mapSelectRun(a.run); } else if(a.ev){ state.mapShowEv=true; mapSelectEv(a.ev); } else if(a.place) mapSelect(a.place); })); }
@@ -5182,7 +5184,43 @@ function wxIcon(sky,day){ const sun='<circle cx="12" cy="12" r="4.2" fill="curre
   const g = sky==="rain" ? cloud+'<g stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 20.5l-1 2M13 20.5l-1 2M17 20.5l-1 2"/></g>' : sky==="snow" ? cloud+'<g fill="currentColor"><circle cx="9" cy="21.5" r="1"/><circle cx="13" cy="21.5" r="1"/><circle cx="17" cy="21.5" r="1"/></g>'
     : sky==="cloud"||sky==="fog" ? cloud : day ? sun : moon;
   return '<svg viewBox="0 0 24 24" width="18" height="18">'+g+'</svg>'; }
-function renderToday(){ const box=$("today"); if(!box) return;
+/* Heads-up lines under Right now: the clocks changing this week, a full moon in the next two days, and Manhattanhenge
+   later in the week (the next three days are already in Worth going out). */
+function skyNotes(now){ const c=CITIES[state.city], out=[], d0=new Date(now.getFullYear(),now.getMonth(),now.getDate()), day=k=>new Date(d0.getFullYear(),d0.getMonth(),d0.getDate()+k);
+  for(let k=0;k<7;k++){ const a=new Date(+day(k-1)+12*36e5).getTimezoneOffset(), b=new Date(+day(k)+12*36e5).getTimezoneOffset(); if(a===b) continue;
+    const back=b>a, D=day(k), sP=lightDay(day(k-1)).set, LD=lightDay(D), g=todayWindows(D).list.find(x=>x.name==="Golden hour");
+    const when=k===0?'went '+(back?'back':'forward')+' an hour last night':'go '+(back?'back':'forward')+' an hour '+(k===1?'tonight':'early '+DAY_NAMES[D.getDay()])+' (2 am)';
+    const txt='Clocks '+when+': sunset '+(k===0?'is now':'moves from '+hmText(sP)+' to')+' '+hmText(LD.set)+(back?(g?', so golden hour starts about '+hmText(g.s)+'.':'.')+(g&&g.s<17*60+30?' After-work golden hour is gone until March.':''):', and sunrise to '+hmText(LD.rise)+'. Evening golden hour starts about '+(g?hmText(g.s):'')+'.');
+    out.push({k:"clock",txt}); break; }
+  const F=nextFullMoon(now); if(F&&F.k<=2){ const FD=moonDay(F.day), dd=FD.rise!==null?FD.rise-FD.sunset:null;
+    out.push({k:"moon",txt:'Full moon '+(F.k===0?'tonight':F.k===1?'tomorrow':DAY_NAMES[F.day.getDay()])+(FD.rise!==null?': rises '+hmText(FD.rise)+' in the '+compass(FD.riseAz)+(dd!==null&&Math.abs(dd)<=60?', '+(Math.abs(dd)<3?'right at sunset':Math.abs(dd)+' min '+(dd<0?'before':'after')+' sunset'):'')+'. Stand on the New Jersey waterfront to see it come up behind Midtown.':'.'),
+      btn:FD.rise!==null?'<button type="button" class="linkbtn" data-tmoon="'+F.k+':'+FD.rise+'">Moon on the map ›</button>':''}); }
+  // the sun's bearing as it sits half a degree above the horizon, against the dates the alignment is seen (late May and mid July at
+  // sunset, early December and early January at sunrise)
+  const atAlt=(D,eve)=>{ for(let m=eve?1260:240;eve?m>900:m<720;m+=eve?-2:2){ const p=sunPos(clk(D,m),c.lat,c.lon); if(eve?p.alt>0.5:p.alt>0.5) return {m,az:p.az}; } return null; };
+  for(let k=3;k<7;k++){ const D=day(k), E=atAlt(D,true), M=atAlt(D,false), ev=E?E.az:0, mo=M?M.az:0, [rise,set]=[clk(D,M?M.m:0),clk(D,E?E.m:0)];
+    if(Math.abs(ev-298.9)<0.45){ out.push({k:"henge",txt:'Manhattanhenge likely '+DAY_NAMES[D.getDay()]+': the setting sun lines up with the Midtown cross streets about '+hmText(set.getHours()*60+set.getMinutes())+'.'}); break; }
+    if(Math.abs(mo-120.6)<0.4){ out.push({k:"henge",txt:'Manhattanhenge at sunrise likely '+DAY_NAMES[D.getDay()]+': the rising sun lines up with the Midtown cross streets about '+hmText(rise.getHours()*60+rise.getMinutes())+'.'}); break; } }
+  return out; }
+const SKY_GLYPH = {clock:"◷",moon:"○",henge:"☀"};
+const skyNotesHtml = now => { const N=skyNotes(now); return N.length?'<div class="tsky">'+N.map(n=>'<p class="tskyl '+n.k+'"><span class="tskyi" aria-hidden="true">'+SKY_GLYPH[n.k]+'</span><span>'+esc(n.txt)+(n.btn?' '+n.btn:'')+'</span></p>').join("")+'</div>':''; };
+/* Your last outing: the frames you marked in the last 18 hours and your walk, with one tap to rate each frame and one idea to come back for. */
+function lastOuting(now){ const since=+now-18*36e5, shots=[]; for(const [id,l] of Object.entries(state.log||{})) (l||[]).forEach(en=>{ if(en&&en.t>=since&&IDEAS.find(x=>x.id===id)) shots.push({id,en}); });
+  const W=walksAll().filter(w=>w.pts.length>1&&w.pts[w.pts.length-1][2]*1000>=since), wk=W[W.length-1]||null;
+  if(!shots.length&&!wk) return null; shots.sort((a,b)=>a.en.t-b.en.t); return {shots,wk}; }
+function outingHtml(now){ const O=lastOuting(now); if(!O) return ""; const S=O.wk?walkStats(O.wk):null, first=O.shots.length?O.shots[0].en.t:S.s, d=new Date(first), td=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const when=d<td?'last night':d.getHours()<12?'this morning':d.getHours()<17?'this afternoon':'this evening', keep=O.shots.filter(s=>s.en.r==="keep").length, again=O.shots.filter(s=>s.en.r==="again").length, unr=O.shots.filter(s=>!s.en.r);
+  const bits=[S?(S.km/1.609<0.1?'under 0.1':(S.km/1.609).toFixed(1))+' mi walked':'', S?(S.min>=60?Math.floor(S.min/60)+' h '+S.min%60+' min':S.min+' min'):'', O.shots.length?O.shots.length+' frame'+(O.shots.length>1?'s':'')+' marked':'', keep?keep+' keeper'+(keep>1?'s':''):'', again?again+' to try again':''].filter(Boolean);
+  const cnt={}; O.shots.forEach(s=>{ const p=IDEAS.find(x=>x.id===s.id).p; cnt[p]=(cnt[p]||0)+1; }); const topP=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a])[0];
+  const nx=topP&&cityIdeas().filter(x=>x.p===topP&&!state.done.has(x.id)).sort((a,b)=>state.saved.has(b.id)-state.saved.has(a.id))[0];
+  return '<section class="tcard tout"><p class="tlabel">Your outing · '+when+'</p><p class="msg">'+esc(bits.join(' · '))+'</p>'+
+    (unr.length?'<p class="tout-h">Rate what you shot</p>'+unr.slice(-6).map(s=>{ const x=IDEAS.find(y=>y.id===s.id); return '<div class="tout-r"><span class="t"><b>'+esc(x.t)+'</b><span>'+esc(PLACES[x.p].name)+' · '+hmText(new Date(s.en.t).getHours()*60+new Date(s.en.t).getMinutes())+'</span></span><span class="tout-b"><button type="button" class="chip" data-trate="'+esc(s.id)+'|'+s.en.t+'|keep">Keeper</button><button type="button" class="chip" data-trate="'+esc(s.id)+'|'+s.en.t+'|again">Try again</button></span></div>'; }).join(""):'')+
+    (nx?'<p class="tout-h">Next time at '+esc(PLACES[topP].name)+'</p><button type="button" class="row" data-id="'+nx.id+'"><span class="dot" style="background:'+INTENTS[nx.i].color+'"></span><span class="t"><b>'+esc(nx.t)+'</b><span>'+esc(INTENTS[nx.i].name)+' · not shot yet</span></span><span class="go" aria-hidden="true">›</span></button>':'')+
+    (O.wk?'<div class="callinks"><button type="button" class="chip" data-twalk="'+esc(O.wk.id)+'">See the walk on the map</button></div>':'')+'</section>'; }
+/* Use your location on Today without a tap when you have already allowed it. */
+function todayAutoLoc(){ if(state.pos||state.autoLoc||!navigator.geolocation||!navigator.permissions||!navigator.permissions.query) return; state.autoLoc=true;
+  try{ navigator.permissions.query({name:"geolocation"}).then(p=>{ if(p.state!=="granted") return; navigator.geolocation.getCurrentPosition(q=>{ state.pos={lat:q.coords.latitude,lon:q.coords.longitude}; state.posAcc=q.coords.accuracy; fillPlaces(); syncNear(); if(state.view==="today") renderToday(); },()=>{},{timeout:10000,maximumAge:300000}); }).catch(()=>{}); }catch(e){} }
+function renderToday(){ const box=$("today"); if(!box) return; todayAutoLoc();
   const now=new Date(), nm=dayMin(now), c=CITIES[state.city], {L,list}=todayWindows(), tf=hmText, w=WEATHER[state.city];
   const ph=sunPhase(sunPos(now,c.lat,c.lon).alt), next=list.find(x=>x.e>nm);
   // the moment to plan for: now if the light is good, otherwise the next window today
@@ -5204,7 +5242,7 @@ function renderToday(){ const box=$("today"); if(!box) return;
   const ahead=runs&&runs.filter(r=>r.e*60>nm), rainNow = !runs ? rainTxt : ahead.length ? (ahead[0].s*60<=nm?'Rain until '+hmText(ahead[0].e*60):'Rain likely '+hmText(ahead[0].s*60)+' to '+hmText(ahead[0].e*60))+(ahead.length>1?', and again later':'')+'.' : runs.length ? 'No more rain expected today.' : rainTxt;
   const wxLine = nowTxt||rainNow ? '<p class="msg twx"><span class="twxi" aria-hidden="true">'+wxIcon(skNow||(fNow&&fNow.cc>=50?"cloud":""),NL.sp.alt>0)+'</span><span>'+(nowTxt?'<b>'+esc(nowTxt)+'</b>'+(wxBits?' · '+esc(wxBits):'')+(rainNow?'<br>':''):'')+esc(rainNow)+'</span></p>' : '';
   const nowStrip='<section class="tnow '+NL.ph+'"><div class="tnowl"><span class="tlabel">Right now · '+tf(nm)+'</span><p class="tverdict">'+esc(NL.what)+'</p><p class="msg">'+esc(nextTxt)+' · '+esc(sunTxt)+'</p>'+wxLine+'</div>'+
-    '<div class="tnowb"><button type="button" class="btn primary tshoot" data-shootnow="1">Shoot now</button><button type="button" class="btn tlightf" data-lightf="1">Light here</button></div></section>';
+    '<div class="tnowb"><button type="button" class="btn primary tshoot" data-shootnow="1">Shoot now</button><button type="button" class="btn tlightf" data-lightf="1">Light here</button></div>@@LIGHT@@</section>';
   // when the data was last refreshed: the page itself, and the forecast
   const wUp=w&&w.updated?new Date(w.updated):null, wHrs=wUp?(now-wUp)/36e5:null;
   const fcTxt = wUp&&!isNaN(wUp) ? (wHrs<0.25?'forecast just now':'forecast '+(wUp.toDateString()===now.toDateString()?'from '+tf(dayMin(wUp)):'from '+wUp.toLocaleDateString("en-US",{weekday:"short"})+' '+tf(dayMin(wUp)))) : 'no forecast yet';
@@ -5249,12 +5287,12 @@ function renderToday(){ const box=$("today"); if(!box) return;
   // after dark: tomorrow morning, so the evening is when you plan it
   const ebl=list.find(x=>x.name==="Blue hour"), dark=nm>=(ebl?ebl.e:L.set+40);
   const tmrCard = dark ? (()=>{ const tmr=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1), TW=todayWindows(tmr), mb=TW.list.find(x=>x.name==="Morning blue hour"), mg=TW.list.find(x=>x.name==="Morning golden hour"); if(!mg) return "";
-    const at=new Date(+tmr+mg.s*6e4), f=hourlyAt(at), sky=skyAt(at), F=f&&f.temp!=null?Math.round(f.temp*9/5+32)+'°F':'';
+    const at=clk(tmr,mg.s), f=hourlyAt(at), sky=skyAt(at), F=f&&f.temp!=null?Math.round(f.temp*9/5+32)+'°F':'';
     const MW={rain:"Rain at sunrise: wet streets and reflections; umbrellas from blue hour on.",snow:"Snow: clean, quiet streets before the city wakes up.",fog:"Fog at sunrise is rare: layered streets and soft silhouettes. Worth getting up for.",cloud:"Overcast: no sunrise colour, but soft, even light for faces and quiet streets."};
     const skyTxt = sky===undefined ? '' : '<p class="msg twx2"><span class="twxi" aria-hidden="true">'+wxIcon(sky||(f&&f.cc>=50?"cloud":""),true)+'</span><span>'+(sky?esc(WX_WORD[sky]):f&&f.cc>=50?'Some cloud':'Clear')+' at golden hour'+(F?', '+F:'')+'. '+(sky?MW[sky]:f&&f.cc>=50?'Broken cloud can catch colour just before sunrise.':'Clear: low, warm sun down the east–west streets and long shadows.')+'</span></p>';
     const top=todayPicks(at)[0], P=top&&PLACES[top.id], tg=top&&(START_GEO[top.id]||[P.lat,P.lon]);
-    const startM=mb?mb.s:mg.s, cal={summary:"Shot List: sunrise at "+(P?P.name:"golden hour"),start:calIso(new Date(+tmr+startM*6e4)),end:calIso(new Date(+tmr+mg.e*6e4)),location:P?P.name+", New York, NY":"",description:(top&&top.best?top.best.t+". ":"")+"Blue hour "+tf(startM)+", golden hour "+tf(mg.s)+" to "+tf(mg.e)+", sunrise "+tf(TW.L.rise)+". Open Shot List: https://minhngo0912-cloud.github.io/shotlist/",remind:60};
-    const g="https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent(cal.summary)+"&dates="+lfStamp(new Date(+tmr+startM*6e4))+"/"+lfStamp(new Date(+tmr+mg.e*6e4))+"&details="+encodeURIComponent(cal.description)+"&location="+encodeURIComponent(cal.location);
+    const startM=mb?mb.s:mg.s, cal={summary:"Shot List: sunrise at "+(P?P.name:"golden hour"),start:calIso(clk(tmr,startM)),end:calIso(clk(tmr,mg.e)),location:P?P.name+", New York, NY":"",description:(top&&top.best?top.best.t+". ":"")+"Blue hour "+tf(startM)+", golden hour "+tf(mg.s)+" to "+tf(mg.e)+", sunrise "+tf(TW.L.rise)+". Open Shot List: https://minhngo0912-cloud.github.io/shotlist/",remind:60};
+    const g="https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent(cal.summary)+"&dates="+lfStamp(clk(tmr,startM))+"/"+lfStamp(clk(tmr,mg.e))+"&details="+encodeURIComponent(cal.description)+"&location="+encodeURIComponent(cal.location);
     const h=Math.max(5,Math.floor((startM-30)/60));
     return '<section class="tcard ttmr"><p class="tlabel">Tomorrow morning · '+DAY_NAMES[tmr.getDay()]+'</p>'+
       '<p class="ttmrw">'+(mb?'<span><span class="lk blue"></span>Blue '+tf(mb.s)+'</span>':'')+'<span><span class="lk gold"></span>Golden '+tf(mg.s).replace(/ am$/,"")+'–'+tf(mg.e)+'</span><span><span class="lk rise"></span>Sunrise '+tf(TW.L.rise)+'</span></p>'+skyTxt+
@@ -5266,19 +5304,33 @@ function renderToday(){ const box=$("today"); if(!box) return;
   const savedOpen=cityIdeas().filter(x=>state.saved.has(x.id)&&!state.done.has(x.id));
   const nudge = savedOpen.length ? (x=>'<p class="tlabel">From your saved ideas</p><button type="button" class="row" data-id="'+x.id+'"><span class="dot" style="background:'+INTENTS[x.i].color+'"></span><span class="t"><b>'+esc(x.t)+'</b><span>'+esc(PLACES[x.p].name)+(x.w.includes(key)?' · suits '+esc(lname):'')+'</span></span><span class="go" aria-hidden="true">›</span></button>')(savedOpen[dayN%savedOpen.length])
     : (d=>d?'<p class="tlabel">Assignment for today</p><p><b>'+esc(d[1])+'</b>. '+esc(d[2])+'</p><div class="callinks">'+(state.drillRun?'':'<button type="button" class="chip primary" data-drillstart="'+d[0]+'">Start it now</button>')+'<button type="button" class="linkbtn" data-goview="learn">More assignments in Learn</button></div>':'')(DRILLS.filter(d=>!state.drills.has(d[0]))[dayN%Math.max(1,DRILLS.filter(d=>!state.drills.has(d[0])).length)]);
-  const evCard='<section class="tcard'+(evs.length||goTom?'':' tquiet')+'">'+(evs.length||!goTom?'<p class="tlabel">On today</p>'+evHtml:'')+goTom+'</section>';
-  box.innerHTML=
-    '<header class="thead"><h2>'+now.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})+'</h2>'+asOf+'</header>'+
-    nowStrip+tmrCard+alertsHtml()+
-    '<section class="tcard"><p class="tlabel">Where to go</p><div class="intents tmoments">'+moments.map(m=>'<button type="button" class="chip" data-tat="'+(m.at===null?'now':m.at)+'" aria-pressed="'+(m.at===state.todayAt)+'">'+m.label+'</button>').join("")+locChip+'</div>'+
-      '<p class="msg">Best places for '+esc(lname)+(state.todayAt===null?' now':' at '+tf(state.todayAt))+(state.pos?', nearest first among equals':'')+'.</p>'+homeHtml()+pickHtml+'</section>'+
-    (evs.length||goTom?evCard:'')+
-    dayCard+
-    '<section class="tcard tlight"><p class="tlabel">The light today</p>'+band+'<div class="twins">'+wins+'</div></section>'+
-    weekHtml()+wkCard+
-    (tmrCard&&planFor.off?'':'<section class="tcard tplan"><p class="tlabel">Plan an outing</p><p>'+planFor.txt+'</p>'+(planFor.when==="tonight"?(tp=>tp?leaveBy(START_GEO[tp.id]||[PLACES[tp.id].lat,PLACES[tp.id].lon],planFor.h*60+15,null,""):"")(todayPicks(atMin(planFor.h*60+60))[0]):'')+'<button type="button" class="btn primary" data-planday="'+planFor.h+'" data-planoff="'+planFor.off+'">Plan '+planFor.when+'</button></section>')+
-    priceTodayCard()+(evs.length||goTom?'':evCard)+
-    (nudge?'<section class="tcard">'+nudge+'</section>':''); }
+  const t1=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1), d0e=evDay(now), dry=new Set(shootAlerts().filter(a=>a.kind==="event"&&/should be dry/.test(a.title)).map(a=>a.ev)), seen=new Set(evs.map(x=>x.r.e.id).concat(goT.map(r=>r.e.id)));
+  const G0=state.evGoing||new Set(), evRow=(r,d,w,extra)=>'<button type="button" class="row" data-event="'+esc(r.e.id)+'"><span class="dot" style="background:'+(G0.has(r.e.id)?'#e0a100':'#d6453d')+'"></span><span class="t"><b>'+(G0.has(r.e.id)?'★ ':'')+esc(r.e.name)+'</b><span>'+esc([d?DAY_NAMES[d.getDay()]:'',w?hmText(w[0]):'',extra||'',dry.has(r.e.id)?'should be dry':'',evGreatLight(r,d0e)?'✨ great light':''].filter(Boolean).join(' · '))+'</span></span><span class="go" aria-hidden="true">›</span></button>';
+  const tomRows=eventRows(d0e).filter(r=>!r.cancelled&&!r.game&&!PHOTO_TYPES.has(r.e.type)&&!seen.has(r.e.id)&&evOnDay(r,t1,false)&&!evOnDay(r,d0e,false)&&!(evSeason(r)&&!evShowOn(r,t1))).sort((a,b)=>G0.has(b.e.id)-G0.has(a.e.id)).slice(0,3);
+  tomRows.forEach(r=>seen.add(r.e.id));
+  const wkRows=WK?WK.items.filter(x=>!seen.has(x.r.e.id)).slice(0,4):[];
+  const evParts=[evs.length?'<p class="tevh">Today</p>'+evHtml:'', goTom||tomRows.length?'<p class="tevh">Tomorrow</p>'+goTom+tomRows.map(r=>evRow(r,null,evWindow(r.e,t1))).join(""):'', wkRows.length?'<p class="tevh">This weekend</p>'+wkRows.map(x=>evRow(x.r,x.d,x.w,x.wx)).join(""):''].filter(Boolean);
+  const evCard=evParts.length?'<section class="tcard tevents"><p class="tlabel">Events</p>'+evParts.join("")+'</section>':'<section class="tcard tquiet"><p class="msg">No events listed for today or tomorrow. <button type="button" class="linkbtn" data-goview="events">See what is coming up</button></p></section>';
+  const lightIn='<details class="tnowlight"'+(state.tLightOpen?' open':'')+'><summary>'+band.split('<div class="tbandlab">')[0].replace('class="tband"','class="tband tband-s"')+'<span class="tnowls">Today’s light</span></summary><div class="tbandlab">'+(band.split('<div class="tbandlab">')[1]||'</div>')+'<div class="twins">'+wins+'</div></details>';
+  const S={};
+  S.now=nowStrip.replace("@@LIGHT@@",lightIn)+skyNotesHtml(now);
+  S.tmr=tmrCard; S.alerts=alertsHtml(); S.out=outingHtml(now);
+  S.where='<section class="tcard"><p class="tlabel">Where to go</p><div class="intents tmoments">'+moments.map(m=>'<button type="button" class="chip" data-tat="'+(m.at===null?'now':m.at)+'" aria-pressed="'+(m.at===state.todayAt)+'">'+m.label+'</button>').join("")+locChip+'</div>'+
+      '<p class="msg">Best places for '+esc(lname)+(state.todayAt===null?' now':' at '+tf(state.todayAt))+(state.pos?', nearest first among equals':'')+'.</p>'+homeHtml()+pickHtml+'</section>';
+  S.events=evCard; S.day=dayCard; S.week=weekHtml();
+  S.plan=(tmrCard&&planFor.off?'':'<section class="tcard tplan"><p class="tlabel">Plan an outing</p><p>'+planFor.txt+'</p>'+(planFor.when==="tonight"?(tp=>tp?leaveBy(START_GEO[tp.id]||[PLACES[tp.id].lat,PLACES[tp.id].lon],planFor.h*60+15,null,""):"")(todayPicks(atMin(planFor.h*60+60))[0]):'')+'<button type="button" class="btn primary" data-planday="'+planFor.h+'" data-planoff="'+planFor.off+'">Plan '+planFor.when+'</button></section>');
+  S.prices=priceTodayCard(); S.nudge=nudge?'<section class="tcard">'+nudge+'</section>':'';
+  // the order follows the time of day: after dark tomorrow morning and your outing come first; before golden hour, where to go and the plan
+  const goldOn=cur&&cur.k, beforeGold=!dark&&!goldOn&&eg&&eg.s>nm, morning=nm<720&&!dark;
+  const order = dark ? ["now","tmr","out","events","alerts","where","week","day","prices","nudge","plan"]
+    : goldOn ? ["now","where","out","events","alerts","plan","day","week","prices","nudge"]
+    : beforeGold&&!morning ? ["now","where","plan","alerts","events","out","day","week","prices","nudge"]
+    : ["now","where","alerts","events","day","out","plan","week","prices","nudge"];
+  const JUMP={tmr:"Tomorrow",where:"Where to go",events:"Events",out:"Your outing",plan:"Plan",week:"Week"};
+  const jumps=order.filter(k=>JUMP[k]&&S[k]).slice(0,5);
+  box.innerHTML='<header class="thead"><h2>'+now.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})+'</h2>'+asOf+'</header>'+
+    (jumps.length>=3?'<nav class="tjump" aria-label="Jump to">'+jumps.map(k=>'<button type="button" class="chip" data-tjump="'+k+'">'+JUMP[k]+'</button>').join("")+'</nav>':'')+
+    order.filter(k=>S[k]).map(k=>'<div class="tsec" id="tsec-'+k+'">'+S[k]+'</div>').join(""); }
 /* Shoot now: the one best idea for this light, nearest first, not yet shot. */
 function shootNow(){ const now=new Date(), key=lightAt(now), sky=nowInfo().sky, pool=cityIdeas().filter(x=>typeof PLACES[x.p].lat==="number"&&ideaOpen(x,now,sky)&&x.w.includes(key));
   const score=x=>(state.done.has(x.id)?-5:0)+(state.saved.has(x.id)?1:0)+(state.pos?-Math.min(10,milesTo(PLACES[x.p])||0)*0.6:0)+Math.random()*0.5;
@@ -5598,6 +5650,10 @@ $("learn").addEventListener("change",e=>{
   const cb=e.target.closest("[data-drill]"); if(cb){ cb.checked?state.drills.add(cb.dataset.drill):state.drills.delete(cb.dataset.drill); store.set("drills",[...state.drills]); const h=cb.closest(".drills").nextElementSibling; if(h) h.textContent=state.drills.size+" of "+DRILLS.length+" done."; }
 });
 $("today").addEventListener("click",e=>{
+  const tj=e.target.closest("[data-tjump]"); if(tj){ const t=$("tsec-"+tj.dataset.tjump); if(t) t.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"}); return; }
+  const trt=e.target.closest("[data-trate]"); if(trt){ const [id,t,r]=trt.dataset.trate.split("|"), en=(state.log[id]||[]).find(x=>String(x.t)===t); if(en){ en.r=r; saveLog(); } renderToday(); return; }
+  const twk=e.target.closest("[data-twalk]"); if(twk){ state.walkSel=twk.dataset.twalk; state.mapShowWalk=true; store.set("mapShowWalk",true); state.mapT=null; state.mapD=0; state.view="map"; render(); requestAnimationFrame(()=>requestAnimationFrame(()=>{ const wk=walkShown(); if(wk) walkFit(wk); })); return; }
+  const tmn=e.target.closest("[data-tmoon]"); if(tmn){ const [k,m]=tmn.dataset.tmoon.split(":").map(Number); state.mapD=k; state.mapT=Math.round(m/5)*5; state.view="map"; render(); requestAnimationFrame(()=>requestAnimationFrame(()=>{ moonOpen(); })); return; }
   const wk=e.target.closest("[data-week]"); if(wk){ const k=+wk.dataset.week; state.weekSel=state.weekSel===k?null:k; renderToday(); return; }
   const wp=e.target.closest("[data-weekplan]"); if(wp){ weekPlan(wp.dataset.weekplan); return; }
   const wm=e.target.closest("[data-weekmap]"); if(wm){ weekMap(wm.dataset.weekmap); return; }

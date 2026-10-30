@@ -1400,3 +1400,18 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 .mlayer .lg.reach{border-style:dashed;border-color:#7fb0ff;background:none} .mlayer .lg.walk{border:0;border-radius:3px;height:4px;width:16px;background:#47d1ff;align-self:center}
 .mlayer .lg.radar{border:0;background:radial-gradient(circle at 40% 40%,#3fd27a,#2a6fdb 60%,transparent 62%)}
 .sunline .linkbtn{border:0;padding:0;background:none;color:var(--blue);font:inherit;font-weight:700;cursor:pointer}
+
+/* Today: light folded into Right now, heads-up lines, jump chips, one events card, your outing */
+.tnow{flex-wrap:wrap} .tnowlight{flex-basis:100%;margin-top:2px} .tnowlight summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px}
+.tnowlight summary::-webkit-details-marker{display:none} .tnowlight .tband-s{flex:1;height:10px;margin:0;border-color:rgba(255,255,255,.25)}
+.tnowlight .tband-s i{background:#fff} .tnowls{flex:none;font-size:12.5px;font-weight:700;color:rgba(255,255,255,.8)} .tnowls:after{content:" ▾"} .tnowlight[open] .tnowls:after{content:" ▴"}
+.tnowlight .twins{margin-top:10px;font-size:13px;gap:4px 12px;color:rgba(255,255,255,.88)} .tnowlight .lk.rise,.tnowlight .lk.set{border-color:#fff}
+.tsky{display:flex;flex-direction:column;gap:6px;margin-top:-4px} .tskyl{display:flex;gap:8px;align-items:flex-start;margin:0;padding:9px 12px;border-radius:12px;background:var(--panel);border:1px solid var(--line);font-size:14px;line-height:1.4}
+.tskyl.clock{border-color:#e0a100;background:rgba(224,161,0,.1)} .tskyi{flex:none;width:18px;text-align:center;font-weight:800} .tskyl.moon .tskyi{color:#8f97b0} .tskyl.henge .tskyi{color:#e8930c}
+.tjump{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:-4px 0 0;padding-bottom:2px} .tjump::-webkit-scrollbar{display:none} .tjump .chip{flex:none}
+.tsec{scroll-margin-top:12px}
+.tevh{margin:12px 0 4px;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)} .tevents .tlabel+.tevh{margin-top:2px}
+.tout-h{margin:12px 0 4px;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.tout-r{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line)} .tout-r .t{flex:1;min-width:0;display:flex;flex-direction:column} .tout-r .t span{color:var(--muted);font-size:13px}
+.tout-b{flex:none;display:flex;gap:6px}
+.tnowlight .tbandlab{margin-top:6px;color:rgba(255,255,255,.6)}
