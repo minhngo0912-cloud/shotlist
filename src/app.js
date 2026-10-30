@@ -1372,7 +1372,7 @@ const EVENTS = [
  why:"Giant puppets, bands and thousands in costume. Anyone in costume can join and walk the route.",
  spot:"Join the line-up near Canal St in costume to shoot from inside, or stand north of 10 St where the crowd is thinner.",
  ideas:[["mood","Puppets against the night","Lit puppets above the crowd with dark buildings behind.","night"],["odd","Costumes on the platform","West 4 St and 14 St stations before and after the parade.","interior"],["energy","Inside the march","Walk with a band and shoot back at the dancers behind it.","night"]]},
-{id:"marathon",city:"nyc",name:"New York City Marathon",when:y=>[[eNth(y,11,0,1)]],time:"Runners pass from about 8:30 am into the evening",where:"All five boroughs",
+{id:"marathon",city:"nyc",name:"New York City Marathon",when:y=>[[eNth(y,11,0,1)]],time:"8 am to about 6 pm",where:"All five boroughs",
  why:"The emotion is in the faces on both sides of the barrier, not in the running.",
  spot:"Fourth Av in Brooklyn for easy access, First Av above 59 St for the noise, Central Park South for exhaustion.",
  ideas:[["moment","Spotting their runner","A spectator in the second they see the person they came for.","zone"],["energy","The pack","Runners streaming past one still spectator holding a sign.","drag"],["mood","Foil capes","Finishers wrapped in foil, walking slowly away from the park.","shallow"]]},
@@ -1429,15 +1429,16 @@ const EV_ROUTE = {
   spots:[[40.7236,-74.0049,350,"Canal Street line-up","Before 7 pm the costumes gather here with room to move; the best portraits are made before the parade starts."],
    [40.7295,-74.0012,209,"Sixth Avenue at Bleecker","In the thick of it: barriers and a wall of people, puppets lit from below. Shoot over heads or from the kerb."],
    [40.7382,-73.9962,209,"Sixth Avenue at 15th Street","Where the parade spreads out and ends; room at the barriers and the marchers relax."]]},
- marathon:{approx:true,line:[[40.6054,-74.0583],[40.6066,-74.0450],[40.6187,-74.0313],[40.6333,-74.0225],[40.6471,-74.0120],[40.6615,-74.0013],[40.6727,-73.9919],[40.6803,-73.9818],[40.6838,-73.9775],[40.6866,-73.9755],[40.6883,-73.9690],[40.6898,-73.9536],[40.6958,-73.9530],[40.7083,-73.9545],[40.7183,-73.9575],[40.7265,-73.9530],[40.7325,-73.9535],[40.7372,-73.9533],[40.7450,-73.9480],[40.7532,-73.9510],[40.7598,-73.9620],[40.7640,-73.9595],[40.7780,-73.9490],[40.7900,-73.9400],[40.8037,-73.9330],[40.8073,-73.9303],[40.8128,-73.9332],[40.8168,-73.9365],[40.8110,-73.9400],[40.8045,-73.9450],[40.7980,-73.9490],[40.7920,-73.9535],[40.7836,-73.9590],[40.7760,-73.9655],[40.7700,-73.9700],[40.7659,-73.9762],[40.7681,-73.9819],[40.7729,-73.9770]],from:"Fort Wadsworth, Staten Island",to:"Tavern on the Green, Central Park",
+ marathon:{approx:true,line:[[40.6054,-74.0583],[40.6066,-74.0450],[40.6187,-74.0313],[40.6333,-74.0225],[40.6471,-74.0120],[40.6615,-74.0013],[40.6727,-73.9919],[40.6803,-73.9818],[40.6838,-73.9775],[40.6866,-73.9755],[40.6883,-73.9690],[40.6898,-73.9536],[40.6958,-73.9530],[40.7083,-73.9545],[40.7183,-73.9575],[40.7265,-73.9530],[40.7325,-73.9535],[40.7372,-73.9533],[40.7450,-73.9480],[40.7532,-73.9510],[40.7598,-73.9620],[40.7640,-73.9595],[40.7780,-73.9490],[40.78581,-73.94285],[40.80175,-73.9312],[40.8045,-73.9282],[40.80719,-73.9243],[40.80816,-73.92652],[40.81198,-73.92373],[40.81238,-73.92468],[40.81095,-73.92712],[40.8150,-73.9318],[40.81396,-73.93462],[40.81207,-73.93602],[40.81275,-73.93764],[40.80574,-73.94275],[40.8045,-73.9450],[40.80323,-73.9446],[40.79691,-73.94922],[40.7841,-73.95856],[40.7836,-73.9600],[40.7760,-73.9665],[40.7700,-73.9705],[40.7660,-73.9735],[40.7644,-73.9730],[40.76688,-73.97908],[40.7681,-73.9819],[40.7700,-73.9800],[40.7722,-73.9775]],from:"Fort Wadsworth, Staten Island",to:"Tavern on the Green, Central Park",
   spots:[[40.6340,-74.0222,210,"Fourth Avenue at 75th Street, Bay Ridge","Mile 4 to 5: the whole field passes with the sun from the east and room at the kerb. The R to 77th Street."],
    [40.6880,-73.9700,100,"Lafayette Avenue at Fort Greene","Mile 8: brownstones, church choirs and the loudest crowd in Brooklyn. Face east into the runners."],
    [40.7083,-73.9545,205,"Bedford Avenue at Division Avenue","Mile 10: a quiet stretch through South Williamsburg; runners against the row houses, few spectators."],
    [40.7372,-73.9533,200,"Pulaski Bridge","Halfway. The Midtown skyline stands behind the runners; the bridge is closed to spectators, so stand at the Queens end on 11th Street."],
    [40.7640,-73.9595,210,"First Avenue at 64th Street","Mile 16: runners come off the Queensboro Bridge into a wall of sound. Packed; arrive by noon."],
    [40.7900,-73.9400,210,"First Avenue at 100th Street","Mile 18: the crowd thins and the runners spread out; room at the barriers all afternoon."],
-   [40.8045,-73.9450,20,"Fifth Avenue at 124th Street, Harlem","Mile 22, by Marcus Garvey Park: the tiring field, gospel singers and the last flat before the hill."],
-   [40.7836,-73.9590,20,"Fifth Avenue at 90th Street","Mile 23: the long climb beside the park wall, faces showing the effort, trees behind."],
+   [40.81238,-73.92468,250,"Third Avenue at 141st Street, Mott Haven","Mile 20.5, on the new Bronx turn: a short, loud stretch with music on every corner and room at the barriers."],
+   [40.8058,-73.9430,200,"Fifth Avenue at 124th Street, Harlem","Mile 22, by Marcus Garvey Park: the tiring field, gospel singers and the last flat before the hill."],
+   [40.7905,-73.9540,200,"Fifth Avenue at 100th Street","Mile 23: the long climb beside the park wall, faces showing the effort, trees behind."],
    [40.7665,-73.9765,110,"Central Park South at Sixth Avenue","Mile 25.5: the last turn, deep crowds and the park in autumn colour behind the runners."]]},
  thanksgiving:{line:[[40.7794,-73.9762],[40.7760,-73.9787],[40.7725,-73.9812],[40.7681,-73.9819],[40.7668,-73.9795],[40.7653,-73.9760],[40.7612,-73.9790],[40.7572,-73.9820],[40.7536,-73.9846],[40.7497,-73.9869],[40.7507,-73.9894]],from:"77th Street and Central Park West",to:"Macy's, 34th Street",
   spots:[[40.7813,-73.9740,250,"81st Street at Central Park West","The balloons under their nets the afternoon before, and the first lift at 9 am: low sun from the side, handlers close enough to talk to."],
@@ -1475,6 +1476,43 @@ const EV_ROUTE = {
   spots:[[40.7935,-73.9453,120,"106th Street at Park Avenue","The line-up: camels, kings and schoolchildren in crowns, before the walk begins."]]},
  sangennaro:{line:[[40.7180,-73.9971],[40.7193,-73.9975],[40.7210,-73.9968],[40.7240,-73.9955]],from:"Canal Street",to:"Houston Street",festival:true,
   spots:[[40.7193,-73.9975,200,"Mulberry Street at Grand Street","The sausage stands and the lights; busiest after dark, best for faces in the stall lights."]]}};
+/* The marathon through the day: when the leaders and the field reach each point. Start times are the 2026 ones; paces are typical
+   (the wheelchair leaders about 1:32 and 1:45, the elite women about 2:22, the elite men about 2:08; the field from the front of
+   wave 1 at about 2:40 to the back of wave 5 at about 6:30). Miles along the drawn line are pinned to known points on the course,
+   so a spot's mile is within a few tenths. */
+const EV_RACE = {marathon:{
+  anchors:[[40.6054,-74.0583,0],[40.6838,-73.9775,8],[40.7372,-73.9533,13.1],[40.7598,-73.9620,16],[40.80719,-73.9243,20],[40.81396,-73.93462,21],[40.7836,-73.9600,23.8],[40.7722,-73.9775,26.2]],
+  lead:[["Wheelchair men",8*60,3.47,"w"],["Wheelchair women",8*60+2,4.0,"w"],["Elite women",8*60+35,5.42,"f"],["Elite men",9*60+5,4.85,"m"]],
+  field:{front:[9*60+10,6.1],thick0:[9*60+10,8.0],thick1:[10*60+55,11.45],tail:[11*60+30,14.9]}}};
+/* The drawn line as map points with the distance along it, and the miles at each vertex from the anchors. */
+function raceLine(id){ const RC=EV_RACE[id], RT=EV_ROUTE[id]; if(!RC||!RT) return null; if(RC._L) return RC._L;
+  const P=RT.line.map(([la,lo])=>mapXY(la,lo)), D=[0]; for(let i=1;i<P.length;i++) D.push(D[i-1]+Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]));
+  const near=([la,lo])=>{ const [x,y]=mapXY(la,lo); let b=0,bd=1e9; P.forEach((p,i)=>{ const d=Math.hypot(p[0]-x,p[1]-y); if(d<bd){ bd=d; b=i; } }); return b; };
+  const A=RC.anchors.map(a=>[D[near(a)],a[2]]).sort((a,b)=>a[0]-b[0]);
+  const mileAt=d=>{ for(let i=1;i<A.length;i++) if(d<=A[i][0]) return A[i-1][1]+(A[i][1]-A[i-1][1])*(d-A[i-1][0])/((A[i][0]-A[i-1][0])||1); return A[A.length-1][1]; };
+  const M=D.map(mileAt); return RC._L={P,D,M}; }
+/* The point on the line at a given mile, and the mile nearest a point. */
+function raceAt(id,mile){ const L=raceLine(id); if(!L) return null; const {P,M}=L; if(mile<=0) return P[0]; if(mile>=M[M.length-1]) return P[P.length-1];
+  for(let i=1;i<M.length;i++) if(mile<=M[i]){ const f=(mile-M[i-1])/((M[i]-M[i-1])||1); return [P[i-1][0]+(P[i][0]-P[i-1][0])*f,P[i-1][1]+(P[i][1]-P[i-1][1])*f]; } return P[P.length-1]; }
+function raceMile(id,lat,lon){ const L=raceLine(id); if(!L) return null; const [x,y]=mapXY(lat,lon); let best=null;
+  for(let i=0;i<L.P.length-1;i++){ const [x1,y1]=L.P[i],[x2,y2]=L.P[i+1], dx=x2-x1, dy=y2-y1, LL=dx*dx+dy*dy||1e-9, t=Math.max(0,Math.min(1,((x-x1)*dx+(y-y1)*dy)/LL)), d=Math.hypot(x-x1-dx*t,y-y1-dy*t);
+    if(!best||d<best.d) best={d,mile:L.M[i]+(L.M[i+1]-L.M[i])*t}; } return best&&best.d<4?best.mile:null; }
+/* The stretch of line between two miles, as an SVG path. */
+function racePath(id,m0,m1,f){ const L=raceLine(id); if(!L||m1<=m0) return ""; const pts=[raceAt(id,m0)]; L.M.forEach((m,i)=>{ if(m>m0&&m<m1) pts.push(L.P[i]); }); pts.push(raceAt(id,m1)); return 'M'+pts.map(([x,y])=>f(x)+' '+f(y)).join('L'); }
+const raceMins = (t0,pace,mile) => Math.round(t0+pace*mile);
+function raceSpotTimes(id,mile){ const RC=EV_RACE[id]; if(!RC||mile==null) return null; const F=RC.field;
+  return {mile, lead:RC.lead.map(([n,t0,p])=>[n,raceMins(t0,p,mile)]), front:raceMins(F.front[0],F.front[1],mile), thick:[raceMins(F.thick0[0],F.thick0[1],mile),raceMins(F.thick1[0],F.thick1[1],mile)], tail:raceMins(F.tail[0],F.tail[1],mile)}; }
+const raceTimesTxt = T => 'Mile '+(Math.round(T.mile*10)/10)+': wheelchair leaders about '+hmText(T.lead[0][1])+', elite women '+hmText(T.lead[2][1])+', elite men '+hmText(T.lead[3][1])+'. Runners from about '+hmText(T.front)+' to '+hmText(T.tail)+', thickest '+hmText(T.thick[0])+' to '+hmText(T.thick[1])+'.';
+/* Where everyone is at minute m of race day. */
+function raceNow(id,m){ const RC=EV_RACE[id]; if(!RC) return null; const F=RC.field, at=(t0,p)=>(m-t0)/p, fin=26.2;
+  const lead=RC.lead.map(([n,t0,p,k])=>({n,k,mile:at(t0,p)})).filter(o=>o.mile>0&&o.mile<fin);
+  const front=Math.min(fin,at(F.front[0],F.front[1])), tail=Math.max(0,at(F.tail[0],F.tail[1])), th0=Math.min(fin,at(F.thick0[0],F.thick0[1])), th1=Math.max(0,at(F.thick1[0],F.thick1[1]));
+  return {lead, field:front>0&&tail<fin?[tail,front]:null, thick:th0>0&&th1<fin&&th0>th1?[th1,th0]:null}; }
+function raceNowTxt(id,m){ const N=raceNow(id,m); if(!N) return ""; const where=mile=>{ const p=raceAt(id,mile), ll=[40.95-p[1]/2000,p[0]/(0.758*2000)-74.30], h=nearestHood(ll[0],ll[1]); return 'mile '+Math.round(mile)+(h?' ('+h+')':''); };
+  const bits=[]; N.lead.filter(o=>o.k!=="w"||o.n==="Wheelchair men").forEach(o=>bits.push(o.n.replace("Wheelchair men","Wheelchair leaders")+' near '+where(o.mile)));
+  if(N.field) bits.push('runners from '+where(N.field[0])+' to '+where(N.field[1])+(N.thick?', thickest '+where(N.thick[0])+' to '+where(N.thick[1]):''));
+  if(!bits.length) return m<8*60?'The race starts at 8 am with the wheelchair division.':'The course has closed for the day.';
+  return 'At '+hmText(m)+': '+bits.join('; ')+'.'; }
 function evRouteSpot(k){ const [id,i]=k.split(":"), R=EV_ROUTE[id]; return R&&R.spots[+i]||null; }
 const EVENT_VIEW = {
   threekings:{face:299,street:119,arrive:"Be at 106th Street and Park Avenue by 10:30 am, where groups and animals line up; the walk along 106th is short, so the lining-up is most of the picture. The 6 train to 103rd Street."},
@@ -1510,7 +1548,7 @@ const compass4 = b => ["north","east","south","west"][Math.round((((b%360)+360)%
 const stopName = s => s.ev ? (EVENTS.find(x=>x.id===s.ev)||{name:s.ev}).name : PLACES[s.place].name;
 /* The light during an event: the sun through its window, sunset, and for a parade which side of the street is lit. */
 function eventLight(e,day){ const c=CITIES[state.city], w=evWindow(e,day)||[13*60,16*60], at=m=>new Date(day.getFullYear(),day.getMonth(),day.getDate(),0,m), V=EVENT_VIEW[e.id]||{};
-  const t0=at(w[0]), t1=at(Math.min(w[1],1439)), mid=at(Math.round((w[0]+Math.min(w[1],1439))/2)), set=sunTimes(day,c.lat,c.lon)[1], setM=set.getHours()*60+set.getMinutes();
+  const t0=at(w[0]), t1=at(Math.min(w[1],1439)), mid=at(Math.round((w[0]+Math.min(w[1],1439))/2)), set=sunTimes(new Date(+day+12*36e5),c.lat,c.lon)[1], setM=set.getHours()*60+set.getMinutes();
   const ph=t=>sunPhase(sunPos(t,c.lat,c.lon).alt), p0=ph(t0), p1=ph(t1), pm=ph(mid), spm=sunPos(mid,c.lat,c.lon), spm0=sunPos(t0,c.lat,c.lon);
   const name={day:"daylight",gold:"golden hour",blue:"blue hour",night:"dark"};
   let line=hmText(w[0])+' to '+hmText(Math.min(w[1],1439))+': ';
@@ -1556,7 +1594,7 @@ function eventSoon(o, today){
    The weather reading comes from the artifact database (collection "weather", doc id = city id),
    refreshed by a scheduled task. The user can override it by hand. */
 let WEATHER = {};
-function sunTimes(date,lat,lon){
+function sunTimes(date,lat,lon){ date=new Date(date); date.setHours(12,0,0,0);   // the local day's sunrise and sunset, whatever the hour passed in
   const rad=Math.PI/180, dayMs=864e5, J1970=2440588, J2000=2451545;
   const lw=-lon*rad, phi=lat*rad, d=date/dayMs-0.5+J1970-J2000;
   const n=Math.round(d-0.0009-lw/(2*Math.PI)), ds=0.0009+lw/(2*Math.PI)+n;
@@ -2545,7 +2583,7 @@ function evStrip(rows,today,sel){ const days=[]; for(let k=0;k<35;k++) days.push
 function evMeta(r,today){ if(!r.o||r.cancelled||r.game) return ""; const d=evDay(r.o[0]<today?today:r.o[0]), w=evWindow(r.e,d); if(!w) return "";
   const t=new Date(d.getFullYear(),d.getMonth(),d.getDate(),0,w[0]), c=CITIES[state.city], ph=sunPhase(sunPos(t,c.lat,c.lon).alt), days=(d-today)/864e5;
   const f=days<7?hourlyAt(t):null, sky=f?skyAt(t):undefined, wx=f?'<span class="evwx" title="'+esc(sky?WX_WORD[sky]:f.cc>=50?'Some cloud':'Clear')+'">'+wxIcon(sky||(f.cc>=50?"cloud":""),ph!=="night")+(f.temp!=null?Math.round(f.temp*9/5+32)+'°':'')+'</span>':'';
-  const gl=evGreatLight(r,today), rn=evRain(r,today), going=state.evGoing&&state.evGoing.has(r.e.id);
+  const gl=evLightTag(r,today), rn=evRain(r,today), going=state.evGoing&&state.evGoing.has(r.e.id);
   return '<span class="evmeta">'+(gl?'<span class="evgl">✨ '+gl+'</span>':'')+(rn&&going?'<span class="evrain">☔ '+(rn.snow?'Snow':'Rain')+' likely at '+hmText(rn.t)+'</span>':'')+(r.o[0]<today?'Today ':'')+hmText(w[0])+' · '+(ph==="day"?(t.getHours()<11?'morning light':t.getHours()<15?'midday sun':'afternoon light'):(ph==="night"?'after dark':SUN_PHASE[ph].toLowerCase()))+wx+'</span>'; }
 /* What a calendar entry for an event holds, for Add to Google Calendar from the Going star. */
 function evCalEv(e,o){ const c=calInfo(e,o), ymd=s=>s.slice(0,4)+"-"+s.slice(4,6)+"-"+s.slice(6,8)+"T00:00:00"; return {summary:c.title,start:ymd(c.start),end:ymd(c.end),allDay:true,location:c.loc,description:c.desc}; }
@@ -2565,6 +2603,21 @@ const RAIN_SHOTS=[["Reflections in the wet street","Get low over a puddle or the
   ["A face under an umbrella","Get close: the umbrella frames the face and the rain catches the light behind it.","shallow"]];
 function evRainPlan(r,today,cam){ const rn=evRain(r,today); if(!rn) return "";
   return '<div class="part evrainplan"><span class="label">☔ Rain plan · '+(rn.snow?'snow':'rain')+' likely at '+hmText(rn.t)+(rn.pop!=null?' ('+rn.pop+'%)':'')+'</span><ul class="eideas">'+RAIN_SHOTS.map(([t,x,rc])=>'<li><b>'+esc(t)+'</b><span>'+esc(x)+'</span><span class="set">'+esc(cam.recipes[rc][0])+'</span></li>').join("")+'</ul><p class="msg">Keep a cloth for the lens and shoot from under an awning between bursts.</p></div>'; }
+/* The event's day as a bar: the light through the day with the event's hours marked, and a line on what the light does while it is on. */
+function evDayBar(r){ if(!r.o||r.cancelled||r.game) return ""; const today=evDay(new Date()), d=evDay(r.o[0]<today?today:r.o[0]), RC=EV_RACE[r.e.id], w=RC?[RC.lead[0][1],raceMins(RC.field.tail[0],RC.field.tail[1],26.2)]:evWindow(r.e,d); if(!w) return "";
+  const L=lightDay(d), e1=Math.min(w[1],1439), a=Math.max(0,Math.min(300,w[0]-60)), b=Math.min(1440,Math.max(1380,e1+60)), pc=m=>((m-a)/(b-a)*100).toFixed(2)+'%';
+  const bar='linear-gradient(to right,'+L.runs.filter(x=>x.e>a&&x.s<b).map(x=>LIGHT_COL[x.ph]+' '+pc(Math.max(a,x.s))+','+LIGHT_COL[x.ph]+' '+pc(Math.min(b,x.e))).join(",")+')';
+  // what the light does during the event: phases in order, merged
+  const parts=[]; L.runs.forEach(x=>{ const s=Math.max(x.s,w[0]), e=Math.min(x.e,e1); if(e-s<5) return; const nm=x.ph==="day"?(e-s>4*60?"daylight":s<11*60?"morning light":s<15*60?"midday sun":"afternoon light"):x.ph==="gold"?"golden hour":x.ph==="blue"?"blue hour":"dark";
+    const last=parts[parts.length-1]; if(last&&last.n===nm) last.e=e; else parts.push({n:nm,s,e}); });
+  const say=parts.length>5||e1-w[0]>14*60?'':parts.length===1&&parts[0].n==="dark"?'after dark the whole time':parts.map((p,i)=>i===0?p.n+(parts.length>1?' until '+hmText(p.e):''):i===parts.length-1?(p.n==="dark"?'then dark':p.n+' from '+hmText(p.s)):p.n+' '+hmText(p.s)+'–'+hmText(p.e)).join(', ');
+  const ticks=[[L.rise,'Sunrise'],[L.set,'Sunset']].filter(([m])=>m>a&&m<b);
+  return '<div class="part evday"><span class="label">The light on the day</span><div class="evdbar" style="background:'+bar+'"><i class="evdwin" style="left:'+pc(w[0])+';width:calc('+pc(e1)+' - '+pc(w[0])+')"></i>'+ticks.map(([m,n])=>'<b class="evdt" style="left:'+pc(m)+'" title="'+n+' '+hmText(m)+'"></b>').join("")+'</div>'+
+    '<div class="evdlab">'+(ticks.every(([m])=>(m-a)/(b-a)>0.24)?'<span class="e0">'+hmText(a)+'</span>':'')+ticks.map(([m,n])=>'<span class="tk" style="left:'+pc(m)+';transform:translateX(-'+pc(m)+')">'+n+' '+hmText(m)+'</span>').join("")+(ticks.every(([m])=>(b-m)/(b-a)>0.24)?'<span class="e1">'+hmText(Math.min(b,1439))+'</span>':'')+'</div>'+
+    '<p class="msg"><b>'+hmText(w[0])+(w[1]>w[0]?' to '+hmText(e1):'')+'</b>'+(say?': '+esc(say)+'.':'.')+'</p></div>'; }
+/* The light tag on an event: "golden hour" when it is on through it, "into golden hour" when it starts well before. */
+function evLightTag(r,today){ const gl=evGreatLight(r,today); if(!gl) return null; const d=evDay(r.o[0]<today?today:r.o[0]), w=evWindow(r.e,d), hit=w&&todayWindows(d).list.find(x=>w[0]<x.e&&Math.min(w[1],1439)>x.s);
+  return hit&&w[0]<hit.s-45?'runs into '+gl:gl; }
 /* Which way you face at the viewing spot, and where the sun is, at the start. */
 function evFaceBlock(r){ const V=EVENT_VIEW[r.e.id]; if(!V||V.face==null||!r.o||r.cancelled) return ""; const d=evDay(r.o[0]<evDay(new Date())?new Date():r.o[0]), w=evWindow(r.e,d)||[13*60,16*60], t=new Date(d.getFullYear(),d.getMonth(),d.getDate(),0,w[0]), lf=lightFacing(V.face,t), c=CITIES[state.city], sp=sunPos(t,c.lat,c.lon);
   return '<div class="part stand evface"><span class="label">At the viewing spot, '+hmText(w[0])+'</span><div class="standrow">'+standDial(V.face,t)+'<div class="standtxt"><b>Face '+compass(V.face)+'</b><span><span class="sdk '+lf.k+'">'+esc(lf.txt)+'</span>'+(sp.alt>-0.8?' · sun to the '+compass(sp.az)+', '+Math.max(0,Math.round(sp.alt))+'° up':' · after sunset')+'</span></div></div></div>'; }
@@ -2675,7 +2728,7 @@ function renderEvents(){
       (games.length?'<div class="part"><span class="label">Home games from the league schedule</span><ul class="games">'+games.map(g=>'<li><b>'+g.game.at.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})+'</b> '+hmText(g.game.at.getHours()*60+g.game.at.getMinutes())+' · '+esc(g.game.title)+'</li>').join("")+'</ul>'+(EVENT_DOCS._fixtures&&EVENT_DOCS._fixtures.checked?'<p class="msg">Schedule checked '+esc(EVENT_DOCS._fixtures.checked)+'; times can move for television.</p>':'')+'</div>':'')+
       (e.spot?'<div class="part"><span class="label">'+(PHOTO_TYPES.has(e.type)?"Good to know":"Where to be")+'</span><p>'+esc(e.spot)+'</p></div>':'')+
       (o&&!PHOTO_TYPES.has(e.type)?'<div class="part evlight"><span class="label">The light during the event</span>'+eventLight(e,evDay(o[0])).map(x=>'<p>'+esc(x)+'</p>').join("")+'</div>':'')+
-      evFaceBlock(r)+evRainPlan(r,today,cam)+
+      evDayBar(r)+(EV_RACE[r.e.id]?(()=>{ const RT=EV_ROUTE[r.e.id]; return '<div class="part"><span class="label">When the runners pass</span><ul class="eideas">'+RT.spots.map(S=>{ const T=raceSpotTimes(r.e.id,raceMile(r.e.id,S[0],S[1])); return T?'<li><b>'+esc(S[3])+'</b><span>'+esc(raceTimesTxt(T))+'</span></li>':''; }).join("")+'</ul><p class="msg">Typical paces from the 2026 start times (wheelchair 8 am, elite women 8:35, elite men 9:05, waves from 9:10 to 11:30). Tap Route and viewing spots on the map to follow them through the day.</p></div>'; })():'')+evFaceBlock(r)+evRainPlan(r,today,cam)+
       (EVENT_VIEW[e.id]&&EVENT_VIEW[e.id].arrive?'<div class="part"><span class="label">Getting there and when</span><p>'+esc(EVENT_VIEW[e.id].arrive)+'</p></div>':'')+
       (o&&(EVENT_GEO[e.id]||(EVENT_DOCS[e.id]&&typeof EVENT_DOCS[e.id].lat==="number"))&&!r.cancelled?'<div class="callinks"><button type="button" class="chip primary" data-planev="'+esc(e.id)+'">Plan this outing</button><button type="button" class="chip" data-mapev="'+esc(e.id)+'">'+(EV_ROUTE[e.id]?(EV_ROUTE[e.id].festival?'The street on the map':'Route and viewing spots on the map'):'Viewing spot on the map')+'</button></div>':'')+
       '<div class="callinks evacts">'+(e.ideas.length&&o&&!r.cancelled?'<button type="button" class="chip primary" data-evshoot="'+esc(e.id)+'">📷 Shoot this event'+(()=>{ const S=(state.evShots||store.get("evShots",{})||{})[e.id], n=S?Object.keys(S).length:0; return n?' · '+n+' of '+e.ideas.length+' shot':''; })()+'</button>':'')+'<button type="button" class="chip" data-evshare="'+esc(e.id)+'">Share ↗</button></div>'+
@@ -2948,7 +3001,7 @@ Object.assign(START_GEO, {"union": [40.7351, -73.9906], "fidi": [40.7071, -74.01
 const EV_WORDS = [["early morning",420,540],["late morning",630,720],["morning",540,720],["midday",720,840],["early afternoon",780,900],["late afternoon",960,1080],["afternoon",780,1020],["early evening",1080,1200],["evening",1080,1260],["daytime",600,1080],["all day",480,1200]];
 function evWindow(e,day){ const s=String(e.time||"").toLowerCase().replace(/\bnoon\b/g,"12 pm").replace(/\bmidnight\b/g,"11:59 pm"), toks=[];
   s.replace(/(\d{1,2})(?::(\d\d))?\s*(am|pm)\b/g,(m,h,mi,ap,idx)=>{ toks.push({min:(+h%12+(ap==="pm"?12:0))*60+(+mi||0),idx}); return m; });
-  const c=CITIES[state.city], dusk=()=>{ const t=sunTimes(day,c.lat,c.lon)[1]; return t.getHours()*60+t.getMinutes()-20; };
+  const c=CITIES[state.city], dusk=()=>{ const t=sunTimes(new Date(new Date(day).setHours(12,0,0,0)),c.lat,c.lon)[1]; return t.getHours()*60+t.getMinutes()-20; };
   const words=[]; let rest=s; for(const [w,a,b] of EV_WORDS){ const i=rest.indexOf(w); if(i>=0){ words.push({i,a,b}); rest=rest.slice(0,i)+" ".repeat(w.length)+rest.slice(i+w.length); } }
   if(/\b(dusk|sunset)\b/.test(s)){ const d=dusk(); words.push({i:s.search(/\b(dusk|sunset)\b/),a:d,b:d+60}); } words.sort((x,y)=>x.i-y.i);
   if(toks.length>=2){ const ms=toks.map(t=>t.min); return [Math.min(...ms),Math.max(...ms)]; }
@@ -4115,7 +4168,10 @@ function mapDraw(){
   let routes=""; if(state.mapShowEv){ const dayR=mapDay(), ins=(x,y,m)=>x>x0+m&&x<x1-m&&y>y0+m&&y<y1-m; for(const e of mapEvents()){ const RT=EV_ROUTE[e.id]; if(!RT) continue; const on=e.id===state.mapEv; if(!on&&!evOnDay(e.r,dayR,false)) continue;
       const P=RT.line.map(([la,lo])=>mapXY(la,lo)); if(!P.some(([x,y])=>ins(x,y,-10*u))&&!on) continue; const d='M'+P.map(([x,y])=>f(x)+' '+f(y)).join('L');
       let chev=""; if(!RT.festival){ const step=16*u; for(let i=0;i<P.length-1;i++){ const [ax,ay]=P[i], [bx,by]=P[i+1], L=Math.hypot(bx-ax,by-ay); if(L<step*0.6) continue; const tx=(bx-ax)/L, ty=(by-ay)/L, k=3*u; for(let t=step/2;t<L;t+=step){ const x=ax+tx*t, y=ay+ty*t; chev+='M'+f(x-tx*k-ty*k)+' '+f(y-ty*k+tx*k)+'L'+f(x)+' '+f(y)+'L'+f(x-tx*k+ty*k)+' '+f(y-ty*k-tx*k); } } }
-      routes+='<g class="m-evrt'+(on?' on':'')+(RT.festival?' fest':'')+'" data-evrt="'+esc(e.id)+'"><path d="'+d+'" class="m-evrtc" stroke-width="'+f((on?7:5.5)*u)+'"/><path d="'+d+'" class="m-evrtl" stroke-width="'+f((on?3.4:2.4)*u)+'"'+(RT.festival?' stroke-dasharray="'+f(3*u)+' '+f(3*u)+'"':'')+'/>'+(chev?'<path d="'+chev+'" class="m-evrtv" stroke-width="'+f(1.3*u)+'"/>':'')+'</g>';
+      let race=""; if(EV_RACE[e.id]&&evOnDay(e.r,dayR,false)){ const t=mapNow(), N=raceNow(e.id,t.getHours()*60+t.getMinutes());
+        if(N){ if(N.field) race+='<path d="'+racePath(e.id,N.field[0],N.field[1],f)+'" class="m-racef" stroke-width="'+f(9*u)+'"/>'; if(N.thick) race+='<path d="'+racePath(e.id,N.thick[0],N.thick[1],f)+'" class="m-racet" stroke-width="'+f(9*u)+'"/>';
+          N.lead.forEach((o,i)=>{ if(o.n==="Wheelchair women") return; const [x,y]=raceAt(e.id,o.mile), r=(w<120?7:8.5)*u; race+='<g class="m-racel '+o.k+'"><circle cx="'+f(x)+'" cy="'+f(y)+'" r="'+f(r)+'" stroke-width="'+f(1.4*u)+'"/><text x="'+f(x)+'" y="'+f(y+2.8*u)+'" text-anchor="middle" font-size="'+f(7.5*u)+'">'+({w:"W",f:"F",m:"M"}[o.k])+'</text></g>'; }); } }
+      routes+='<g class="m-evrt'+(on?' on':'')+(RT.festival?' fest':'')+'" data-evrt="'+esc(e.id)+'"><path d="'+d+'" class="m-evrtc" stroke-width="'+f((on?7:5.5)*u)+'"/><path d="'+d+'" class="m-evrtl" stroke-width="'+f((on?3.4:2.4)*u)+'"'+(RT.festival?' stroke-dasharray="'+f(3*u)+' '+f(3*u)+'"':'')+'/>'+(chev?'<path d="'+chev+'" class="m-evrtv" stroke-width="'+f(1.3*u)+'"/>':'')+'</g>'+race;
       if(w<150){ const fov=camFov(); RT.spots.forEach((S,i)=>{ const [x,y]=mapXY(S[0],S[1]); if(!ins(x,y,0)) return; const k=e.id+":"+i, sel=state.mapEvSpot===k, lf=lightFacing(S[2],mapNow()), L=(sel?34:22)*u, a0=(S[2]-fov/2)*Math.PI/180, a1=(S[2]+fov/2)*Math.PI/180;
           taken.push([x-8*u,y-8*u,x+8*u,y+8*u]);
           routes+='<g class="m-spotg m-evsp'+(sel?' on':'')+'" data-evsp="'+esc(k)+'" tabindex="0" role="button" aria-label="'+esc(S[3]+", viewing spot, face "+compass(S[2])+", "+lf.txt)+'">'+(sel||w<60?'<path d="M'+f(x)+' '+f(y)+' L'+f(x+Math.sin(a0)*L)+' '+f(y-Math.cos(a0)*L)+' A'+f(L)+' '+f(L)+' 0 0 1 '+f(x+Math.sin(a1)*L)+' '+f(y-Math.cos(a1)*L)+'Z" class="m-cone '+lf.k+'" stroke-width="'+f((sel?1.2:0.7)*u)+'"/>':'')+
@@ -4424,10 +4480,12 @@ function mapPanel(){
         (()=>{ const V=EVENT_VIEW[evSel.id]||{}, g=eventGeo(evSel.id), t=mapNow(), lf=V.face!=null?lightFacing(V.face,t):null; return (evSel.r.e.map&&evSel.r.e.map[0]?'<p class="mapcount"><b>Viewing spot: '+esc(evSel.r.e.map[0])+'</b>'+(lf?' · face '+compass(V.face)+' · <span class="sdk '+lf.k+'">'+esc(lf.txt)+'</span> at '+hmText(t.getHours()*60+t.getMinutes())+'<span class="turnhint" data-face="'+V.face+'">'+turnText(V.face)+'</span>':'')+'</p>'+(lf?lightStrip(V.face):''):'')+
           '<div class="callinks guidecta">'+(g?(state.guide&&state.guide.id==="ev:"+evSel.id?'<button type="button" class="chip" data-guidestop="1">Stop guiding</button>':'<button type="button" class="chip primary" data-guide="ev:'+esc(evSel.id)+'">Guide me there</button>')+'<a class="chip" href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint='+g[0].toFixed(6)+','+g[1].toFixed(6)+'&heading='+(V.face||29)+'&pitch=0&fov=80" target="_blank" rel="noopener">Street View ↗</a>':'')+'</div>'; })()+
         (()=>{ const RT=EV_ROUTE[evSel.id]; if(!RT) return ''; const t=mapNow(), cur=state.mapEvSpot, CS=cur&&evRouteSpot(cur), ci=cur?+cur.split(":")[1]:-1;
+          const isRace=!!EV_RACE[evSel.id], raceDay=isRace&&evOnDay(evSel.r,mapDay(),false), spT=S=>isRace?raceSpotTimes(evSel.id,raceMile(evSel.id,S[0],S[1])):null;
           return '<p class="spothead">'+(RT.festival?'The festival street':'The route')+' <span class="sh-sub">· '+esc(RT.from)+' to '+esc(RT.to)+(RT.approx?' · usual route':'')+'</span></p>'+
-            (CS?'<div class="evspsel"><b><span class="snum">'+(ci+1)+'</span> '+esc(CS[3])+'</b><p class="mapcount">'+esc(CS[4])+'</p>'+(()=>{ const lf=lightFacing(CS[2],t); return '<p class="maplight"><span class="sdot '+lf.k+'"></span><b>'+lf.txt+' at '+hmText(t.getHours()*60+t.getMinutes())+'</b> facing '+compass(CS[2])+'. '+LIGHT_TIP[lf.k]+'</p>'; })()+
+            (isRace?'<div class="racenow"><p class="mapcount">'+(raceDay?esc(raceNowTxt(evSel.id,t.getHours()*60+t.getMinutes())):'Set the map to race day to see where the runners are at each hour.')+'</p>'+(raceDay?'<p class="hint"><span class="rl w">W</span> wheelchair leaders · <span class="rl f">F</span> elite women · <span class="rl m">M</span> elite men · the light band is the field, the darker part the thickest. Typical paces from the 2026 start times; drag the time to follow them.</p>':'')+'</div>':'')+
+            (CS?'<div class="evspsel"><b><span class="snum">'+(ci+1)+'</span> '+esc(CS[3])+'</b><p class="mapcount">'+esc(CS[4])+'</p>'+(()=>{ const T=spT(CS); return T?'<p class="mapcount racetimes">'+esc(raceTimesTxt(T))+'</p>':''; })()+(()=>{ const lf=lightFacing(CS[2],t); return '<p class="maplight"><span class="sdot '+lf.k+'"></span><b>'+lf.txt+' at '+hmText(t.getHours()*60+t.getMinutes())+'</b> facing '+compass(CS[2])+'. '+LIGHT_TIP[lf.k]+'</p>'; })()+
               '<div class="callinks guidecta">'+(state.guide&&state.guide.id==="evs:"+cur?'<button type="button" class="chip" data-guidestop="1">Stop guiding</button>':'<button type="button" class="chip primary" data-guide="evs:'+esc(cur)+'">Guide me there</button>')+'<a class="chip" href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint='+CS[0].toFixed(6)+','+CS[1].toFixed(6)+'&heading='+CS[2]+'&pitch=0&fov=80" target="_blank" rel="noopener">Street View ↗</a></div></div>':'')+
-            '<p class="spothead">Where to watch</p>'+RT.spots.map((S,i)=>{ const k=evSel.id+":"+i, lf=lightFacing(S[2],t), mi=state.pos?kmBetween(state.pos,{lat:S[0],lon:S[1]})/1.609:null; return '<button type="button" class="srow'+(k===cur?' on':'')+'" data-evsp="'+esc(k)+'" aria-pressed="'+(k===cur)+'"><span class="snum '+lf.k+'">'+(i+1)+'</span><span class="t"><b>'+esc(S[3])+'</b> · face '+compass(S[2])+', '+esc(lf.txt.charAt(0).toLowerCase()+lf.txt.slice(1))+(mi!==null?' · '+milesText(mi):'')+'</span><span class="sgo" aria-hidden="true">◎</span></button>'; }).join("")+
+            '<p class="spothead">Where to watch</p>'+RT.spots.map((S,i)=>{ const k=evSel.id+":"+i, lf=lightFacing(S[2],t), mi=state.pos?kmBetween(state.pos,{lat:S[0],lon:S[1]})/1.609:null; return '<button type="button" class="srow'+(k===cur?' on':'')+'" data-evsp="'+esc(k)+'" aria-pressed="'+(k===cur)+'"><span class="snum '+lf.k+'">'+(i+1)+'</span><span class="t"><b>'+esc(S[3])+'</b> · face '+compass(S[2])+', '+esc(lf.txt.charAt(0).toLowerCase()+lf.txt.slice(1))+(mi!==null?' · '+milesText(mi):'')+(()=>{ const T=spT(S); return T?'<br><span class="racet">Mile '+(Math.round(T.mile*10)/10)+' · leaders '+hmText(T.lead[0][1])+'–'+hmText(T.lead[3][1])+' · crowd '+hmText(T.thick[0])+'–'+hmText(T.thick[1])+'</span>':''; })()+'</span><span class="sgo" aria-hidden="true">◎</span></button>'; }).join("")+
             '<div class="callinks"><button type="button" class="chip" data-evrtfit="'+esc(evSel.id)+'">Whole route on the map</button></div>'; })()+
         '<div class="callinks"><button type="button" class="chip primary" data-planev="'+esc(evSel.id)+'">Plan this outing</button><button type="button" class="chip" data-event="'+esc(evSel.id)+'">Open in Events</button>'+(evSel.r.e.map?'<a class="chip" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(evSel.r.e.map[1])+'" target="_blank" rel="noopener">Google Maps ↗</a>':'')+'</div></section>' :
     sel ? '<section class="group mapsel"><button type="button" class="mapselx" data-unsel="1" aria-label="Close">×</button>'+mapCard(sel,pl,d,mine,key)+(PHOTOS_INLINE&&PLACE_PHOTO[sel.id]?'<figure class="mapselfig"><img src="'+esc(PLACE_PHOTO[sel.id].src)+'" alt="'+esc(pl.name)+'" loading="lazy" onerror="this.parentNode.hidden=true"><figcaption><a href="'+esc(PLACE_PHOTO[sel.id].page)+'" target="_blank" rel="noopener">Photo: '+esc(PLACE_PHOTO[sel.id].by)+', '+esc(PLACE_PHOTO[sel.id].lic)+', Wikimedia Commons</a></figcaption></figure>':'')+'<div class="mwhere">'+whereHtml(pl)+'</div>'+startHtml(sel.id).replace('class="start"','class="start mapstart"')+

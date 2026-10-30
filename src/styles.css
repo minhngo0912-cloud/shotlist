@@ -1462,3 +1462,18 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 .mworks{line-height:1.5} .mworks .linkbtn{border:0;padding:0;background:none;color:var(--fg);font:inherit;text-align:left;cursor:pointer;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px}
 .wkl{margin:4px 0 8px;padding-left:18px;font-size:14px;line-height:1.5} .wkl .np{color:var(--muted)}
 .mlayer .lg.works{border:0;border-radius:2px;height:5px;width:16px;background:repeating-linear-gradient(90deg,#c8431f 0 4px,#fff 4px 7px);align-self:center}
+
+/* Marathon on the map, and the event's day bar */
+.m-racef{fill:none;stroke:rgba(214,69,61,.28);stroke-linecap:round;stroke-linejoin:round;pointer-events:none} .m-racet{fill:none;stroke:rgba(214,69,61,.6);stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.m-racel circle{stroke:#fff} .m-racel text{fill:#fff;font-weight:800;pointer-events:none} .m-racel.w circle{fill:#2a6fdb} .m-racel.f circle{fill:#b0389b} .m-racel.m circle{fill:#14161a}
+.racenow{margin:6px 0 4px;padding:8px 10px;border-radius:10px;background:var(--panel);border:1px solid var(--line)} .racenow .mapcount{margin:0} .racenow .hint{margin:6px 0 0}
+.rl{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:50%;color:#fff;font-size:10px;font-weight:800;vertical-align:-3px} .rl.w{background:#2a6fdb} .rl.f{background:#b0389b} .rl.m{background:#14161a}
+.racet{font-size:12.5px;color:var(--muted)} .racetimes{font-weight:600}
+.evday .evdbar{position:relative;height:16px;border-radius:8px;border:1px solid var(--line);margin:8px 0 2px;overflow:visible}
+.evdwin{position:absolute;top:-4px;bottom:-4px;border:2.5px solid var(--fg);border-radius:6px;background:rgba(255,255,255,.12);box-sizing:border-box;min-width:6px}
+.evdt{position:absolute;top:-3px;bottom:-3px;width:2px;margin-left:-1px;background:#e0a100}
+.evdlab{position:relative;height:16px;font-size:11px;color:var(--muted)} .evdlab span{position:absolute;white-space:nowrap;transform:translateX(-50%)} .evdlab span:first-child{left:0;transform:none} .evdlab span:last-child{right:0;transform:none}
+.evday .msg{margin-top:4px}
+
+.evdlab span.e0{left:0;transform:none} .evdlab span.e1{right:0;left:auto;transform:none}
+.evdlab span:first-child,.evdlab span:last-child{transform:translateX(-50%)} .evdlab span.e0:first-child{transform:none} .evdlab span.e1:last-child{transform:none}

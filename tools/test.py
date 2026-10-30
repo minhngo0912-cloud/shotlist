@@ -1070,6 +1070,22 @@ def run(path, name):
         pg.evaluate("mapSelect(null); state.mapD=0; state.mapT=null; mapDraw()")
         check("Routes draw on the event's day, a chosen route turns gold with numbered spots, a spot shows its cone, light and Guide me there, and Whole route fits it",
               r0==0 and r1 and r1[1]==r1[2] and r2==[1,1,True,"peek",True] and r3[0]=="columbus:0" and r3[1]==1 and r3[2] and r3[3] and "Cathedral" in r3[4] and r4[0] is None and r4[1], [r0,r1,r2,r3,r4])
+        # Marathon: miles pinned to the course, times at each spot, where the field is at the slider time; the event's day bar
+        rc=pg.evaluate("""(()=>{ const L=raceLine('marathon'), sp=EV_ROUTE.marathon.spots.map(S=>raceMile('marathon',S[0],S[1])), T=raceSpotTimes('marathon',13.1), N=raceNow('marathon',10*60+30);
+          return [Math.round(L.M[L.M.length-1]*10)/10, sp.every((m,i)=>m!==null&&(i===0||m>sp[i-1])), Math.round(sp[3]*10)/10, T.lead.map(x=>x[1]), [T.front,T.thick[0],T.thick[1],T.tail], N.lead.map(o=>o.n), N.field&&N.field.map(x=>Math.round(x)), /^At 10:30 am: Elite women near mile 21/.test(raceNowTxt('marathon',630)), raceNowTxt('marathon',7*60)]; })()""")
+        check("Marathon: miles pinned to the course in order, leaders and the field at each spot, and where everyone is at 10:30",
+              rc[0]==26.2 and rc[1] and rc[2]==13.1 and rc[3]==[525,534,586,609] and rc[4]==[630,655,805,885] and rc[5]==["Elite women","Elite men"] and rc[6]==[0,13] and rc[7] and rc[8].startswith("The race starts at 8 am"), rc)
+        pg.evaluate("""(()=>{ const k=[0,1,2,3,4,5,6,7].find(k=>{ const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()+k); return mapEvents().some(e=>e.id==='marathon'&&evOnDay(e.r,d,false)); }); window._mk=k; })()""")
+        mk=pg.evaluate("window._mk")
+        if mk is not None:
+            pg.evaluate("k=>{ state.mapD=k; state.mapT=630; mapSelectEv('marathon',true); }", mk); pg.wait_for_timeout(900)
+            rm=pg.evaluate("[document.querySelectorAll('.m-racef').length, document.querySelectorAll('.m-racel').length, /Elite women near mile 21/.test(document.querySelector('#mapPanel .racenow').textContent), document.querySelectorAll('#mapPanel .racet').length===EV_ROUTE.marathon.spots.length]")
+            check("Marathon on the map on race day: the field band, the leaders and where they are", rm==[1,2,True,True], rm)
+        pg.wait_for_timeout(600); pg.evaluate("cancelAnimationFrame(mapAnim); mapSelect(null); state.mapD=0; state.mapT=null")
+        db=pg.evaluate("""(()=>{ const r=eventRows(evDay(new Date())).find(x=>x.e.id==='halloween'), h=evDayBar(r), q=eventRows(evDay(new Date())).find(x=>x.e.id==='balloons'), hb=evDayBar(q), m=evDayBar(eventRows(evDay(new Date())).find(x=>x.e.id==='marathon'));
+          return [/evdwin/.test(h), /7 pm to 1\d pm<\/b>: after dark the whole time/.test(h), /Sunset 5:5\d pm/.test(h), /1 pm to 8 pm<\/b>: midday sun until 3:5\d pm, golden hour/.test(hb), /8 am to 6 pm<\/b>: daylight until 4:1\d pm, golden hour/.test(m), evLightTag(q,evDay(new Date())), eventLight(EVENTS.find(e=>e.id==='marathon'),new Date(2026,10,1)).join(' ').includes('4:54 pm')]; })()""")
+        check("Event day bar: the hours over the day's light, what the light does while it is on; the tag says when an event runs into golden hour; sunset right on the day the clocks change",
+              db==[True,True,True,True,True,"runs into golden hour",True], db)
         pg.fill("#mapQ","marathon"); pg.wait_for_timeout(150); pg.click("#mapQres .mq-it"); pg.wait_for_timeout(900)
         r5=pg.evaluate("[state.mapEv, document.querySelectorAll('.m-evrt.on').length, mapV.w>200]")
         check("Searching for the marathon shows its whole route", r5==["marathon",1,True], r5)
