@@ -60,10 +60,17 @@ def run(path, name):
         pg.route("**/api.open-meteo.com/**", lambda r: r.fulfill(status=200, content_type="application/json", body=_j.dumps(fake)))
         pg.route("**/api.rainviewer.com/**", lambda r: r.fulfill(status=200, content_type="application/json", body=_j.dumps({"host":"https://tilecache.rainviewer.com","radar":{"past":[{"time":1791745800,"path":"/v2/radar/test"}]}})))
         pg.route("**/tilecache.rainviewer.com/**", lambda r: r.fulfill(status=200, content_type="image/png", body=png))
+        _films=[{"eventid":"1","startdatetime":"2026-10-11T07:00:00.000","enddatetime":"2026-10-11T22:00:00.000","parkingheld":"WEST 47 STREET between 6 AVENUE and 7 AVENUE,  6 AVENUE between WEST 46 STREET and WEST 48 STREET","borough":"Manhattan","category":"Television","subcategoryname":"Episodic series"},
+                {"eventid":"2","startdatetime":"2026-10-12T06:00:00.000","enddatetime":"2026-10-12T20:00:00.000","parkingheld":"AVENUE OF THE AMERICAS between SPRING STREET and PRINCE STREET, 7 AVENUE SOUTH between BLEECKER STREET and GROVE STREET, EAST BROADWAY between PIKE STREET and DEAD END, NOWHERE ROAD between HERE and THERE","borough":"Manhattan","category":"Film","subcategoryname":"Feature"}]
+        _cl={"type":"FeatureCollection","features":[{"type":"Feature","geometry":{"type":"MultiLineString","coordinates":[[[-73.9975,40.7193],[-73.9972,40.7205]]]},"properties":{"segmentid":"99","onstreetname":"MULBERRY STREET","fromstreetname":"GRAND STREET","tostreetname":"BROOME STREET","work_start_date":"2026-10-01T00:00:00.000","work_end_date":"2026-11-26T00:00:00.000","purpose":"WATER MAIN REPLACEMENT"}},
+            {"type":"Feature","geometry":{"type":"LineString","coordinates":[[-73.9870,40.7566],[-73.9880,40.7560]]},"properties":{"segmentid":"100","onstreetname":"WEST 42 STREET","fromstreetname":"6 AVENUE","tostreetname":"BROADWAY","work_start_date":"2026-10-20T00:00:00.000","work_end_date":"2026-10-22T00:00:00.000","purpose":"CRANE"}}]}
+
         import math as _m
         _kx=111320*_m.cos(40.723*_m.pi/180); _ll=lambda x,y:[-73.999+x/_kx, 40.723+y/110540]
         _bld=[{"height_roof":"200","ground_elevation":"30","the_geom":{"type":"MultiPolygon","coordinates":[[[_ll(-40,-40),_ll(-15,-40),_ll(-15,-15),_ll(-40,-15),_ll(-40,-40)]]]}}]
         pg.route("**/data.cityofnewyork.us/**", lambda r: r.fulfill(status=200, content_type="application/json", body=_j.dumps(_bld)))
+        pg.route("**/data.cityofnewyork.us/resource/tg4x-b46p.json*", lambda r: r.fulfill(status=200, content_type="application/json", body=_j.dumps(_films)))
+        pg.route("**/data.cityofnewyork.us/resource/i6b5-j7bu.geojson*", lambda r: r.fulfill(status=200, content_type="application/json", body=_j.dumps(_cl)))
         pg.goto("file://" + path); pg.wait_for_timeout(700)
 
         d = pg.evaluate(INTEGRITY)
@@ -388,7 +395,7 @@ def run(path, name):
         check("Real streets and subway lines are drawn", pg.evaluate("[document.querySelectorAll('.m-rdf .m-rd').length, document.querySelectorAll('.m-subway path').length]")==[4,len(pg.evaluate("MAPD_SUBWAY"))] and len(pg.evaluate("MAPD_SUBWAY"))>=8)
         check("Every subway station is listed with its lines", pg.evaluate("MAPD_STATIONS.length")>=470 and pg.evaluate("MAPD_STATIONS.every(s=>s[3]&&s[1]>40.5&&s[1]<40.92&&s[2]>-74.26&&s[2]<-73.7)"))
         pg.click("#mapLayersBtn"); pg.wait_for_timeout(150)
-        check("Layers menu opens", pg.evaluate("!document.getElementById('mapLayers').hidden && document.querySelectorAll('#mapLayers [data-layer]').length===MAP_LAYERS.length && MAP_LAYERS.length===(PHOTOS_INLINE?13:12)"))
+        check("Layers menu opens", pg.evaluate("!document.getElementById('mapLayers').hidden && document.querySelectorAll('#mapLayers [data-layer]').length===MAP_LAYERS.length && MAP_LAYERS.length===(PHOTOS_INLINE?14:12)"))
         pg.click("[data-z=man]"); pg.wait_for_timeout(500)
         check("Jump to Manhattan closes the menu", pg.evaluate("document.getElementById('mapLayers').hidden"))
         check("Map draws pins", pg.evaluate("document.querySelectorAll('.m-pin').length") > 10)
@@ -1067,6 +1074,30 @@ def run(path, name):
         r5=pg.evaluate("[state.mapEv, document.querySelectorAll('.m-evrt.on').length, mapV.w>200]")
         check("Searching for the marathon shows its whole route", r5==["marathon",1,True], r5)
         pg.evaluate("mapSelect(null); mapV=mapPreset('city'); mapDraw(); mapPanel()")
+        # Street names: the duplicated-stretch bug dropped 134 streets (W 45th to 49th, W 125th, 7th Av S); they are back
+        sn=pg.evaluate("['W 47th St','W 125th St','7th Av S','E 50th St'].map(n=>MAPD_SN.n.includes(n))")
+        check("Street names include the Midtown and Harlem cross streets that were missing", sn==[True]*4, sn)
+        if pg.evaluate("PHOTOS_INLINE"):
+            # Closures and film shoots: fetched from NYC Open Data, blocks placed on the map's own streets
+            pg.evaluate("store.set('works',null); WORKS.raw=null; WORKS.at=0; WORKS.items=null; state.mapShowWorks=true; mapDraw()"); pg.wait_for_timeout(600)
+            wk=pg.evaluate("""(()=>{ const ll=(x,y)=>[+(40.95-y/2000).toFixed(4), +(x/(0.758*2000)-74.30).toFixed(4)], near=(a,b)=>Math.hypot(a[0]-b[0],(a[1]-b[1])*0.76)<0.0012;
+              const today=worksItems(mapDay()), f1=today.find(x=>x.id==='film:1'), w=today.find(x=>x.id==='work:99'), seg=f1&&f1.segs[0], ends=seg&&seg.pts?[ll(seg.pts[0][0],seg.pts[0][1]), ll(seg.pts[seg.pts.length-1][0],seg.pts[seg.pts.length-1][1])]:null;
+              state.mapD=1; const tom=worksItems(mapDay()), f2=tom.find(x=>x.id==='film:2'); state.mapD=0;
+              return [!!WORKS.raw, WORKS.raw&&WORKS.raw.films.length, today.map(x=>x.id).sort(), !!w&&w.st==='Mulberry St'&&w.why==='Water Main Replacement', seg&&seg.txt, ends&&((near(ends[0],[40.7583,-73.9820])&&near(ends[1],[40.7592,-73.9846]))||(near(ends[1],[40.7583,-73.9820])&&near(ends[0],[40.7592,-73.9846]))),
+                f2&&f2.segs.map(g=>[g.txt.split(' (')[0], !!g.pts, g.one]), tom.map(x=>x.id).sort(), snKey('WEST 47 STREET')===snKey('W 47th St'), snKey('AVENUE OF THE AMERICAS')===snKey('Av of the Americas')]; })()""")
+            check("Closures and shoots: today's closure and shoot (not the crane that ended, nor tomorrow's shoot); W 47th between 6th and 7th lands on that block; a dead end is placed roughly; an unknown street is left out",
+                  wk[0] and wk[1]==2 and wk[2]==["film:1","work:99"] and wk[3] and wk[4]=="W 47th St (6th Av–7th Av)" and wk[5] and wk[6]==[["Av Of The Americas",True,False],["7th Av S",True,False],["E Broadway",True,True],["Nowhere Road",False,False]] and wk[7]==["film:2","work:99"] and wk[8] and wk[9], wk)
+            pg.evaluate("mapSelect(null); mapV=mapClamp({cx:mapXY(40.7585,-73.983)[0],cy:mapXY(40.7585,-73.983)[1],w:30}); mapDraw()"); pg.wait_for_timeout(200)
+            d1=pg.evaluate("[document.querySelectorAll('.m-film').length, document.querySelectorAll('.m-work').length]")
+            pg.evaluate("mapSelectWork('film:1')"); pg.wait_for_timeout(700)
+            d2=pg.evaluate("[state.mapWork, document.querySelectorAll('.m-film.on').length, document.querySelector('#mapPanel').textContent.includes('TV shoot · Episodic series'), document.querySelector('#mapPanel').textContent.includes('7 am–10 pm'), !!document.querySelector('#mapPanel .wkl')]")
+            pg.evaluate("mapV=mapClamp({cx:mapXY(40.7199,-73.9973)[0],cy:mapXY(40.7199,-73.9973)[1],w:20}); mapSelect(null); mapDraw()"); pg.wait_for_timeout(200)
+            d3=pg.evaluate("[document.querySelectorAll('.m-work').length, worksNear(40.7199,-73.9973,mapDay()).map(x=>x.id), worksNear(40.7585,-73.983,mapDay()).map(x=>x.id)]")
+            pg.evaluate("state.mapShowWorks=false; mapDraw()"); d3.append(pg.evaluate("document.querySelectorAll('.m-work,.m-film').length")); pg.evaluate("state.mapShowWorks=true; mapV=mapPreset('city'); mapDraw(); mapPanel()")
+            check("Closures and shoots on the map: a clapper and line for the shoot, a hatched line for the closure, a panel with the permit's blocks, nearby lookups for the place sheet, and nothing when the layer is off",
+                  d1==[1,0] and d2==["film:1",1,True,True,True] and d3==[1,["work:99"],["film:1"],0], [d1,d2,d3])
+        else:
+            check("Closures and shoots are not offered in the Claude version", not pg.evaluate("MAP_LAYERS.some(l=>l[0]==='mapShowWorks')"))
         # Dark theme renders too
         pg.evaluate("document.documentElement.dataset.theme='dark'; state.view='shoot'; render()"); pg.wait_for_timeout(80)
         check("no script errors", not errors, errors[:3])

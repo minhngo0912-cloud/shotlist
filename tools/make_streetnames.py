@@ -42,6 +42,14 @@ for f in roads:
         pts = [tuple(round(v*8) for v in xy(lat, lon)) for lon, lat in part]
         pts = [q for i, q in enumerate(pts) if i == 0 or q != pts[i-1]]
         if len(pts) >= 2: pieces[short(name)].append(pts)
+# the same stretch sometimes appears twice (once in each direction): keep one copy, or the chain goes out and back and vanishes
+for name in pieces:
+    seen, keep = set(), []
+    for pts in pieces[name]:
+        key = tuple(min(pts, pts[::-1]))
+        if key in seen: continue
+        seen.add(key); keep.append(pts)
+    pieces[name] = keep
 def chains(ps):   # join pieces that share an end point into longer lines
     ends = defaultdict(list)
     for i, p in enumerate(ps): ends[p[0]].append(i); ends[p[-1]].append(i)
