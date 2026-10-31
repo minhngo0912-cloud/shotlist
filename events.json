@@ -228,12 +228,13 @@
   "why": "A block of Broome Street fills with costumed children, face painting and a costume contest outside the market."
  },
  "halloween": {
-  "checked": "2026-10-12",
+  "checked": "2026-10-31",
   "city": "nyc",
   "source": "https://halloween-nyc.com",
   "start": "2026-10-31",
-  "time": "Starts at 7 pm",
-  "where": "Sixth Av, Canal St north to 15 St"
+  "time": "7 pm to about 11 pm; marchers line up at Canal St from 6:30 pm",
+  "where": "Sixth Av, Spring St to 16 St; line-up at Canal St",
+  "note": "2026 theme: Body & Soul. Marchers in costume line up at Canal St and Sixth Av from 6:30 to 9 pm, entering from the east and south. Sixth Av is barriered, so you cannot cross it during the parade."
  },
  "harlem-holiday-lights": {
   "checked": "2026-10-12",
@@ -475,10 +476,11 @@
   "start": "2026-12-02"
  },
  "veterans": {
-  "checked": "2026-10-12",
+  "checked": "2026-10-31",
   "city": "nyc",
   "source": "https://www.uwvc.org/parade",
   "start": "2026-11-11",
-  "where": "Fifth Av"
+  "where": "Fifth Av, 26 St to about 50 St",
+  "time": "Ceremony about 11 am at Madison Square Park; march about 12:30 pm"
  }
 }

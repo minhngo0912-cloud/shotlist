@@ -1083,7 +1083,7 @@ def run(path, name):
             check("Marathon on the map on race day: the field band, the leaders and where they are", rm==[1,2,True,True], rm)
         pg.wait_for_timeout(600); pg.evaluate("cancelAnimationFrame(mapAnim); mapSelect(null); state.mapD=0; state.mapT=null")
         db=pg.evaluate("""(()=>{ const r=eventRows(evDay(new Date())).find(x=>x.e.id==='halloween'), h=evDayBar(r), q=eventRows(evDay(new Date())).find(x=>x.e.id==='balloons'), hb=evDayBar(q), m=evDayBar(eventRows(evDay(new Date())).find(x=>x.e.id==='marathon'));
-          return [/evdwin/.test(h), /7 pm to 1\d pm<\/b>: after dark the whole time/.test(h), /Sunset 5:5\d pm/.test(h), /1 pm to 8 pm<\/b>: midday sun until 3:5\d pm, golden hour/.test(hb), /8 am to 6 pm<\/b>: daylight until 4:1\d pm, golden hour/.test(m), evLightTag(q,evDay(new Date())), eventLight(EVENTS.find(e=>e.id==='marathon'),new Date(2026,10,1)).join(' ').includes('4:54 pm')]; })()""")
+          return [/evdwin/.test(h), /7 pm to 1\d pm<\/b>: after dark the whole time/.test(h), /Sunset 5:5\d pm/.test(h), /1 pm to 6 pm<\/b>: midday sun until 3:5\d pm, golden hour/.test(hb), /8 am to 6 pm<\/b>: daylight until 4:1\d pm, golden hour/.test(m), evLightTag(q,evDay(new Date())), eventLight(EVENTS.find(e=>e.id==='marathon'),new Date(2026,10,1)).join(' ').includes('4:54 pm')]; })()""")
         check("Event day bar: the hours over the day's light, what the light does while it is on; the tag says when an event runs into golden hour; sunset right on the day the clocks change",
               db==[True,True,True,True,True,"runs into golden hour",True], db)
         pg.fill("#mapQ","marathon"); pg.wait_for_timeout(150); pg.click("#mapQres .mq-it"); pg.wait_for_timeout(900)
