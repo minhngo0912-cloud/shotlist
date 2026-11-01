@@ -1,3 +1,16 @@
+/* Every network request gives up after 15 seconds. On a subway platform or with one bar a request can otherwise hang for
+   minutes, holding back the weather, events and map layers that wait on it. */
+(()=>{ try{ const F=window.fetch; if(!F||!window.AbortController) return; window.fetch=function(u,o){ o=o||{}; if(o.signal) return F.call(this,u,o); const c=new AbortController(), t=setTimeout(()=>c.abort(),15000);
+  return F.call(this,u,Object.assign({},o,{signal:c.signal})).finally(()=>clearTimeout(t)); }; }catch(e){} })();
+/* Dates are formatted hundreds of times in a redraw. Building a new formatter for each one is slow, on phones most of all,
+   so the formatters are kept and reused. Same output as the built-in calls. */
+(()=>{ const C=new Map(), has=(o,ks)=>o&&ks.some(k=>o[k]!==undefined), D=["weekday","era","year","month","day","dateStyle"], T=["hour","minute","second","dayPeriod","fractionalSecondDigits","timeStyle"];
+  const wrap=(name,fill)=>{ const orig=Date.prototype[name]; Date.prototype[name]=function(loc,opt){ if(isNaN(+this)||(opt&&typeof opt!=="object")) return orig.call(this,loc,opt);
+    const k=name+"|"+(Array.isArray(loc)?loc.join(","):loc||"")+"|"+(opt?JSON.stringify(opt):""); let f=C.get(k);
+    if(!f){ try{ f=new Intl.DateTimeFormat(loc,fill(Object.assign({},opt))); }catch(e){ return orig.call(this,loc,opt); } if(C.size>200) C.clear(); C.set(k,f); } return f.format(this); }; };
+  try{ wrap("toLocaleDateString",o=>{ if(!has(o,D)&&!has(o,T)) Object.assign(o,{year:"numeric",month:"numeric",day:"numeric"}); return o; });
+    wrap("toLocaleTimeString",o=>{ if(!has(o,T)&&!has(o,D)) Object.assign(o,{hour:"numeric",minute:"numeric",second:"numeric"}); return o; });
+    wrap("toLocaleString",o=>{ if(!has(o,D)&&!has(o,T)) Object.assign(o,{year:"numeric",month:"numeric",day:"numeric",hour:"numeric",minute:"numeric",second:"numeric"}); return o; }); }catch(e){} })();
 
 const INTENTS = {
   place:  {name:"Show the place",        color:"var(--blue)"},
@@ -3044,7 +3057,9 @@ function evStatus(r,t){ const day=evDay(t), s=evDay(r.o[0]), en=evDay(r.o[1]||r.
   if(m<w[0]) return {k:"today",chip:"Today "+hmText(w[0]),line:"Today from about "+hmText(w[0])+thru};
   if(m<=w[1]) return {k:"live",chip:"On now",line:"On now, until about "+hmText(w[1])+thru};
   return +day<+en?{k:"over",chip:"Done today",line:"Done for today, back tomorrow"+thru}:{k:"over",chip:"Over",line:"Over for today"}; }
-function mapEvents(){ const now=new Date(), today=new Date(now.getFullYear(),now.getMonth(),now.getDate()), lim=new Date(today.getFullYear(),today.getMonth(),today.getDate()+42);
+function mapEvents(){ const n=new Date(), key=[state.city,state.mapD||0,state.mapT,n.getFullYear(),n.getMonth(),n.getDate(),n.getHours(),n.getMinutes(),state.evGoing?state.evGoing.size:0,Object.keys(EVENT_DOCS||{}).length].join("|");
+  if(mapEvents.key===key&&mapEvents.docs===EVENT_DOCS&&mapEvents.val) return mapEvents.val.slice(); mapEvents.key=key; mapEvents.docs=EVENT_DOCS; mapEvents.val=mapEventsCalc(); return mapEvents.val.slice(); }
+function mapEventsCalc(){ const now=new Date(), today=new Date(now.getFullYear(),now.getMonth(),now.getDate()), lim=new Date(today.getFullYear(),today.getMonth(),today.getDate()+42);
   const seenV=new Set();
   return eventRows(today).filter(r=>r.o&&!r.cancelled&&r.o[0]<=lim).filter(r=>{ if(!r.game) return true; if(seenV.has(r.e.id)) return false; seenV.add(r.e.id); return true; }).map(r=>{ const d=EVENT_DOCS[r.e.id], g=(d&&typeof d.lat==="number"&&typeof d.lon==="number"&&d.lat>40.4&&d.lat<41&&d.lon>-74.3&&d.lon<-73.6)?[d.lat,d.lon]:EVENT_GEO[r.e.id];
     if(!g) return null; const [x,y]=mapXY(g[0],g[1]); let st=evStatus(r,mapNow());
@@ -3064,26 +3079,54 @@ let mapV = null, mapAnim = 0;
 const mapClamp = v => { v.w=Math.min(MAP_LIM.w[1],Math.max(MAP_LIM.w[0],v.w)); v.cx=Math.min(MAP_LIM.x[1],Math.max(MAP_LIM.x[0],v.cx)); v.cy=Math.min(MAP_LIM.y[1],Math.max(MAP_LIM.y[0],v.cy)); return v; };
 function mapFly(to){ if(state.mapHead) headUp(false); cancelAnimationFrame(mapAnim); const from=Object.assign({},mapV), t0=performance.now(), still=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
   mapClamp(to); if(still){ mapV=to; mapDraw(); return; }
-  const step=now=>{ const k=Math.min(1,(now-t0)/380), e=1-Math.pow(1-k,3); mapV={cx:from.cx+(to.cx-from.cx)*e, cy:from.cy+(to.cy-from.cy)*e, w:from.w*Math.pow(to.w/from.w,e)}; mapDraw(); if(k<1) mapAnim=requestAnimationFrame(step); };
+  const step=now=>{ const k=Math.min(1,(now-t0)/380), e=1-Math.pow(1-k,3); mapV={cx:from.cx+(to.cx-from.cx)*e, cy:from.cy+(to.cy-from.cy)*e, w:from.w*Math.pow(to.w/from.w,e)}; mapDraw.live=k<1; mapDraw(); if(k<1) mapAnim=requestAnimationFrame(step); };
   mapAnim=requestAnimationFrame(step); }
 const mapTxt = (lat,lon,t,cls,size,rot) => { const [x,y]=mapXY(lat,lon); return '<text x="'+x.toFixed(0)+'" y="'+y.toFixed(0)+'" font-size="'+size+'" text-anchor="middle" class="'+cls+'"'+(rot?' transform="rotate('+rot+' '+x.toFixed(0)+' '+y.toFixed(0)+')"':'')+'>'+t+'</text>'; };
 const mapLine = (a,b) => { const p=mapXY(a[0],a[1]), q=mapXY(b[0],b[1]); return 'M'+p[0].toFixed(1)+' '+p[1].toFixed(1)+'L'+q[0].toFixed(1)+' '+q[1].toFixed(1); };
+/* The road network cut into square tiles, so a redraw paints only the streets in view. As one path per kind of road,
+   every redraw and every pan re-traced all 16,000 streets of the city, which is what stalled the map on phones. */
+const RD_TILE=400, RD_KINDS=[["path","foot"],["local","local"],["ave","ave"],["hwy","hwy"]]; let RD_TILES=null;
+function rdTiles(){ if(RD_TILES) return RD_TILES; const T=new Map();
+  for(const [k] of RD_KINDS){ const d=MAPD_ROADS[k]; if(!d) continue;
+    for(const sp of d.split("M")){ if(!sp) continue; const n=sp.match(/-?\d+(?:\.\d+)?/g); if(!n||n.length<2) continue;
+      let x=+n[0], y=+n[1], x0=x, x1=x, y0=y, y1=y; for(let i=2;i+1<n.length;i+=2){ x+=+n[i]; y+=+n[i+1]; if(x<x0) x0=x; else if(x>x1) x1=x; if(y<y0) y0=y; else if(y>y1) y1=y; }
+      const key=k+"-"+Math.floor((x0+x1)/2/RD_TILE)+"_"+Math.floor((y0+y1)/2/RD_TILE); let t=T.get(key); if(!t){ t={id:"rd-"+key,k,d:[],b:[x0,y0,x1,y1]}; T.set(key,t); }
+      t.d.push(sp); const b=t.b; if(x0<b[0]) b[0]=x0; if(y0<b[1]) b[1]=y0; if(x1>b[2]) b[2]=x1; if(y1>b[3]) b[3]=y1; } }
+  RD_TILES=[...T.values()]; RD_TILES.forEach(t=>{ t.d="M"+t.d.join("M"); }); return RD_TILES; }
+/* Show the tiles that overlap the view (x0..y1 in map units) and hide the rest. The tiles are all on the page from the
+   start, so moving the map only flips the few that come into or leave the view. */
+/* The base map (water, land, parks, streets, subway) is its own layer under the pins and overlays, so redrawing those
+   never repaints the city. While you drag, pinch or the map flies, the base is only slid and scaled; it is redrawn
+   sharp 150 ms after it stops. */
+const BASE={v:null,want:null};
+function baseSet(x0,y0,wb,h,w,cls,live){ const b=$("mapBase"); if(!b) return; BASE.want=[x0,y0,wb,h,w,cls];
+  if(live&&BASE.v&&b.isConnected){ const W=b.clientWidth||1, k=BASE.v[2]/wb, sc=W/wb; b.style.transform="translate("+((BASE.v[0]-x0)*sc).toFixed(2)+"px,"+((BASE.v[1]-y0)*sc).toFixed(2)+"px) scale("+k.toFixed(5)+")";
+    return; }
+  const f=n=>n.toFixed(1);
+  if(b.getAttribute("class")!==cls) b.setAttribute("class",cls);
+  b.setAttribute("viewBox",f(x0)+" "+f(y0)+" "+f(wb)+" "+f(h)); b.style.transform=""; BASE.v=[x0,y0,wb,h]; rdShow(x0,y0,x0+wb,y0+h,w); }
+function rdUses(){ return RD_KINDS.map(([k,c])=>rdTiles().filter(t=>t.k===k).map(t=>'<path d="'+t.d+'" class="m-rd m-rdp '+c+'" data-rd="'+t.id+'" display="none"/>').join("")).join(""); }
+function rdShow(x0,y0,x1,y1,w){ const svg=$("mapBase"); if(!svg) return; const m=2, X0=(x0-m)*10, Y0=(y0-m)*10, X1=(x1+m)*10, Y1=(y1+m)*10;
+  if(rdShow.svg!==svg){ rdShow.svg=svg; rdShow.on=new Set(); rdShow.el=new Map(); svg.querySelectorAll("[data-rd]").forEach(u=>{ const id=u.dataset.rd; if(!rdShow.el.has(id)) rdShow.el.set(id,[]); rdShow.el.get(id).push(u); }); }
+  const skip=w>=260?{path:1,local:1}:w>=110?{path:1}:{}, on=new Set(rdTiles().filter(t=>!skip[t.k]&&t.b[2]>=X0&&t.b[0]<=X1&&t.b[3]>=Y0&&t.b[1]<=Y1).map(t=>t.id));
+  for(const id of rdShow.on) if(!on.has(id)) (rdShow.el.get(id)||[]).forEach(u=>u.setAttribute("display","none"));
+  for(const id of on) if(!rdShow.on.has(id)) (rdShow.el.get(id)||[]).forEach(u=>u.removeAttribute("display"));
+  rdShow.on=on; }
 function mapShell(box){
-  const R=MAPD_ROADS, road=(k,c)=>R[k]?'<use href="#rd-'+k+'" class="m-rd '+c+'"/>':'';
-  const defs='<defs>'+Object.keys(R).map(k=>'<path id="rd-'+k+'" d="'+R[k]+'" class="m-rdp"/>').join("")+'<path id="ld-land" d="'+MAPD_LAND+'"/><path id="ld-park" d="'+MAPD_PARK+'"/>'+
+  const defs='<defs>'+'<path id="ld-land" d="'+MAPD_LAND+'"/><path id="ld-park" d="'+MAPD_PARK+'"/>'+
     '<pattern id="pWater" patternUnits="userSpaceOnUse" width="1.2" height="0.6"><path d="M0 .3h.42M.7 .12h.36" class="m-texw"/></pattern>'+
     '<pattern id="pPark" patternUnits="userSpaceOnUse" width="12" height="12" patternTransform="rotate(20)"><circle cx="3" cy="3" r="1.1" class="m-texp"/><circle cx="9" cy="9" r="1.1" class="m-texp"/></pattern>'+
-    '<radialGradient id="spotG"><stop offset="55%" stop-color="#000"/><stop offset="100%" stop-color="#fff"/></radialGradient></defs>';
+    '</defs>';
   const LAYER_ICON='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 8.5 12 14l10-5.5L12 3Z"/><path d="m2 12.5 10 5.5 10-5.5M2 16.5 12 22l10-5.5"/></svg>';
   box.innerHTML=
-    '<div class="mapwrap" id="mapWrap"><div class="maprot" id="mapRot"><svg class="mapsvg" id="mapSvg" role="group" aria-label="Map of shooting places. Drag to move, pinch to zoom."><rect x="-500" y="-500" width="2500" height="2500" class="m-sea"/>'+defs+'<rect x="-500" y="-500" width="2500" height="2500" class="m-tex m-seatex" fill="url(#pWater)"/>'+
+    '<div class="mapwrap" id="mapWrap"><div class="maprot" id="mapRot"><svg class="mapsvg mapbase" id="mapBase" aria-hidden="true" focusable="false"><rect x="-500" y="-500" width="2500" height="2500" class="m-sea"/>'+defs+'<rect x="-500" y="-500" width="2500" height="2500" class="m-tex m-seatex" fill="url(#pWater)"/>'+
     '<g transform="scale(0.1)" class="m-base"><path d="'+MAPD_CTX+'" class="m-ctx"/><use href="#ld-land" class="m-coastglow"/><use href="#ld-land" class="m-land"/><path d="'+MAPD_AIR+'" class="m-air"/><path d="'+MAPD_CEM+'" class="m-cem"/><use href="#ld-park" class="m-park"/><use href="#ld-park" class="m-tex m-parktex" fill="url(#pPark)"/></g>'+
-    '<g transform="scale(0.1)" class="m-roads m-rdc">'+road("path","foot")+road("local","local")+road("ave","ave")+road("hwy","hwy")+'</g>'+
-    '<g transform="scale(0.1)" class="m-roads m-rdf">'+road("path","foot")+road("local","local")+road("ave","ave")+road("hwy","hwy")+'</g>'+
+    '<g transform="scale(0.1)" class="m-roads m-rdc" id="mapRdc">'+rdUses()+'</g>'+
+    '<g transform="scale(0.1)" class="m-roads m-rdf" id="mapRdf">'+rdUses()+'</g>'+
     '<g transform="scale(0.1)" class="m-subway">'+MAPD_SUBWAY.map(([c,d])=>'<path d="'+d+'" stroke="'+c+'"/>').join("")+'</g>'+
     mapTxt(40.787,-73.957,"MANHATTAN","m-boro",15,-61)+mapTxt(40.648,-73.95,"BROOKLYN","m-boro",22)+mapTxt(40.705,-73.825,"QUEENS","m-boro",22)+mapTxt(40.845,-73.86,"THE BRONX","m-boro",18)+mapTxt(40.585,-74.14,"STATEN ISLAND","m-boro",16)+mapTxt(40.765,-74.085,"NEW JERSEY","m-boro",15)+
     mapTxt(40.772,-74.004,"Hudson River","m-water",7,-62)+mapTxt(40.672,-74.045,"Upper Bay","m-water",8)+mapTxt(40.612,-73.845,"Jamaica Bay","m-water",8)+mapTxt(40.558,-73.905,"Atlantic Ocean","m-water",9)+mapTxt(40.7385,-73.9665,"East River","m-water",5,-68)+
-    '<g id="mapRadar"></g><g id="mapDyn"></g><g id="mapPhotos">'+(PHOTOS_INLINE?Object.entries(PLACE_PHOTO).map(([id,P])=>'<clipPath id="pc-'+id+'"><circle r="1"/></clipPath><image data-ph="'+id+'" href="'+esc(P.src)+'" preserveAspectRatio="xMidYMid slice" clip-path="url(#pc-'+id+')" style="display:none" onerror="this.remove()"/>').join(""):'')+'</g><g id="mapOver"></g></svg></div></div>'+
+    '</svg><svg class="mapsvg mapover" id="mapSvg" role="group" aria-label="Map of shooting places. Drag to move, pinch to zoom."><defs><radialGradient id="spotG"><stop offset="55%" stop-color="#000"/><stop offset="100%" stop-color="#fff"/></radialGradient></defs><g id="mapRadar"></g><g id="mapDyn"></g><g id="mapPhotos">'+(PHOTOS_INLINE?Object.entries(PLACE_PHOTO).map(([id,P])=>'<clipPath id="pc-'+id+'"><circle r="1"/></clipPath><image data-ph="'+id+'" href="'+esc(P.src)+'" preserveAspectRatio="xMidYMid slice" clip-path="url(#pc-'+id+')" style="display:none" onerror="this.remove()"/>').join(""):'')+'</g><g id="mapOver"></g></svg></div></div>'+
     '<div class="mtop"><div class="mrow"><div class="mapgo"><input type="search" id="mapQ" placeholder="Search" autocomplete="off" enterkeyhint="go" aria-label="Search places, ideas, landmarks and events" aria-controls="mapQres"></div><button type="button" class="mintbtn" id="mapIntentBtn" aria-expanded="false" aria-controls="mapIntent"></button><button type="button" class="mnowbtn" id="mapNowBtn" aria-pressed="false" title="Only places with ideas for this light">Suits now</button><button type="button" class="mlayersbtn" id="mapLayersBtn" aria-expanded="false" aria-controls="mapLayers" title="Map layers">'+LAYER_ICON+'<span>Layers</span><i id="mapLiveDot" hidden></i></button></div>'+
     '<div class="mqres" id="mapQres" role="listbox" aria-label="Search results" hidden></div><div class="intents mchips" id="mapIntent" hidden></div></div>'+
     '<button type="button" class="mlpill" id="mapLightPill" hidden></button><div class="mlayers" id="mapLayers" hidden></div><div class="mmoon" id="mapMoon" role="dialog" aria-label="The moon" hidden></div><div class="mguide" id="mapGuide" role="status" aria-live="polite" hidden></div>'+
@@ -4159,15 +4202,17 @@ function mapDraw(){
   const svg=$("mapSvg"); if(!svg||!mapV) return; const cw=($("mapWrap")&&$("mapWrap").clientWidth)||svg.clientWidth||360, zf=state.mapHead?Math.max(1,(svg.clientWidth||cw)/cw):1, ar=svg.clientHeight/svg.clientWidth; if(!state.mapHead&&ar>0.3&&ar<4) MAP_ASPECT=ar;
   // w is the width you see across the screen; in heading-up the drawn square (wb) is wider so the corners stay filled as it turns
   const v=mapV, w=v.w, wb=w*zf, h=wb*(state.mapHead?1:MAP_ASPECT), x0=v.cx-wb/2, y0=v.cy-h/2, x1=x0+wb, y1=y0+h, u=w/cw, f=n=>n.toFixed(1);
-  svg.setAttribute("viewBox",f(x0)+" "+f(y0)+" "+f(wb)+" "+f(h));
+  svg.setAttribute("viewBox",f(x0)+" "+f(y0)+" "+f(wb)+" "+f(h)); const live=!!mapDraw.live; mapDraw.live=false;
   // a point on the edge of what you can see, in a compass direction: where the sun and moon sit
   const edge=az=>{ const r=az*Math.PI/180, dx=Math.sin(r), dy=-Math.cos(r), m=18*u;
     if(state.mapHead&&state.pos){ const [yx,yy]=mapXY(state.pos.lat,state.pos.lon), H=$("map").clientHeight, oy=(topPx()+(H-sheetPx()))/2, R=Math.max(30*u,(Math.min(cw/2,oy-topPx(),H-sheetPx()-oy)-22)*u); return [yx+dx*R,yy+dy*R,dx,dy]; }
     const vt=y0+topPx()*u, vb=y1-sheetPx()*u, cx=(x0+x1)/2, cy=(vt+vb)/2, hx=w/2-m, hy=Math.max(10*u,(vb-vt)/2-m), k=Math.min(Math.abs(dx)>1e-6?hx/Math.abs(dx):1e9, Math.abs(dy)>1e-6?hy/Math.abs(dy):1e9); return [cx+dx*k,cy+dy*k,dx,dy]; };
-  const zstreet=w<=22; svg.setAttribute("class","mapsvg "+(w>=260?"zfar":w>=110?"zmid":w>=45?"znear":"zclose")+(zstreet?" zstreet":"")+(state.mapShowSub?"":" nosub")+(state.mapSel&&!state.mapSpot&&w<140?" hassel":""));
-  if(mapDraw.zs!==zstreet){ mapDraw.zs=zstreet; svg.querySelectorAll(".m-rdp").forEach(e=>e.setAttribute("vector-effect",zstreet?"none":"non-scaling-stroke")); }
+  const zstreet=w<=22, zcls=(w>=260?"zfar":w>=110?"zmid":w>=45?"znear":"zclose")+(zstreet?" zstreet":"")+(state.mapShowSub?"":" nosub")+(state.mapSel&&!state.mapSpot&&w<140?" hassel":""), mcls="mapsvg mapover "+zcls;
+  if(svg.getAttribute("class")!==mcls) svg.setAttribute("class",mcls);
+  if(!live||!BASE.v){ const bs=$("mapBase"); if(bs&&mapDraw.zs!==zstreet){ mapDraw.zs=zstreet; bs.querySelectorAll(".m-rdp").forEach(e=>e.setAttribute("vector-effect",zstreet?"none":"non-scaling-stroke")); } }
+  baseSet(x0,y0,wb,h,w,"mapsvg mapbase "+zcls,live);
   mapPts.rw=reachWin(); const pts0=mapPts().filter(p=>p.x>x0-20*u&&p.x<x1+20*u&&p.y>y0-20*u&&p.y<y1+20*u), CL=mapCluster(pts0,w,u), pts=CL.pts, far=w>330, R=(far?7:16)*u, fs=(far?11:12)*u;
-  mapInView(pts0,x0,y0,x1,y1,u);
+  if(live){ clearTimeout(mapDraw.idleT); mapDraw.idleT=setTimeout(()=>{ mapDraw.idleT=0; mapDraw(); },160); } else { clearTimeout(mapDraw.idleT); mapDraw.idleT=0; mapInView(pts0,x0,y0,x1,y1,u); }
   // route of the current plan
   let route=""; if(state.plan){ const st=state.plan.stops.map(s=>s.place).filter((id,n,a)=>id!==a[n-1]&&typeof PLACES[id].lat==="number").map(id=>mapXY(PLACES[id].lat,PLACES[id].lon));
     if(st.length>1) route='<path d="M'+st.map(p=>f(p[0])+" "+f(p[1])).join("L")+'" class="m-route" stroke-width="'+f(3*u)+'" stroke-dasharray="'+f(7*u)+' '+f(5*u)+'"/>'; }
@@ -4683,7 +4728,7 @@ function mapSelect(id){ if(id){ state.mapNear=false; state.mapInView=false; } st
   if(state.mapHead) return; if(state.mapFull) requestAnimationFrame(()=>{ mapDraw(); fly(); }); else fly(); } else if(state.mapFull) requestAnimationFrame(mapDraw); }
 function mapGestures(svg){
   const ptr=new Map(); let g=null, lastTap=0, raf=0;
-  const redraw=()=>{ if(!raf) raf=requestAnimationFrame(()=>{ raf=0; mapDraw(); }); };
+  const redraw=()=>{ if(!raf) raf=requestAnimationFrame(()=>{ raf=0; mapDraw.live=true; mapDraw(); }); };
   const at=(e,v)=>{ const r=svg.getBoundingClientRect(), k=v.w/r.width; return [v.cx-v.w/2+(e.clientX-r.left)*k, v.cy-v.w*MAP_ASPECT/2+(e.clientY-r.top)*k, k]; };
   const zoomAt=(e,factor,fly)=>{ if(state.mapHead){ mapV=mapClamp({cx:mapV.cx,cy:mapV.cy,w:mapV.w*factor}); redraw(); return; } const [mx,my]=at(e,mapV), w=Math.min(MAP_LIM.w[1],Math.max(MAP_LIM.w[0],mapV.w*factor)), k=w/mapV.w, to={cx:mx+(mapV.cx-mx)*k, cy:my+(mapV.cy-my)*k, w}; if(fly) mapFly(to); else { mapV=mapClamp(to); redraw(); } };
   const start=()=>{ const p=[...ptr.values()]; g={v:Object.assign({},mapV), moved:g?g.moved:false, pin:g?g.pin:null, ev:g?g.ev:null, lm:g?g.lm:null, spot:g?g.spot:null, run:g?g.run:null, ferry:g?g.ferry:null, cl:g?g.cl:null, shot:g?g.shot:null, moon:g?g.moon:false, wk:g?g.wk:null, evsp:g?g.evsp:null, evrt:g?g.evrt:null, p0:p.map(q=>({x:q.clientX,y:q.clientY}))}; };
@@ -5666,7 +5711,30 @@ function planEvent(id){ const now=new Date(), today=new Date(now.getFullYear(),n
 function planToday(h,off){ off=off||0; renderPlan(); const t=new Date(), best=todayPicks(new Date(+atMin(Math.min(1435,(+h+1)*60))+off*864e5))[0];
   if(best&&[...$("pStart").options].some(o=>o.value===best.id)) $("pStart").value=best.id;
   $("pDay").value=String(off); renderPlan(); $("pTime").value=(!off&&+h*60<=dayMin(new Date()))?"now":String(h); if(!$("pTime").value) $("pTime").selectedIndex=0; $("pLen").value="150"; state.plan=makePlan(); savePlan(); state.view="map"; render(); }
-function render(){ { const rt=document.getElementById("rowToast"); if(rt&&!["browse","saved","again"].includes(state.view)) rt.classList.remove("on"); }
+/* App health: errors and stalls are written to a short log on the device (Settings › App health), so a freeze on the
+   street can be traced afterwards. A one-second tick that comes back more than 2 s late means the app was stuck. */
+const HEALTH={vis:performance.now(), hb:performance.now(), t0:Date.now(), touch:0};
+function healthList(){ const L=store.get("health",[]); return Array.isArray(L)?L:[]; }
+function healthLog(k,m){ try{ const L=healthList(), last=L[L.length-1], msg=String(m||"").slice(0,240), t=Date.now();
+  if(last&&last.k===k&&last.m===msg&&t-last.t<60000){ last.n=(last.n||1)+1; last.t=t; } else L.push({t,k,m:msg,v:state.view}); while(L.length>60) L.shift(); store.set("health",L); }catch(e){} }
+window.addEventListener("error",e=>{ if(e&&e.message) healthLog("error",e.message+(e.lineno?" (line "+e.lineno+")":"")); });
+window.addEventListener("unhandledrejection",e=>{ const r=e&&e.reason; if(r&&r.name==="AbortError") return; healthLog("error","Promise: "+((r&&(r.message||r))||"")); });
+setInterval(()=>{ const n=performance.now(), late=n-HEALTH.hb-1000; HEALTH.hb=n; if(!document.hidden&&late>2000&&late<120000&&n-HEALTH.vis>4000) healthLog("stall",(late/1000).toFixed(1)+" s stuck on "+state.view+(state.view==="map"&&mapV?" (zoom "+Math.round(mapV.w)+")":"")); },1000);
+document.addEventListener("visibilitychange",()=>{ HEALTH.hb=performance.now(); if(!document.hidden) HEALTH.vis=performance.now(); });
+["touchstart","scroll","wheel"].forEach(k=>addEventListener(k,()=>{ HEALTH.touch=performance.now(); },{passive:true,capture:true}));
+addEventListener("load",()=>setTimeout(()=>{ healthLog("open","Opened in "+(performance.now()/1000).toFixed(1)+" s"); },0));
+function healthHtml(){ const L=healthList().slice().reverse(), wk=Date.now()-7*864e5, rec=L.filter(x=>x.t>wk), nS=rec.filter(x=>x.k==="stall").reduce((t,x)=>t+(x.n||1),0), nE=rec.filter(x=>x.k==="error").reduce((t,x)=>t+(x.n||1),0), nO=rec.filter(x=>x.k==="open").length;
+  let kb=0; try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); kb+=(k.length+(localStorage.getItem(k)||"").length)*2/1024; } }catch(e){}
+  const when=t=>{ const d=new Date(t); return DAY_SHORT[d.getDay()]+" "+hmText(d.getHours()*60+d.getMinutes()); };
+  return '<p class="msg">'+(nS||nE?'In the last 7 days: '+nS+' stall'+(nS===1?'':'s')+', '+nE+' error'+(nE===1?'':'s')+', opened '+nO+' time'+(nO===1?'':'s')+'.':'No stalls or errors recorded in the last 7 days'+(nO?' (opened '+nO+' time'+(nO===1?'':'s')+')':'')+'.')+' Data on this device: '+Math.round(kb)+' KB.</p>'+
+    (L.length?'<ul class="healthlog">'+L.slice(0,25).map(x=>'<li class="hl-'+x.k+'"><b>'+when(x.t)+'</b> '+esc(x.k==="open"?x.m:(x.k==="stall"?"Stall: ":"Error: ")+x.m)+(x.n>1?' ×'+x.n:'')+'</li>').join("")+'</ul>':'')+
+    '<div class="callinks"><button type="button" class="chip" id="healthCopy">Copy report</button><button type="button" class="chip" id="healthClear">Clear</button></div><p class="msg" id="healthMsg" role="status"></p>'; }
+function healthReport(){ const L=healthList(); return "Shot List health report\n"+navigator.userAgent+"\nStandalone: "+(!!(window.navigator.standalone||matchMedia("(display-mode: standalone)").matches))+"\n"+L.map(x=>new Date(x.t).toISOString()+" "+x.k+" ["+x.v+"] "+x.m+(x.n>1?" x"+x.n:"")).join("\n"); }
+/* If drawing a screen fails, say so with a way out instead of leaving a half-drawn screen that ignores taps. */
+function renderBroken(e){ healthLog("error","Drawing "+state.view+": "+(e&&e.message||e)); let b=$("brokenBar"); if(!b){ b=document.createElement("div"); b.id="brokenBar"; b.className="rowtoast on brokenbar"; b.setAttribute("role","alert"); document.body.appendChild(b); }
+  b.innerHTML='<span>Something went wrong drawing this screen.</span><button type="button" class="linkbtn" onclick="location.reload()">Reload</button><button type="button" class="linkbtn" onclick="this.parentNode.remove()">Hide</button>'; }
+function render(){ try{ renderInner(); }catch(e){ renderBroken(e); } }
+function renderInner(){ { const rt=document.getElementById("rowToast"); if(rt&&!["browse","saved","again"].includes(state.view)) rt.classList.remove("on"); }
   openTip=null; tipSheet(); if(state.view!=="map"&&state.mapFull) mapFull(false); if(state.view!=="map"&&state.guide) guideStop(true);
   const shoot=state.view==="shoot", ev=state.view==="events", pl=state.view==="plan", mp=state.view==="map"||pl, ln=state.view==="learn", td=state.view==="today";
   if(document.body.classList.contains("onmap")!==mp){ document.body.classList.toggle("onmap",mp); TOP_PX.t=-1e9; }
@@ -5772,9 +5840,12 @@ let sheetFrom=null;
 function sheetOpen(id){ const el=$(id); sheetFrom=document.activeElement; el.hidden=false; document.body.classList.add("sheetopen"); requestAnimationFrame(()=>{ el.classList.add("on"); const f=el.querySelector(".sh-x"); if(f) f.focus({preventScroll:true}); }); }
 function sheetClose(id){ const el=$(id); if(el.hidden) return; el.classList.remove("on"); document.body.classList.remove("sheetopen"); setTimeout(()=>{ el.hidden=true; },180); if(sheetFrom&&sheetFrom.focus) sheetFrom.focus({preventScroll:true}); }
 function renderSettings(){ $("setCams").innerHTML=Object.entries(CAMERAS).map(([k,v])=>'<button type="button" role="radio" class="setcam" data-cam="'+k+'" aria-checked="'+(k===state.camera)+'"><b>'+esc(v.name)+'</b><span>'+(k==="q343"?"43 mm f/2 · crops 60–150 mm":k==="q328"?"28 mm f/1.7 · crops 35–90 mm":k==="iphone"?"Main camera, settings in plain words":"General advice for any camera")+'</span></button>').join("");
+  if($("setHealth")) $("setHealth").innerHTML=healthHtml();
   const h=state.home; $("setHome").textContent=h&&h.lat!=null?"Set ("+(h.mode==="transit"?"by transit":h.mode==="walk"?"on foot":"by car")+"). Today shows when to leave.":"Not set. Set it to see when to leave home for the next good light."; $("setHomeBtn").textContent=h&&h.lat!=null?"Change":"Set home"; syncTheme(); }
 $("setOpen").addEventListener("click",()=>{ renderSettings(); sheetOpen("setSheet"); });
 $("setSheet").addEventListener("click",e=>{ if(e.target.closest("[data-sclose]")){ sheetClose("setSheet"); return; }
+  if(e.target.closest("#healthClear")){ store.set("health",[]); $("setHealth").innerHTML=healthHtml(); return; }
+  if(e.target.closest("#healthCopy")){ const rep=healthReport(), m=$("healthMsg"); try{ navigator.clipboard.writeText(rep).then(()=>{ m.textContent="Copied. Paste it into a message to Claude."; },()=>{ m.textContent="Copying isn't available here."; }); }catch(x){ m.textContent="Copying isn't available here."; } return; }
   const c=e.target.closest("[data-cam]"); if(c&&CAMERAS[c.dataset.cam]){ state.camera=c.dataset.cam; store.set("camera",state.camera); openTip=null; renderSettings(); render(); return; }
   if(e.target.closest("#setHomeBtn")){ sheetClose("setSheet"); state.view="today"; state.homeEdit=true; render(); requestAnimationFrame(()=>{ const t=document.querySelector("#today .thome, #today [data-homesave], #today .homeedit"); if(t) t.scrollIntoView({block:"center"}); }); } });
 $("fOpen").addEventListener("click",()=>{ fSync(); sheetOpen("fSheet"); });
@@ -6008,7 +6079,7 @@ $("today").addEventListener("click",e=>{
   const ev=e.target.closest("[data-event]"); if(ev){ showEvent(ev.dataset.event); return; }
   const r=e.target.closest(".row[data-id]"); if(r){ show(r.dataset.id); state.view="shoot"; render(); window.scrollTo({top:0}); }
 });
-setInterval(()=>{ try{ if(state.view==="today"&&!document.hidden) renderToday(); }catch(e){} }, 60000);
+setInterval(()=>{ try{ if(state.view==="today"&&!document.hidden&&performance.now()-HEALTH.touch>8000) renderToday(); }catch(e){} }, 60000);
 document.addEventListener("click",e=>{ const ca=e.target.closest("[data-caladd]"); if(ca&&!ca.closest("#today")) calAdd(ca); });
 /* Refresh Today: fetch the weather (and the events and prices files) again, then redraw. Pull down at the top of Today does the same. */
 function todayRefresh(){ try{ if(typeof window.liveRefresh==="function") window.liveRefresh(); }catch(e){} renderNow(); if(state.view==="today") renderToday();

@@ -392,7 +392,11 @@ def run(path, name):
         pg.evaluate("layerSet('all'); mapDraw(); mapPanel()")
         box=pg.evaluate("(()=>{const m=document.getElementById('map').getBoundingClientRect(); return [Math.round(m.height), Math.round(m.bottom)]})()")
         check("Map fills the screen under the header", box[0]>=500 and box[1]<=900, box)
-        check("Real streets and subway lines are drawn", pg.evaluate("[document.querySelectorAll('.m-rdf .m-rd').length, document.querySelectorAll('.m-subway path').length]")==[4,len(pg.evaluate("MAPD_SUBWAY"))] and len(pg.evaluate("MAPD_SUBWAY"))>=8)
+        check("Real streets and subway lines are drawn", pg.evaluate("[Math.min(4,new Set([...document.querySelectorAll('.m-rdf .m-rd')].map(e=>e.classList[e.classList.length-1])).size), document.querySelectorAll('.m-subway path').length]")==[4,len(pg.evaluate("MAPD_SUBWAY"))] and len(pg.evaluate("MAPD_SUBWAY"))>=8)
+        rt=pg.evaluate("""(()=>{ const vis=()=>[...document.querySelectorAll('#mapRdf [data-rd]')].filter(e=>e.getAttribute('display')!=='none').length, old=Object.assign({},mapV);
+          mapV=mapClamp({cx:old.cx,cy:old.cy,w:200}); mapDraw(); const a=vis(); mapV=mapClamp({cx:old.cx,cy:old.cy,w:10}); mapDraw(); const b=vis(); mapV=old; mapDraw();
+          return [a>b, b>0, !!document.querySelector('#mapBase .m-roads'), !document.querySelector('#mapSvg .m-roads'), getComputedStyle($('mapBase')).pointerEvents, typeof healthLog]; })()""")
+        check("The map paints only the street tiles in view, on a base layer of its own", rt==[True,True,True,True,"none","function"], rt)
         check("Every subway station is listed with its lines", pg.evaluate("MAPD_STATIONS.length")>=470 and pg.evaluate("MAPD_STATIONS.every(s=>s[3]&&s[1]>40.5&&s[1]<40.92&&s[2]>-74.26&&s[2]<-73.7)"))
         pg.click("#mapLayersBtn"); pg.wait_for_timeout(150)
         check("Layers menu opens", pg.evaluate("!document.getElementById('mapLayers').hidden && document.querySelectorAll('#mapLayers [data-layer]').length===MAP_LAYERS.length && MAP_LAYERS.length===(PHOTOS_INLINE?14:12)"))
@@ -425,7 +429,7 @@ def run(path, name):
         pg.evaluate("state.mapLm=LANDMARKS.findIndex(l=>l[0].startsWith('Brooklyn Bridge walkway, Manhattan')); mapPanel()"); pg.wait_for_timeout(100)
         check("A walkway entrance offers Guide me there and Street View", pg.evaluate("[!!document.querySelector('#mapPanel [data-guide^=\"lm:\"]'), !!document.querySelector('#mapPanel a[href*=map_action]'), guideTarget('lm:'+state.mapLm)[3].startsWith('Brooklyn Bridge')]")==[True,True,True])
         pg.evaluate("state.mapLm=null; mapPanel()")
-        check("Roads have casings and the water and parks a texture", pg.evaluate("[document.querySelectorAll('.m-rdc .m-rd').length, !!document.querySelector('#pWater'), !!document.querySelector('.m-parktex'), !!document.querySelector('.m-coastglow')]")==[4,True,True,True])
+        check("Roads have casings and the water and parks a texture", pg.evaluate("[Math.min(4,document.querySelectorAll('.m-rdc .m-rd').length), !!document.querySelector('#pWater'), !!document.querySelector('.m-parktex'), !!document.querySelector('.m-coastglow')]")==[4,True,True,True])
         pg.evaluate("state.mapT=13*60; mapDraw()"); sky_day=pg.evaluate("document.getElementById('map').dataset.sky")
         pg.evaluate("state.mapT=21*60; mapDraw()"); sky_night=pg.evaluate("document.getElementById('map').dataset.sky")
         check("Map palette follows the time: light by day, dark at night", [sky_day,sky_night]==["day","night"] and pg.evaluate("getComputedStyle(document.querySelector('.m-land')).fill")!="", [sky_day,sky_night])

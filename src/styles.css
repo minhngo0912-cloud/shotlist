@@ -668,7 +668,7 @@ body.tipopen{overflow:hidden}
 /* textures and coast */
 .m-texw{fill:none;stroke:var(--mTexW);stroke-width:.09;stroke-linecap:round} .m-texp{fill:var(--mTexP)}
 .m-seatex{pointer-events:none} .m-parktex{stroke:none}
-.zfar .m-tex,.zmid .m-parktex{display:none}
+.zfar .m-tex,.zmid .m-tex{display:none}
 .m-coastglow{fill:none;stroke:var(--mCoast);stroke-width:4;vector-effect:non-scaling-stroke;stroke-linejoin:round;opacity:.28} .zfar .m-coastglow{stroke-width:2.5}
 /* sunny side: a glow along the lit kerb that fades away from the place */
 .m-sunglow{fill:none;stroke:#ffd75e;opacity:.16;stroke-linecap:round;pointer-events:none} .m-sunglow.mid{opacity:.1} .m-sunglow.far{opacity:.05}
@@ -1487,3 +1487,10 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 .rbmore{margin-top:12px} .rbmore summary{cursor:pointer;font-weight:600;padding:6px 0}
 .rbrest{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:10px}
 .rbrest li{display:flex;gap:8px;align-items:flex-start;font-size:14px} .rbrest .sdot{margin-top:4px;width:10px;height:10px} .rbrest .rbn{color:var(--muted);font-size:13px} .rbrest .rb-map{margin:0 0 0 auto;flex:none}
+
+/* The base map is its own layer under the overlay; the overlay is see-through */
+.mapsvg.mapbase{position:absolute;inset:0;pointer-events:none;transform-origin:0 0;will-change:transform}
+.mapsvg.mapover{position:relative;background:transparent}
+.healthlog{list-style:none;margin:8px 0;padding:0;display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);max-height:220px;overflow:auto}
+.healthlog b{color:var(--fg);font-weight:600;margin-right:4px} .healthlog .hl-stall,.healthlog .hl-error{color:var(--fg)}
+.brokenbar{z-index:90}

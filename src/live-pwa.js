@@ -46,6 +46,10 @@ window.addEventListener("load",()=>setTimeout(warmPhotos,6000));
 if("serviceWorker" in navigator){
   const hadSw=!!navigator.serviceWorker.controller; let reloaded=false;
   // When a new version takes over, reload once so it shows now rather than on the next launch
-  navigator.serviceWorker.addEventListener("controllerchange",()=>{ if(hadSw&&!reloaded){ reloaded=true; location.reload(); } });
+  // Never reload under your fingers: if the app is open, offer it, and apply it the next time the app comes back to the front
+  let pending=false; const apply=()=>{ if(!reloaded){ reloaded=true; location.reload(); } };
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{ if(!hadSw||reloaded) return; if(document.hidden){ apply(); return; } pending=true;
+    try{ if(typeof evToast==="function") evToast('<span>A new version is ready.</span><button type="button" class="linkbtn" onclick="location.reload()">Reload</button>'); }catch(e){} });
+  document.addEventListener("visibilitychange",()=>{ if(pending&&!document.hidden) apply(); });
   window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 }
