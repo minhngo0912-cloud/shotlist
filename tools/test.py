@@ -1086,6 +1086,10 @@ def run(path, name):
           return [/evdwin/.test(h), /7 pm to 1\d pm<\/b>: after dark the whole time/.test(h), /Sunset 5:5\d pm/.test(h), /1 pm to 6 pm<\/b>: midday sun until 3:5\d pm, golden hour/.test(hb), /8 am to 6 pm<\/b>: daylight until 4:1\d pm, golden hour/.test(m), evLightTag(q,evDay(new Date())), eventLight(EVENTS.find(e=>e.id==='marathon'),new Date(2026,10,1)).join(' ').includes('4:54 pm')]; })()""")
         check("Event day bar: the hours over the day's light, what the light does while it is on; the tag says when an event runs into golden hour; sunset right on the day the clocks change",
               db==[True,True,True,True,True,"runs into golden hour",True], db)
+        rb=pg.evaluate("""(()=>{ const off=[]; EV_ROUTE.marathon.spots.forEach(S=>{ const L=EV_ROUTE.marathon.line; let bi=0,bd=1e9; L.forEach((q,i)=>{const d=(q[0]-S[0])**2+((q[1]-S[1])*0.76)**2; if(d<bd){bd=d;bi=i;}}); const a=L[Math.max(0,bi-1)], c=L[Math.min(L.length-1,bi+1)], onc=(Math.atan2((c[1]-a[1])*0.76,c[0]-a[0])*180/Math.PI+540)%360; if(angDiff(S[2],onc)>60) off.push(S[3]); });
+          const B=raceBest('marathon',new Date(2026,10,1)), h=raceBestHtml('marathon',new Date(2026,10,1));
+          return [off, B.rank.length, B.rank[0].L.k, B.rank[0].S[3], B.plan.length, B.plan.every((p,i)=>!i||(p.s.T.mile>B.plan[i-1].s.T.mile&&p.t>=B.plan[i-1].t+45+p.tr)), B.plan.every(p=>p.t+45<=p.s.T.thick[1]), /Best spots for photos/.test(h)&&/Follow the race: \d stops/.test(h), (h.match(/data-mapevsp=/g)||[]).length]; })()""")
+        check("Marathon viewing spots face the oncoming runners, rank by light and plan a hop-along day", rb[0]==[] and rb[1]==10 and rb[2]=="front" and rb[3].startswith("Fifth Avenue") and rb[4]>=3 and rb[5] and rb[6] and rb[7] and rb[8]==10, rb)
         pg.fill("#mapQ","marathon"); pg.wait_for_timeout(150); pg.click("#mapQres .mq-it"); pg.wait_for_timeout(900)
         r5=pg.evaluate("[state.mapEv, document.querySelectorAll('.m-evrt.on').length, mapV.w>200]")
         check("Searching for the marathon shows its whole route", r5==["marathon",1,True], r5)

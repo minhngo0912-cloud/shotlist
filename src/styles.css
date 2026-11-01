@@ -1477,3 +1477,13 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 
 .evdlab span.e0{left:0;transform:none} .evdlab span.e1{right:0;left:auto;transform:none}
 .evdlab span:first-child,.evdlab span:last-child{transform:translateX(-50%)} .evdlab span.e0:first-child{transform:none} .evdlab span.e1:last-child{transform:none}
+
+.rbest .tag .sdot,.rbstops .sdot{width:10px;height:10px}
+.rbest .rb-map{align-self:flex-start;margin-top:6px}
+.rbstops{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.rbstops li{display:flex;flex-direction:column;gap:2px}
+.rbstops li b{font-size:16px}
+.rbstops .rbhop{font-size:13px;color:var(--muted);padding-left:14px;border-left:2px dotted var(--line)}
+.rbmore{margin-top:12px} .rbmore summary{cursor:pointer;font-weight:600;padding:6px 0}
+.rbrest{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:10px}
+.rbrest li{display:flex;gap:8px;align-items:flex-start;font-size:14px} .rbrest .sdot{margin-top:4px;width:10px;height:10px} .rbrest .rbn{color:var(--muted);font-size:13px} .rbrest .rb-map{margin:0 0 0 auto;flex:none}
