@@ -1494,3 +1494,6 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 .healthlog{list-style:none;margin:8px 0;padding:0;display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);max-height:220px;overflow:auto}
 .healthlog b{color:var(--fg);font-weight:600;margin-right:4px} .healthlog .hl-stall,.healthlog .hl-error{color:var(--fg)}
 .brokenbar{z-index:90}
+.m-lake{fill:var(--mSea);stroke:var(--mCoast);stroke-width:.6;vector-effect:non-scaling-stroke;stroke-linejoin:round;transition:fill .6s}
+.m-laketex{stroke:none;pointer-events:none}
+.m-lakelab{font-weight:500;letter-spacing:.03em}

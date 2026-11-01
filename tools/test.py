@@ -397,6 +397,8 @@ def run(path, name):
           mapV=mapClamp({cx:old.cx,cy:old.cy,w:200}); mapDraw(); const a=vis(); mapV=mapClamp({cx:old.cx,cy:old.cy,w:10}); mapDraw(); const b=vis(); mapV=old; mapDraw();
           return [a>b, b>0, !!document.querySelector('#mapBase .m-roads'), !document.querySelector('#mapSvg .m-roads'), getComputedStyle($('mapBase')).pointerEvents, typeof healthLog]; })()""")
         check("The map paints only the street tiles in view, on a base layer of its own", rt==[True,True,True,True,"none","function"], rt)
+        lk=pg.evaluate("""(()=>{ const old=Object.assign({},mapV), [x,y]=mapXY(40.7835,-73.9625); mapV=mapClamp({cx:x,cy:y,w:30}); mapDraw(); const r=[MAPD_LAKES.length, MAPD_LAKES.map(L=>L[0]).includes('Harlem Meer'), !!document.querySelector('#mapBase .m-lake'), [...document.querySelectorAll('.m-lakelab')].map(e=>e.textContent).includes('The Reservoir')]; mapV=old; mapDraw(); return r; })()""")
+        check("Central Park's lakes are drawn on the map, with their names close in", lk==[7,True,True,True], lk)
         check("Every subway station is listed with its lines", pg.evaluate("MAPD_STATIONS.length")>=470 and pg.evaluate("MAPD_STATIONS.every(s=>s[3]&&s[1]>40.5&&s[1]<40.92&&s[2]>-74.26&&s[2]<-73.7)"))
         pg.click("#mapLayersBtn"); pg.wait_for_timeout(150)
         check("Layers menu opens", pg.evaluate("!document.getElementById('mapLayers').hidden && document.querySelectorAll('#mapLayers [data-layer]').length===MAP_LAYERS.length && MAP_LAYERS.length===(PHOTOS_INLINE?14:12)"))
@@ -421,7 +423,7 @@ def run(path, name):
         pg.evaluate("setSheet('full')"); pg.wait_for_timeout(300)
         pg.click("#lightMarks .lmark:has(.lk.blue)"); pg.wait_for_timeout(200)
         check("Blue hour mark moves the map to blue hour", "Blue hour" in pg.evaluate("document.getElementById('sunLine').textContent"), pg.evaluate("document.getElementById('sunLine').textContent")[:60])
-        check("Real shoreline, land around the city, parks, cemeteries and airports", pg.evaluate("[MAPD_LAND.length>20000, MAPD_CTX.length>3000, MAPD_PARK.length>3000, MAPD_CEM.length>200, MAPD_AIR.length>200, document.querySelectorAll('.m-base path, .m-base use').length]")==[True,True,True,True,True,7])
+        check("Real shoreline, land around the city, parks, cemeteries and airports", pg.evaluate("[MAPD_LAND.length>20000, MAPD_CTX.length>3000, MAPD_PARK.length>3000, MAPD_CEM.length>200, MAPD_AIR.length>200, document.querySelectorAll('.m-base path, .m-base use').length]")==[True,True,True,True,True,9])
         pg.evaluate("cancelAnimationFrame(mapAnim); mapV=mapPreset('bk'); mapDraw()"); pg.wait_for_timeout(100)
         check("Bridges cross the rivers and tunnels are dashed", pg.evaluate("[MAPD_BRIDGES.length>=25, MAPD_BRIDGES.filter(b=>b[1]==='tunnel').length>=4, MAPD_BRIDGES.some(b=>b[0]==='Brooklyn Bridge'), MAPD_BRIDGES.some(b=>b[0]==='George Washington Bridge'), document.querySelectorAll('.m-brg').length>=6, document.querySelectorAll('.m-brg.tun .m-tun').length>=1]")==[True]*6, pg.evaluate("[MAPD_BRIDGES.length, document.querySelectorAll('.m-brg').length]"))
         walks=pg.evaluate("LANDMARKS.filter(l=>l[3]==='walk')")
