@@ -1096,6 +1096,19 @@ def run(path, name):
           const B=raceBest('marathon',new Date(2026,10,1)), h=raceBestHtml('marathon',new Date(2026,10,1));
           return [off, B.rank.length, B.rank[0].L.k, B.rank[0].S[3], B.plan.length, B.plan.every((p,i)=>!i||(p.s.T.mile>B.plan[i-1].s.T.mile&&p.t>=B.plan[i-1].t+45+p.tr)), B.plan.every(p=>p.t+45<=p.s.T.thick[1]), /Best spots for photos/.test(h)&&/Follow the race: \d stops/.test(h), (h.match(/data-mapevsp=/g)||[]).length]; })()""")
         check("Marathon viewing spots face the oncoming runners, rank by light and plan a hop-along day", rb[0]==[] and rb[1]==10 and rb[2]=="front" and rb[3].startswith("Fifth Avenue") and rb[4]>=3 and rb[5] and rb[6] and rb[7] and rb[8]==10, rb)
+        pd=pg.evaluate("""(()=>{ const d=new Date(2026,10,26), B=raceBest('thanksgiving',d), h=raceBestHtml('thanksgiving',d), S6=B.rank.find(o=>o.S[3].startsWith('Sixth Avenue at 45th'));
+          const T=paradeSpotTimes('veterans',0.5), H=raceBestHtml('halloween',new Date(2026,9,31));
+          return [B.n>=2, !!B.plan&&B.plan.length>=2, S6&&S6.L.k, /Follow the parade/.test(h)&&/front about/.test(h), T.front>=12*60+30&&T.tail>T.front, /Where to watch/.test(H)&&!/Follow the parade/.test(H)]; })()""")
+        check("Parades rank their viewing spots by light when the parade passes, with a follow-the-parade plan", pd==[True,True,"shade",True,True,True], pd)
+        cl=pg.evaluate("""(()=>{ const d=new Date(); d.setDate(d.getDate()+2); d.setHours(0,0,0,0); const keep=WEATHER[state.city], time=[], cc=[];
+          for(let h=0;h<24;h++){ time.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+'T'+String(h).padStart(2,'0')+':00'); cc.push(90); }
+          WEATHER[state.city]=Object.assign({},keep||{},{hourly:{time,cc,pop:cc.map(()=>0),mm:cc.map(()=>0),code:cc.map(()=>3),t:cc.map(()=>12)}});
+          const r={e:{id:'x',name:'x',time:'11 am to 2 pm'},o:[d]}, a=evCloud(r,evDay(new Date())); WEATHER[state.city]=keep; return a&&[a.k,a.txt]; })()""")
+        check("Events in the next week say what the cloud will do to the light", cl==["soft","Overcast · soft light"], cl)
+        nt=pg.evaluate("""(()=>{ const keep=JSON.stringify(EV_NOTES); EV_NOTES={}; const box=document.createElement('div'); box.dataset.evnf='marathon'; box.dataset.d='2026-11-01'; box.innerHTML='<input class="evn-spot" value="Fifth Av at 124 St"><textarea class="evn-worked">Front light</textarea><textarea class="evn-next">Start in Harlem</textarea>';
+          const ok=evNoteSave(box), html=evNotesHtml({e:EVENTS.find(e=>e.id==='marathon'),o:[new Date(2027,10,7)]},new Date(2027,9,30)), sync=syncDecode(syncEncode()).e.marathon.length; EV_NOTES=JSON.parse(keep); store.set('evNotes',EV_NOTES);
+          return [ok, /Your notes from last time/.test(html)&&/Start in Harlem/.test(html), sync]; })()""")
+        check("A note on an event comes back the next time it comes round, and moves with the sync code", nt==[True,True,1], nt)
         pg.fill("#mapQ","marathon"); pg.wait_for_timeout(150); pg.click("#mapQres .mq-it"); pg.wait_for_timeout(900)
         r5=pg.evaluate("[state.mapEv, document.querySelectorAll('.m-evrt.on').length, mapV.w>200]")
         check("Searching for the marathon shows its whole route", r5==["marathon",1,True], r5)

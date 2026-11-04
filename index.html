@@ -1515,6 +1515,17 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 .m-lake{fill:var(--mSea);stroke:var(--mCoast);stroke-width:.6;vector-effect:non-scaling-stroke;stroke-linejoin:round;transition:fill .6s}
 .m-laketex{stroke:none;pointer-events:none}
 .m-lakelab{font-weight:500;letter-spacing:.03em}
+.rbest .rbarrive{font-size:13px;color:var(--muted)}
+.evcloud{display:inline-flex;align-items:center;gap:3px;padding:0 7px;border-radius:9px;font-size:11.5px;font-weight:800;background:#dfe5ee;color:#27313f}
+.evcloud.hard{background:#fff0c2;color:#4a3500} .evcloud.mixed{background:#e8ecdf;color:#2f3a24}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .evcloud{background:#3a4352;color:#e8edf5} :root:not([data-theme="light"]) .evcloud.hard{background:#5a4712;color:#fff3cf} :root:not([data-theme="light"]) .evcloud.mixed{background:#3d4636;color:#eef2e6}}
+:root[data-theme="dark"] .evcloud{background:#3a4352;color:#e8edf5} :root[data-theme="dark"] .evcloud.hard{background:#5a4712;color:#fff3cf} :root[data-theme="dark"] .evcloud.mixed{background:#3d4636;color:#eef2e6}
+.evnotes .evnl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.evnotes .evnl li{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:10px;background:var(--card2,rgba(127,127,127,.08))}
+.evnotes .evnl i{font-style:normal;color:var(--muted)} .evnotes .evndel{align-self:flex-start;font-size:12px;color:var(--muted);padding:2px 0}
+.evnform input,.evnform textarea{width:100%;box-sizing:border-box;font:inherit;font-size:16px;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);margin-bottom:8px}
+.evnform .evnspots{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.evnform .evnspots{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch} .evnform .evnspots .chip{flex:none;font-size:13px;padding:5px 11px}
 </style>
 
 <div class="app">
@@ -3096,7 +3107,7 @@ const EV_ROUTE = {
  thanksgiving:{line:[[40.7794,-73.9762],[40.7760,-73.9787],[40.7725,-73.9812],[40.7681,-73.9819],[40.7668,-73.9795],[40.7653,-73.9760],[40.7612,-73.9790],[40.7572,-73.9820],[40.7536,-73.9846],[40.7497,-73.9869],[40.7507,-73.9894]],from:"77th Street and Central Park West",to:"Macy's, 34th Street",
   spots:[[40.7813,-73.9740,250,"81st Street at Central Park West","The balloons under their nets the afternoon before, and the first lift at 9 am: low sun from the side, handlers close enough to talk to."],
    [40.7745,-73.9798,30,"Central Park West at 70th Street","The balloons against the park trees and the Dakota; the sun low behind you lights the colours."],
-   [40.7572,-73.9820,210,"Sixth Avenue at 45th Street","The canyon: balloons squeezed between the towers, crowds twenty deep. Shoot up at the balloons from any gap."]]},
+   [40.7572,-73.9820,30,"Sixth Avenue at 45th Street","The canyon: balloons squeezed between the towers, crowds twenty deep. Face north up Sixth Avenue as they come and shoot up at the balloons from any gap.","shade"]]},
  pride:{line:[[40.7435,-73.9876],[40.7410,-73.9894],[40.7370,-73.9924],[40.7345,-73.9942],[40.7324,-73.9961],[40.7329,-73.9998],[40.7336,-74.0023],[40.7351,-74.0014],[40.7384,-73.9996],[40.7398,-73.9989]],from:"25th Street and Fifth Avenue",to:"Seventh Avenue and 16th Street",
   spots:[[40.7435,-73.9876,30,"Fifth Avenue at 25th Street","The start, from noon: groups forming up, flags out, nobody tired yet. Face north up Fifth Avenue into the marchers."],
    [40.7336,-74.0023,100,"Christopher Street at Stonewall","The emotional centre; barriered and full by late morning. Arrive before 11 am or shoot from the side streets."],
@@ -3138,9 +3149,16 @@ const EV_RACE = {marathon:{
   lead:[["Wheelchair men",8*60,3.47,"w"],["Wheelchair women",8*60+2,4.0,"w"],["Elite women",8*60+35,5.42,"f"],["Elite men",9*60+5,4.85,"m"]],
   field:{front:[9*60+10,6.1],thick0:[9*60+10,8.0],thick1:[10*60+55,11.45],tail:[11*60+30,14.9]}}};
 /* The drawn line as map points with the distance along it, and the miles at each vertex from the anchors. */
-function raceLine(id){ const RC=EV_RACE[id], RT=EV_ROUTE[id]; if(!RC||!RT) return null; if(RC._L) return RC._L;
+/* Parades: when the front of the parade sets off and when the last group reaches the end, and how fast the front walks.
+   From these, when the parade reaches and finishes passing each viewing spot. Typical timings, not a schedule. */
+const EV_PARADE = {
+  halloween:{s:19*60,e:22*60+45,mph:1.0}, thanksgiving:{s:8*60+30,e:12*60,mph:2.4}, veterans:{s:12*60+30,e:15*60+30,mph:1.4},
+  pride:{s:12*60,e:19*60,mph:0.9}, stpat:{s:11*60,e:16*60+30,mph:1.2}, prday:{s:11*60,e:17*60,mph:1.2}, columbus:{s:11*60+30,e:15*60,mph:1.4},
+  westindian:{s:11*60,e:18*60,mph:0.8}, mermaid:{s:13*60,e:16*60,mph:1.2}, dance:{s:13*60,e:17*60,mph:1.0}, lunar:{s:13*60,e:15*60+30,mph:0.8}, threekings:{s:11*60,e:13*60,mph:1.0}};
+function raceLine(id){ const RC=EV_RACE[id]||EV_PARADE[id], RT=EV_ROUTE[id]; if(!RC||!RT) return null; if(RC._L) return RC._L;
   const P=RT.line.map(([la,lo])=>mapXY(la,lo)), D=[0]; for(let i=1;i<P.length;i++) D.push(D[i-1]+Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]));
   const near=([la,lo])=>{ const [x,y]=mapXY(la,lo); let b=0,bd=1e9; P.forEach((p,i)=>{ const d=Math.hypot(p[0]-x,p[1]-y); if(d<bd){ bd=d; b=i; } }); return b; };
+  if(!RC.anchors) return RC._L={P,D,M:D.map(d=>d*0.0345)};   // a parade: miles straight from the line (one map unit is about 0.0345 mile)
   const A=RC.anchors.map(a=>[D[near(a)],a[2]]).sort((a,b)=>a[0]-b[0]);
   const mileAt=d=>{ for(let i=1;i<A.length;i++) if(d<=A[i][0]) return A[i-1][1]+(A[i][1]-A[i-1][1])*(d-A[i-1][0])/((A[i][0]-A[i-1][0])||1); return A[A.length-1][1]; };
   const M=D.map(mileAt); return RC._L={P,D,M}; }
@@ -3155,29 +3173,38 @@ function racePath(id,m0,m1,f){ const L=raceLine(id); if(!L||m1<=m0) return ""; c
 const raceMins = (t0,pace,mile) => Math.round(t0+pace*mile);
 function raceSpotTimes(id,mile){ const RC=EV_RACE[id]; if(!RC||mile==null) return null; const F=RC.field;
   return {mile, lead:RC.lead.map(([n,t0,p])=>[n,raceMins(t0,p,mile)]), front:raceMins(F.front[0],F.front[1],mile), thick:[raceMins(F.thick0[0],F.thick0[1],mile),raceMins(F.thick1[0],F.thick1[1],mile)], tail:raceMins(F.tail[0],F.tail[1],mile)}; }
-const raceTimesTxt = T => 'Mile '+(Math.round(T.mile*10)/10)+': wheelchair leaders about '+hmText(T.lead[0][1])+', elite women '+hmText(T.lead[2][1])+', elite men '+hmText(T.lead[3][1])+'. Runners from about '+hmText(T.front)+' to '+hmText(T.tail)+', thickest '+hmText(T.thick[0])+' to '+hmText(T.thick[1])+'.';
+function paradeSpotTimes(id,mile){ const PD=EV_PARADE[id], L=raceLine(id); if(!PD||!L||mile==null) return null; const len=L.M[L.M.length-1], walk=60/PD.mph, pass=Math.max(40,PD.e-PD.s-len*walk), head=Math.round(PD.s+mile*walk);
+  return {mile, parade:true, front:head, tail:head+Math.round(pass), thick:[head,head+Math.round(pass)], lead:null}; }
+const spotTimes = (id,S) => { const m=raceMile(id,S[0],S[1]); return EV_RACE[id]?raceSpotTimes(id,m):paradeSpotTimes(id,m); };
+const raceTimesTxt = T => T.parade ? 'About '+(Math.round(T.mile*10)/10)+' miles along the route: the front of the parade about '+hmText(T.front)+', the last groups about '+hmText(T.tail)+'.' : 'Mile '+(Math.round(T.mile*10)/10)+': wheelchair leaders about '+hmText(T.lead[0][1])+', elite women '+hmText(T.lead[2][1])+', elite men '+hmText(T.lead[3][1])+'. Runners from about '+hmText(T.front)+' to '+hmText(T.tail)+', thickest '+hmText(T.thick[0])+' to '+hmText(T.thick[1])+'.';
 /* The race's viewing spots ranked for photographs: the light on the runners' faces while the field is thickest
    (each spot faces the runners as they come toward you), and a plan of up to four stops that follows the race by subway. */
 const RB_SCORE={front:3,shade:2.6,side:2,back:1.4,dark:0};
 const RB_TXT={front:"Front-lit: the sun behind you lights faces, numbers and signs.",shade:"Open shade: soft, even light on faces, the sunlit background a stop brighter.",side:"Side light: shape and texture across faces and legs.",back:"Backlit: rim light on hair and shoulders. Add +1 EV for faces, or expose for the sky for silhouettes.",dark:"After dark."};
 const RB_TAG={front:"Front-lit",shade:"Open shade",side:"Side light",back:"Backlit",dark:"After dark"};
 function raceSpotLight(S,d,a,b){ const n={front:0,shade:0,side:0,back:0,dark:0};
-  for(let i=0;i<5;i++){ const m=a+(b-a)*i/4; let k=lightFacing(S[2],clk(d,m)).k; if(S[5]==="shade"&&k!=="dark"&&m>=11*60) k="shade"; n[k]++; }
+  for(let i=0;i<5;i++){ const m=a+(b-a)*i/4; let k=lightFacing(S[2],clk(d,m)).k; if(S[5]==="shade"&&k!=="dark") k="shade"; n[k]++; }
   const k=Object.keys(n).sort((x,y)=>n[y]-n[x]||RB_SCORE[y]-RB_SCORE[x])[0];
   return {k,score:Object.keys(n).reduce((t,x)=>t+n[x]*RB_SCORE[x],0)/5}; }
-function raceBest(id,d){ const RT=EV_ROUTE[id]; if(!RT||!EV_RACE[id]) return null; const c=CITIES.nyc;
-  const spots=RT.spots.map((S,i)=>{ const T=raceSpotTimes(id,raceMile(id,S[0],S[1])); if(!T) return null; const L=raceSpotLight(S,d,T.thick[0],T.thick[1]), sp=sunPos(clk(d,Math.round((T.thick[0]+T.thick[1])/2)),c.lat,c.lon); return {i,S,T,L,alt:Math.round(sp.alt)}; }).filter(Boolean);
+function raceBest(id,d){ const RT=EV_ROUTE[id]; if(!RT||!(EV_RACE[id]||EV_PARADE[id])) return null; const c=CITIES.nyc;
+  const spots=RT.spots.map((S,i)=>{ const T=spotTimes(id,S); if(!T) return null; const L=raceSpotLight(S,d,T.thick[0],T.thick[1]), sp=sunPos(clk(d,Math.round((T.thick[0]+T.thick[1])/2)),c.lat,c.lon); return {i,S,T,L,alt:Math.round(sp.alt)}; }).filter(Boolean);
   const rank=spots.slice().sort((a,b)=>b.L.score-a.L.score||a.T.mile-b.T.mile);
   const STAY=45, hop=(a,b)=>Math.round((20+kmBetween({lat:a.S[0],lon:a.S[1]},{lat:b.S[0],lon:b.S[1]})*3.2)/5)*5;
   let best=null; const path=[];
   const go=()=>{ if(path.length>=2){ const v=path.reduce((x,p)=>x+p.v,0); if(!best||v>best.v+1e-9) best={v,path:path.slice()}; } if(path.length===4) return; const last=path[path.length-1];
-    spots.forEach(s=>{ if(last&&s.T.mile<last.s.T.mile+1) return; const tr=last?hop(last.s,s):0, t=last?Math.max(last.t+STAY+tr,s.T.thick[0]):s.T.thick[0]; if(t+STAY>s.T.thick[1]) return;
+    spots.forEach(s=>{ if(last&&s.T.mile<last.s.T.mile+(EV_RACE[id]?1:0.3)) return; const tr=last?hop(last.s,s):0, t=last?Math.max(last.t+STAY+tr,s.T.thick[0]):s.T.thick[0]; if(t+STAY>s.T.thick[1]) return;
       path.push({s,t,tr,v:raceSpotLight(s.S,d,t,t+STAY).score,k:raceSpotLight(s.S,d,t,t+STAY).k}); go(); path.pop(); }); };
-  go(); return {rank,plan:best?best.path:null}; }
-function raceBestHtml(id,d){ const B=raceBest(id,d); if(!B) return ""; const sameDay=+evDay(d)===+evDay(new Date()), dk=Math.round((evDay(d)-evDay(new Date()))/864e5);
-  const row=(o,n)=>'<li><span class="tag"><span class="sdot '+(o.L.k==="shade"?"side":o.L.k)+'"></span>'+n+'. '+RB_TAG[o.L.k]+' · crowd '+hmText(o.T.thick[0])+'–'+hmText(o.T.thick[1])+'</span><b>'+esc(o.S[3])+'</b><span>'+esc(RB_TXT[o.L.k])+(o.L.k==="dark"?'':' Sun about '+o.alt+'° high.')+'</span><span>'+esc(o.S[4])+'</span><span class="set">Mile '+(Math.round(o.T.mile*10)/10)+' · face '+compass(o.S[2])+' · leaders '+hmText(o.T.lead[2][1])+' (women), '+hmText(o.T.lead[3][1])+' (men)</span><button type="button" class="chip rb-map" data-mapevsp="'+esc(id+':'+o.i)+'"'+(dk>=0&&dk<=6?' data-mapd="'+dk+'" data-mapt="'+Math.round(o.T.thick[0]/5)*5+'"':'')+'>On the map at '+hmText(Math.round(o.T.thick[0]/5)*5)+'</button></li>';
-  const plan=B.plan?'<div class="part rbplan"><span class="label">Follow the race: '+B.plan.length+' stops</span><ol class="rbstops">'+B.plan.map((p,j)=>(j?'<li class="rbhop">About '+p.tr+' min by subway and on foot</li>':'')+'<li><b>'+hmText(p.t)+' · '+esc(p.s.S[3])+'</b><span><span class="sdot '+(p.k==="shade"?"side":p.k)+'"></span>'+RB_TAG[p.k]+' for about 45 minutes'+(j===B.plan.length-1?', then stay as long as you like: the crowd runs until about '+hmText(p.s.T.thick[1]):'')+'</span></li>').join("")+'</ol><p class="msg">The stops with the best light while the field is thickest, in the order the race reaches them; each leaves time to get to the next before its crowd thins. The subway runs under the course; on foot, cross only at the marshalled crossings.</p></div>':'';
-  return plan+'<div class="part rbest"><span class="label">Best spots for photos</span><p class="msg">Ranked by the light on the runners’ faces while the field is thickest'+(sameDay?' today':'')+'. Each spot faces the runners as they come toward you. Typical paces from the 2026 start times (wheelchair 8 am, elite women 8:35, elite men 9:05, waves from 9:10 to 11:30).</p><ol class="eideas">'+B.rank.slice(0,4).map((o,n)=>row(o,n+1)).join("")+'</ol><details class="rbmore"><summary>The other '+(B.rank.length-4)+' spots</summary><ul class="rbrest">'+B.rank.slice(4).map((o,n)=>'<li><span class="sdot '+(o.L.k==="shade"?"side":o.L.k)+'"></span><span><b>'+(n+5)+'. '+esc(o.S[3])+'</b> · '+RB_TAG[o.L.k]+' · crowd '+hmText(o.T.thick[0])+'–'+hmText(o.T.thick[1])+'<br><span class="rbn">'+esc(o.S[4])+'</span></span><button type="button" class="chip rb-map" data-mapevsp="'+esc(id+':'+o.i)+'"'+(dk>=0&&dk<=6?' data-mapd="'+dk+'" data-mapt="'+Math.round(o.T.thick[0]/5)*5+'"':'')+'>Map</button></li>').join("")+'</ul></details></div>'; }
+  go(); return {rank,plan:best?best.path:null,dark:spots.every(o=>o.L.k==="dark"),n:spots.length}; }
+function raceBestHtml(id,d){ const B=raceBest(id,d); if(!B||!B.n) return ""; const sameDay=+evDay(d)===+evDay(new Date()), dk=Math.round((evDay(d)-evDay(new Date()))/864e5), race=!!EV_RACE[id];
+  const W=race?{who:"runners",crowd:"crowd",plan:"Follow the race",field:"the field is thickest"}:{who:"marchers",crowd:"parade",plan:"Follow the parade",field:"the parade passes"};
+  const when=o=>race?'leaders '+hmText(o.T.lead[2][1])+' (women), '+hmText(o.T.lead[3][1])+' (men)':'front about '+hmText(o.T.front)+', last groups about '+hmText(o.T.tail);
+  const mapBtn=(o,lab)=>'<button type="button" class="chip rb-map" data-mapevsp="'+esc(id+':'+o.i)+'"'+(dk>=0&&dk<=6?' data-mapd="'+dk+'" data-mapt="'+Math.round(o.T.thick[0]/5)*5+'"':'')+'>'+(lab||'On the map at '+hmText(Math.round(o.T.thick[0]/5)*5))+'</button>';
+  const txt=k=>race?RB_TXT[k]:RB_TXT[k].replace("faces and legs","faces and costumes").replace("faces, numbers and signs","faces, flags and costumes");
+  const row=(o,n)=>'<li><span class="tag"><span class="sdot '+(o.L.k==="shade"?"side":o.L.k)+'"></span>'+n+'. '+RB_TAG[o.L.k]+' · '+W.crowd+' '+hmText(o.T.thick[0])+'–'+hmText(o.T.thick[1])+'</span><b>'+esc(o.S[3])+'</b><span>'+esc(txt(o.L.k))+(o.L.k==="dark"?' Street light only: open up and let the costumes glow.':' Sun about '+o.alt+'° high.')+'</span><span>'+esc(o.S[4])+'</span><span class="set">'+(race?'Mile '+(Math.round(o.T.mile*10)/10):(Math.round(o.T.mile*10)/10)+' mi along')+' · face '+compass(o.S[2])+' · '+when(o)+'</span>'+mapBtn(o)+(o.S[6]?'<span class="rbarrive">⏱ '+esc(o.S[6])+'</span>':'')+'</li>';
+  const plan=B.plan&&!B.dark?'<div class="part rbplan"><span class="label">'+W.plan+': '+B.plan.length+' stops</span><ol class="rbstops">'+B.plan.map((p,j)=>(j?'<li class="rbhop">About '+p.tr+' min by subway and on foot</li>':'')+'<li><b>'+hmText(p.t)+' · '+esc(p.s.S[3])+'</b><span><span class="sdot '+(p.k==="shade"?"side":p.k)+'"></span>'+RB_TAG[p.k]+' for about 45 minutes'+(j===B.plan.length-1?', then stay as long as you like: the '+W.crowd+' runs until about '+hmText(p.s.T.thick[1]):'')+'</span></li>').join("")+'</ol><p class="msg">The stops with the best light while '+W.field+', in the order the '+(race?'race':'parade')+' reaches them; each leaves time to get to the next before it is over there. '+(race?'The subway runs under the course; on foot, cross only at the marshalled crossings.':'Cross the route only where the police open a crossing; the subway or the avenue one block over is quicker.')+'</p></div>':'';
+  const head=B.dark?'<span class="label">Where to watch</span><p class="msg">The parade is after dark everywhere on the route, so pick by crowd and scene; times are typical.</p>':'<span class="label">Best spots for photos</span><p class="msg">Ranked by the light on the '+W.who+'’ faces while '+W.field+(sameDay?' today':'')+'. Each spot faces the '+W.who+' as they come toward you. '+(race?'Typical paces from the 2026 start times (wheelchair 8 am, elite women 8:35, elite men 9:05, waves from 9:10 to 11:30).':'Times are typical for this parade, from its usual start and finish; the front can run 15 minutes either way.')+'</p>';
+  const list=B.dark?B.rank.slice().sort((a,b)=>a.T.mile-b.T.mile):B.rank, top=list.length>5?4:list.length;
+  return plan+'<div class="part rbest">'+head+'<ol class="eideas">'+list.slice(0,top).map((o,n)=>row(o,n+1)).join("")+'</ol>'+(list.length>top?'<details class="rbmore"><summary>The other '+(list.length-top)+' spots</summary><ul class="rbrest">'+list.slice(top).map((o,n)=>'<li><span class="sdot '+(o.L.k==="shade"?"side":o.L.k)+'"></span><span><b>'+(n+top+1)+'. '+esc(o.S[3])+'</b> · '+RB_TAG[o.L.k]+' · '+W.crowd+' '+hmText(o.T.thick[0])+'–'+hmText(o.T.thick[1])+'<br><span class="rbn">'+esc(o.S[4])+'</span></span>'+mapBtn(o,'Map')+'</li>').join("")+'</ul></details>':'')+'</div>'; }
 /* Where everyone is at minute m of race day. */
 function raceNow(id,m){ const RC=EV_RACE[id]; if(!RC) return null; const F=RC.field, at=(t0,p)=>(m-t0)/p, fin=26.2;
   const lead=RC.lead.map(([n,t0,p,k])=>({n,k,mile:at(t0,p)})).filter(o=>o.mile>0&&o.mile<fin);
@@ -4255,11 +4282,39 @@ function evStrip(rows,today,sel){ const days=[]; for(let k=0;k<35;k++) days.push
     return '<button type="button" class="evd'+(n?'':' none')+(on?' on':'')+(d.getDay()===0||d.getDay()===6?' we':'')+'" data-evday="'+(+d)+'" aria-pressed="'+!!on+'" aria-label="'+esc(d.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})+', '+(n?n+' event'+(n>1?'s':''):'no events'))+'">'+
       '<span class="evdm">'+(first?d.toLocaleDateString("en-US",{month:"short"}):'')+'</span><span class="evdw">'+(k===0?'Today':DAY_SHORT[d.getDay()])+'</span><b>'+d.getDate()+'</b><span class="evdots">'+'<i></i>'.repeat(Math.min(3,n))+'</span></button>'; }).join("")+'</div>'; }
 /* One line under the event's name: the start time, the light then, and the forecast when it is within the week. */
+/* The cloud forecast over an event's first hours in daylight, in photographer's terms: overcast is soft, even light for
+   faces; clear is hard light and deep shadows, or a strong glow if it runs into golden hour. Next 7 days only. */
+function evCloud(r,today){ if(!r.o||r.cancelled||r.game) return null; const d=evDay(r.o[0]<today?today:r.o[0]); if((d-today)/864e5>=7) return null;
+  const PD=EV_PARADE[r.e.id], w=PD?[PD.s,PD.e]:evWindow(r.e,d); if(!w) return null; const c=CITIES[state.city], cc=[];
+  for(let m=w[0];m<=Math.min(w[1],w[0]+180,1439);m+=60){ const t=clk(d,m); if(sunPos(t,c.lat,c.lon).alt<2) continue; const f=hourlyAt(t); if(f&&f.cc!=null) cc.push(f.cc); }
+  if(!cc.length) return null; const a=Math.round(cc.reduce((x,y)=>x+y,0)/cc.length);
+  return a>=75?{k:"soft",cc:a,txt:"Overcast · soft light"}:a<=25?{k:"hard",cc:a,txt:"Clear · hard light"}:{k:"mixed",cc:a,txt:"Some cloud · changing light"}; }
+/* Your notes on an event: written after it (which spot worked, what to change), shown at the top of its page the next
+   time it comes round. Kept on this device and moved with the sync code. */
+let EV_NOTES = store.get("evNotes",{}) || {};
+const evNoteKey = d => d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+function evLastOcc(e,today){ const d=EVENT_DOCS[e.id], ds=d&&eParse(d.start); let best=null;
+  if(ds&&ds<today) best=ds;
+  if(typeof e.when==="function") for(const y of [today.getFullYear(),today.getFullYear()-1]){ try{ (e.when(y)||[]).forEach(o=>{ const s0=o&&o[0]; if(s0&&s0<today&&(!best||s0>best)) best=s0; }); }catch(x){} }
+  return best&&(today-best)/864e5<=45?best:null; }
+function evNotesHtml(r,today){ const e=r.e, L=(EV_NOTES[e.id]||[]).slice().sort((a,b)=>b.t-a.t), last=evLastOcc(e,today), lk=last&&evNoteKey(last), has=lk&&L.some(n=>n.d===lk), RT=EV_ROUTE[e.id];
+  const dl=n=>{ const p=n.d.split("-"); return new Date(+p[0],+p[1]-1,+p[2]).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}); };
+  const past=L.length?'<div class="part evnotes"><span class="label">Your notes'+(L[0].d<evNoteKey(today)&&r.o&&r.o[0]>=today?' from last time':'')+'</span><ul class="evnl">'+L.slice(0,4).map(n=>'<li><b>'+dl(n)+(n.spot?' · '+esc(n.spot):'')+'</b>'+(n.worked?'<span><i>Worked:</i> '+esc(n.worked)+'</span>':'')+(n.next?'<span><i>Next time:</i> '+esc(n.next)+'</span>':'')+'<button type="button" class="linkbtn evndel" data-evndel="'+esc(e.id)+'" data-t="'+n.t+'">Remove</button></li>').join("")+'</ul></div>':'';
+  const form=last&&!has?'<div class="part evnform" data-evnf="'+esc(e.id)+'" data-d="'+lk+'"><span class="label">How did it go on '+last.toLocaleDateString("en-US",{month:"short",day:"numeric"})+'?</span><p class="msg">A few words for next time; they show here when it comes round again.</p>'+
+    (RT&&RT.spots.length?'<label class="label">Where you stood</label><div class="evnspots">'+RT.spots.map(S=>'<button type="button" class="chip" data-evnspot="'+esc(S[3])+'" aria-pressed="false">'+esc(S[3])+'</button>').join("")+'</div>':'')+
+    '<label class="label">Spot (or type your own)</label><input type="text" class="evn-spot" maxlength="120" placeholder="Sixth Av at 45 St, east side" autocomplete="off">'+
+    '<label class="label">What worked</label><textarea class="evn-worked" rows="2" maxlength="600" placeholder="Front light on the faces until 10; the balloons low between the towers"></textarea>'+
+    '<label class="label">Next time</label><textarea class="evn-next" rows="2" maxlength="600" placeholder="Be there by 7; bring the 28 mm; too crowded after 10"></textarea>'+
+    '<div class="callinks"><button type="button" class="chip primary" data-evnsave="1">Save note</button></div></div>':'';
+  return past+form; }
+function evNoteSave(box){ const id=box.dataset.evnf, d=box.dataset.d, v=c=>{ const el=box.querySelector(c); return el?el.value.trim().slice(0,600):""; }, n={t:Date.now(),d,spot:v(".evn-spot").slice(0,120),worked:v(".evn-worked"),next:v(".evn-next")};
+  if(!n.spot&&!n.worked&&!n.next) return false; (EV_NOTES[id]=EV_NOTES[id]||[]).push(n); if(EV_NOTES[id].length>20) EV_NOTES[id].shift(); store.set("evNotes",EV_NOTES); return true; }
 function evMeta(r,today){ if(!r.o||r.cancelled||r.game) return ""; const d=evDay(r.o[0]<today?today:r.o[0]), w=evWindow(r.e,d); if(!w) return "";
   const t=new Date(d.getFullYear(),d.getMonth(),d.getDate(),0,w[0]), c=CITIES[state.city], ph=sunPhase(sunPos(t,c.lat,c.lon).alt), days=(d-today)/864e5;
   const f=days<7?hourlyAt(t):null, sky=f?skyAt(t):undefined, wx=f?'<span class="evwx" title="'+esc(sky?WX_WORD[sky]:f.cc>=50?'Some cloud':'Clear')+'">'+wxIcon(sky||(f.cc>=50?"cloud":""),ph!=="night")+(f.temp!=null?Math.round(f.temp*9/5+32)+'°':'')+'</span>':'';
   const gl=evLightTag(r,today), rn=evRain(r,today), going=state.evGoing&&state.evGoing.has(r.e.id);
-  return '<span class="evmeta">'+(gl?'<span class="evgl">✨ '+gl+'</span>':'')+(rn&&going?'<span class="evrain">☔ '+(rn.snow?'Snow':'Rain')+' likely at '+hmText(rn.t)+'</span>':'')+(r.o[0]<today?'Today ':'')+hmText(w[0])+' · '+(ph==="day"?(t.getHours()<11?'morning light':t.getHours()<15?'midday sun':'afternoon light'):(ph==="night"?'after dark':SUN_PHASE[ph].toLowerCase()))+wx+'</span>'; }
+  const cl=rn?null:evCloud(r,today);
+  return '<span class="evmeta">'+(gl?'<span class="evgl">✨ '+gl+'</span>':'')+(cl?'<span class="evcloud '+cl.k+'" title="About '+cl.cc+'% cloud while it is on">'+(cl.k==="soft"?'☁':cl.k==="hard"?'☀':'⛅')+' '+cl.txt+'</span>':'')+(rn&&going?'<span class="evrain">☔ '+(rn.snow?'Snow':'Rain')+' likely at '+hmText(rn.t)+'</span>':'')+(r.o[0]<today?'Today ':'')+hmText(w[0])+' · '+(ph==="day"?(t.getHours()<11?'morning light':t.getHours()<15?'midday sun':'afternoon light'):(ph==="night"?'after dark':SUN_PHASE[ph].toLowerCase()))+wx+'</span>'; }
 /* What a calendar entry for an event holds, for Add to Google Calendar from the Going star. */
 function evCalEv(e,o){ const c=calInfo(e,o), ymd=s=>s.slice(0,4)+"-"+s.slice(4,6)+"-"+s.slice(6,8)+"T00:00:00"; return {summary:c.title,start:ymd(c.start),end:ymd(c.end),allDay:true,location:c.loc,description:c.desc}; }
 function evToast(html){ let t=$("rowToast"); if(!t){ t=document.createElement("div"); t.id="rowToast"; t.className="rowtoast"; t.setAttribute("role","status"); document.body.appendChild(t); }
@@ -4377,8 +4432,11 @@ function renderEvents(){
     'Events marked Confirmed were matched to a published listing. The rest follow each event\'s usual pattern, so confirm before you go. Tap ☆ on an event you plan to shoot: it moves to Going at the top and shows on Today the day before.</p></details>')+chips+nearCtl+
     (DAYF&&!NEAR?'<p class="evdayf">'+fmt(DAYF,{weekday:"long",month:"short",day:"numeric"})+' · '+shown.length+' event'+(shown.length===1?'':'s')+' <button type="button" class="linkbtn" data-evday="">Show all days</button></p>':'');
   // Going first, then the usual groups; each group is its own section so its heading only sticks while it is on screen; Later folds
-  const GO=state.evGoing||new Set(), going=NEAR||DAYF?[]:shown.filter(r=>GO.has(r.e.id)&&r.o&&!r.cancelled), rest=shown.filter(r=>!going.includes(r)), secs=[];
+  const GO=state.evGoing||new Set(), going=NEAR||DAYF?[]:shown.filter(r=>GO.has(r.e.id)&&r.o&&!r.cancelled),
+    jh=NEAR||DAYF?[]:shown.filter(r=>{ if(going.includes(r)) return false; const L=evLastOcc(r.e,today); return L&&(today-L)/864e5<=10&&!(EV_NOTES[r.e.id]||[]).some(n=>n.d===evNoteKey(L)); }),
+    rest=shown.filter(r=>!going.includes(r)&&!jh.includes(r)), secs=[];
   if(going.length) secs.push({k:"go",title:"Going",rows:going});
+  if(jh.length) secs.push({k:"jh",title:"Just happened · a note for next time",rows:jh});
   for(const r of rest){ const k=NEAR?evWhen[r.e.id][0]:grpOf(r), t=NEAR?(k===0?'On today':'Coming up nearby'):GRP[k]; const last=secs[secs.length-1]; if(last&&last.k===k) last.rows.push(r); else secs.push({k,title:t,rows:[r]}); }
   if(state.evLightFirst) secs.forEach(S=>{ S.rows=S.rows.map((r,i)=>({r,i,g:evGreatLight(r,today)?0:1})).sort((a,b)=>a.g-b.g||a.i-b.i).map(x=>x.r); });
   const laterOpen=!!state.evLaterOpen||!!DAYF;
@@ -4403,7 +4461,7 @@ function renderEvents(){
       (games.length?'<div class="part"><span class="label">Home games from the league schedule</span><ul class="games">'+games.map(g=>'<li><b>'+g.game.at.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})+'</b> '+hmText(g.game.at.getHours()*60+g.game.at.getMinutes())+' · '+esc(g.game.title)+'</li>').join("")+'</ul>'+(EVENT_DOCS._fixtures&&EVENT_DOCS._fixtures.checked?'<p class="msg">Schedule checked '+esc(EVENT_DOCS._fixtures.checked)+'; times can move for television.</p>':'')+'</div>':'')+
       (e.spot?'<div class="part"><span class="label">'+(PHOTO_TYPES.has(e.type)?"Good to know":"Where to be")+'</span><p>'+esc(e.spot)+'</p></div>':'')+
       (o&&!PHOTO_TYPES.has(e.type)?'<div class="part evlight"><span class="label">The light during the event</span>'+eventLight(e,evDay(o[0])).map(x=>'<p>'+esc(x)+'</p>').join("")+'</div>':'')+
-      evDayBar(r)+(EV_RACE[r.e.id]&&r.o?raceBestHtml(r.e.id,evDay(r.o[0]<evDay(new Date())?new Date():r.o[0])):'')+evFaceBlock(r)+evRainPlan(r,today,cam)+
+      evNotesHtml(r,today)+evDayBar(r)+((EV_RACE[r.e.id]||EV_PARADE[r.e.id])&&r.o&&!r.cancelled?raceBestHtml(r.e.id,evDay(r.o[0]<evDay(new Date())?new Date():r.o[0])):'')+evFaceBlock(r)+evRainPlan(r,today,cam)+
       (EVENT_VIEW[e.id]&&EVENT_VIEW[e.id].arrive?'<div class="part"><span class="label">Getting there and when</span><p>'+esc(EVENT_VIEW[e.id].arrive)+'</p></div>':'')+
       (o&&(EVENT_GEO[e.id]||(EVENT_DOCS[e.id]&&typeof EVENT_DOCS[e.id].lat==="number"))&&!r.cancelled?'<div class="callinks"><button type="button" class="chip primary" data-planev="'+esc(e.id)+'">Plan this outing</button><button type="button" class="chip" data-mapev="'+esc(e.id)+'">'+(EV_ROUTE[e.id]?(EV_ROUTE[e.id].festival?'The street on the map':'Route and viewing spots on the map'):'Viewing spot on the map')+'</button></div>':'')+
       '<div class="callinks evacts">'+(e.ideas.length&&o&&!r.cancelled?'<button type="button" class="chip primary" data-evshoot="'+esc(e.id)+'">📷 Shoot this event'+(()=>{ const S=(state.evShots||store.get("evShots",{})||{})[e.id], n=S?Object.keys(S).length:0; return n?' · '+n+' of '+e.ideas.length+' shot':''; })()+'</button>':'')+'<button type="button" class="chip" data-evshare="'+esc(e.id)+'">Share ↗</button></div>'+
@@ -4415,7 +4473,9 @@ function renderEvents(){
   if(state.evOpen){ if(box.querySelector('details.event[data-id="'+CSS.escape(state.evOpen)+'"]')) evSheetOpen(state.evOpen,true); else state.evOpen=null; }
 }
 // An event opens in a sheet over the list; it lives inside #events so the buttons in it keep working
-function evSheetOpen(id,quiet){ const box=$("events"), d=box.querySelector('details.event[data-id="'+CSS.escape(id)+'"]'); if(!d) return; evSheetClose(true);
+function evSheetOpen(id,quiet){ const box=$("events"); let d=box.querySelector('details.event[data-id="'+CSS.escape(id)+'"]');
+  if(!d&&!state.evLaterOpen){ state.evLaterOpen=true; renderEvents(); d=box.querySelector('details.event[data-id="'+CSS.escape(id)+'"]'); }   // an event folded away under Later
+  if(!d) return; evSheetClose(true);
   state.evOpen=id; const sm=d.querySelector("summary"), body=d.querySelector(".event-body");
   box.insertAdjacentHTML("beforeend",'<div class="sheet evsheet" id="evSheet"><div class="sh-back" data-esclose="1"></div><div class="sh-panel" role="dialog" aria-modal="true" aria-label="'+esc(d.querySelector(".t b").textContent)+'">'+
     '<header class="sh-head es-head event">'+sm.innerHTML+'<button type="button" class="sh-x" data-esclose="1" aria-label="Close">×</button></header><div class="sh-body"><div class="event-body es-b">'+body.innerHTML+'</div></div></div></div>');
@@ -6244,12 +6304,12 @@ function mapPanel(){
         (()=>{ const V=EVENT_VIEW[evSel.id]||{}, g=eventGeo(evSel.id), t=mapNow(), lf=V.face!=null?lightFacing(V.face,t):null; return (evSel.r.e.map&&evSel.r.e.map[0]?'<p class="mapcount"><b>Viewing spot: '+esc(evSel.r.e.map[0])+'</b>'+(lf?' · face '+compass(V.face)+' · <span class="sdk '+lf.k+'">'+esc(lf.txt)+'</span> at '+hmText(t.getHours()*60+t.getMinutes())+'<span class="turnhint" data-face="'+V.face+'">'+turnText(V.face)+'</span>':'')+'</p>'+(lf?lightStrip(V.face):''):'')+
           '<div class="callinks guidecta">'+(g?(state.guide&&state.guide.id==="ev:"+evSel.id?'<button type="button" class="chip" data-guidestop="1">Stop guiding</button>':'<button type="button" class="chip primary" data-guide="ev:'+esc(evSel.id)+'">Guide me there</button>')+'<a class="chip" href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint='+g[0].toFixed(6)+','+g[1].toFixed(6)+'&heading='+(V.face||29)+'&pitch=0&fov=80" target="_blank" rel="noopener">Street View ↗</a>':'')+'</div>'; })()+
         (()=>{ const RT=EV_ROUTE[evSel.id]; if(!RT) return ''; const t=mapNow(), cur=state.mapEvSpot, CS=cur&&evRouteSpot(cur), ci=cur?+cur.split(":")[1]:-1;
-          const isRace=!!EV_RACE[evSel.id], raceDay=isRace&&evOnDay(evSel.r,mapDay(),false), spT=S=>isRace?raceSpotTimes(evSel.id,raceMile(evSel.id,S[0],S[1])):null;
+          const isRace=!!EV_RACE[evSel.id], isTimed=isRace||!!EV_PARADE[evSel.id], raceDay=isRace&&evOnDay(evSel.r,mapDay(),false), spT=S=>isTimed?spotTimes(evSel.id,S):null;
           return '<p class="spothead">'+(RT.festival?'The festival street':'The route')+' <span class="sh-sub">· '+esc(RT.from)+' to '+esc(RT.to)+(RT.approx?' · usual route':'')+'</span></p>'+
             (isRace?'<div class="racenow"><p class="mapcount">'+(raceDay?esc(raceNowTxt(evSel.id,t.getHours()*60+t.getMinutes())):'Set the map to race day to see where the runners are at each hour.')+'</p>'+(raceDay?'<p class="hint"><span class="rl w">W</span> wheelchair leaders · <span class="rl f">F</span> elite women · <span class="rl m">M</span> elite men · the light band is the field, the darker part the thickest. Typical paces from the 2026 start times; drag the time to follow them.</p>':'')+'</div>':'')+
             (CS?'<div class="evspsel"><b><span class="snum">'+(ci+1)+'</span> '+esc(CS[3])+'</b><p class="mapcount">'+esc(CS[4])+'</p>'+(()=>{ const T=spT(CS); return T?'<p class="mapcount racetimes">'+esc(raceTimesTxt(T))+'</p>':''; })()+(()=>{ const lf=lightFacing(CS[2],t); return '<p class="maplight"><span class="sdot '+lf.k+'"></span><b>'+lf.txt+' at '+hmText(t.getHours()*60+t.getMinutes())+'</b> facing '+compass(CS[2])+'. '+LIGHT_TIP[lf.k]+'</p>'; })()+
               '<div class="callinks guidecta">'+(state.guide&&state.guide.id==="evs:"+cur?'<button type="button" class="chip" data-guidestop="1">Stop guiding</button>':'<button type="button" class="chip primary" data-guide="evs:'+esc(cur)+'">Guide me there</button>')+'<a class="chip" href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint='+CS[0].toFixed(6)+','+CS[1].toFixed(6)+'&heading='+CS[2]+'&pitch=0&fov=80" target="_blank" rel="noopener">Street View ↗</a></div></div>':'')+
-            '<p class="spothead">Where to watch</p>'+(()=>{ const B=isRace?raceBest(evSel.id,mapDay()):null; window._rbr=B?B.rank.map(o=>o.i):null; return ""; })()+RT.spots.map((S,i)=>{ const k=evSel.id+":"+i, lf=lightFacing(S[2],t), mi=state.pos?kmBetween(state.pos,{lat:S[0],lon:S[1]})/1.609:null; return '<button type="button" class="srow'+(k===cur?' on':'')+'" data-evsp="'+esc(k)+'" aria-pressed="'+(k===cur)+'"><span class="snum '+lf.k+'">'+(i+1)+'</span><span class="t"><b>'+esc(S[3])+'</b> · face '+compass(S[2])+', '+esc(lf.txt.charAt(0).toLowerCase()+lf.txt.slice(1))+(mi!==null?' · '+milesText(mi):'')+(()=>{ const T=spT(S); return T?'<br><span class="racet">'+(window._rbr&&window._rbr.indexOf(i)>-1&&window._rbr.indexOf(i)<3?'★ #'+(window._rbr.indexOf(i)+1)+' for photos · ':'')+'Mile '+(Math.round(T.mile*10)/10)+' · leaders '+hmText(T.lead[0][1])+'–'+hmText(T.lead[3][1])+' · crowd '+hmText(T.thick[0])+'–'+hmText(T.thick[1])+'</span>':''; })()+'</span><span class="sgo" aria-hidden="true">◎</span></button>'; }).join("")+
+            '<p class="spothead">Where to watch</p>'+(()=>{ const B=isTimed?raceBest(evSel.id,mapDay()):null; if(B&&B.dark) B.rank=[]; window._rbr=B?B.rank.map(o=>o.i):null; return ""; })()+RT.spots.map((S,i)=>{ const k=evSel.id+":"+i, lf=lightFacing(S[2],t), mi=state.pos?kmBetween(state.pos,{lat:S[0],lon:S[1]})/1.609:null; return '<button type="button" class="srow'+(k===cur?' on':'')+'" data-evsp="'+esc(k)+'" aria-pressed="'+(k===cur)+'"><span class="snum '+lf.k+'">'+(i+1)+'</span><span class="t"><b>'+esc(S[3])+'</b> · face '+compass(S[2])+', '+esc(lf.txt.charAt(0).toLowerCase()+lf.txt.slice(1))+(mi!==null?' · '+milesText(mi):'')+(()=>{ const T=spT(S); return T?'<br><span class="racet">'+(window._rbr&&window._rbr.indexOf(i)>-1&&window._rbr.indexOf(i)<3?'★ #'+(window._rbr.indexOf(i)+1)+' for photos · ':'')+(T.parade?'Parade passes '+hmText(T.thick[0])+'–'+hmText(T.thick[1]):'Mile '+(Math.round(T.mile*10)/10)+' · leaders '+hmText(T.lead[0][1])+'–'+hmText(T.lead[3][1])+' · crowd '+hmText(T.thick[0])+'–'+hmText(T.thick[1]))+'</span>':''; })()+'</span><span class="sgo" aria-hidden="true">◎</span></button>'; }).join("")+
             '<div class="callinks"><button type="button" class="chip" data-evrtfit="'+esc(evSel.id)+'">Whole route on the map</button></div>'; })()+
         '<div class="callinks"><button type="button" class="chip primary" data-planev="'+esc(evSel.id)+'">Plan this outing</button><button type="button" class="chip" data-event="'+esc(evSel.id)+'">Open in Events</button>'+(evSel.r.e.map?'<a class="chip" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(evSel.r.e.map[1])+'" target="_blank" rel="noopener">Google Maps ↗</a>':'')+'</div></section>' :
     sel ? '<section class="group mapsel"><button type="button" class="mapselx" data-unsel="1" aria-label="Close">×</button>'+mapCard(sel,pl,d,mine,key)+(PHOTOS_INLINE&&PLACE_PHOTO[sel.id]?'<figure class="mapselfig"><img src="'+esc(PLACE_PHOTO[sel.id].src)+'" alt="'+esc(pl.name)+'" loading="lazy" onerror="this.parentNode.hidden=true"><figcaption><a href="'+esc(PLACE_PHOTO[sel.id].page)+'" target="_blank" rel="noopener">Photo: '+esc(PLACE_PHOTO[sel.id].by)+', '+esc(PLACE_PHOTO[sel.id].lic)+', Wikimedia Commons</a></figcaption></figure>':'')+'<div class="mwhere">'+whereHtml(pl)+'</div>'+startHtml(sel.id).replace('class="start"','class="start mapstart"')+
@@ -7554,6 +7614,9 @@ document.addEventListener("keydown",e=>{ if(e.key!=="Escape") return; for(const 
 syncTheme();
 $("events").addEventListener("change",e=>{ if(e.target.id==="evWhenSel"){ state.evWhenF=e.target.value; store.set("evWhenF",state.evWhenF); renderEvents(); } else if(e.target.id==="evTypeSel"){ state.evType=e.target.value; renderEvents(); } });
 $("events").addEventListener("click",e=>{
+  const nsp=e.target.closest("[data-evnspot]"); if(nsp){ const f=nsp.closest("[data-evnf]"), inp=f&&f.querySelector(".evn-spot"); f.querySelectorAll("[data-evnspot]").forEach(b=>b.setAttribute("aria-pressed",String(b===nsp))); if(inp) inp.value=nsp.dataset.evnspot; return; }
+  if(e.target.closest("[data-evnsave]")){ const f=e.target.closest("[data-evnf]"); if(f&&evNoteSave(f)){ const id=state.evOpen; renderEvents(); if(id) evSheetOpen(id,true); evToast('<span>Note saved. It will be here when this comes round again.</span>'); } return; }
+  const nd=e.target.closest("[data-evndel]"); if(nd){ const L=EV_NOTES[nd.dataset.evndel]; if(L){ EV_NOTES[nd.dataset.evndel]=L.filter(x=>String(x.t)!==nd.dataset.t); store.set("evNotes",EV_NOTES); } const id=state.evOpen; renderEvents(); if(id) evSheetOpen(id,true); return; }
   if(e.target.closest("[data-esclose]")){ evSheetClose(); return; }
   const esh=e.target.closest("[data-evshoot]"); if(esh){ evShootOpen(esh.dataset.evshoot); return; }
   const esr=e.target.closest("[data-evshare]"); if(esr){ evShare(esr,esr.dataset.evshare); return; }
@@ -7583,7 +7646,7 @@ $("plan").addEventListener("click",e=>{
 state.plan=loadPlan();
 syncNear();
 // Move marks between devices with a copy-and-paste code. Import merges: it only ever adds.
-function syncEncode(){ const j=JSON.stringify({v:1,s:[...state.saved],d:[...state.done],n:state.notes,l:state.log});
+function syncEncode(){ const j=JSON.stringify({v:1,s:[...state.saved],d:[...state.done],n:state.notes,l:state.log,e:EV_NOTES});
   return "SL1."+btoa(unescape(encodeURIComponent(j))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); }
 function syncDecode(code){ const m=/SL1\.([A-Za-z0-9_-]+)/.exec(String(code||"").replace(/\s+/g,"")); if(!m) return null;
   try{ const b=m[1].replace(/-/g,"+").replace(/_/g,"/"); const j=JSON.parse(decodeURIComponent(escape(atob(b+"===".slice((b.length+3)%4)))));
@@ -7597,6 +7660,9 @@ function syncImport(code){ const j=syncDecode(code); if(!j) return null;
     cur.sort((a,b)=>a.t-b.t); if(cur.length>50) cur.splice(0,cur.length-50); if(!cur.length) delete state.log[id]; else state.done.add(id); });
   Object.entries(j.n&&typeof j.n==="object"?j.n:{}).forEach(([id,t])=>{ if(!known.has(id)||typeof t!=="string"||!t.trim()) return; t=t.slice(0,2000);
     const cur=state.notes[id]; if(!cur){ state.notes[id]=t; n++; } else if(cur.trim()!==t.trim() && !cur.includes(t.trim())){ state.notes[id]=cur.trim()+"\n"+t.trim(); n++; } });
+  if(j.e&&typeof j.e==="object") Object.entries(j.e).forEach(([id,list])=>{ if(typeof id!=="string"||!Array.isArray(list)) return; const cur=EV_NOTES[id]=EV_NOTES[id]||[], have=new Set(cur.map(x=>x.t));
+    list.forEach(x=>{ if(!x||typeof x.t!=="number"||have.has(x.t)||typeof x.d!=="string"||!/^\d{4}-\d\d-\d\d$/.test(x.d)) return; cur.push({t:x.t,d:x.d,spot:String(x.spot||"").slice(0,120),worked:String(x.worked||"").slice(0,600),next:String(x.next||"").slice(0,600)}); have.add(x.t); n++; }); });
+  store.set("evNotes",EV_NOTES);
   store.set("saved",[...state.saved]); store.set("done",[...state.done]); store.set("notes",state.notes); store.set("log",state.log);
   return {s,d,n}; }
 $("syncCopy").addEventListener("click",()=>{ const code=syncEncode(), msg=$("syncMsg"), total=state.saved.size+state.done.size+Object.keys(state.notes).length;
