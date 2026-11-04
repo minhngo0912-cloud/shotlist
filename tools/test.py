@@ -398,7 +398,7 @@ def run(path, name):
           return [a>b, b>0, !!document.querySelector('#mapBase .m-roads'), !document.querySelector('#mapSvg .m-roads'), getComputedStyle($('mapBase')).pointerEvents, typeof healthLog]; })()""")
         check("The map paints only the street tiles in view, on a base layer of its own", rt==[True,True,True,True,"none","function"], rt)
         lk=pg.evaluate("""(()=>{ const old=Object.assign({},mapV), [x,y]=mapXY(40.7835,-73.9625); mapV=mapClamp({cx:x,cy:y,w:30}); mapDraw(); const r=[MAPD_LAKES.length, MAPD_LAKES.map(L=>L[0]).includes('Harlem Meer'), !!document.querySelector('#mapBase .m-lake'), [...document.querySelectorAll('.m-lakelab')].map(e=>e.textContent).includes('The Reservoir')]; mapV=old; mapDraw(); return r; })()""")
-        check("Central Park's lakes are drawn on the map, with their names close in", lk==[7,True,True,True], lk)
+        check("The parks' lakes are drawn on the map, with their names close in", lk==[18,True,True,True], lk)
         check("Every subway station is listed with its lines", pg.evaluate("MAPD_STATIONS.length")>=470 and pg.evaluate("MAPD_STATIONS.every(s=>s[3]&&s[1]>40.5&&s[1]<40.92&&s[2]>-74.26&&s[2]<-73.7)"))
         pg.click("#mapLayersBtn"); pg.wait_for_timeout(150)
         check("Layers menu opens", pg.evaluate("!document.getElementById('mapLayers').hidden && document.querySelectorAll('#mapLayers [data-layer]').length===MAP_LAYERS.length && MAP_LAYERS.length===(PHOTOS_INLINE?14:12)"))
@@ -1109,6 +1109,9 @@ def run(path, name):
           const ok=evNoteSave(box), html=evNotesHtml({e:EVENTS.find(e=>e.id==='marathon'),o:[new Date(2027,10,7)]},new Date(2027,9,30)), sync=syncDecode(syncEncode()).e.marathon.length; EV_NOTES=JSON.parse(keep); store.set('evNotes',EV_NOTES);
           return [ok, /Your notes from last time/.test(html)&&/Start in Harlem/.test(html), sync]; })()""")
         check("A note on an event comes back the next time it comes round, and moves with the sync code", nt==[True,True,1], nt)
+        pn=pg.evaluate("""(()=>{ const N=paradeNow('veterans',13*60+15), B=paradeNow('veterans',11*60), A=paradeNow('veterans',17*60), w=EVENTS.find(e=>e.id==='lightswalk'), R=EV_ROUTE.lightswalk;
+          return [N.on&&N.front>0.5&&N.front<1.25&&N.tail===0, B.before, A.after, /front of the parade/.test(paradeNowTxt('veterans',13*60+15)), !!w&&!!R&&R.spots.length===6&&R.walk===true, !!EVENT_GEO.lightswalk&&EVENT_TYPE_OF.lightswalk==='light']; })()""")
+        check("Parades move along their route on the map through the day, and the Fifth Avenue lights walk is a route of its own", pn==[True,True,True,True,True,True], pn)
         pg.fill("#mapQ","marathon"); pg.wait_for_timeout(150); pg.click("#mapQres .mq-it"); pg.wait_for_timeout(900)
         r5=pg.evaluate("[state.mapEv, document.querySelectorAll('.m-evrt.on').length, mapV.w>200]")
         check("Searching for the marathon shows its whole route", r5==["marathon",1,True], r5)

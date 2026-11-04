@@ -1508,3 +1508,6 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 .evnform input,.evnform textarea{width:100%;box-sizing:border-box;font:inherit;font-size:16px;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);margin-bottom:8px}
 .evnform .evnspots{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
 .evnform .evnspots{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch} .evnform .evnspots .chip{flex:none;font-size:13px;padding:5px 11px}
+.m-parb{fill:none;stroke:rgba(52,120,246,.45);stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.m-racel.p circle{fill:#3478f6}
+.hint .rl.p{background:#3478f6}
