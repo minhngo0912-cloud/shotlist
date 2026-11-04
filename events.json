@@ -1,27 +1,7 @@
 {
  "_fixtures": {
-  "checked": "2026-10-26",
+  "checked": "2026-11-02",
   "games": [
-   {
-    "at": "2026-10-27T20:00",
-    "opp": "Pistons",
-    "team": "knicks"
-   },
-   {
-    "at": "2026-10-28T19:30",
-    "opp": "Atlanta United",
-    "team": "nycfc"
-   },
-   {
-    "at": "2026-10-30T19:30",
-    "opp": "Pistons",
-    "team": "nets"
-   },
-   {
-    "at": "2026-10-31T14:00",
-    "opp": "CF Montréal",
-    "team": "nycfc"
-   },
    {
     "at": "2026-11-02T19:30",
     "opp": "Nets",
@@ -51,80 +31,121 @@
   "source": "league schedules via the sports data tool (not available this run; kept earlier future games)"
  },
  "_status": {
-  "checked": "2026-10-26",
-  "summary": "Removed five past events, confirmed SantaCon (Dec 12), added Dumboween, Queens Night Market finale, Essex Market Halloween, NYBG Día de los Muertos parade and Baldwin Lee at Howard Greenberg; foliage report and sports tool unavailable, so foliage was not written and existing future games were kept."
+  "checked": "2026-11-03",
+  "summary": "Checked the next six weeks against current sources (Veterans Day, Thanksgiving, tree, SantaCon, Harlem Holiday Lights) and added the holiday season: the tree's arrival, Saks, Bergdorf and Macy's windows, the Union Square, Columbus Circle and Grand Central markets, Bryant Park's tree, both Hanukkah menorahs, the Park Avenue and Washington Square trees, the Nostalgia Train, Hudson Yards, the Sixth Avenue ornaments, Lightscape, the Bronx Zoo lights and New Year's Eve. Entries marked approx follow last year's pattern."
  },
- "aperture-loves-new-york": {
-  "checked": "2026-10-12",
+ "bergdorf-windows": {
+  "approx": true,
+  "checked": "2026-11-03",
   "city": "nyc",
-  "end": "2026-11-01",
-  "ideas": [],
-  "lat": 40.7816,
-  "lon": -73.9757,
-  "map": "Aperture, 380 Columbus Ave, New York, NY",
-  "name": "Aperture Loves New York",
-  "source": "https://aperture.org/exhibitions/",
-  "spot": "The bookshop is in the same space. Central Park is two blocks east for shooting afterwards.",
-  "start": "2026-09-18",
-  "time": "Wed to Sat 11 am to 6 pm, Sun noon to 5 pm. Closed Mon and Tue",
-  "type": "photoshow",
-  "where": "Aperture, 380 Columbus Av at 78 St, Upper West Side",
-  "why": "A gallery installation at Aperture's space and bookshop on the Upper West Side."
- },
- "baldwin-lee-new-york": {
-  "checked": "2026-10-26",
-  "city": "nyc",
-  "end": "2026-10-31",
-  "ideas": [],
-  "lat": 40.7627,
-  "lon": -73.9721,
-  "map": "Howard Greenberg Gallery, 41 E 57th St, New York, NY",
-  "name": "Baldwin Lee: New York",
-  "source": "https://aperture.org/editorial/14-exhibitions-to-see-this-fall/",
-  "spot": "The show closes on Saturday October 31; the gallery is on an upper floor of the building, so check hours before going.",
-  "start": "2026-09-18",
-  "type": "photoshow",
-  "where": "Howard Greenberg Gallery, 41 E 57 St, Midtown",
-  "why": "Large-format 4x5 photographs of New York's empty early-morning streets by Baldwin Lee."
- },
- "bat-dia-de-los-muertos": {
-  "checked": "2026-10-12",
-  "city": "nyc",
+  "end": "2027-01-04",
   "ideas": [
    {
-    "intent": "place",
-    "recipe": "deep",
-    "text": "Show the altar small under the repeating concrete arches with people moving between them.",
-    "title": "Altar under the arches"
+    "intent": "mood",
+    "recipe": "night",
+    "text": "A passer-by's reflection lying across the lit tableau.",
+    "title": "Reflections over the scene"
    },
    {
-    "intent": "mood",
+    "intent": "moment",
     "recipe": "shallow",
-    "text": "Isolate a face being painted, with the artist's hand and brush in the frame.",
-    "title": "Face painting"
+    "text": "A child's face close to the glass, the scene soft behind.",
+    "title": "Looking in"
    },
    {
     "intent": "odd",
     "recipe": "detail",
-    "text": "Close in on marigolds and candles beside an industrial fitting of the terminal.",
-    "title": "Marigolds and steel"
+    "text": "One odd detail of the display filling the frame.",
+    "title": "Strange things in the window"
    }
   ],
-  "lat": 40.6449,
-  "lon": -74.025,
-  "map": "Brooklyn Army Terminal, 140 58th St, Brooklyn, NY",
-  "name": "Día de los Muertos at Brooklyn Army Terminal",
-  "source": "https://www.nyctourism.com/events/dia-de-los-muertos-celebration/",
-  "spot": "Arrive around 2 pm while people are still adding to the altar, and stay until dusk when the candles carry the light under the arches.",
-  "start": "2026-10-31",
-  "time": "2 pm to 7 pm, free",
-  "type": "cultural",
-  "where": "Brooklyn Army Terminal Arches, 140 58 St, Sunset Park",
-  "why": "A shared altar, face painting, crafts and live music under the concrete arches of an old military terminal."
+  "lat": 40.7636,
+  "lon": -73.9737,
+  "map": "Bergdorf Goodman, 754 5th Ave, New York, NY",
+  "name": "Bergdorf Goodman holiday windows",
+  "source": "https://abc7ny.com/post/bergdorf-goodman-unveil-2025-christmas-window-display-fifth-avenue/18179840/",
+  "spot": "After dark from the kerb, so the window and the people looking into it are both in the frame. Late evening, after 9, the crowd thins.",
+  "start": "2026-11-19",
+  "time": "On view at all hours once unveiled (Thu Nov 20 at 6 pm in 2025); the 2026 unveiling is not yet announced",
+  "type": "holiday",
+  "where": "Bergdorf Goodman, Fifth Av at 57 St to 58 St",
+  "why": "Hand-built tableaux, the most elaborate windows on Fifth Avenue; after dark the reflections of passers-by lie over the scenes."
+ },
+ "bronx-zoo-lights": {
+  "checked": "2026-11-03",
+  "city": "nyc",
+  "end": "2027-01-03",
+  "ideas": [
+   {
+    "intent": "odd",
+    "recipe": "night",
+    "text": "A person beside a giant lantern animal, for scale.",
+    "title": "Lantern animals"
+   },
+   {
+    "intent": "mood",
+    "recipe": "silhouette",
+    "text": "A family in silhouette against a lantern.",
+    "title": "Against the glow"
+   },
+   {
+    "intent": "moment",
+    "recipe": "zone",
+    "text": "Faces lit as they come round a corner to a new lantern.",
+    "title": "First look"
+   }
+  ],
+  "lat": 40.8506,
+  "lon": -73.877,
+  "map": "Bronx Zoo, Bronx, NY",
+  "name": "Bronx Zoo Holiday Lights",
+  "source": "https://resident.com/new-york/2026/10/28/nycs-holiday-season-begins-with-these-15-things-to-do-in-november-2026",
+  "spot": "Arrive at 4:30 pm for blue hour on the trails before the crowd builds.",
+  "start": "2026-11-21",
+  "time": "Tickets from 1 pm; the lantern trails open at 4:30 pm",
+  "type": "light",
+  "where": "Bronx Zoo, Bronx River or Southern Blvd gates",
+  "why": "Giant animal lanterns along wooded paths."
+ },
+ "bryant-park-tree": {
+  "checked": "2026-11-03",
+  "city": "nyc",
+  "ideas": [
+   {
+    "intent": "place",
+    "recipe": "night",
+    "text": "The lit tree above the skaters with the towers behind.",
+    "title": "Tree over the rink"
+   },
+   {
+    "intent": "energy",
+    "recipe": "drag",
+    "text": "A slow shutter on the skaters circling under the tree.",
+    "title": "Skaters round the tree"
+   },
+   {
+    "intent": "moment",
+    "recipe": "zone",
+    "text": "Faces in the crowd at the moment the tree lights.",
+    "title": "The switch-on"
+   }
+  ],
+  "lat": 40.7536,
+  "lon": -73.9832,
+  "map": "Bryant Park, New York, NY",
+  "name": "Bryant Park tree lighting",
+  "source": "https://secretnyc.co/?p=412551",
+  "spot": "The terrace on the library side looks down over the rink to the tree. Come for blue hour, a little after 4:30 pm.",
+  "start": "2026-12-01",
+  "time": "5:30 pm",
+  "type": "light",
+  "where": "Bryant Park, by the rink",
+  "why": "The Winter Village tree switched on over the rink, with skaters and the lit towers of Midtown round it."
  },
  "bryant-park-winter-village": {
-  "checked": "2026-10-12",
+  "checked": "2026-11-02",
   "city": "nyc",
+  "end": "2027-01-03",
   "ideas": [
    {
     "intent": "energy",
@@ -148,96 +169,90 @@
   "lat": 40.7536,
   "lon": -73.9827,
   "map": "Bryant Park Upper Terrace, behind the New York Public Library, New York, NY",
-  "name": "Bryant Park Winter Village opening",
-  "source": "https://bryantpark.org/activities/holiday-shops",
+  "name": "Bryant Park Winter Village holiday shops",
+  "source": "https://www.6sqft.com/bryant-parks-winter-village-opens-for-the-2026-holiday-season/",
   "spot": "The raised terrace on the library side looks down on the whole rink. Come on a weekday just after dark, when the stalls glow and the crowd is thinner.",
   "start": "2026-10-28",
-  "time": "Opens at noon on October 28",
+  "time": "Holiday shops open daily through January 3; rink 8 am to 10 pm",
   "type": "market",
   "where": "Bryant Park, 40 St to 42 St between Fifth and Sixth Av",
   "why": "The rink and glass market stalls put skaters, shoppers and office workers in one small lit space surrounded by towers."
  },
- "dumboween": {
-  "checked": "2026-10-26",
+ "columbus-circle-market": {
+  "approx": true,
+  "checked": "2026-11-03",
   "city": "nyc",
+  "end": "2026-12-31",
   "ideas": [
    {
     "intent": "place",
-    "recipe": "deep",
-    "text": "Shoot up Washington Street so the marchers fill the bottom of the frame and the bridge and Empire State Building close the top.",
-    "title": "Costumes under the bridge"
+    "recipe": "night",
+    "text": "The market following the park wall, the monument lit above.",
+    "title": "The curve of stalls"
    },
    {
     "intent": "moment",
     "recipe": "zone",
-    "text": "Pre-focus by the kerb and wait for a small child looking up as a large puppet passes.",
-    "title": "Puppet meets child"
+    "text": "Hands round a steaming cup at a stall counter.",
+    "title": "Hot drinks"
    },
    {
     "intent": "mood",
-    "recipe": "night",
-    "text": "After the parade, frame a costumed figure under the Archway lights as the sky turns blue.",
-    "title": "Archway at dusk"
+    "recipe": "silhouette",
+    "text": "A shopper in silhouette against a brightly lit stall.",
+    "title": "Against the lights"
    }
   ],
-  "lat": 40.7033,
-  "lon": -73.9897,
-  "map": "Washington St & Water St, Brooklyn, NY",
-  "name": "Dumboween March to the Arch",
-  "source": "https://www.bkreader.com/arts-entertainment/guide-to-a-free-halloweekend-in-brooklyn-12931076",
-  "spot": "Stand at Washington St and Water St before 4 pm so the parade comes towards you with the Manhattan Bridge framed between the warehouses.",
-  "start": "2026-10-31",
-  "time": "3:30 pm to 6 pm; parade at 4 pm",
-  "type": "parade",
-  "where": "Washington St to the Manhattan Bridge Archway, Dumbo",
-  "why": "Children and families in costume march up cobbled Washington Street to the Archway, with bands and puppets under the Manhattan Bridge."
+  "lat": 40.7681,
+  "lon": -73.9812,
+  "map": "Columbus Circle Holiday Market, New York, NY",
+  "name": "Columbus Circle Holiday Market",
+  "source": "https://www.westsiderag.com/2025/12/03/uws-largest-holiday-market-opens-for-the-season-at-columbus-circle",
+  "spot": "From the circle itself at blue hour, looking back at the curve of lit stalls and the park.",
+  "start": "2026-12-01",
+  "time": "11 am to 7 pm, to 8 pm Fridays and Saturdays, closed Christmas Day (2025 hours)",
+  "type": "market",
+  "where": "Columbus Circle, at the park entrance",
+  "why": "Stalls curving along the park wall, with the Maine Monument and the towers of Columbus Circle lit behind."
  },
- "essex-market-halloween": {
-  "checked": "2026-10-26",
+ "grand-central-fair": {
+  "checked": "2026-11-03",
   "city": "nyc",
+  "end": "2026-12-24",
   "ideas": [
+   {
+    "intent": "place",
+    "recipe": "interior",
+    "text": "The aisle of stalls under Vanderbilt Hall's chandeliers.",
+    "title": "Under the chandeliers"
+   },
    {
     "intent": "moment",
     "recipe": "zone",
-    "text": "Wait at the face-painting table for the moment a child sees the result in the mirror.",
-    "title": "Face being painted"
+    "text": "A craftsperson at work at their stall.",
+    "title": "The maker"
    },
    {
-    "intent": "odd",
-    "recipe": "detail",
-    "text": "Frame a costume in front of a market stall sign that comments on it by accident.",
-    "title": "Costume and market sign"
-   },
-   {
-    "intent": "place",
-    "recipe": "deep",
-    "text": "Shoot down the closed block so costumes, the market front and the old tenements stack up.",
-    "title": "Broome Street block"
+    "intent": "energy",
+    "recipe": "drag",
+    "text": "Next door, commuters blurring across the Main Concourse floor.",
+    "title": "Concourse at rush hour"
    }
   ],
-  "lat": 40.7181,
-  "lon": -73.9879,
-  "map": "Essex Market, 88 Essex St, New York, NY",
-  "name": "Essex Market Halloween",
-  "source": "https://www.6sqft.com/free-ways-to-celebrate-halloween-in-nyc/",
-  "spot": "Stand by the face-painting table early on, then move to the costume contest; the market windows behind give a busy Lower East Side backdrop.",
-  "start": "2026-10-31",
-  "time": "12 pm to 4 pm, free",
-  "type": "festival",
-  "where": "Broome St outside 88 Essex St, Lower East Side",
-  "why": "A block of Broome Street fills with costumed children, face painting and a costume contest outside the market."
- },
- "halloween": {
-  "checked": "2026-10-31",
-  "city": "nyc",
-  "source": "https://halloween-nyc.com",
-  "start": "2026-10-31",
-  "time": "7 pm to about 11 pm; marchers line up at Canal St from 6:30 pm",
-  "where": "Sixth Av, Spring St to 16 St; line-up at Canal St",
-  "note": "2026 theme: Body & Soul. Marchers in costume line up at Canal St and Sixth Av from 6:30 to 9 pm, entering from the east and south. Sixth Av is barriered, so you cannot cross it during the parade."
+  "lat": 40.7523,
+  "lon": -73.9772,
+  "map": "Vanderbilt Hall, Grand Central Terminal, New York, NY",
+  "name": "Grand Central Holiday Fair",
+  "source": "https://grandcentralterminal.com/?p=67677",
+  "spot": "The hall's entrance from 42nd Street looks down the aisle under the chandeliers; then step into the Main Concourse for the commuters.",
+  "start": "2026-11-09",
+  "time": "Mon to Sat 10 am to 7 pm, Sun 11 am to 6 pm; Dec 17 to 23, 10 am to 8 pm; Dec 24 to 6 pm; closed Thanksgiving Day",
+  "type": "market",
+  "where": "Vanderbilt Hall, Grand Central Terminal",
+  "why": "Indoors, under the chandeliers of Vanderbilt Hall, next to the Main Concourse: the wet-day option."
  },
  "harlem-holiday-lights": {
-  "checked": "2026-10-12",
+  "checked": "2026-11-03",
   "city": "nyc",
   "ideas": [
    {
@@ -266,221 +281,663 @@
   "source": "https://business.nyctourism.com/press-media/press-releases/holidays-in-nyc-press-release-2026",
   "spot": "Stand at 125 St and Adam Clayton Powell Jr Blvd near the Apollo. The start time is not yet published, so check closer to the date.",
   "start": "2026-11-17",
+  "time": "About 6 pm (the 2025 start time; the 2026 time is not yet published)",
   "type": "parade",
-  "where": "West 125 St, Harlem",
-  "why": "Illuminated floats, music and performances move along 125 St after dark, with the Apollo marquee and shop lights as a backdrop."
+  "where": "125th Street, from Broadway heading east",
+  "why": "A parade of more than 20 lit floats along 125th Street, the city's only parade of lights, with the season's lights switched on along the street."
  },
- "jackson-heights-halloween-parade": {
-  "checked": "2026-10-12",
+ "hudson-yards-lights": {
+  "checked": "2026-11-03",
   "city": "nyc",
+  "end": "2027-01-07",
+  "ideas": [
+   {
+    "intent": "place",
+    "recipe": "night",
+    "text": "The Vessel glowing with tiny figures on its stairs.",
+    "title": "The lit honeycomb"
+   },
+   {
+    "intent": "mood",
+    "recipe": "silhouette",
+    "text": "A figure in silhouette against the lit structure.",
+    "title": "Under the arches"
+   },
+   {
+    "intent": "odd",
+    "recipe": "night",
+    "text": "Someone walking through a lit tunnel, framed by its arches.",
+    "title": "Tunnel of lights"
+   }
+  ],
+  "lat": 40.7538,
+  "lon": -74.0022,
+  "map": "Vessel, Hudson Yards, New York, NY",
+  "name": "Vessel holiday lighting, Hudson Yards",
+  "source": "https://www.iloveny.com/thebeat/post/hudson-yards-lights-up-the-west-side-with-spectacular-2026-holiday-programming/",
+  "spot": "From the edge of the plaza by the High Line stairs, so the whole Vessel and the people under it fit the frame.",
+  "start": "2026-11-16",
+  "time": "Lighting ceremony Mon Nov 16 from 6 pm; then a light show on the Vessel's outside every evening to Jan 7. Free outside; climbing the Vessel is ticketed",
+  "type": "light",
+  "where": "Hudson Yards Public Square, 33 St at Tenth Av",
+  "why": "The Vessel's honeycomb lit against the glass towers, and lit tunnels across the plaza: strong geometry for night street work."
+ },
+ "icp-cameras-and-coffee-november": {
+  "checked": "2026-11-02",
+  "city": "nyc",
+  "ideas": [],
+  "lat": 40.7184,
+  "lon": -73.9896,
+  "map": "International Center of Photography, 84 Ludlow St, New York, NY",
+  "name": "Cameras and Coffee: Sony sensor cleaning meet-up at ICP",
+  "source": "https://www.icp.org/index%2Ephp/events/cameras-and-coffee-sony-sensor-cleaning-and-icps-open-education-showcase-community-meet",
+  "spot": "RSVP on the ICP page. The sensor cleaning is run with Sony, so check with K&M before bringing a Leica. Gallery entry is a separate ticket.",
+  "start": "2026-11-14",
+  "time": "11 am to 1 pm; free with RSVP. Sensor cleaning drop-off at K&M, 54 Orchard St, 10:15 to 11 am",
+  "type": "camera",
+  "where": "ICP Cafe, 84 Ludlow St, Lower East Side",
+  "why": "A monthly meet-up for photographers and camera owners with ICP faculty and Sony's Tony Gale, plus a sensor cleaning drop-off at K&M around the corner."
+ },
+ "icp-gerald-cyrus-uptown-odyssey": {
+  "checked": "2026-11-02",
+  "city": "nyc",
+  "ideas": [],
+  "lat": 40.7184,
+  "lon": -73.9896,
+  "map": "International Center of Photography, 84 Ludlow St, New York, NY",
+  "name": "Gerald Cyrus: Uptown Odyssey book event at ICP",
+  "source": "https://www.icp.org/events/book-event-gerald-cyrus-uptown-odyssey",
+  "spot": "Book through the Get Tickets link on the ICP page; seats are limited and the $5 ticket does not include the galleries.",
+  "start": "2026-11-04",
+  "time": "6:30 pm to 8 pm; $5 in person (no gallery access), also online",
+  "type": "photoshow",
+  "where": "ICP Library, 84 Ludlow St, Lower East Side",
+  "why": "Gerald Cyrus talks with Gioncarlo Valentine about his book of 1990s black-and-white Harlem photographs: street scenes, families, storefronts, the subway and jazz clubs."
+ },
+ "lightscape-bbg": {
+  "checked": "2026-11-03",
+  "city": "nyc",
+  "end": "2027-01-03",
+  "ideas": [
+   {
+    "intent": "mood",
+    "recipe": "silhouette",
+    "text": "Visitors in silhouette against a lit installation.",
+    "title": "Figures in the light"
+   },
+   {
+    "intent": "place",
+    "recipe": "night",
+    "text": "An installation doubled in the pond.",
+    "title": "Light on the water"
+   },
+   {
+    "intent": "moment",
+    "recipe": "zone",
+    "text": "A child's face lit by the display.",
+    "title": "Wonder"
+   }
+  ],
+  "lat": 40.6694,
+  "lon": -73.9624,
+  "map": "Brooklyn Botanic Garden, 990 Washington Ave, Brooklyn, NY",
+  "name": "Lightscape at Brooklyn Botanic Garden",
+  "source": "https://resident.com/new-york/2026/10/28/nycs-holiday-season-begins-with-these-15-things-to-do-in-november-2026",
+  "spot": "Book the first entry slot of the evening for room on the paths.",
+  "start": "2026-11-20",
+  "time": "Select evenings, ticketed with timed entry",
+  "type": "light",
+  "where": "Brooklyn Botanic Garden, 990 Washington Av",
+  "why": "A walk-through trail of light installations in the trees and over the water."
+ },
+ "macys-windows": {
+  "approx": true,
+  "checked": "2026-11-03",
+  "city": "nyc",
+  "end": "2027-01-03",
+  "ideas": [
+   {
+    "intent": "mood",
+    "recipe": "night",
+    "text": "Cabs and crowds of Herald Square reflected over a lit window.",
+    "title": "The square in the glass"
+   },
+   {
+    "intent": "moment",
+    "recipe": "zone",
+    "text": "A family lit by the window, mid-reaction.",
+    "title": "Lit faces"
+   },
+   {
+    "intent": "energy",
+    "recipe": "drag",
+    "text": "A slow shutter on the crowd moving past the still, bright windows.",
+    "title": "Shoppers streaming"
+   }
+  ],
+  "lat": 40.751,
+  "lon": -73.9878,
+  "map": "Macy's Herald Square, 151 W 34th St, New York, NY",
+  "name": "Macy's Herald Square holiday windows",
+  "source": "https://secretnyc.co/macys-holiday-windows-unveiling-2025/",
+  "spot": "The Broadway side, after dark. Stand back from the glass so the window and the faces lit by it share the frame.",
+  "start": "2026-11-19",
+  "time": "From the unveiling (Thu Nov 20 in 2025, viewing from 4 pm); the 2026 date is not yet announced",
+  "type": "holiday",
+  "where": "Macy's, Broadway at 34 St to 35 St",
+  "why": "Animated windows playing in sequence along Broadway, with Herald Square's crowds and yellow cabs reflected in the glass. In the parade's 100th year Macy's has promised special windows."
+ },
+ "menorah-brooklyn": {
+  "approx": true,
+  "checked": "2026-11-03",
+  "city": "nyc",
+  "end": "2026-12-11",
+  "ideas": [
+   {
+    "intent": "place",
+    "recipe": "night",
+    "text": "The lit menorah with the floodlit arch behind.",
+    "title": "Menorah and the arch"
+   },
+   {
+    "intent": "moment",
+    "recipe": "zone",
+    "text": "The circle of dancers on the first night.",
+    "title": "Dancing"
+   },
+   {
+    "intent": "mood",
+    "recipe": "night",
+    "text": "A face lit by a hand-held candle in the crowd.",
+    "title": "Candle faces"
+   }
+  ],
+  "lat": 40.6741,
+  "lon": -73.9702,
+  "map": "Grand Army Plaza, Brooklyn, NY",
+  "name": "Hanukkah menorah lighting, Grand Army Plaza, Brooklyn",
+  "source": "https://prospectpark.org/event/grand-army-plaza-menorah-lighting-2/2024-12-26",
+  "spot": "Stand on the park side so the arch is behind the menorah. The first night, Friday Dec 4, is the busiest.",
+  "start": "2026-12-04",
+  "time": "Nightly through Hanukkah, Dec 4 to 11. In 2024: weeknights 6 pm, Friday about 3:30 pm, Saturday about 7:15 pm, Sunday 5 pm, with a concert from 4 pm on the first night; 2026 times are not yet published",
+  "type": "holiday",
+  "where": "Grand Army Plaza, Brooklyn, by the arch",
+  "why": "The menorah with the floodlit Soldiers' and Sailors' Arch behind; the first night has a crowd and live music."
+ },
+ "menorah-manhattan": {
+  "approx": true,
+  "checked": "2026-11-03",
+  "city": "nyc",
+  "end": "2026-12-11",
   "ideas": [
    {
     "intent": "moment",
     "recipe": "zone",
-    "text": "Catch a small child in full costume looking up at a parent, or being carried when the walk gets long.",
-    "title": "Costume and parent"
+    "text": "The rabbi in the crane basket at the moment a light catches.",
+    "title": "Lit from the crane"
    },
    {
+    "intent": "place",
+    "recipe": "night",
+    "text": "The lit menorah against the hotel at blue hour.",
+    "title": "Menorah and the Plaza"
+   },
+   {
+    "intent": "mood",
+    "recipe": "silhouette",
+    "text": "The crowd in silhouette against the lit menorah.",
+    "title": "The crowd below"
+   }
+  ],
+  "lat": 40.7645,
+  "lon": -73.9727,
+  "map": "Grand Army Plaza, 5th Ave & E 59th St, New York, NY",
+  "name": "Hanukkah menorah lighting, Fifth Av at 59 St",
+  "source": "https://www.hebcal.com/holidays/hanukkah-2026",
+  "spot": "From the park side of Fifth Avenue so the Plaza Hotel stands behind the menorah. The Friday lightings are early, before sunset, in daylight.",
+  "start": "2026-12-04",
+  "time": "Nightly through Hanukkah, Dec 4 to 11. In 2025: 5:30 pm Sunday to Thursday, about 3:45 pm Friday, 8:30 pm Saturday; the 2026 times are not yet published",
+  "type": "holiday",
+  "where": "Grand Army Plaza, Fifth Av at 59 St, across from the Plaza Hotel",
+  "why": "A 36-foot steel menorah, lit by a rabbi raised in a crane basket, against the Plaza Hotel and the edge of the park."
+ },
+ "nostalgia-train": {
+  "approx": true,
+  "checked": "2026-11-03",
+  "city": "nyc",
+  "end": "2026-12-27",
+  "ideas": [
+   {
     "intent": "odd",
-    "recipe": "shallow",
-    "text": "Look for a costumed adult doing something ordinary, such as buying a coffee or checking a phone.",
-    "title": "Monster at the bodega"
+    "recipe": "interior",
+    "text": "A rider in period dress beside someone on a phone, under the old adverts.",
+    "title": "Then and now"
+   },
+   {
+    "intent": "place",
+    "recipe": "interior",
+    "text": "Down the car: rattan seats, fans and bulbs.",
+    "title": "The old car"
+   },
+   {
+    "intent": "moment",
+    "recipe": "zone",
+    "text": "Faces on a platform as the vintage train pulls in.",
+    "title": "Arrival"
+   }
+  ],
+  "lat": 40.7234,
+  "lon": -73.9898,
+  "map": "2 Av Station, E Houston St, New York, NY",
+  "name": "Holiday Nostalgia Train",
+  "source": "https://www.nytransitmuseum.org/holidaynostalgiarides",
+  "spot": "Board at the start, 2 Av–Houston, for room to move; ride the whole way and shoot the platforms as the old train pulls in among today's riders.",
+  "start": "2026-12-06",
+  "time": "Sundays in December, about 10 am to 5 pm (2025): uptown from 2 Av–Houston St at 10 am, noon, 2 and 4 pm; downtown from 96 St–2 Av at 11 am, 1, 3 and 5 pm. The 2026 schedule is not yet announced",
+  "type": "holiday",
+  "where": "The F and Q lines, 2 Av–Houston St to 96 St–2 Av",
+  "why": "1930s subway cars with rattan seats, ceiling fans and old adverts; riders often come dressed for the period."
+ },
+ "nye": {
+  "approx": true,
+  "checked": "2026-11-03",
+  "city": "nyc",
+  "lat": 40.758,
+  "lon": -73.9855,
+  "map": "Times Square, New York, NY",
+  "name": "New Year's Eve in Times Square",
+  "source": "https://abc7ny.com/post/new-years-eve-nycs-times-square-everything-know-ball-drop-how-watch-more/18330767/",
+  "start": "2026-12-31",
+  "time": "2025 pattern: pens open about 3 pm, the ball rises at 6 pm, descends at 11:59 pm; Broadway and Seventh Av close to traffic from about 11 am",
+  "type": "holiday",
+  "where": "Times Square; entry from Sixth or Eighth Av at checkpoints"
+ },
+ "nye-central-park": {
+  "checked": "2026-11-03",
+  "city": "nyc",
+  "ideas": [
+   {
+    "intent": "moment",
+    "recipe": "night",
+    "text": "The start, runners lit by the first fireworks.",
+    "title": "Runners under the bursts"
+   },
+   {
+    "intent": "place",
+    "recipe": "night",
+    "text": "Bursts doubled in the water with Bow Bridge in the frame.",
+    "title": "Fireworks over the Lake"
+   },
+   {
+    "intent": "mood",
+    "recipe": "silhouette",
+    "text": "Heads and raised phones in silhouette against the sky.",
+    "title": "Watchers"
+   }
+  ],
+  "lat": 40.775,
+  "lon": -73.9722,
+  "map": "Bow Bridge, Central Park, New York, NY",
+  "name": "Midnight Run and fireworks, Central Park",
+  "source": "https://events.nyrr.org/nyrr-midnight-run",
+  "spot": "Along the Lake near Bow Bridge or at Cherry Hill. Be in place by 11:30 pm with the camera braced.",
+  "start": "2026-12-31",
+  "time": "Fireworks at midnight start the four-mile NYRR Midnight Run; the start area is not yet published",
+  "type": "fireworks",
+  "where": "Central Park; in 2025 the fireworks rose between Bow Bridge and Cherry Hill",
+  "why": "Costumed runners setting off under fireworks over the Lake: a crowd lit by the bursts."
+ },
+ "nye-prospect-park": {
+  "approx": true,
+  "checked": "2026-11-03",
+  "city": "nyc",
+  "ideas": [
+   {
+    "intent": "place",
+    "recipe": "night",
+    "text": "Fireworks with the floodlit arch in the frame.",
+    "title": "Bursts over the arch"
+   },
+   {
+    "intent": "moment",
+    "recipe": "night",
+    "text": "Faces lit by phones and the first burst.",
+    "title": "The countdown"
+   },
+   {
+    "intent": "mood",
+    "recipe": "silhouette",
+    "text": "The crowd in silhouette under the bursts.",
+    "title": "Arch and crowd"
+   }
+  ],
+  "lat": 40.673,
+  "lon": -73.9705,
+  "map": "Grand Army Plaza, Brooklyn, NY",
+  "name": "New Year's Eve fireworks, Prospect Park",
+  "source": "https://www.cbsnews.com/newyork/news/nyc-2026-new-years-eve-fireworks-shows",
+  "spot": "Grand Army Plaza by the arch, or the Long Meadow's north end for open sky.",
+  "start": "2026-12-31",
+  "time": "Music from 10 pm, fireworks at midnight, weather permitting (2025)",
+  "type": "fireworks",
+  "where": "Grand Army Plaza and the north end of the Long Meadow, Prospect Park",
+  "why": "Fireworks over the park with the Soldiers' and Sailors' Arch nearby, and a smaller, friendlier crowd than Manhattan."
+ },
+ "park-avenue-trees": {
+  "checked": "2026-11-03",
+  "city": "nyc",
+  "end": "2027-01-01",
+  "ideas": [
+   {
+    "intent": "place",
+    "recipe": "night",
+    "text": "The lit trees running down the median to the MetLife Building.",
+    "title": "The avenue of trees"
+   },
+   {
+    "intent": "energy",
+    "recipe": "drag",
+    "text": "Taillights streaking past the still, lit trees.",
+    "title": "Cabs between the trees"
+   },
+   {
+    "intent": "moment",
+    "recipe": "zone",
+    "text": "Singers on the church steps lit by candles and the trees.",
+    "title": "Carols on the steps"
+   }
+  ],
+  "lat": 40.7837,
+  "lon": -73.9551,
+  "map": "Brick Presbyterian Church, 1140 Park Ave, New York, NY",
+  "name": "Park Avenue tree lighting",
+  "source": "https://www.brickchurch.org/events-1/park-avenue-tree-lighting-4",
+  "spot": "Stand on a median island in the 80s and shoot south down the line of trees toward the MetLife Building at blue hour; wait for the lights to change.",
+  "start": "2026-12-06",
+  "time": "Sun Dec 6, 6:30 to 7:30 pm: carols on the church steps, then the trees light; they stay lit through the season",
+  "type": "light",
+  "where": "Brick Presbyterian Church, Park Av at 91 St; the trees run down the Park Avenue malls from 54 St to 97 St",
+  "why": "A mile and a half of white-lit firs down the middle of Park Avenue, the MetLife Building closing the view."
+ },
+ "playback-street-party": {
+  "checked": "2026-11-02",
+  "city": "nyc",
+  "ideas": [
+   {
+    "intent": "energy",
+    "recipe": "freeze",
+    "text": "Freeze a dancer mid-move in front of the band with the crowd packed behind.",
+    "title": "Dancing in the street"
    },
    {
     "intent": "place",
     "recipe": "deep",
-    "text": "Shoot down the avenue so the line of costumes runs between the shop signs and awnings.",
-    "title": "Parade on 37 Av"
-   }
-  ],
-  "lat": 40.75,
-  "lon": -73.8774,
-  "map": "37th Ave & 89th St, Jackson Heights, Queens, NY",
-  "name": "Jackson Heights Halloween Parade",
-  "source": "https://queenscb3.cityofnewyork.us/event/halloween-parade-4/",
-  "spot": "Stand on 37 Av near the start at 89 St to see the groups line up. Listings give different start times, so check locally before going.",
-  "start": "2026-10-31",
-  "type": "parade",
-  "where": "37 Av, 89 St to 76 St, Jackson Heights, Queens",
-  "why": "A daytime neighbourhood parade of children and families in costume, with good light and far more room than the Village parade."
- },
- "mano-a-mano-day-of-the-dead": {
-  "checked": "2026-10-12",
-  "city": "nyc",
-  "end": "2026-11-01",
-  "ideas": [
-   {
-    "intent": "odd",
-    "recipe": "detail",
-    "text": "Fill the frame with marigolds, candles, sugar skulls and the framed photos people have left.",
-    "title": "Offerings on the altar"
-   },
-   {
-    "intent": "moment",
-    "recipe": "shallow",
-    "text": "Wait at the altar for someone setting down an offering and pausing for a second after.",
-    "title": "Placing a photo"
-   },
-   {
-    "intent": "mood",
-    "recipe": "shallow",
-    "text": "Isolate one person in skull face paint against the dark stone of the church.",
-    "title": "Painted face"
-   }
-  ],
-  "lat": 40.73,
-  "lon": -73.9867,
-  "map": "St. Mark's Church in-the-Bowery, 131 E 10th St, New York, NY",
-  "name": "Mano a Mano Day of the Dead",
-  "source": "https://www.manoamano.nyc/day-of-the-dead-dia-de-muertos-nyc",
-  "spot": "Go early on the first day while the altar is still being built and people are placing offerings. Work close to the altar and ask before photographing anyone leaving a photo of a relative.",
-  "start": "2026-10-31",
-  "time": "12 pm to 5 pm",
-  "type": "cultural",
-  "where": "St. Mark's Church-in-the-Bowery, 131 E 10 St, East Village",
-  "why": "A large community altar with marigolds, candles and sugar skulls draws people who come to leave offerings, with live music and a Mexican market around it."
- },
- "marathon": {
-  "checked": "2026-10-12",
-  "city": "nyc",
-  "note": "In the Bronx the course now continues up Alexander Av, then E 141 St and Third Av, before E 138 St and the Madison Av Bridge.",
-  "source": "https://ny1.com/nyc/all-boroughs/news/2026/09/22/nyc-marathon-route-to-change-in-bronx-in-2026",
-  "start": "2026-11-01"
- },
- "nybg-dia-de-los-muertos": {
-  "checked": "2026-10-26",
-  "city": "nyc",
-  "ideas": [
-   {
-    "intent": "odd",
-    "recipe": "detail",
-    "text": "Fill the frame with the marigolds, candles and family photos on the ofrenda.",
-    "title": "Marigolds and photos"
-   },
-   {
-    "intent": "mood",
-    "recipe": "shallow",
-    "text": "Isolate one painted face against the out-of-focus autumn colour.",
-    "title": "Painted face in the leaves"
+    "text": "Show the whole block with the BAM facade, banners and the crowd sharp from kerb to doorway.",
+    "title": "BAM front"
    },
    {
     "intent": "moment",
     "recipe": "zone",
-    "text": "Pre-focus where the procession leaves the ofrenda and catch the first steps.",
-    "title": "Procession sets off"
+    "text": "Pre-focus by a food stall and wait for two people greeting each other with a hug or handshake.",
+    "title": "Neighbours meeting"
    }
   ],
-  "lat": 40.8627,
-  "lon": -73.8774,
-  "map": "New York Botanical Garden, 2900 Southern Blvd, Bronx, NY",
-  "name": "Día de los Muertos parade at NYBG",
-  "source": "https://www.nybg.org/event/dia-de-los-muertos/",
-  "spot": "Find the ofrenda well before 2 pm so you are at the head of the procession as it forms; the garden ticket is needed to enter.",
-  "start": "2026-11-01",
-  "time": "Parade at 2 pm; included in the All-Garden Pass, ticket needed",
-  "type": "cultural",
-  "where": "New York Botanical Garden, starting near the ofrenda, Bronx",
-  "why": "A procession starts at the garden's ofrenda, with marigolds, painted faces and families among the autumn trees."
+  "lat": 40.6862,
+  "lon": -73.9777,
+  "map": "BAM Rose Cinemas, 30 Lafayette Ave, Brooklyn, NY",
+  "name": "Playback Street Party at BAM",
+  "source": "https://www.bam.org/film/2026/playback",
+  "spot": "Start on the Lafayette Av pavement facing the BAM facade around midday when the crowd is thickest; the Williamsburgh Savings Bank tower gives a backdrop to the west.",
+  "start": "2026-11-07",
+  "time": "11 am to 5 pm, free (RSVP on the BAM page)",
+  "type": "festival",
+  "where": "Outside BAM Rose Cinemas, Lafayette Av, Fort Greene",
+  "why": "An all-day free street party for Spike Lee's Playback film festival, with local Brooklyn artists, musicians and neighbours outside BAM."
  },
- "park-slope-halloween-parade": {
-  "checked": "2026-10-12",
+ "saks-light-show": {
+  "checked": "2026-11-03",
   "city": "nyc",
+  "end": "2027-01-04",
   "ideas": [
    {
     "intent": "moment",
-    "recipe": "zone",
-    "text": "Catch a child in costume reacting to a large puppet passing a few feet away.",
-    "title": "Face to face with a puppet"
-   },
-   {
-    "intent": "mood",
     "recipe": "night",
-    "text": "Shoot a costumed figure against a lit shop window as the light goes.",
-    "title": "Costume in the window light"
+    "text": "Faces in the crowd turned up and lit by the facade as the show peaks.",
+    "title": "Faces in the show"
    },
    {
     "intent": "energy",
     "recipe": "drag",
-    "text": "Pan with a band at a slow shutter so the instruments blur against the brownstones.",
-    "title": "Band in motion"
-   }
-  ],
-  "lat": 40.6663,
-  "lon": -73.9803,
-  "map": "7th Ave & 9th St, Brooklyn, NY",
-  "name": "Park Slope Halloween Parade",
-  "source": "https://www.nyctourism.com/events/park-slope-halloween-parade/",
-  "spot": "Stand at 7th Av and 9th St by the subway exit, where the parade passes shopfronts lit from inside. Arrive by 6 pm to find a spot at the kerb.",
-  "start": "2026-10-31",
-  "time": "6:30 pm; people line up from about 6 pm",
-  "type": "parade",
-  "where": "Seventh Av, 14 St to 3 St, Park Slope",
-  "why": "Costumed families, musicians, puppets and local groups fill Seventh Av at dusk in a neighbourhood parade running since 1986."
- },
- "queens-night-market-halloween": {
-  "checked": "2026-10-26",
-  "city": "nyc",
-  "ideas": [
-   {
-    "intent": "mood",
-    "recipe": "night",
-    "text": "Frame a cook through the smoke with only the stall lights on their face.",
-    "title": "Faces over the grill"
+    "text": "Brace on a lamppost and let the crowd and buses blur in front of the lit facade.",
+    "title": "Fifth Avenue streaming"
    },
    {
-    "intent": "odd",
-    "recipe": "shallow",
-    "text": "Look for someone in full costume waiting patiently in a food line.",
-    "title": "Costume in the queue"
-   },
-   {
-    "intent": "energy",
-    "recipe": "drag",
-    "text": "Use a slow shutter from a fixed spot so the crowd streams past a lit stall sign.",
-    "title": "Crowd between stalls"
+    "intent": "place",
+    "recipe": "deep",
+    "text": "From the Channel Gardens, Saks glowing on one side and the tree on the other.",
+    "title": "The facade and the tree"
    }
   ],
-  "lat": 40.7471,
-  "lon": -73.8517,
-  "map": "New York Hall of Science, 47-01 111th St, Queens, NY",
-  "name": "Queens Night Market Halloween finale",
-  "note": "The last night of the season, with trick-or-treating and costume contests.",
-  "source": "https://qns.com/2026/09/queens-night-market-fall-season/",
-  "spot": "Arrive before sunset to work the stalls in daylight, then stay for the hour after dark when the grills and lamps light faces.",
-  "start": "2026-10-31",
-  "time": "4 pm to midnight",
-  "type": "market",
-  "where": "Flushing Meadows Corona Park, next to the New York Hall of Science",
-  "why": "Dozens of food stalls from around the world, smoke and string lights draw large crowds, and on the final night many come in costume."
+  "lat": 40.7581,
+  "lon": -73.9772,
+  "map": "Saks Fifth Avenue, 611 5th Ave, New York, NY",
+  "name": "Saks Fifth Avenue windows and light show",
+  "source": "https://www.timeout.com/newyork/news/saks-famous-fifth-avenue-holiday-light-show-is-officially-returning-next-monthheres-everything-to-know-102026",
+  "spot": "Cross to the Channel Gardens side of Fifth Avenue and shoot back across the traffic: the lit facade fills the frame and the crowd is lit from the front.",
+  "start": "2026-11-23",
+  "time": "Unveiled Mon Nov 23. The facade show ran every 10 minutes, 5 to 11 pm, in 2025; 2026 show times are not yet out",
+  "type": "light",
+  "where": "Saks, Fifth Av at 49 St to 50 St, facing the Channel Gardens",
+  "why": "The whole facade pulses with light to music, and the crowd on Fifth Avenue is lit by it every ten minutes."
  },
  "santacon": {
-  "checked": "2026-10-26",
+  "checked": "2026-11-03",
   "city": "nyc",
   "source": "https://www.eventbrite.com/e/santacon-2026-nycs-official-santacon-tickets-2002895442184",
   "start": "2026-12-12",
-  "time": "9 am to 9 pm; meeting point to be announced"
+  "time": "9 am to 9 pm; the start point is announced the week before (39 St and Broadway in 2025)"
+ },
+ "seaport-diwali": {
+  "checked": "2026-11-02",
+  "city": "nyc",
+  "ideas": [
+   {
+    "intent": "odd",
+    "recipe": "detail",
+    "text": "Fill the frame with hands placing flower petals on the rangoli, with the old cobblestones at the edge.",
+    "title": "Petals on cobblestones"
+   },
+   {
+    "intent": "moment",
+    "recipe": "shallow",
+    "text": "Isolate a hand being decorated with henna and the artist's face just behind.",
+    "title": "Henna hand"
+   },
+   {
+    "intent": "energy",
+    "recipe": "drag",
+    "text": "Use a slow shutter so the dancers' hands blur while the watching crowd stays sharp.",
+    "title": "Dance at dusk"
+   }
+  ],
+  "lat": 40.7068,
+  "lon": -74.0033,
+  "map": "South Street Seaport Museum, 213 Water St, New York, NY",
+  "name": "Diwali at the Seaport Museum",
+  "source": "https://southstreetseaportmuseum.org/diwali",
+  "spot": "Arrive at 4 pm while the large petal rangoli is being laid out; stay for the 5 pm dance as the light goes and the shop windows light up.",
+  "start": "2026-11-10",
+  "time": "4 pm to 6 pm, free; preregistration encouraged",
+  "type": "cultural",
+  "where": "Cobblestones outside 213 Water St, South Street Seaport",
+  "why": "Rangoli in sand and flower petals, henna and a dance performance on the Water Street cobblestones beside 19th-century buildings."
+ },
+ "sixth-ave-ornaments": {
+  "approx": true,
+  "checked": "2026-11-03",
+  "city": "nyc",
+  "end": "2027-01-03",
+  "ideas": [
+   {
+    "intent": "odd",
+    "recipe": "deep",
+    "text": "A person dwarfed by the ornaments.",
+    "title": "Giant baubles"
+   },
+   {
+    "intent": "mood",
+    "recipe": "night",
+    "text": "Radio City's sign reflected in a red ornament.",
+    "title": "Neon in the baubles"
+   },
+   {
+    "intent": "moment",
+    "recipe": "zone",
+    "text": "A family posing in front of the ornaments, caught between shots.",
+    "title": "The family photo"
+   }
+  ],
+  "lat": 40.7598,
+  "lon": -73.9813,
+  "map": "1251 Avenue of the Americas, New York, NY",
+  "name": "Giant ornaments on Sixth Avenue",
+  "source": "https://www.wnct.com/have-you-seen-this/iconic-red-christmas-ornaments-installed-atop-manhattan-fountain/amp/",
+  "spot": "Get low by the pool's edge for reflections, with the neon of Radio City behind.",
+  "start": "2026-11-20",
+  "time": "Up day and night through the season; the 2026 install date is not published",
+  "type": "light",
+  "where": "Sixth Av at 49 St to 50 St, opposite Radio City Music Hall",
+  "why": "Oversized red baubles in the fountain pool, with Radio City's neon across the avenue."
  },
  "thanksgiving": {
-  "checked": "2026-10-12",
+  "checked": "2026-11-03",
   "city": "nyc",
   "note": "The 100th parade.",
-  "source": "https://secretnyc.co/100-day-countdown-100th-macys-thanksgiving-day-parade-2026/",
+  "source": "https://www.macysinc.com/newsroom/news/news-details/2026/Macys-Kicks-Off-the-100-Day-Countdown-to-the-100th-Macys-Thanksgiving-Day-Parade/default.aspx",
   "start": "2026-11-26",
-  "time": "Starts at 8:30 am",
-  "where": "Down Sixth Av"
+  "time": "8:30 am to about noon (the 100th parade; Macy's has confirmed the 8:30 am start, not yet the 2026 route map)",
+  "where": "Central Park West from 77 St, Central Park South to Sixth Av, then Sixth Av to 34 St"
  },
  "tree": {
-  "checked": "2026-10-12",
+  "checked": "2026-11-03",
   "city": "nyc",
   "source": "https://www.timeout.com/newyork/news/the-2026-rockefeller-center-christmas-tree-lighting-has-officially-been-announced-and-its-happening-earlier-than-you-think-092926",
-  "start": "2026-12-02"
+  "start": "2026-12-02",
+  "time": "About 7 to 10 pm; the tree is lit near the end (2025 pattern; the 2026 time is not yet announced)"
+ },
+ "tree-arrival": {
+  "checked": "2026-11-03",
+  "city": "nyc",
+  "ideas": [
+   {
+    "intent": "moment",
+    "recipe": "zone",
+    "text": "The tree hanging from the crane, with the crew's hands on the guide ropes.",
+    "title": "The lift"
+   },
+   {
+    "intent": "place",
+    "recipe": "deep",
+    "text": "The bare tree towering over the rink and the gold Prometheus, the crowd small below.",
+    "title": "Before the lights"
+   },
+   {
+    "intent": "odd",
+    "recipe": "detail",
+    "text": "The branches still bound in rope, a hard hat in the foreground.",
+    "title": "Wrapped"
+   }
+  ],
+  "lat": 40.7587,
+  "lon": -73.9787,
+  "map": "Rockefeller Plaza, New York, NY",
+  "name": "The Rockefeller Center tree arrives",
+  "source": "https://secretnyc.co/rockefeller-center-christmas-tree-2026-details/",
+  "spot": "From the top of the Channel Gardens on Fifth Avenue you see the crane, the tree and Prometheus in one frame. Come early; the lift is in the morning.",
+  "start": "2026-11-07",
+  "time": "Morning: the tree is craned into the plaza (Meet the Tree Day)",
+  "type": "holiday",
+  "where": "Rockefeller Plaza, 49 St to 50 St",
+  "why": "A 70-odd-foot spruce swung into place by crane, wrapped and unlit, with crews in hard hats and a crowd of early risers."
+ },
+ "union-square-holiday-market": {
+  "checked": "2026-11-02",
+  "city": "nyc",
+  "end": "2026-12-24",
+  "ideas": [
+   {
+    "intent": "mood",
+    "recipe": "night",
+    "text": "Frame a vendor lit only by the lamps of the stall, with the dark park behind.",
+    "title": "Vendor in stall light"
+   },
+   {
+    "intent": "energy",
+    "recipe": "drag",
+    "text": "From a fixed spot at the end of an alley, let the crowd blur past a lit stall sign.",
+    "title": "Rush through the market"
+   },
+   {
+    "intent": "odd",
+    "recipe": "zone",
+    "text": "Pre-focus at a stall display and wait for a hurried commuter to pass the ornaments without looking.",
+    "title": "Commuter meets ornament"
+   }
+  ],
+  "lat": 40.7348,
+  "lon": -73.9906,
+  "map": "Union Square South Plaza, E 14th St & Broadway, New York, NY",
+  "name": "Union Square Holiday Market",
+  "source": "https://www.nyctourism.com/shopping/union-square-holiday-market/",
+  "spot": "Work the alleys between stalls just after dark on a weekday, when the stall lights are on and the after-work crowd is out; the subway exits on 14 St give a steady stream of people.",
+  "start": "2026-11-12",
+  "type": "market",
+  "where": "South end of Union Square Park, by E 14 St",
+  "why": "Rows of red-and-white stalls fill the south end of the park, with commuters from the subway exits cutting through shoppers and vendors."
  },
  "veterans": {
-  "checked": "2026-10-31",
+  "checked": "2026-11-03",
   "city": "nyc",
-  "source": "https://www.uwvc.org/parade",
+  "source": "https://www.uclahealth.org/programs/operationmend/events/operation-mend-2026-veterans-day-parade-nyc",
   "start": "2026-11-11",
-  "where": "Fifth Av, 26 St to about 50 St",
-  "time": "Ceremony about 11 am at Madison Square Park; march about 12:30 pm"
+  "time": "March 12:30 pm to about 3:30 pm, rain or shine. The wreath-laying at Madison Square Park comes first, about 11 am (the 2026 time is not yet published)",
+  "where": "Fifth Av, 26 St to about 50 St"
+ },
+ "washington-square-tree": {
+  "approx": true,
+  "checked": "2026-11-03",
+  "city": "nyc",
+  "end": "2027-01-01",
+  "ideas": [
+   {
+    "intent": "place",
+    "recipe": "night",
+    "text": "The tree framed by the Arch, Fifth Avenue's lights behind.",
+    "title": "The tree in the Arch"
+   },
+   {
+    "intent": "moment",
+    "recipe": "zone",
+    "text": "A brass player's breath and the lit tree behind.",
+    "title": "The quartet"
+   },
+   {
+    "intent": "mood",
+    "recipe": "night",
+    "text": "A lone figure under the Arch late in the evening.",
+    "title": "After the crowd"
+   }
+  ],
+  "lat": 40.7312,
+  "lon": -73.9973,
+  "map": "Washington Square Arch, New York, NY",
+  "name": "Washington Square tree lighting",
+  "source": "https://washingtonsquarenyc.org/the-annual-holiday-tree-lighting",
+  "spot": "From the fountain, looking north, so the tree sits inside the Arch with Fifth Avenue beyond.",
+  "start": "2026-12-10",
+  "time": "6 pm on the lighting night (Thu Dec 11 in 2025; the 2026 date is usually the first or second week of December); then lit 4 pm to 1 am nightly",
+  "type": "light",
+  "where": "Washington Square Park, under the Arch",
+  "why": "The tree framed inside the Arch with carollers and a brass quartet: one of the city's classic holiday frames."
  }
 }
