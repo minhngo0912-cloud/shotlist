@@ -670,7 +670,7 @@ def run(path, name):
         pg.click("#learn .lnav-b.nx"); pg.wait_for_timeout(60); nx=pg.evaluate("state.learnId")
         pg.click("#vLearn"); pg.wait_for_timeout(60)
         hm=pg.evaluate("[state.learnId, document.querySelector('#learn .lprog').textContent.startsWith(String(LEARN.length)+' of'), document.querySelectorAll('#learn .ltile.seen').length]")
-        check("Lesson pages: the bar stays at the top and jumps to a part, Next opens the next lesson, the Learn tab goes back to the contents with every lesson marked read", jp==[True,True] and nx=="light" and hm==[None,True,10], [jp,nx,hm])
+        check("Lesson pages: the bar stays at the top and jumps to a part, Next opens the next lesson, the Learn tab goes back to the contents with every lesson marked read", jp==[True,True] and nx=="light" and hm==[None,True,pg.evaluate("LEARN.length")], [jp,nx,hm])
         pg.evaluate("openLearn('exposure')"); pg.wait_for_timeout(60)
         # Exposure simulator: the presets come out correctly exposed, and changing a setting moves the result the right way
         xp=pg.evaluate("""(()=>{ const r=[]; XPRE.forEach(([n,P,bad])=>{ Object.assign(expoState(),{max:6400,slow:1/250},P); const s=expoCalc().stops; r.push([n, bad? s>2 : Math.abs(s)<0.34]); });
@@ -1124,6 +1124,9 @@ def run(path, name):
         ad=pg.evaluate("[state.when, $('when').value, $('afterDark').getAttribute('aria-pressed'), matches(false).every(x=>x.w.includes('night'))]")
         pg.click("#afterDark"); pg.wait_for_timeout(150)
         check("After dark shows only ideas that work at night, and turns off again", ad==["night","night","true",True] and pg.evaluate("state.when")=="all", ad)
+        iso=pg.evaluate("""(()=>{ const was=state.isoCam; state.isoCam='43'; const a=learnIso(); state.isoCam='28'; const b=learnIso(); state.isoCam=was;
+          const g=LEARN_GROUPS.find(x=>x[0]==='Your gear')[2]; return [!!LEARN.find(l=>l.id==='iso'), g.indexOf('iso')===1, /ISO 3200/.test(a)&&/ISO 2500/.test(b), /150 mm/.test(a)&&!/150 mm/.test(b)&&/90 mm/.test(b), (a.match(/class="ism /g)||[]).length]; })()""")
+        check("Learn has the Auto ISO lesson with a matrix for each Q3", iso==[True,True,True,True,9], iso)
         pg.evaluate("v=>{ state.view=v; render(); }", prev_view); pg.wait_for_timeout(300)
         pg.fill("#mapQ","marathon"); pg.wait_for_timeout(150); pg.click("#mapQres .mq-it"); pg.wait_for_timeout(900)
         r5=pg.evaluate("[state.mapEv, document.querySelectorAll('.m-evrt.on').length, mapV.w>200]")
