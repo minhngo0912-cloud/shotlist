@@ -1511,3 +1511,10 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 .m-parb{fill:none;stroke:rgba(52,120,246,.45);stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
 .m-racel.p circle{fill:#3478f6}
 .hint .rl.p{background:#3478f6}
+.asgl{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+.asgbtn{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--fg);font:inherit;cursor:pointer}
+.asgck{flex:none;width:22px;height:22px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-size:13px;font-weight:800;margin-top:1px}
+.asg.done .asgck{background:#1e9e48;border-color:#1e9e48;color:#fff} .asg.done .asgt b{text-decoration:line-through;text-decoration-thickness:1px;opacity:.75}
+.asgt{display:flex;flex-direction:column;gap:2px;min-width:0} .asgt b{font-size:15px} .asgt span{font-size:13px;color:var(--muted)} .asgt .asgw{color:var(--fg);font-weight:600}
+.winternote{margin:10px 0 0;padding:8px 10px;border-radius:10px;background:rgba(70,120,210,.12);font-size:14px;line-height:1.4}
+.winternote b{display:inline-block;margin-right:6px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#3a6fd8}

@@ -333,7 +333,7 @@ def run(path, name):
         dawn=pg.evaluate("[state.plan.notes.length, state.plan.start.getHours()*60+state.plan.start.getMinutes(), lightAt(state.plan.start)]")
         check("A start before first light moves to blue hour", dawn[0]==1 and dawn[1]>5*60+30 and dawn[2]!="night", dawn)
         pg.evaluate("$('pDay').value='1'; renderPlan(); $('pStart').value='midtown'; $('pTime').value='18'; $('pLen').value='90'; state.plan=makePlan()")
-        check("An evening Midtown plan says the lunch ideas are out of hours", pg.evaluate("state.plan.notes.some(n=>n.startsWith('Nothing at Midtown'))"), pg.evaluate("state.plan.notes"))
+        check("An evening Midtown plan leaves out the lunch ideas", pg.evaluate("!state.plan.stops.flatMap(s=>s.ideas.map(x=>x.id)).includes('midtown-moment') && (state.plan.notes.some(n=>n.startsWith('Nothing at Midtown')) || state.plan.stops.some(s=>s.place==='midtown'&&s.ideas.length))"), pg.evaluate("state.plan.notes"))
         se=pg.evaluate("""(()=>{ const X=id=>IDEAS.find(x=>x.id===id), o=(id,d)=>ideaOpen(X(id),d,undefined);
           return [o('soho-halloween',new Date(2026,9,31,19,0)), o('soho-halloween',new Date(2026,9,30,19,0)), o('soho-halloween',new Date(2026,9,31,12,0)), availText(X('soho-halloween')),
             o('midtown-rink',new Date(2026,11,20,18,0)), o('midtown-rink',new Date(2026,6,20,18,0)), o('wsp-snow',new Date(2027,0,10,12,0),'snow'), o('wsp-snow',new Date(2027,0,10,12,0),'rain'),
@@ -1112,6 +1112,19 @@ def run(path, name):
         pn=pg.evaluate("""(()=>{ const N=paradeNow('veterans',13*60+15), B=paradeNow('veterans',11*60), A=paradeNow('veterans',17*60), w=EVENTS.find(e=>e.id==='lightswalk'), R=EV_ROUTE.lightswalk;
           return [N.on&&N.front>0.5&&N.front<1.25&&N.tail===0, B.before, A.after, /front of the parade/.test(paradeNowTxt('veterans',13*60+15)), !!w&&!!R&&R.spots.length===6&&R.walk===true, !!EVENT_GEO.lightswalk&&EVENT_TYPE_OF.lightswalk==='light']; })()""")
         check("Parades move along their route on the map through the day, and the Fifth Avenue lights walk is a route of its own", pn==[True,True,True,True,True,True], pn)
+        idq=pg.evaluate("""(()=>{ const X=id=>IDEAS.find(x=>x.id===id), nw=['midtown-saksshow','gct-parkave','midtown-ornaments','midtown-menorah','chelsea-vessel','wsp-tree','subway-nostalgia','cpark-midnight','soho-silhouette','midtown-bus','bushwick-bodega','jh-laundromat'];
+          const hk=[hanukkahOn(new Date(2026,11,4,18)), hanukkahOn(new Date(2026,11,11,18)), hanukkahOn(new Date(2026,11,12,18)), hanukkahOn(new Date(2027,11,24,18))];
+          const open=[ideaOpen(X('midtown-menorah'),new Date(2026,11,6,17,30)), ideaOpen(X('midtown-menorah'),new Date(2026,10,27,17,30)), ideaOpen(X('subway-nostalgia'),new Date(2026,11,13,11)), ideaOpen(X('subway-nostalgia'),new Date(2026,11,14,11))];
+          const ws=weekStart(new Date()), P=assignPick(ws).map(X);
+          return [nw.every(id=>!!X(id)), hk, open, P.length===3&&new Set(P.map(x=>x.p)).size===3&&P.every(x=>!state.done.has(x.id)), typeof WINTER_NOTE['union-energy']==='string']; })()""")
+        check("Holiday and after-dark ideas are in, Hanukkah and Sunday ideas open on the right days, and the week's three are three different places", idq==[True,[True,True,False,True],[True,False,True,False],True,True], idq)
+        prev_view=pg.evaluate("state.view")
+        pg.evaluate("(()=>{ state.when='all'; state.view='shoot'; render(); window.scrollTo(0,0); })()"); pg.wait_for_timeout(150)
+        pg.click("#afterDark"); pg.wait_for_timeout(150)
+        ad=pg.evaluate("[state.when, $('when').value, $('afterDark').getAttribute('aria-pressed'), matches(false).every(x=>x.w.includes('night'))]")
+        pg.click("#afterDark"); pg.wait_for_timeout(150)
+        check("After dark shows only ideas that work at night, and turns off again", ad==["night","night","true",True] and pg.evaluate("state.when")=="all", ad)
+        pg.evaluate("v=>{ state.view=v; render(); }", prev_view); pg.wait_for_timeout(300)
         pg.fill("#mapQ","marathon"); pg.wait_for_timeout(150); pg.click("#mapQres .mq-it"); pg.wait_for_timeout(900)
         r5=pg.evaluate("[state.mapEv, document.querySelectorAll('.m-evrt.on').length, mapV.w>200]")
         check("Searching for the marathon shows its whole route", r5==["marathon",1,True], r5)
