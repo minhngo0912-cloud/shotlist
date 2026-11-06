@@ -345,7 +345,7 @@ def run(path, name):
         pg.evaluate("$('pDay').value='0'; renderPlan(); state.plan=makePlan(); savePlan(); renderPlan()")
         # Events
         pg.click("#vEvents"); pg.wait_for_timeout(150)
-        pg.evaluate("state.evLaterOpen=true; renderEvents()"); check("Events lists events", pg.evaluate("document.querySelectorAll('#events details.event').length") > 10); no_overflow("Events"); shot("events")
+        pg.evaluate("state.evLaterOpen=true; renderEvents(); evBodyFillAll()"); check("Events lists events", pg.evaluate("document.querySelectorAll('#events details.event').length") > 10); no_overflow("Events"); shot("events")
         el=pg.evaluate("eventLight(EVENTS.find(e=>e.id==='thanksgiving'), new Date(2026,10,26))")
         check("The light during an event: window, sun, sunset and the sunny side of the street", el[0].startswith("8:30 am to 12 pm") and "Sunset" in el[0] and el[1].startswith("Stand on the west side"), el)
         check("Events carry arrival advice and one row of filters (Near me now, When, Type, Confirmed)", pg.evaluate("[document.querySelectorAll('#events .evquick .chip').length, document.querySelectorAll('#events .evquick select').length, [...document.querySelectorAll('#events .label')].some(l=>l.textContent==='Getting there and when')]")==[3,2,True])
@@ -362,21 +362,21 @@ def run(path, name):
           const r=eventRows(today).find(x=>x.e.id==='tgl'); const gl=evGreatLight(r,today);
           const t=[],pop=[],cc=[],code=[],tt=[]; for(let k=0;k<8;k++){ const dd=new Date(2026,9,11+k); for(let h=0;h<24;h++){ t.push(dd.getFullYear()+"-"+String(dd.getMonth()+1).padStart(2,"0")+"-"+String(dd.getDate()).padStart(2,"0")+"T"+String(h).padStart(2,"0")+":00"); const rain=k===6&&h>=16&&h<20; pop.push(rain?80:5); cc.push(rain?100:10); code.push(rain?63:1); tt.push(12);} }
           const was=WEATHER.nyc; WEATHER.nyc={updated:new Date().toISOString(),temp_c:12,condition_text:"Clear",hourly:{time:t,pop,mm:pop.map(p=>p>50?2:0),cc,code,t:tt}};
-          const rn=evRain(r,today); state.evGoing.add('tgl'); renderEvents(); const card=document.querySelector('#events details.event[data-id=tgl]');
+          const rn=evRain(r,today); state.evGoing.add('tgl'); renderEvents(); const card=document.querySelector('#events details.event[data-id=tgl]'); evBodyFill(card.querySelector('.event-body'),'tgl');
           const tags=[!!card.querySelector('.evgl'), !!card.querySelector('.evrain'), !!card.querySelector('.evrainplan'), !!card.querySelector('[data-evshoot]'), !!card.querySelector('[data-evshare]')];
           const sh=evShareText(r); evShootOpen('tgl'); document.querySelector('#evShoot [data-evs=shot]').click(); const done=Object.keys(evShots('tgl')).length, prog=document.querySelector('#evShoot .st-where').textContent; evShootClose();
           const wk=weekendPreview(new Date(2026,9,15,18,0));
           delete EVENT_DOCS.tgl; delete state.evShots.tgl; store.set('evShots',state.evShots); state.evGoing.delete('tgl'); WEATHER.nyc=was; renderEvents();
           return [gl, !!rn&&rn.t===17*60, tags, /Test dusk parade · Sat, Oct 17 5 pm/.test(sh.text), done, /1 of 2 shot/.test(prog), wk.items.some(x=>x.r.e.id==='tgl'), /^This weekend: /.test(wk.text)&&wk.text.length<=178]; })()""")
         check("Events: a dusk event is tagged great light; rain at the start of a Going event shows on the card with a rain plan; Shoot this event ticks shots; Share has the date and time; the weekend preview lists it", ev6==["golden hour",True,[True,True,True,True,True],True,1,True,True,True], ev6)
-        pg.click("#events .evquick [data-q=confirmed]"); pg.wait_for_timeout(100)
+        pg.click("#events .evquick [data-q=confirmed]"); pg.wait_for_timeout(100); pg.evaluate("evBodyFillAll()")
         cf=pg.evaluate("[...document.querySelectorAll('#events details.event')].filter(d=>!(d.querySelector('.pill')&&d.querySelector('.pill').textContent==='Confirmed')).map(d=>d.dataset.id+'|'+d.className+'|'+((d.querySelector('.pill')||{}).textContent))"); check("Confirmed filter keeps only confirmed events", pg.evaluate("[...document.querySelectorAll('#events details.event')].every(d=>d.querySelector('.pill')&&d.querySelector('.pill').textContent==='Confirmed')"), cf)
         pg.click("#events .evquick [data-q=confirmed]"); pg.wait_for_timeout(100)
         # Music: the free outdoor series are built-ins with a stand and a view
         mu=pg.evaluate("[EVENTS.filter(e=>e.type==='music').map(e=>e.id), EVENTS.filter(e=>e.type==='music'&&(!EVENT_VIEW[e.id]||!EVENT_GEO[e.id]||e.ideas.length<3)).map(e=>e.id), EVENTS.find(e=>e.id==='summerstage').when(2026).map(w=>w.map(d=>d.getMonth()+1+'/'+d.getDate()))]")
         check("Free outdoor music series are built-in events with a stand", len(mu[0])>=7 and not mu[1] and mu[2]==[["6/1","8/31"]], mu)
         # Game days: fixture rows from the weekly check, one card per venue
-        pg.evaluate("""()=>{ EVENT_DOCS._fixtures={checked:"2026-10-10",games:[{team:"knicks",at:"2026-10-20T19:00",opp:"76ers"},{team:"knicks",at:"2026-10-25T19:00",opp:"Magic"},{team:"nycfc",at:"2026-10-17T19:30",opp:"LAFC"},{team:"nets",at:"2026-10-01T19:30",opp:"Past"}]}; renderEvents(); }"""); pg.wait_for_timeout(150)
+        pg.evaluate("""()=>{ EVENT_DOCS._fixtures={checked:"2026-10-10",games:[{team:"knicks",at:"2026-10-20T19:00",opp:"76ers"},{team:"knicks",at:"2026-10-25T19:00",opp:"Magic"},{team:"nycfc",at:"2026-10-17T19:30",opp:"LAFC"},{team:"nets",at:"2026-10-01T19:30",opp:"Past"}]}; renderEvents(); evBodyFillAll(); }"""); pg.wait_for_timeout(150)
         fx=pg.evaluate("""()=>{ const rows=fixtureRows(evDay(new Date())); const k=rows.filter(r=>r.e.id==='msg'); const cards=[...document.querySelectorAll('#events details')].filter(d=>/Game day/.test(d.querySelector('summary').textContent));
           return [rows.map(r=>r.game.team), k[0].e.time, evTitle(rows.find(r=>r.game.team==='nycfc')), cards.length, cards.map(c=>c.querySelectorAll('.games li').length), cards.map(c=>c.querySelector('summary').textContent.includes('Next:'))]; }""")
         check("Game days: future home games become rows, grouped as one card per venue", fx[0]==["nycfc","knicks","knicks"] and fx[1]=="5:30 pm to 7:20 pm; tip-off 7 pm" and fx[2]=="NYCFC v LAFC (football) · Yankee Stadium" and fx[3]==2 and fx[4]==[1,2] and all(fx[5]), fx)
@@ -1149,6 +1149,12 @@ def run(path, name):
             !!SL&&SL.shots.length===2&&SL.key==="night"&&SL.kind==="dull", /Last time in this light/.test(sh)&&/try again/.test(sh)&&sh.indexOf('tsq-energy')<sh.indexOf('tsq-place'),
             L20.length>=3&&L20.every(o=>o.x.m&&o.x.m.includes(11)&&!o.x.m.includes(12)), L5.length===0, /Last chance · 10 days left/.test(lh),
             c1&&!c1.on&&/Golden hour in 60 min/.test(c1.txt), c2&&c2.on&&/on now/.test(c2.txt), c3===null]; })()""")
+        st=pg.evaluate("""(()=>{ const c=CITIES[state.city]; let bad=0; for(let k=0;k<12;k++){ const d=new Date(2026,k,15); d.setHours(0,0,0,0); LIGHT_DAYS.clear(); LIGHT_DAY=null; const L=lightDay(d);
+          const runs=[]; let cur=null; for(let m=0;m<1440;m++){ const ph=sunPhase(sunPos(clk(d,m),c.lat,c.lon).alt); if(cur&&cur.ph===ph) cur.e=m+1; else { cur={ph,s:m,e:m+1}; runs.push(cur); } } if(JSON.stringify(runs)!==JSON.stringify(L.runs)) bad++; }
+          const a=performance.now(); for(let k=0;k<200;k++) lightDay(new Date(2026,10,5+(k%7))); const cached=(performance.now()-a)/200;
+          const wasV=state.view; state.view='events'; render(); const n0=document.querySelectorAll('#events *').length, lazy=document.querySelectorAll('#events .event-body[data-lazy]').length, cards=document.querySelectorAll('#events details.event').length; evBodyFillAll(); const n1=document.querySelectorAll('#events *').length; state.view=wasV; render();
+          return [bad, cached<0.5, lazy===cards&&cards>5, n1>n0*2]; })()""")
+        check("Stability: the light day matches a minute scan on every month and is cached for a week of days; event bodies build only when opened", st==[0,True,True,True], st)
         check("Today: go now or wait from the forecast, last time in this light from the log, last chance for ideas ending with the month, and a countdown to the next window", t4==[True]*10, t4)
         idq=pg.evaluate("""(()=>{ const X=id=>IDEAS.find(x=>x.id===id), nw=['midtown-saksshow','gct-parkave','midtown-ornaments','midtown-menorah','chelsea-vessel','wsp-tree','subway-nostalgia','cpark-midnight','soho-silhouette','midtown-bus','bushwick-bodega','jh-laundromat'];
           const hk=[hanukkahOn(new Date(2026,11,4,18)), hanukkahOn(new Date(2026,11,11,18)), hanukkahOn(new Date(2026,11,12,18)), hanukkahOn(new Date(2027,11,24,18))];

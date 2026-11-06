@@ -4700,7 +4700,15 @@ function renderEvents(){
       '<span class="cal">'+(o?'<small>'+fmt(o[0],{month:"short"})+'</small><b>'+o[0].getDate()+'</b>':'<small>TBA</small><b>·</b>')+'</span>'+
       '<span class="t">'+(EVENT_TYPES[e.type]?'<span class="etag'+(PHOTO_TYPES.has(e.type)?" ph":"")+'">'+EVENT_TYPES[e.type]+(r.confirmed?' <span class="eok">✓ Confirmed</span>':r.added?' <span class="enew">New</span>':'')+'</span>':'')+'<b>'+esc(e.name)+'</b>'+dist+evMeta(r,today)+'<span>'+esc(r.game?'Next: '+r.game.title+', '+o[0].toLocaleDateString("en-US",{weekday:"short"})+' '+hmText(r.game.at.getHours()*60+r.game.at.getMinutes()):e.where)+'</span></span>'+
       '<span class="soon'+(/now|Today|today|Tomorrow|days|Cancelled/.test(soon)?" near":"")+'">'+soon+(o&&!r.cancelled&&!r.game?'<button type="button" class="evstar" data-evgo="'+esc(e.id)+'" aria-pressed="'+(state.evGoing&&state.evGoing.has(e.id)?'true':'false')+'" aria-label="'+(state.evGoing&&state.evGoing.has(e.id)?'Going: tap to remove':'Mark as going')+'">'+(state.evGoing&&state.evGoing.has(e.id)?'★':'☆')+'</button>':'')+'</span></summary>'+
-      '<div class="event-body"><p class="when">'+full+(e.approx?" (expected)":"")+
+      '<div class="event-body" data-lazy="1"></div></details>'; }
+  /* The body of a card is built only when the card is opened: the list has thirty-odd cards and each body is a few
+     hundred nodes, so building them all made the Events tab the slowest to draw and to scroll. */
+  function evBody(r){
+    const e=r.e, o=r.o, yr=o?o[0].getFullYear():today.getFullYear(), games=r.game?list.filter(x=>x.game&&x.e.id===e.id):[];
+    const full=o ? fmt(o[0],dm)+(o[1]?" to "+fmt(o[1],dm):"")+(yr!==today.getFullYear()?", "+yr:"") : "Date not announced";
+    const q="https://www.google.com/search?q="+encodeURIComponent(e.name+" "+CITIES[e.city].name+" "+yr+" date route");
+    const src=typeof r.source==="string" && /^https:\/\//.test(r.source) ? r.source : null;
+    return '<p class="when">'+full+(e.approx?" (expected)":"")+
         (r.confirmed?' <span class="pill">Confirmed</span>':'')+(r.added?' <span class="pill">New</span>':'')+
         '<span>'+esc(e.time)+(e.approx?". This date is announced each year and may differ.":"")+(e.note?" "+esc(e.note):"")+'</span></p>'+
       (e.why?'<p>'+esc(e.why)+'</p>':'')+
@@ -4714,15 +4722,19 @@ function renderEvents(){
       (e.map?'<a class="check" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(e.map[1])+'" target="_blank" rel="noopener">'+(e.map[0]===""?(PHOTO_TYPES.has(e.type)?"Open the venue in Google Maps":"Open the viewing spot in Google Maps"):e.map[0]==="area"?"Open the area in Google Maps":(PHOTO_TYPES.has(e.type)?"Venue: ":"Viewing spot: ")+esc(e.map[0]))+' ↗</a>':'')+
       (e.ideas.length?'<div class="part"><span class="label">Shots to look for</span><ul class="eideas">'+e.ideas.map(i=>
         '<li><span class="tag"><span class="dot" style="background:'+INTENTS[i[0]].color+'"></span>'+INTENTS[i[0]].name+'</span><b>'+esc(i[1])+'</b><span>'+esc(i[2])+'</span><span class="set">'+esc(cam.recipes[i[3]][0])+'</span></li>').join("")+'</ul></div>':'')+
-      calLinks(e,o)+(src?'<a class="check" href="'+esc(src)+'" target="_blank" rel="noopener">Source for this date ↗</a>':'<a class="check" href="'+q+'" target="_blank" rel="noopener">Check this year\'s date and route ↗</a>')+'</div></details>';
+      calLinks(e,o)+(src?'<a class="check" href="'+esc(src)+'" target="_blank" rel="noopener">Source for this date ↗</a>':'<a class="check" href="'+q+'" target="_blank" rel="noopener">Check this year\'s date and route ↗</a>');
   }
+  EV_BODY.clear(); shown.forEach(r=>EV_BODY.set(r.e.id,()=>evBody(r)));
   if(state.evOpen){ if(box.querySelector('details.event[data-id="'+CSS.escape(state.evOpen)+'"]')) evSheetOpen(state.evOpen,true); else state.evOpen=null; }
 }
+const EV_BODY=new Map();
+function evBodyFillAll(){ document.querySelectorAll("#events details.event").forEach(d=>evBodyFill(d.querySelector(".event-body"),d.dataset.id)); }
+function evBodyFill(body,id){ if(!body||!body.dataset.lazy) return; const f=EV_BODY.get(id); if(!f) return; try{ body.innerHTML=f(); }catch(e){ body.innerHTML='<p class="msg">This event could not be drawn.</p>'; healthLog("error","Event "+id+": "+(e&&e.message||e)); } delete body.dataset.lazy; }
 // An event opens in a sheet over the list; it lives inside #events so the buttons in it keep working
 function evSheetOpen(id,quiet){ const box=$("events"); let d=box.querySelector('details.event[data-id="'+CSS.escape(id)+'"]');
   if(!d&&!state.evLaterOpen){ state.evLaterOpen=true; renderEvents(); d=box.querySelector('details.event[data-id="'+CSS.escape(id)+'"]'); }   // an event folded away under Later
   if(!d) return; evSheetClose(true);
-  state.evOpen=id; const sm=d.querySelector("summary"), body=d.querySelector(".event-body");
+  state.evOpen=id; const sm=d.querySelector("summary"), body=d.querySelector(".event-body"); evBodyFill(body,id);
   box.insertAdjacentHTML("beforeend",'<div class="sheet evsheet" id="evSheet"><div class="sh-back" data-esclose="1"></div><div class="sh-panel" role="dialog" aria-modal="true" aria-label="'+esc(d.querySelector(".t b").textContent)+'">'+
     '<header class="sh-head es-head event">'+sm.innerHTML+'<button type="button" class="sh-x" data-esclose="1" aria-label="Close">×</button></header><div class="sh-body"><div class="event-body es-b">'+body.innerHTML+'</div></div></div></div>');
   const el=$("evSheet"); document.body.classList.add("sheetopen"); if(quiet) el.classList.add("on"); else requestAnimationFrame(()=>{ el.classList.add("on"); el.querySelector(".sh-x").focus({preventScroll:true}); }); }
@@ -5149,7 +5161,9 @@ function sheetHeights(){ const m=$("map"), H=m.clientHeight||600, g=$("mapGrab")
 function setSheet(st,instant){ const m=$("map"); if(!m||!$("mapSheet")) return; state.sheet=st; const h=sheetHeights()[st];
   const sh=$("mapSheet"); if(instant) sh.classList.add("nomove"); m.style.setProperty("--sheetH",h+"px"); sh.dataset.state=st; if(instant) requestAnimationFrame(()=>sh.classList.remove("nomove")); if(state.mapHead){ headSize(); mapDraw(); }
   $("mapGrab").setAttribute("aria-expanded",st!=="peek"); }
-const sheetPx = () => { const m=$("map"); if(!m) return 0; const v=parseFloat(getComputedStyle(m).getPropertyValue("--sheetH")); return isNaN(v)?0:v; };
+/* The sheet's height is read from the inline style set by setSheet and the drag, not from computed style: reading computed
+   style right after a redraw forces a layout of the whole map, and this is asked a dozen times a draw. */
+const sheetPx = () => { const m=$("map"); if(!m) return 0; let v=parseFloat(m.style.getPropertyValue("--sheetH")); if(isNaN(v)){ v=parseFloat(getComputedStyle(m).getPropertyValue("--sheetH")); if(!isNaN(v)) m.style.setProperty("--sheetH",v+"px"); } return isNaN(v)?0:v; };
 /* The search bar only moves when the screen changes size, so its height is read at most twice a second: reading it right after a redraw forces the browser to lay out the whole map again. */
 let TOP_PX={t:-1e9,v:0};
 const topPx = () => { const n=performance.now(); if(n-TOP_PX.t<500) return TOP_PX.v; const t=document.querySelector("#map .mtop"); TOP_PX={t:n,v:t?t.offsetTop+t.offsetHeight:0}; return TOP_PX.v; };
@@ -5899,13 +5913,22 @@ document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&LFC.on){ lfcStop()
 let lfRaf=0; document.addEventListener("input",e=>{ if(!LF.open||e.target.id!=="lfTime") return; LF.off=+e.target.value; if(!lfRaf) lfRaf=requestAnimationFrame(()=>{ lfRaf=0; lfRender(); }); });
 
 /* The day's light, minute by minute: night, blue hour, golden hour, daylight. Drawn as the slider track, with marks to jump to. */
-let LIGHT_DAY = null;
+/* The light phases through a day, to the minute. Kept for the last 60 days asked for: Today, the week, the map and the
+   week's three all ask for several days in a row, and one day at a time was recomputed hundreds of times a render.
+   The day is scanned every 4 minutes and each change of phase is then pinned to its minute, which gives the same runs
+   as a minute-by-minute scan at a quarter of the cost. */
+let LIGHT_DAY = null; const LIGHT_DAYS = new Map();
 function lightDay(day){ const c=CITIES[state.city], d=day?new Date(day):mapDay(); d.setHours(0,0,0,0); const key=state.city+":"+(+d);
-  if(LIGHT_DAY&&LIGHT_DAY.key===key) return LIGHT_DAY;
-  const runs=[]; let cur=null;
-  for(let m=0;m<1440;m++){ const ph=sunPhase(sunPos(clk(d,m),c.lat,c.lon).alt); if(cur&&cur.ph===ph) cur.e=m+1; else { cur={ph,s:m,e:m+1}; runs.push(cur); } }
+  if(LIGHT_DAY&&LIGHT_DAY.key===key) return LIGHT_DAY; const hit=LIGHT_DAYS.get(key); if(hit) return LIGHT_DAY=hit;
+  const z=new Date(d), off0=z.getTimezoneOffset(), at=m=>{ const r=new Date(+z+m*6e4), o=r.getTimezoneOffset(); return o===off0?r:new Date(+r+(o-off0)*6e4); }, ph=m=>sunPhase(sunPos(at(m),c.lat,c.lon).alt);
+  const runs=[]; let cur={ph:ph(0),s:0,e:1}; runs.push(cur); let last=0;
+  for(let m=4;m<1440;m+=4){ const p=ph(m); if(p===cur.ph){ cur.e=m+1; last=m; continue; }
+    let lo=last, hi=m; while(hi-lo>1){ const mid=(lo+hi)>>1; if(ph(mid)===cur.ph) lo=mid; else hi=mid; }   // the first minute of the new phase
+    cur.e=hi; const q=ph(hi); if(q!==p){ cur={ph:q,s:hi,e:hi+1}; runs.push(cur); let lo2=hi, hi2=m; while(hi2-lo2>1){ const mid=(lo2+hi2)>>1; if(ph(mid)===q) lo2=mid; else hi2=mid; } cur.e=hi2; cur={ph:p,s:hi2,e:m+1}; runs.push(cur); }
+    else { cur={ph:p,s:hi,e:m+1}; runs.push(cur); } last=m; }
+  cur.e=1440;
   const [rise,set]=sunTimes(new Date(+d+12*36e5),c.lat,c.lon), mm=t=>t.getHours()*60+t.getMinutes();
-  return LIGHT_DAY={key,runs,rise:mm(rise),set:mm(set)}; }
+  const L={key,runs,rise:mm(rise),set:mm(set)}; LIGHT_DAYS.set(key,L); if(LIGHT_DAYS.size>60) LIGHT_DAYS.delete(LIGHT_DAYS.keys().next().value); return LIGHT_DAY=L; }
 const LIGHT_COL = {night:"#1c2340",blue:"#3e63d8",gold:"#f2ad3a",day:"#f4e7b4"};
 function lightBand(day){ const L=lightDay(day), at=m=>'calc(13px + (100% - 26px) * '+(m/1435).toFixed(4)+')';
   return 'linear-gradient(to right,'+L.runs.map(r=>LIGHT_COL[r.ph]+' '+at(r.s)+','+LIGHT_COL[r.ph]+' '+at(Math.min(r.e,1435))).join(",")+')'; }
@@ -7991,6 +8014,7 @@ $("fActive").addEventListener("click",e=>{ if(e.target.closest("[data-fopen]")) 
 document.addEventListener("keydown",e=>{ if(e.key!=="Escape") return; for(const id of ["fSheet","setSheet"]) if(!$(id).hidden){ sheetClose(id); e.preventDefault(); } const es=document.getElementById("evSheet"); if(es){ evSheetClose(); e.preventDefault(); } });
 syncTheme();
 $("events").addEventListener("change",e=>{ if(e.target.id==="evWhenSel"){ state.evWhenF=e.target.value; store.set("evWhenF",state.evWhenF); renderEvents(); } else if(e.target.id==="evTypeSel"){ state.evType=e.target.value; renderEvents(); } });
+$("events").addEventListener("toggle",e=>{ const d=e.target; if(d&&d.classList&&d.classList.contains("event")&&d.open) evBodyFill(d.querySelector(".event-body"),d.dataset.id); },true);
 $("events").addEventListener("click",e=>{
   const nsp=e.target.closest("[data-evnspot]"); if(nsp){ const f=nsp.closest("[data-evnf]"), inp=f&&f.querySelector(".evn-spot"); f.querySelectorAll("[data-evnspot]").forEach(b=>b.setAttribute("aria-pressed",String(b===nsp))); if(inp) inp.value=nsp.dataset.evnspot; return; }
   if(e.target.closest("[data-evnsave]")){ const f=e.target.closest("[data-evnf]"); if(f&&evNoteSave(f)){ const id=state.evOpen; renderEvents(); if(id) evSheetOpen(id,true); evToast('<span>Note saved. It will be here when this comes round again.</span>'); } return; }
