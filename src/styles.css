@@ -1526,3 +1526,10 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 .ism-h{display:flex;justify-content:space-between;gap:10px;align-items:baseline} .ism-h b{font-size:15px} .ism-iso{flex:none;font-weight:700;font-size:14px;text-align:right;max-width:50%}
 .ism-set{font-family:var(--mono);font-size:12.5px;color:var(--muted)} .ism-fix{font-size:13.5px}
 .ismtw{overflow-x:auto} .ismt{width:100%;border-collapse:collapse;font-size:14px;margin-top:6px} .ismt th,.ismt td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line)} .ismt th{font-size:12px;color:var(--muted);font-weight:700}
+.mapbtns button[data-mapdark] svg path:first-child{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round} .mapbtns button[data-mapdark] svg path+path{fill:none;stroke:currentColor;stroke-width:1.6}
+.mapbtns button[data-mapdark].on{background:#3a3f8f;color:#fff}
+.mapdarkbar{margin:0 0 8px;padding:8px 10px;border-radius:10px;background:rgba(58,63,143,.14)} .mapdarkbar b{color:inherit}
+.m-asgl{fill:none;stroke:#e0a100;stroke-linecap:round;opacity:.85;pointer-events:none}
+.m-asg .m-asgc{fill:#e0a100;stroke:#fff} .m-asg.done .m-asgc{fill:#1e9e48} .m-asg .m-asgn{fill:#fff;font-weight:800;pointer-events:none}
+.m-asg .m-asgt{fill:var(--mPinNum,#14161a);font-weight:800;paint-order:stroke;stroke:var(--mPinFace,#fff);stroke-width:.3em;pointer-events:none} .m-asg .m-asgw{fill:#a06a00;font-weight:700;paint-order:stroke;stroke:var(--mPinFace,#fff);stroke-width:.3em;pointer-events:none}
+[data-sky="night"] .m-asg .m-asgw,[data-sky="blue"] .m-asg .m-asgw{fill:#ffcf5a}

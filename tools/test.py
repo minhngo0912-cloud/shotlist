@@ -1132,6 +1132,16 @@ def run(path, name):
         r5=pg.evaluate("[state.mapEv, document.querySelectorAll('.m-evrt.on').length, mapV.w>200]")
         check("Searching for the marathon shows its whole route", r5==["marathon",1,True], r5)
         pg.evaluate("mapSelect(null); mapV=mapPreset('city'); mapDraw(); mapPanel()")
+        nAll=pg.evaluate("mapPts().length")
+        pg.click("#map .mapbtns [data-mapdark]"); pg.wait_for_timeout(300)
+        dk=pg.evaluate("""(()=>{ const c=CITIES[state.city], P=mapPts(); return [state.mapDark, document.querySelector('#map .mapbtns [data-mapdark]').getAttribute('aria-pressed'), !!document.querySelector('#mapPanel .mapdarkbar'),
+          P.length>0&&P.every(p=>p.n>0), cityIdeas().filter(i=>P.some(p=>p.id===i.p)).length>0, sunPos(mapNow(),c.lat,c.lon).alt<-6, mapEvents().every(e=>evDarkOK(e.r))]; })()""")
+        nDark=pg.evaluate("mapPts().length")
+        pg.click("#mapPanel .mapdarkbar [data-mapdark]"); pg.wait_for_timeout(300)
+        check("The after-dark map keeps only night places and events, moves the time to after dark, and the banner turns it off", dk==[True,"true",True,True,True,True,True] and nDark<nAll and pg.evaluate("[state.mapDark, !!document.querySelector('#mapPanel .mapdarkbar')]")==[False,False], [dk,nDark,nAll])
+        pg.evaluate("state.mapT=null; state.mapD=0; mapDraw(); mapPanel()")
+        a3=pg.evaluate("""(()=>{ asgMap.key=null; const A=asgMap(), ids=weekAssign(false).A.ids; mapDraw(); return [A.length===ids.length&&A.length===3, A.every((a,i)=>i===0||A[i-1].at<=a.at), document.querySelectorAll('#mapOver .m-asg').length, !!document.querySelector('#mapOver .m-asgl'), /data-assignmap/.test(assignHtml())]; })()""")
+        check("This week's three show on the map as numbered pins joined in the order their light comes, with an On the map button on Today", a3==[True,True,3,True,True], a3)
         # Street names: the duplicated-stretch bug dropped 134 streets (W 45th to 49th, W 125th, 7th Av S); they are back
         sn=pg.evaluate("['W 47th St','W 125th St','7th Av S','E 50th St'].map(n=>MAPD_SN.n.includes(n))")
         check("Street names include the Midtown and Harlem cross streets that were missing", sn==[True]*4, sn)
