@@ -1558,3 +1558,11 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 .evsrow.go .evsn{font-weight:800;color:#a06a00} .evsrow.go .evsb{box-shadow:0 0 0 2px #e0a100}
 .evkitlens{margin:2px 0 6px}
 .evpair li .chip,.evkit li .chip{margin-top:4px;align-self:flex-start}
+/* Events: crowds and closures, rain fallback */
+.evcbar{position:relative;height:14px;border-radius:7px;background:rgba(127,127,127,.18);overflow:hidden;margin:4px 0 3px}
+.evcbar i{position:absolute;top:0;bottom:0} .evcbar .evcw{background:rgba(127,127,127,.3)} .evcbar .evcq{background:#2f8f5b;opacity:.85} .evcbar .evcp{background:#c2453c;opacity:.85}
+.evcbar .evcl{top:auto;height:3px;bottom:0} .evcbar .evcl.gold{background:#e0a100} .evcbar .evcl.blue{background:#4b6fd6}
+.evclab{display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;font-size:.74rem;opacity:.8;margin-bottom:4px}
+.evck{display:inline-flex;align-items:center;gap:4px} .evck i{width:9px;height:9px;border-radius:2px;display:inline-block} .evck .evcq{background:#2f8f5b} .evck .evcp{background:#c2453c} .evck .evcw{background:rgba(127,127,127,.45)} .evclab.keys{justify-content:flex-start;gap:12px}
+.evcrowd p{margin:4px 0}
+.evrainfb li .chip{margin-top:4px;align-self:flex-start}

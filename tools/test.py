@@ -1126,6 +1126,17 @@ def run(path, name):
         ui=pg.evaluate("[!!document.getElementById('evSheet'), state.evOpen]")
         pg.evaluate("v=>{ evSheetClose(); state.view=v; render(); }", pv); pg.wait_for_timeout(250)
         check("This weekend shows at the top of Events, and an event in it opens", has[0] and (not has[1] or (ui[0] and ui[1])), [has,ui])
+        import json as _json
+        pg.evaluate("ids=>{ window._docIds=ids; }", list(_json.load(open(os.path.join(ROOT,"events.json"))).keys()))
+        cr=pg.evaluate("""(()=>{ const today=evDay(new Date()), rows=eventRows(today), DOCIDS=window._docIds||[], ids=Object.keys(EV_CROWD), known=ids.filter(id=>EVENTS.some(e=>e.id===id)||EVENT_DOCS[id]||DOCIDS.includes(id));
+          const tg=rows.find(r=>r.e.id==='thanksgiving'), ch=tg?evCrowdHtml(tg):'';
+          EVENT_DOCS.tfb={name:"Test fair",type:"market",start:"2026-11-14",end:"2026-11-22",time:"11 am to 7 pm",lat:40.7527,lon:-73.9772}; EVENT_DOCS.tfb1={name:"Test one-day",type:"gathering",start:"2026-11-14",time:"11 am to 2 pm",lat:40.7527,lon:-73.9772};
+          const t=[],pop=[],cc=[],code=[],tt=[]; for(let k=0;k<8;k++){ const dd=new Date(2026,10,14+k); for(let h=0;h<24;h++){ t.push(dd.getFullYear()+"-"+String(dd.getMonth()+1).padStart(2,"0")+"-"+String(dd.getDate()).padStart(2,"0")+"T"+String(h).padStart(2,"0")+":00"); const rain=k<=1; pop.push(rain?80:5); cc.push(rain?100:10); code.push(rain?63:1); tt.push(8);} }
+          const was=WEATHER.nyc; WEATHER.nyc={updated:new Date().toISOString(),temp_c:8,condition_text:"Rain",hourly:{time:t,pop,mm:pop.map(p=>p>50?2:0),cc,code,t:tt}};
+          const d14=new Date(2026,10,14), R=eventRows(d14), f1=evRainFallback(R.find(r=>r.e.id==='tfb'),d14), f2=evRainFallback(R.find(r=>r.e.id==='tfb1'),d14), h1=evRainFallbackHtml(R.find(r=>r.e.id==='tfb'),d14);
+          WEATHER.nyc=was; delete EVENT_DOCS.tfb; delete EVENT_DOCS.tfb1;
+          return [ids.length>=30&&known.length===ids.length, /Crowds and closures/.test(ch)&&/In place by/.test(ch)&&/evcq/.test(ch)&&/evcp/.test(ch), f1&&f1.dry&&f1.dry.d.getDate()===16&&f1.dry.m===11*60, f2&&!f2.dry&&f2.indoor.length>=1&&f2.indoor.some(o=>o.x.p==='gct'||o.x.p==='subway'), /Next dry day it runs: Monday, Nov 16/.test(h1)&&/data-evday/.test(h1)]; })()""")
+        check("Events: crowd timing with a quiet window for the big days, and a rain fallback with the next dry day or an indoor idea nearby", cr==[True,True,True,True,True], cr)
         idq=pg.evaluate("""(()=>{ const X=id=>IDEAS.find(x=>x.id===id), nw=['midtown-saksshow','gct-parkave','midtown-ornaments','midtown-menorah','chelsea-vessel','wsp-tree','subway-nostalgia','cpark-midnight','soho-silhouette','midtown-bus','bushwick-bodega','jh-laundromat'];
           const hk=[hanukkahOn(new Date(2026,11,4,18)), hanukkahOn(new Date(2026,11,11,18)), hanukkahOn(new Date(2026,11,12,18)), hanukkahOn(new Date(2027,11,24,18))];
           const open=[ideaOpen(X('midtown-menorah'),new Date(2026,11,6,17,30)), ideaOpen(X('midtown-menorah'),new Date(2026,10,27,17,30)), ideaOpen(X('subway-nostalgia'),new Date(2026,11,13,11)), ideaOpen(X('subway-nostalgia'),new Date(2026,11,14,11))];
