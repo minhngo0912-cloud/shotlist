@@ -1533,3 +1533,28 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 .m-asg .m-asgc{fill:#e0a100;stroke:#fff} .m-asg.done .m-asgc{fill:#1e9e48} .m-asg .m-asgn{fill:#fff;font-weight:800;pointer-events:none}
 .m-asg .m-asgt{fill:var(--mPinNum,#14161a);font-weight:800;paint-order:stroke;stroke:var(--mPinFace,#fff);stroke-width:.3em;pointer-events:none} .m-asg .m-asgw{fill:#a06a00;font-weight:700;paint-order:stroke;stroke:var(--mPinFace,#fff);stroke-width:.3em;pointer-events:none}
 [data-sky="night"] .m-asg .m-asgw,[data-sky="blue"] .m-asg .m-asgw{fill:#ffcf5a}
+/* Events: this weekend, the holiday season, lens and settings, before and after */
+.evwk{margin:4px 0 10px}
+.evwkg2{display:grid;grid-template-columns:1fr 1fr;gap:8px} .evwkg2.one{grid-template-columns:1fr}
+.evwkd{border:1px solid var(--line,rgba(127,127,127,.25));border-radius:12px;padding:9px 10px;background:var(--card,transparent);min-width:0}
+.evwkh{display:flex;align-items:center;justify-content:space-between;gap:6px} .evwkh b{font-size:.95rem}
+.evwkwx{display:inline-flex;align-items:center;gap:3px;font-size:.85rem;opacity:.85} .evwkwx svg{width:18px;height:18px}
+.evwkg{display:block;font-size:.75rem;color:#b07a00;margin-top:1px}
+.evwkl{list-style:none;margin:6px 0 4px;padding:0} .evwkl li{display:flex;justify-content:space-between;gap:6px;font-size:.84rem;line-height:1.3;padding:2px 0}
+.evwkl li .linkbtn{text-align:left;padding:0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap} .evwkl li span{opacity:.7;white-space:nowrap;font-size:.78rem}
+.evwkp{margin:4px 0 0;font-size:.8rem;line-height:1.35;opacity:.9}
+.evseason{margin:0 0 10px} .evseason>summary{cursor:pointer;list-style:none} .evseason>summary::-webkit-details-marker{display:none}
+.evseason>summary::after{content:" ▾"} .evseason[open]>summary::after{content:" ▴"}
+.evsgrid{position:relative;margin-top:4px}
+.evsticks{position:relative;height:16px;font-size:.68rem;opacity:.7} .evsticks span{position:absolute;top:0;white-space:nowrap}
+.evsrows{position:relative;padding:2px 0}
+.evsw{position:absolute;top:0;bottom:0;background:rgba(127,127,127,.1);pointer-events:none}
+.evstoday{position:absolute;top:-16px;bottom:0;width:2px;margin-left:-1px;background:#d9412b;pointer-events:none;z-index:1}
+.evsrow{position:relative;display:block;width:100%;height:27px;padding:0;border:0;background:none;cursor:pointer;color:inherit;font:inherit}
+.evsn{position:absolute;top:1px;font-size:.72rem;white-space:nowrap;line-height:1.1;max-width:62%;overflow:hidden;text-overflow:ellipsis}
+.evsb{position:absolute;bottom:4px;height:7px;border-radius:4px;background:#6c7bd9;min-width:7px}
+.evsb.holiday{background:#c2453c} .evsb.light{background:#d79b16} .evsb.market{background:#2f8f5b} .evsb.parade{background:#7a4fc4} .evsb.fireworks{background:#2a7fc0}
+.evsb.one{width:9px;height:9px;bottom:3px;border-radius:50%;margin-left:-1px}
+.evsrow.go .evsn{font-weight:800;color:#a06a00} .evsrow.go .evsb{box-shadow:0 0 0 2px #e0a100}
+.evkitlens{margin:2px 0 6px}
+.evpair li .chip,.evkit li .chip{margin-top:4px;align-self:flex-start}

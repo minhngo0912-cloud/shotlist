@@ -1112,6 +1112,20 @@ def run(path, name):
         pn=pg.evaluate("""(()=>{ const N=paradeNow('veterans',13*60+15), B=paradeNow('veterans',11*60), A=paradeNow('veterans',17*60), w=EVENTS.find(e=>e.id==='lightswalk'), R=EV_ROUTE.lightswalk;
           return [N.on&&N.front>0.5&&N.front<1.25&&N.tail===0, B.before, A.after, /front of the parade/.test(paradeNowTxt('veterans',13*60+15)), !!w&&!!R&&R.spots.length===6&&R.walk===true, !!EVENT_GEO.lightswalk&&EVENT_TYPE_OF.lightswalk==='light']; })()""")
         check("Parades move along their route on the map through the day, and the Fifth Avenue lights walk is a route of its own", pn==[True,True,True,True,True,True], pn)
+        e4=pg.evaluate("""(()=>{ const t=evDay(new Date()), rows=eventRows(t), v=rows.find(r=>r.e.id==='veterans'), w=rows.find(r=>r.e.id==='lightswalk'), kv=evKitHtml(v), kw=evKitHtml(w);
+          const n1=evKitSet('light','28',new Date(2026,11,10,19),null,null), d1=evKitSet('parade','43',new Date(2026,10,11,12,30),'back',0), P=evPairs(v)||[];
+          const W1=evWeekendDays(new Date(2026,10,5)).map(d=>d.getDate()), W2=evWeekendDays(new Date(2026,10,8)).length, ds=new Date(2026,11,1), sr=evSeasonRows(eventRows(ds),ds), sh=evSeasonHtml(eventRows(ds),ds), off=evSeasonHtml(eventRows(new Date(2027,2,1)),new Date(2027,2,1));
+          return [/Bring the Q3 43/.test(kv)&&(kv.match(/<li>/g)||[]).length>=3&&/about ISO/.test(kv), /Bring the Q3 28/.test(kw)&&(kw.match(/<li>/g)||[]).length===6,
+            /f\/2\.8/.test(n1.set)&&/full frame/.test(n1.crop), /\+0\.3/.test(d1.ec)&&/1\/1000 s/.test(d1.set), P.map(p=>p.tag).join(), P.every(p=>p.mi<=1.25&&AVAIL[p.x.id]?.ev!=='veterans'),
+            W1.join(), W2, sr.length>=4&&sr.every((x,i)=>!i||sr[i-1].a<=x.a), /evstoday/.test(sh)&&/Holiday season/.test(sh), off]; })()""")
+        check("Events: lens and settings for each viewing spot, an idea before and after, this weekend side by side, and the holiday season at a glance", e4==[True,True,True,True,"Before,After",True,"7,8",1,True,True,""], e4)
+        pv=pg.evaluate("state.view"); pg.evaluate("(()=>{ state.view='events'; state.evNear=false; state.evDay=null; render(); window.scrollTo(0,0); })()"); pg.wait_for_timeout(200)
+        has=pg.evaluate("[!!document.querySelector('#events .evwk'), !!document.querySelector('#events [data-evwk]')]")
+        if has[1]:
+            pg.evaluate("document.querySelector('#events [data-evwk]').click()"); pg.wait_for_timeout(250)
+        ui=pg.evaluate("[!!document.getElementById('evSheet'), state.evOpen]")
+        pg.evaluate("v=>{ evSheetClose(); state.view=v; render(); }", pv); pg.wait_for_timeout(250)
+        check("This weekend shows at the top of Events, and an event in it opens", has[0] and (not has[1] or (ui[0] and ui[1])), [has,ui])
         idq=pg.evaluate("""(()=>{ const X=id=>IDEAS.find(x=>x.id===id), nw=['midtown-saksshow','gct-parkave','midtown-ornaments','midtown-menorah','chelsea-vessel','wsp-tree','subway-nostalgia','cpark-midnight','soho-silhouette','midtown-bus','bushwick-bodega','jh-laundromat'];
           const hk=[hanukkahOn(new Date(2026,11,4,18)), hanukkahOn(new Date(2026,11,11,18)), hanukkahOn(new Date(2026,11,12,18)), hanukkahOn(new Date(2027,11,24,18))];
           const open=[ideaOpen(X('midtown-menorah'),new Date(2026,11,6,17,30)), ideaOpen(X('midtown-menorah'),new Date(2026,10,27,17,30)), ideaOpen(X('subway-nostalgia'),new Date(2026,11,13,11)), ideaOpen(X('subway-nostalgia'),new Date(2026,11,14,11))];

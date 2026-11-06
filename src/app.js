@@ -2781,6 +2781,82 @@ function weekendPreview(now){ now=now||new Date(); const d0=evDay(now), dow=d0.g
   const G=state.evGoing||new Set(), rank=x=>(G.has(x.r.e.id)?0:2)+(evGreatLight(x.r,d0)?0:1)+(x.w?0:4), pick=items.map((x,i)=>({x,i})).sort((a,b)=>rank(a.x)-rank(b.x)||a.i-b.i).map(o=>o.x);
   let text=""; if(items.length){ let used=[]; for(const x of pick){ const more=items.length-used.length-1, t='This weekend: '+used.concat([x]).map(line).join(' · ')+(more>0?' +'+more+' more':''); if(t.length<=178||!used.length){ used.push(x); text=t.slice(0,178); } if(used.length===3) break; } }
   return {items,text,days}; }
+/* ---- Events: before and after, lens and settings, this weekend, the holiday season ---- */
+/* A word for the light at minute m of day d. */
+function evPhaseWord(d,m){ const c=CITIES[state.city], ph=sunPhase(sunPos(clk(d,m),c.lat,c.lon).alt); return ph==="day"?(m<11*60?"morning light":m<15*60?"midday sun":"afternoon light"):ph==="gold"?"golden hour":ph==="blue"?"blue hour":"after dark"; }
+function evShownDay(r){ const today=evDay(new Date()); return evDay(r.o[0]<today?today:r.o[0]); }
+function evHours(r,d){ const PD=EV_PARADE[r.e.id]; if(PD) return [PD.s,PD.e]; const w=evWindow(r.e,d); if(w||!["light","holiday"].includes(r.e.type)) return w;
+  const L=lightDay(d); return [Math.round((L.set+20)/5)*5,22*60]; }   // lights with no hours given: from dusk
+/* Ideas that are the event itself, left out of its before and after. */
+const IDEA_EV = {"midtown-saksshow":"saks-light-show","midtown-menorah":"menorah-manhattan","wsp-tree":"washington-square-tree","gct-parkave":"park-avenue-trees","subway-nostalgia":"nostalgia-train","chelsea-vessel":"hudson-yards-lights","midtown-ornaments":"sixth-ave-ornaments","cpark-midnight":"nye-central-park"};
+/* Before and after: one idea near the start of the event that suits the light before it, and one near the end for after. */
+function evPairs(r){ if(!r.o||r.cancelled||r.game||PHOTO_TYPES.has(r.e.type)||state.city!=="nyc") return null; const d=evShownDay(r), w=evHours(r,d); if(!w) return null;
+  const RT=EV_ROUTE[r.e.id], g=eventGeo(r.e.id)||EVENT_GEO[r.e.id]; let A=g, Z=g;
+  if(EV_RACE[r.e.id]){ const B=raceBest(r.e.id,d), o=B&&B.rank[0]; if(o) A=Z=[o.S[0],o.S[1]]; } else if(RT&&RT.line&&RT.line.length){ A=RT.line[0]; Z=RT.line[RT.line.length-1]; }
+  if(!A) return null;
+  const tb=Math.max(0,w[0]-60), ta=Math.min(1435,Math.min(w[1],1439)+15), used=new Set();
+  const pick=(at,m,tag)=>{ const t=clk(d,m), key=lightAt(t), sky=skyAt(t); let best=null;
+    for(const x of cityIdeas()){ if(used.has(x.id)||!x.w.includes(key)||(AVAIL[x.id]&&AVAIL[x.id].ev===r.e.id)||IDEA_EV[x.id]===r.e.id) continue; const sp=spotFor(x), P=PLACES[x.p]; if(typeof P.lat!=="number") continue; const la=sp?sp.S[0]:P.lat, lo=sp?sp.S[1]:P.lon, mi=kmBetween({lat:at[0],lon:at[1]},{lat:la,lon:lo})/1.609;
+      if(mi>1.25||!ideaOpen(x,t,sky)) continue; const sc=-mi+(state.done.has(x.id)?-0.6:0)+(state.saved.has(x.id)?0.4:0)+([...used].some(id=>IDEAS.find(y=>y.id===id).p===x.p)?-0.5:0);
+      if(!best||sc>best.sc) best={x,mi,sc,m,tag,light:evPhaseWord(d,m)}; }
+    if(best) used.add(best.x.id); return best; };
+  const out=[pick(A,tb,"Before"), w[1]-w[0]<=10*60?pick(Z,ta,"After"):null].filter(Boolean); return out.length?out:null; }
+function evPairHtml(r){ const P=evPairs(r); if(!P) return "";
+  return '<div class="part evpair"><span class="label">Before and after</span><ul class="eideas">'+P.map(p=>'<li><span class="tag">'+p.tag+' · from '+hmText(p.m)+' · '+p.light+'</span><b>'+esc(p.x.t)+'</b><span>'+esc(PLACES[p.x.p].name)+' · '+(p.mi<0.1?'right there':milesText(p.mi)+', about '+Math.max(1,Math.round(p.mi*1.25*20))+' min walk')+(state.done.has(p.x.id)?' · shot before':'')+'</span><button type="button" class="chip" data-evidea="'+esc(p.x.id)+'">Open the idea</button></li>').join("")+'</ul><p class="msg">An idea close to '+(EV_ROUTE[r.e.id]&&!EV_RACE[r.e.id]?'the start for on the way in, and close to the end for on the way out':'the event')+', picked for the light then.</p></div>'; }
+/* Lens and settings at the viewing spots: which Q3 and how to set it, from the light when you are there (Auto ISO, max 6400). */
+const EV_KIT = {race:{lens:"43",t:1/1000,why:"The 43 stacks the runners down the avenue as they come toward you. The 28 is for the crowd and the signs at the barrier."},
+  parade:{lens:"43",t:1/500,why:"The 43 for marchers and floats coming down the avenue. The 28 when you are pressed against the barrier and want the crowd too."},
+  light:{lens:"28",t:1/125,why:"The 28 takes in the display and the people in front of it. The 43 for one face lit by it."},
+  subway:{lens:"28",t:1/125,why:"Inside the old cars and on the platform: the 28, braced on a pole. The 43 for one rider in the window from the platform."},
+  walk:{lens:"28",t:1/125,why:"Close to the windows and the crowd on the sidewalk: the 28. Keep the 43 for faces lit by a display."},
+  crowd:{lens:"28",t:1/250,why:"Close quarters in the crowd: the 28, zone-focused at about 2 m. The 43 to pick one face out from across the street."},
+  fireworks:{lens:"43",t:null,why:"The 43 compresses the bursts against the skyline. Brace on a rail or a wall."}};
+function evKitKind(r){ const id=r.e.id, ty=r.e.type; return /train|subway/i.test(r.e.name)?"subway":EV_RACE[id]?"race":EV_PARADE[id]||ty==="parade"?"parade":EV_ROUTE[id]&&EV_ROUTE[id].walk?"walk":ty==="fireworks"?"fireworks":ty==="light"||ty==="holiday"?"light":"crowd"; }
+function evKitSet(kind,lens,t,lk,cc){ const c=CITIES[state.city], alt=sunPos(t,c.lat,c.lon).alt, soft=lk==="shade"||(cc!=null&&cc>=75), K=EV_KIT[kind]||EV_KIT.crowd, wide=lens==="28"?1.7:2;
+  if(kind==="fireworks") return {set:"f/8 · 2 s · ISO 100 · braced, stabilisation off",ec:"0",crop:"Full frame: the bursts spread wider than you expect.",ev:null,iso:100};
+  const ev=kind==="subway"?6.5:alt>15?(soft?12:15):alt>6?(soft?11:13):alt>2?11:alt>-4?10:alt>-6?8.5:(kind==="light"||kind==="walk"?7:kind==="parade"||kind==="race"?6:5.5);
+  let sh=K.t||1/250; if(ev<10&&sh<1/250) sh=1/250; const iso=(N,sh)=>100*Math.pow(2,Math.log2(N*N/sh)-ev);
+  let N=ev>=14?8:ev>=12?5.6:ev>=10?4:([2.8,2,wide].find(n=>iso(n,sh)<=1600)||wide); if(lens==="28"&&kind==="crowd"&&ev>=12) N=8;
+  let raw=iso(N,sh); while(raw<100&&sh>1/2000){ sh/=2; raw=iso(N,sh); } while(raw>6400&&sh<1/125){ sh*=2; raw=iso(N,sh); } if(raw>6400&&N>wide){ N=wide; raw=iso(N,sh); }
+  const fs=v=>"1/"+Math.round(1/v)+" s", night=ev<10, ec=lk==="back"&&!night?"+0.3 to +0.7, for faces against the light":ev>=13?"0 to −0.3":ev>=10?"−0.3 to −0.7, to keep the warm highlights":kind==="light"||kind==="walk"?"−0.3 to −0.7, so the lights keep their colour":"0";
+  const crop=kind==="subway"?"Stay at full frame: underground every crop step adds grain.":night?"Stay at full frame: at night every crop step adds grain at the same print size.":lens==="43"?(kind==="race"||kind==="parade"?"The 75 mm crop for one face from behind the barrier; full frame for the avenue.":"The 60 mm crop to tighten on one face."):"The 35 mm crop when you cannot get closer; otherwise step in.";
+  return {set:"f/"+N+" · "+fs(sh)+" · Auto ISO"+(raw>6400*1.12?" (over 6400: find the lit side of the street)":", about ISO "+isoFmt(Math.max(100,isoRound(raw)))+(raw<100?" (base)":"")),ec,crop,ev,iso:raw}; }
+function evKitHtml(r){ if(!r.o||r.cancelled||r.game||PHOTO_TYPES.has(r.e.type)) return ""; const d=evShownDay(r), w=evHours(r,d); if(!w) return ""; const id=r.e.id, kind=evKitKind(r), K=EV_KIT[kind], other=K.lens==="43"?"28":"43", RT=EV_ROUTE[id];
+  const ccAt=m=>{ const days=(d-evDay(new Date()))/864e5; if(days>=7) return null; const f=hourlyAt(clk(d,m)); return f&&f.cc!=null?f.cc:null; };
+  let spots=[];
+  if(EV_RACE[id]||EV_PARADE[id]){ const B=raceBest(id,d); if(B&&B.rank) spots=(B.dark?B.rank.slice().sort((a,b)=>a.T.mile-b.T.mile):B.rank).slice(0,4).map(o=>({n:o.S[3],m:Math.round(o.T.thick[0]/5)*5,lk:o.L.k})); }
+  else if(RT&&RT.spots&&RT.spots.length) spots=RT.spots.slice(0,6).map((S,i)=>({n:S[3],m:w[0]+(RT.walk?i*20:0),lk:S[5]==="shade"?"shade":null}));
+  else { const V=EVENT_VIEW[id], WL=todayWindows(d).list, inW=x=>x&&w[0]<x.e&&Math.min(w[1],1439)>x.s, bl=WL.find(x=>x.name==="Blue hour"), hit=kind==="subway"?null:kind==="light"&&inW(bl)?bl:WL.find(inW), m=hit&&hit.s>w[0]?Math.round(hit.s/5)*5:w[0];
+    spots=[{n:r.e.map&&r.e.map[0]&&r.e.map[0]!=="area"?r.e.map[0]:"At the viewing spot",m,lk:V&&V.face!=null?lightFacing(V.face,clk(d,m)).k:null}]; }
+  if(!spots.length) return "";
+  return '<div class="part evkit"><span class="label">Lens and settings</span><p class="evkitlens"><b>Bring the Q3 '+K.lens+'</b> '+esc(K.why)+'</p><ul class="eideas">'+spots.map(S=>{ const k=evKitSet(kind,K.lens,clk(d,S.m),S.lk,ccAt(S.m));
+    return '<li><span class="tag">'+hmText(S.m)+' · '+evPhaseWord(d,S.m)+(S.lk&&RB_TAG[S.lk]&&S.lk!=="dark"?' · '+RB_TAG[S.lk].toLowerCase():'')+'</span><b>'+esc(S.n)+'</b><span class="set">Q3 '+K.lens+' · '+esc(k.set)+' · comp '+esc(k.ec)+'</span><span>'+esc(k.crop)+'</span></li>'; }).join("")+
+    '</ul><p class="msg">Auto ISO capped at 6400, with the slowest shutter set to the speed shown. With the Q3 '+other+' instead: '+(other==="28"?'open a third of a stop wider (f/1.7 at night) and get a step closer.':'f/2 at night, and stand back a few steps.')+' <button type="button" class="linkbtn" data-evlearn="iso">The Auto ISO lesson</button></p></div>'; }
+/* This weekend: Saturday and Sunday side by side, with the weather, the event with the best light, and a one-line plan. */
+function evWeekendDays(today){ const dw=today.getDay(), sat=new Date(today.getFullYear(),today.getMonth(),today.getDate()+(dw===6?0:dw===0?-1:6-dw)); return [sat,new Date(sat.getFullYear(),sat.getMonth(),sat.getDate()+1)].filter(d=>d>=today); }
+function evWeekendHtml(all,today){ if(state.city!=="nyc") return ""; const days=evWeekendDays(today), GO=state.evGoing||new Set();
+  const cards=days.map(d=>{ const rows=all.filter(r=>!r.cancelled&&!r.game&&!PHOTO_TYPES.has(r.e.type)&&evOnDay(r,d,false)).map(r=>{ const w=evHours(r,d); if(!w) return null; const hit=todayWindows(d).list.find(x=>w[0]<x.e&&Math.min(w[1],1439)>x.s);
+      return {r,w,hit,sc:(hit?2:0)+(GO.has(r.e.id)?1.5:0)+(r.confirmed?0.3:0)}; }).filter(Boolean).sort((a,b)=>a.w[0]-b.w[0]);
+    const f=(d-today)/864e5<7?hourlyAt(clk(d,13*60)):null, sky=f?skyAt(clk(d,13*60)):undefined, g=todayWindows(d).list.find(x=>x.name==="Golden hour");
+    const wx=f?'<span class="evwkwx">'+wxIcon(sky||(f.cc>=50?"cloud":""),true)+(f.temp!=null?Math.round(f.temp*9/5+32)+'°':'')+'</span>':'';
+    const best=rows.slice().sort((a,b)=>b.sc-a.sc||a.w[0]-b.w[0])[0], second=best&&rows.filter(x=>x!==best&&(x.w[0]>=best.w[1]||x.w[1]<=best.w[0]||Math.abs(x.w[0]-best.w[0])>=120)).sort((a,b)=>b.sc-a.sc)[0];
+    const plan=best?[best,second].filter(Boolean).sort((a,b)=>a.w[0]-b.w[0]).map((x,i)=>(i?'then ':'')+'<b>'+esc(x.r.e.name)+'</b> '+(x.w[0]<=10?'all day':(x.r.o[0]<d&&x.w[1]-x.w[0]>5*60?'from ':'at ')+hmText(x.w[0]))+' ('+(x.hit&&x.hit.s<=x.w[0]+30?(x.hit.k==="gold"?"golden hour":"blue hour"):evPhaseWord(d,x.w[0])+(x.hit?', into '+(x.hit.k==="gold"?"golden hour":"blue hour"):''))+')').join(', '):'';
+    return '<div class="evwkd"><div class="evwkh"><b>'+d.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})+'</b>'+wx+'</div>'+(g?'<span class="evwkg">Golden hour '+hmText(g.s)+'</span>':'')+
+      (rows.length?'<ul class="evwkl">'+rows.slice(0,4).map(x=>'<li><button type="button" class="linkbtn" data-evwk="'+esc(x.r.e.id)+'">'+(x===best?'✨ ':'')+esc(x.r.e.name)+'</button><span>'+hmText(x.w[0])+'</span></li>').join("")+'</ul>'+(rows.length>4?'<button type="button" class="linkbtn" data-evday="'+(+d)+'">All '+rows.length+' events</button>':'')+'<p class="evwkp">'+plan+'.</p>'
+        :'<p class="evwkp">Nothing listed: a day for your ideas.</p>')+'</div>'; });
+  return '<section class="evwk" aria-label="This weekend"><p class="evgroup">'+(days.length===1?'This Sunday':'This weekend')+'</p><div class="evwkg2'+(days.length===1?' one':'')+'">'+cards.join("")+'</div></section>'; }
+/* The holiday season at a glance: each lighting, window reveal, market, menorah night and the Nostalgia Train, start to end. */
+function evSeasonRange(today){ const y=today.getMonth()===0?today.getFullYear()-1:today.getFullYear(); return [new Date(y,10,15),new Date(y+1,0,6)]; }
+function evSeasonRows(all,today){ const [S,E]=evSeasonRange(today);
+  return all.filter(r=>r.o&&!r.cancelled&&!r.game&&!PHOTO_TYPES.has(r.e.type)&&(["holiday","light","market","fireworks"].includes(r.e.type)||/train|thanksgiving|menorah|tree|window|santa|new year/i.test(r.e.name))).map(r=>{ const a=evDay(r.o[0]), b=evDay(r.o[1]||r.o[0]); return b<S||a>E||a<new Date(S.getFullYear(),10,1)?null:{r,a:a<S?S:a,b:b>E?E:b}; }).filter(Boolean).sort((x,y)=>x.a-y.a||x.b-y.b); }
+function evSeasonHtml(all,today){ if(state.city!=="nyc") return ""; const [S,E]=evSeasonRange(today), m=today.getMonth(); if(!(m===10||m===11||(m===0&&today.getDate()<=6)||(m===9&&today.getDate()>=25))) return "";
+  const R=evSeasonRows(all,today); if(R.length<3) return ""; const span=(E-S)/864e5+1, pc=d=>((d-S)/864e5/span*100).toFixed(2)+'%', wd=d=>(((d-S)/864e5+1)/span*100).toFixed(2)+'%';
+  let we="", ticks=""; for(let k=0;k<span;k++){ const d=new Date(S.getFullYear(),S.getMonth(),S.getDate()+k); if(d.getDay()===6) we+='<i class="evsw" style="left:'+pc(d)+';width:'+(2/span*100).toFixed(2)+'%"></i>'; if(d.getDay()===1) ticks+='<span style="left:'+pc(d)+'">'+(d.getDate()<=7||k<7?d.toLocaleDateString("en-US",{month:"short",day:"numeric"}):d.getDate())+'</span>'; }
+  const tl=today>=S&&today<=E?'<i class="evstoday" style="left:'+pc(today)+'"></i>':'', open=!!state.evSeasonOpen;
+  return '<details class="evseason"'+(open?' open':'')+'><summary class="evgroup">Holiday season · '+R.length+' events, '+S.toLocaleDateString("en-US",{month:"short",day:"numeric"})+' to '+E.toLocaleDateString("en-US",{month:"short",day:"numeric"})+'</summary>'+
+    '<div class="evsgrid"><div class="evsticks">'+ticks+'</div><div class="evsrows">'+we+tl+R.map(x=>{ const one=+x.a===+x.b, l=parseFloat(pc(x.a));
+      return '<button type="button" class="evsrow'+(state.evGoing&&state.evGoing.has(x.r.e.id)?' go':'')+'" data-evwk="'+esc(x.r.e.id)+'" aria-label="'+esc(x.r.e.name+', '+x.a.toLocaleDateString("en-US",{month:"short",day:"numeric"})+(one?'':' to '+x.b.toLocaleDateString("en-US",{month:"short",day:"numeric"})))+'"><span class="evsn" style="'+(l>58?'right:'+(100-parseFloat(wd(x.b))).toFixed(2)+'%;text-align:right':'left:'+l+'%')+'">'+esc(x.r.e.name)+'</span><i class="evsb '+(x.r.e.type||'')+(one?' one':'')+'" style="left:'+pc(x.a)+';width:'+(one?'':'calc('+wd(x.b)+' - '+pc(x.a)+')')+'"></i></button>'; }).join("")+'</div></div>'+
+    '<p class="msg">Weekends shaded'+(tl?', the red line is today':'')+'; events you are going to are in gold. Tap one to open it.</p></details>'; }
 function renderEvents(){
   const now=new Date(), today=new Date(now.getFullYear(),now.getMonth(),now.getDate()), cam=CAMERAS[state.camera], box=$("events");
   const fmt=(d,o)=>d.toLocaleDateString("en-US",o), dm={weekday:"short",month:"short",day:"numeric"};
@@ -2825,7 +2901,7 @@ function renderEvents(){
       :'<details class="evinfo"><summary class="lead">Events worth shooting and events for photographers, soonest first. <span class="evinfo-i" aria-label="More about these dates">ⓘ</span></summary><p class="msg">'+
     (chk?'Dates were last checked on '+fmt(chk,{month:"short",day:"numeric"})+' and the list is rechecked every week. ':'')+
     'Events marked Confirmed were matched to a published listing. The rest follow each event\'s usual pattern, so confirm before you go. Tap ☆ on an event you plan to shoot: it moves to Going at the top and shows on Today the day before.</p></details>')+chips+nearCtl+
-    (DAYF&&!NEAR?'<p class="evdayf">'+fmt(DAYF,{weekday:"long",month:"short",day:"numeric"})+' · '+shown.length+' event'+(shown.length===1?'':'s')+' <button type="button" class="linkbtn" data-evday="">Show all days</button></p>':'');
+    (!NEAR&&!DAYF?evWeekendHtml(all,today)+evSeasonHtml(all,today):'')+(DAYF&&!NEAR?'<p class="evdayf">'+fmt(DAYF,{weekday:"long",month:"short",day:"numeric"})+' · '+shown.length+' event'+(shown.length===1?'':'s')+' <button type="button" class="linkbtn" data-evday="">Show all days</button></p>':'');
   // Going first, then the usual groups; each group is its own section so its heading only sticks while it is on screen; Later folds
   const GO=state.evGoing||new Set(), going=NEAR||DAYF?[]:shown.filter(r=>GO.has(r.e.id)&&r.o&&!r.cancelled),
     jh=NEAR||DAYF?[]:shown.filter(r=>{ if(going.includes(r)) return false; const L=evLastOcc(r.e,today); return L&&(today-L)/864e5<=10&&!(EV_NOTES[r.e.id]||[]).some(n=>n.d===evNoteKey(L)); }),
@@ -2856,7 +2932,7 @@ function renderEvents(){
       (games.length?'<div class="part"><span class="label">Home games from the league schedule</span><ul class="games">'+games.map(g=>'<li><b>'+g.game.at.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})+'</b> '+hmText(g.game.at.getHours()*60+g.game.at.getMinutes())+' · '+esc(g.game.title)+'</li>').join("")+'</ul>'+(EVENT_DOCS._fixtures&&EVENT_DOCS._fixtures.checked?'<p class="msg">Schedule checked '+esc(EVENT_DOCS._fixtures.checked)+'; times can move for television.</p>':'')+'</div>':'')+
       (e.spot?'<div class="part"><span class="label">'+(PHOTO_TYPES.has(e.type)?"Good to know":"Where to be")+'</span><p>'+esc(e.spot)+'</p></div>':'')+
       (o&&!PHOTO_TYPES.has(e.type)?'<div class="part evlight"><span class="label">The light during the event</span>'+eventLight(e,evDay(o[0])).map(x=>'<p>'+esc(x)+'</p>').join("")+'</div>':'')+
-      evNotesHtml(r,today)+evDayBar(r)+((EV_RACE[r.e.id]||EV_PARADE[r.e.id])&&r.o&&!r.cancelled?raceBestHtml(r.e.id,evDay(r.o[0]<evDay(new Date())?new Date():r.o[0])):'')+evFaceBlock(r)+evRainPlan(r,today,cam)+
+      evNotesHtml(r,today)+evDayBar(r)+((EV_RACE[r.e.id]||EV_PARADE[r.e.id])&&r.o&&!r.cancelled?raceBestHtml(r.e.id,evDay(r.o[0]<evDay(new Date())?new Date():r.o[0])):'')+evFaceBlock(r)+evKitHtml(r)+evRainPlan(r,today,cam)+evPairHtml(r)+
       (EVENT_VIEW[e.id]&&EVENT_VIEW[e.id].arrive?'<div class="part"><span class="label">Getting there and when</span><p>'+esc(EVENT_VIEW[e.id].arrive)+'</p></div>':'')+
       (o&&(EVENT_GEO[e.id]||(EVENT_DOCS[e.id]&&typeof EVENT_DOCS[e.id].lat==="number"))&&!r.cancelled?'<div class="callinks"><button type="button" class="chip primary" data-planev="'+esc(e.id)+'">Plan this outing</button><button type="button" class="chip" data-mapev="'+esc(e.id)+'">'+(EV_ROUTE[e.id]?(EV_ROUTE[e.id].walk?'The walk on the map':EV_ROUTE[e.id].festival?'The street on the map':'Route and viewing spots on the map'):'Viewing spot on the map')+'</button>'+(e.id!=="lightswalk"&&(e.type==="light"||e.type==="holiday"||e.type==="market")&&o&&o[0].getMonth()>=10&&(()=>{ const g=EVENT_GEO[e.id]||(EVENT_DOCS[e.id]&&typeof EVENT_DOCS[e.id].lat==="number"?[EVENT_DOCS[e.id].lat,EVENT_DOCS[e.id].lon]:null); return g&&kmBetween({lat:g[0],lon:g[1]},{lat:40.759,lon:-73.979})<1.6; })()?'<button type="button" class="chip" data-mapev="lightswalk">Fifth Avenue lights walk</button>':'')+'</div>':'')+
       '<div class="callinks evacts">'+(e.ideas.length&&o&&!r.cancelled?'<button type="button" class="chip primary" data-evshoot="'+esc(e.id)+'">📷 Shoot this event'+(()=>{ const S=(state.evShots||store.get("evShots",{})||{})[e.id], n=S?Object.keys(S).length:0; return n?' · '+n+' of '+e.ideas.length+' shot':''; })()+'</button>':'')+'<button type="button" class="chip" data-evshare="'+esc(e.id)+'">Share ↗</button></div>'+
@@ -6039,6 +6115,10 @@ $("events").addEventListener("click",e=>{
   if(e.target.closest("[data-evnsave]")){ const f=e.target.closest("[data-evnf]"); if(f&&evNoteSave(f)){ const id=state.evOpen; renderEvents(); if(id) evSheetOpen(id,true); evToast('<span>Note saved. It will be here when this comes round again.</span>'); } return; }
   const nd=e.target.closest("[data-evndel]"); if(nd){ const L=EV_NOTES[nd.dataset.evndel]; if(L){ EV_NOTES[nd.dataset.evndel]=L.filter(x=>String(x.t)!==nd.dataset.t); store.set("evNotes",EV_NOTES); } const id=state.evOpen; renderEvents(); if(id) evSheetOpen(id,true); return; }
   if(e.target.closest("[data-esclose]")){ evSheetClose(); return; }
+  const ewk=e.target.closest("[data-evwk]"); if(ewk){ state.evLast=ewk.dataset.evwk; evSheetOpen(ewk.dataset.evwk); return; }
+  const eid=e.target.closest("[data-evidea]"); if(eid){ evSheetClose(); show(eid.dataset.evidea); state.view="shoot"; render(); window.scrollTo({top:0}); return; }
+  const elr=e.target.closest("[data-evlearn]"); if(elr){ evSheetClose(); openLearn(elr.dataset.evlearn); window.scrollTo({top:0}); return; }
+  const ssn=e.target.closest(".evseason>summary"); if(ssn){ e.preventDefault(); state.evSeasonOpen=!state.evSeasonOpen; ssn.parentNode.open=state.evSeasonOpen; return; }
   const esh=e.target.closest("[data-evshoot]"); if(esh){ evShootOpen(esh.dataset.evshoot); return; }
   const esr=e.target.closest("[data-evshare]"); if(esr){ evShare(esr,esr.dataset.evshare); return; }
   if(e.target.closest("[data-evlight]")){ state.evLightFirst=!state.evLightFirst; store.set("evLightFirst",state.evLightFirst); renderEvents(); return; }
