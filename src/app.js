@@ -5860,6 +5860,57 @@ function outingHtml(now){ const O=lastOuting(now); if(!O) return ""; const S=O.w
 /* Use your location on Today without a tap when you have already allowed it. */
 function todayAutoLoc(){ if(state.pos||state.autoLoc||!navigator.geolocation||!navigator.permissions||!navigator.permissions.query) return; state.autoLoc=true;
   try{ navigator.permissions.query({name:"geolocation"}).then(p=>{ if(p.state!=="granted") return; navigator.geolocation.getCurrentPosition(q=>{ state.pos={lat:q.coords.latitude,lon:q.coords.longitude}; state.posAcc=q.coords.accuracy; fillPlaces(); syncNear(); if(state.view==="today") renderToday(); },()=>{},{timeout:10000,maximumAge:300000}); }).catch(()=>{}); }catch(e){} }
+/* ---- Today: go now or wait, last chance, last time in this light, the countdown ---- */
+/* The sky over a light window on a day, from the hourly forecast: clear, cloud, overcast or rain, with the mean cloud and the temperature. */
+function winSky(day,s0,e0){ let n=0, cc=0, rain=false, tc=null; for(let m=Math.floor(s0/60)*60;m<e0;m+=60){ const t=clk(day,m), f=hourlyAt(t); if(!f) return null; n++; cc+=f.cc||0; const sk=skyAt(t); if(sk==="rain"||sk==="snow") rain=true; if(tc===null&&f.temp!=null) tc=f.temp; }
+  if(!n) return null; const a=cc/n; return {k:rain?"rain":a>=80?"overcast":a>=35?"cloud":"clear",cc:Math.round(a),tc,f:tc!=null?Math.round(tc*9/5+32):null}; }
+/* Go now or wait: the next three evenings and the next three mornings, scored on the sky over golden and blue hour; a verdict
+   only when the forecast is known and the difference is worth acting on. */
+const SKY_SCORE={cloud:3.2,clear:3,rain:2.2,overcast:1};
+function goOrWait(now){ if(state.city!=="nyc") return null; const today=new Date(now.getFullYear(),now.getMonth(),now.getDate()), nm=dayMin(now), out=[];
+  for(let k=0;k<3;k++){ const d=new Date(today.getFullYear(),today.getMonth(),today.getDate()+k), {list}=todayWindows(d);
+    const eg=list.find(x=>x.name==="Golden hour"), eb=list.find(x=>x.name==="Blue hour"), mg=list.find(x=>x.name==="Morning golden hour"), mb=list.find(x=>x.name==="Morning blue hour");
+    if(eg&&!(k===0&&nm>=(eb?eb.e:eg.e))){ const sk=winSky(d,eg.s,eb?eb.e:eg.e); if(sk) out.push({k,d,when:"evening",s:eg.s,e:eb?eb.e:eg.e,sk,sc:SKY_SCORE[sk.k]+(k?-0.15*k:0)}); }
+    if(mg&&!(k===0&&nm>=mg.e)){ const sk=winSky(d,mb?mb.s:mg.s,mg.e); if(sk) out.push({k,d,when:"morning",s:mb?mb.s:mg.s,e:mg.e,sk,sc:SKY_SCORE[sk.k]+(k?-0.15*k:0)-0.1}); } }
+  if(out.length<2) return null; out.sort((a,b)=>a.k-b.k||(a.when==="morning"?-1:1)); const next=out[0], best=out.slice().sort((a,b)=>b.sc-a.sc||a.k-b.k)[0];
+  return {next,best,all:out,wait:best!==next&&best.sc-next.sc>=0.7}; }
+function goOrWaitHtml(now){ const G=goOrWait(now); if(!G) return ""; const DN=d=>{ const k=Math.round((evDay(d)-evDay(now))/864e5); return k===0?"today":k===1?"tomorrow":DAY_NAMES[d.getDay()]; };
+  const lab=o=>DN(o.d)+" "+o.when, tx=o=>SKY_WORD[o.sk.k].toLowerCase()+(o.sk.f!=null?', '+o.sk.f+'°':''), wtxt=o=>hmText(o.s)+'–'+hmText(o.e);
+  const rows=G.all.slice(0,4).map(o=>'<li class="'+(o===G.best?'best':'')+'"><span class="gw-sky">'+skyIcon(o.sk.k)+'</span><b>'+lab(o)+'</b><span>'+wtxt(o)+' · '+tx(o)+'</span>'+(o===G.best?'<em>best</em>':'')+'</li>').join("");
+  const verdict=G.wait?'<b>Wait for '+lab(G.best)+'.</b> '+esc(DN(G.next.d)==="today"?"This "+G.next.when:lab(G.next).replace(/^\w/,c=>c.toUpperCase()))+' is '+tx(G.next)+'; '+lab(G.best)+' at '+hmText(G.best.s)+' is '+tx(G.best)+'. '+esc(SKY_WHY[G.best.sk.k])
+    :'<b>Go '+(G.next.k===0?'this '+G.next.when:lab(G.next))+'.</b> '+esc(SKY_WHY[G.next.sk.k])+(G.best!==G.next?' '+lab(G.best).replace(/^\w/,c=>c.toUpperCase())+' is about the same.':'');
+  return '<section class="tcard tgow"><p class="tlabel">Go now or wait?</p><p class="gw-verdict">'+verdict+'</p><ul class="gw-list">'+rows+'</ul><p class="msg">The sky over golden and blue hour, from the hourly forecast. Broken cloud scores highest: it catches colour after sunset.</p></section>'; }
+/* Last chance: seasonal ideas whose season ends within two weeks and you have not shot. */
+function lastChance(now){ const m=now.getMonth()+1, y=now.getFullYear(), end=new Date(y,m,0), left=Math.round((end-new Date(y,m-1,now.getDate()))/864e5);
+  if(left>14) return []; const nxt=m===12?1:m+1;
+  return cityIdeas().filter(x=>x.m&&x.m.includes(m)&&!x.m.includes(nxt)&&!state.done.has(x.id)).map(x=>{ const S=assignSlots(x,now,Math.min(7,left+1)).sort((a,b)=>b.sc-a.sc||a.t-b.t)[0]; return {x,left,S}; }).filter(o=>o.S||!(AVAIL[o.x.id]&&(AVAIL[o.x.id].ev||AVAIL[o.x.id].d||AVAIL[o.x.id].span))).sort((a,b)=>(a.S?a.S.t:Infinity)-(b.S?b.S.t:Infinity)); }
+function lastChanceHtml(now){ const L=lastChance(now); if(!L.length) return ""; const SHOW=state.lastAll?L.length:4; const WD=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"], left=L[0].left, N=L.length;
+  const when=o=>o.S?(k=>k===0?'today':k===1?'tomorrow':WD[o.S.t.getDay()])(Math.round((evDay(o.S.t)-evDay(now))/864e5))+' '+hmText(o.S.m)+' · '+(o.S.w==="night"?'after dark':o.S.w==="gold"?'golden hour':o.S.w==="am"?'morning':'midday'):'no good light left this week';
+  return '<section class="tcard tlast"><p class="tlabel">Last chance · '+(left<=0?'season ends today':left===1?'1 day left':left+' days left')+'</p>'+L.slice(0,SHOW).map(o=>'<button type="button" class="row" data-id="'+o.x.id+'"><span class="dot" style="background:'+INTENTS[o.x.i].color+'"></span><span class="t"><b>'+esc(o.x.t)+'</b><span>'+esc(PLACES[o.x.p].name)+' · '+esc(when(o))+'</span></span><span class="go" aria-hidden="true">›</span></button>').join("")+
+    (N>SHOW?'<p class="msg">And '+(N-SHOW)+' more that end with '+MONTHS_LONG[now.getMonth()]+'. <button type="button" class="linkbtn" data-lastall="1">All of them</button></p>':'<p class="msg">Ideas whose season ends with '+MONTHS_LONG[now.getMonth()]+', with the next good light for each.</p>')+'</section>'; }
+const MONTHS_LONG=["January","February","March","April","May","June","July","August","September","October","November","December"];
+/* Last time in this light: the outing nearest in kind to now (same light, same sort of sky), what you shot and what you marked. */
+function sameLightOuting(now){ const key=lightAt(now), sky=nowInfo().sky||null, wet=s=>/rain|snow|storm/.test(s||""), dull=s=>/cloud|fog|overcast/.test(s||""), kind=s=>wet(s)?"wet":dull(s)?"dull":"clear";
+  const all=[]; for(const [id,l] of Object.entries(state.log||{})) (l||[]).forEach(en=>{ if(en&&en.t&&IDEAS.find(x=>x.id===id)&&now-en.t>18*36e5) all.push({id,en}); });
+  const same=all.filter(o=>o.en.k===key&&kind(o.en.s)===kind(sky)); if(!same.length) return null;
+  const last=same.reduce((a,b)=>a.en.t>b.en.t?a:b), day=evDay(new Date(last.en.t)), shots=all.filter(o=>+evDay(new Date(o.en.t))===+day&&Math.abs(o.en.t-last.en.t)<6*36e5).sort((a,b)=>a.en.t-b.en.t);
+  return {day,shots,key,kind:kind(sky)}; }
+function sameLightHtml(now){ const O=sameLightOuting(now); if(!O) return ""; const ago=Math.round((evDay(now)-O.day)/864e5), when=ago<7?DAY_NAMES[O.day.getDay()]:ago<14?'last week':O.day.toLocaleDateString("en-US",{month:"short",day:"numeric"});
+  const again=O.shots.find(o=>o.en.r==="again"), keep=O.shots.filter(o=>o.en.r==="keep").length, lk=(WHEN[O.key]?WHEN[O.key].toLowerCase():O.key)+(O.kind==="wet"?' and rain':O.kind==="dull"?' and cloud':'');
+  const row=o=>{ const x=IDEAS.find(z=>z.id===o.id); return '<button type="button" class="row" data-id="'+x.id+'"><span class="dot" style="background:'+INTENTS[x.i].color+'"></span><span class="t"><b>'+esc(x.t)+'</b><span>'+esc(PLACES[x.p].name)+' · '+hmText(dayMin(new Date(o.en.t)))+(o.en.r==="keep"?' · keeper':o.en.r==="again"?' · try again':'')+'</span></span><span class="go" aria-hidden="true">›</span></button>'; };
+  return '<section class="tcard tsame"><p class="tlabel">Last time in this light · '+esc(when)+'</p><p class="msg">'+esc(lk.replace(/^\w/,c=>c.toUpperCase()))+', like now: '+O.shots.length+' frame'+(O.shots.length>1?'s':'')+(keep?', '+keep+' keeper'+(keep>1?'s':''):'')+(again?'. Start with the one you marked to try again.':'.')+'</p>'+(again?row(again):'')+O.shots.filter(o=>o!==again).slice(0,3).map(row).join("")+'</section>'; }
+/* The countdown to the next light window, and the leave-by for the top pick tied to it; refreshed in place every 20 s. */
+function countdownTxt(now){ const {list}=todayWindows(now), nm=dayMin(now)+now.getSeconds()/60, cur=list.find(x=>x.s<=nm&&x.e>nm), nxt=list.find(x=>x.s>nm);
+  const mins=m=>{ m=Math.max(0,Math.ceil(m)); return m>=90?Math.floor(m/60)+' h '+(m%60?m%60+' min':''):m+' min'; };
+  if(cur) return {k:cur.k,on:true,txt:cur.name+' on now · '+mins(cur.e-nm)+' left, until '+hmText(cur.e)};
+  if(nxt&&nxt.s-nm<=240) return {k:nxt.k,on:false,txt:nxt.name+' in '+mins(nxt.s-nm)+' · '+hmText(nxt.s)+'–'+hmText(nxt.e),s:nxt.s};
+  return null; }
+function countdownHtml(now){ const C=countdownTxt(now); if(!C) return ""; let lv=""; const H=fromHome();
+  if(H&&!C.on&&C.s!=null){ const top=todayPicks(clk(evDay(now),C.s))[0], P=top&&PLACES[top.id], to=top&&(START_GEO[top.id]||[P.lat,P.lon]); if(to){ const arrive=clk(evDay(now),C.s-15), m=travelMins(H,{lat:to[0],lon:to[1]},H.mode,arrive), leave=+arrive-m*6e4, dm=(leave-now)/6e4;
+    lv=' · <span class="tcl">'+(dm>1?'leave for '+esc(P.name)+' in '+Math.round(dm)+' min':'leave now for '+esc(P.name))+'</span>'; } }
+  return '<p class="tcount '+C.k+(C.on?' on':'')+'"><span class="lk '+C.k+'"></span><span class="tct">'+esc(C.txt)+'</span>'+lv+'</p>'; }
+function countdownTick(){ const el=document.querySelector("#today .tcount"); if(!el||document.hidden) return; const h=countdownHtml(new Date()); if(!h){ el.remove(); return; } const tmp=document.createElement("div"); tmp.innerHTML=h; if(tmp.firstChild.innerHTML!==el.innerHTML){ el.className=tmp.firstChild.className; el.innerHTML=tmp.firstChild.innerHTML; } }
+setInterval(()=>{ try{ if(state.view==="today") countdownTick(); }catch(e){} },20000);
 function renderToday(){ const box=$("today"); if(!box) return; todayAutoLoc();
   const now=new Date(), nm=dayMin(now), c=CITIES[state.city], {L,list}=todayWindows(), tf=hmText, w=WEATHER[state.city];
   const ph=sunPhase(sunPos(now,c.lat,c.lon).alt), next=list.find(x=>x.e>nm);
@@ -5881,7 +5932,7 @@ function renderToday(){ const box=$("today"); if(!box) return; todayAutoLoc();
   const wxBits = fNow ? [fNow.cc!=null?fNow.cc+'% cloud':'', fNow.pop!=null?fNow.pop+'% rain this hour':''].filter(Boolean).join(' · ') : '';
   const ahead=runs&&runs.filter(r=>r.e*60>nm), rainNow = !runs ? rainTxt : ahead.length ? (ahead[0].s*60<=nm?'Rain until '+hmText(ahead[0].e*60):'Rain likely '+hmText(ahead[0].s*60)+' to '+hmText(ahead[0].e*60))+(ahead.length>1?', and again later':'')+'.' : runs.length ? 'No more rain expected today.' : rainTxt;
   const wxLine = nowTxt||rainNow ? '<p class="msg twx"><span class="twxi" aria-hidden="true">'+wxIcon(skNow||(fNow&&fNow.cc>=50?"cloud":""),NL.sp.alt>0)+'</span><span>'+(nowTxt?'<b>'+esc(nowTxt)+'</b>'+(wxBits?' · '+esc(wxBits):'')+(rainNow?'<br>':''):'')+esc(rainNow)+'</span></p>' : '';
-  const nowStrip='<section class="tnow '+NL.ph+'"><div class="tnowl"><span class="tlabel">Right now · '+tf(nm)+'</span><p class="tverdict">'+esc(NL.what)+'</p><p class="msg">'+esc(nextTxt)+' · '+esc(sunTxt)+'</p>'+wxLine+'</div>'+
+  const nowStrip='<section class="tnow '+NL.ph+'"><div class="tnowl"><span class="tlabel">Right now · '+tf(nm)+'</span><p class="tverdict">'+esc(NL.what)+'</p>'+countdownHtml(now)+'<p class="msg">'+esc(nextTxt)+' · '+esc(sunTxt)+'</p>'+wxLine+'</div>'+
     '<div class="tnowb"><button type="button" class="btn primary tshoot" data-shootnow="1">Shoot now</button><button type="button" class="btn tlightf" data-lightf="1">Light here</button></div>@@LIGHT@@</section>';
   // when the data was last refreshed: the page itself, and the forecast
   const wUp=w&&w.updated?new Date(w.updated):null, wHrs=wUp?(now-wUp)/36e5:null;
@@ -5959,14 +6010,15 @@ function renderToday(){ const box=$("today"); if(!box) return; todayAutoLoc();
       '<p class="msg">Best places for '+esc(lname)+(state.todayAt===null?' now':' at '+tf(state.todayAt))+(state.pos?', nearest first among equals':'')+'.</p>'+homeHtml()+pickHtml+'</section>';
   S.events=evCard; S.day=dayCard; S.week=weekHtml();
   S.plan=(tmrCard&&planFor.off?'':'<section class="tcard tplan"><p class="tlabel">Plan an outing</p><p>'+planFor.txt+'</p>'+(planFor.when==="tonight"?(tp=>tp?leaveBy(START_GEO[tp.id]||[PLACES[tp.id].lat,PLACES[tp.id].lon],planFor.h*60+15,null,""):"")(todayPicks(atMin(planFor.h*60+60))[0]):'')+'<button type="button" class="btn primary" data-planday="'+planFor.h+'" data-planoff="'+planFor.off+'">Plan '+planFor.when+'</button></section>');
+  S.gow=goOrWaitHtml(now); S.last=lastChanceHtml(now); S.same=sameLightHtml(now);
   S.assign=assignHtml(); S.prices=priceTodayCard(); S.nudge=nudge?'<section class="tcard">'+nudge+'</section>':'';
   // the order follows the time of day: after dark tomorrow morning and your outing come first; before golden hour, where to go and the plan
   const goldOn=cur&&cur.k, beforeGold=!dark&&!goldOn&&eg&&eg.s>nm, morning=nm<720&&!dark;
-  const order = dark ? ["now","tmr","out","events","alerts","where","assign","week","day","prices","nudge","plan"]
-    : goldOn ? ["now","where","out","events","alerts","plan","assign","day","week","prices","nudge"]
-    : beforeGold&&!morning ? ["now","where","plan","alerts","events","out","assign","day","week","prices","nudge"]
-    : ["now","where","alerts","events","assign","day","out","plan","week","prices","nudge"];
-  const JUMP={tmr:"Tomorrow",where:"Where to go",events:"Events",out:"Your outing",plan:"Plan",assign:"This week",week:"Week"};
+  const order = dark ? ["now","tmr","gow","out","events","alerts","where","same","last","assign","week","day","prices","nudge","plan"]
+    : goldOn ? ["now","same","where","out","events","alerts","plan","last","assign","day","week","prices","nudge","gow"]
+    : beforeGold&&!morning ? ["now","gow","where","same","plan","alerts","events","out","last","assign","day","week","prices","nudge"]
+    : ["now","gow","where","same","alerts","events","last","assign","day","out","plan","week","prices","nudge"];
+  const JUMP={tmr:"Tomorrow",gow:"Go or wait",where:"Where to go",events:"Events",out:"Your outing",plan:"Plan",last:"Last chance",assign:"This week",week:"Week"};
   const jumps=order.filter(k=>JUMP[k]&&S[k]).slice(0,5);
   box.innerHTML='<header class="thead"><h2>'+now.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})+'</h2>'+asOf+'</header>'+
     (jumps.length>=3?'<nav class="tjump" aria-label="Jump to">'+jumps.map(k=>'<button type="button" class="chip" data-tjump="'+k+'">'+JUMP[k]+'</button>').join("")+'</nav>':'')+
@@ -6373,6 +6425,7 @@ $("learn").addEventListener("change",e=>{
   const cb=e.target.closest("[data-drill]"); if(cb){ cb.checked?state.drills.add(cb.dataset.drill):state.drills.delete(cb.dataset.drill); store.set("drills",[...state.drills]); const h=cb.closest(".drills").nextElementSibling; if(h) h.textContent=state.drills.size+" of "+DRILLS.length+" done."; }
 });
 $("today").addEventListener("click",e=>{
+  if(e.target.closest("[data-lastall]")){ state.lastAll=true; renderToday(); const t=$("tsec-last"); if(t) t.scrollIntoView({block:"start"}); return; }
   const asg=e.target.closest("[data-assign]"); if(asg){ show(asg.dataset.assign); state.view="shoot"; render(); window.scrollTo({top:0}); return; }
   if(e.target.closest("[data-assignnew]")){ weekAssign(true); asgMap.key=null; renderToday(); return; }
   if(e.target.closest("[data-assignmap]")){ state.mapT=null; state.mapD=0; state.view="map"; render(); requestAnimationFrame(()=>requestAnimationFrame(()=>{ mapSelect(null); asgFit(); })); return; }

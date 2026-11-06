@@ -113,7 +113,7 @@ def run(path, name):
         tl=pg.evaluate("[!!document.querySelector('.tnow details.tnowlight .tband'), document.querySelectorAll('.tnow .twin').length>=4, !document.querySelector('.tcard.tlight')]")
         check("The light today folds into the Right now card", tl==[True,True,True], tl)
         od=pg.evaluate("[...document.querySelectorAll('#today > .tsec')].map(e=>e.id.slice(5))")
-        check("Before golden hour, Where to go and the plan come straight after Right now", od[:3]==["now","where","plan"], od)
+        check("Before golden hour, Where to go and the plan come straight after Right now (and the go-or-wait verdict, when the forecast gives one)", [k for k in od if k!="gow"][:3]==["now","where","plan"], od)
         pg.evaluate("window.scrollTo(0,0)"); pg.click(".tjump [data-tjump='events']"); pg.wait_for_timeout(700)
         jt=pg.evaluate("[scrollY>200, document.getElementById('tsec-events').getBoundingClientRect().top<160]")
         check("Jump chips scroll to their card", jt==[True,True], jt)
@@ -1137,6 +1137,19 @@ def run(path, name):
           WEATHER.nyc=was; delete EVENT_DOCS.tfb; delete EVENT_DOCS.tfb1;
           return [ids.length>=30&&known.length===ids.length, /Crowds and closures/.test(ch)&&/In place by/.test(ch)&&/evcq/.test(ch)&&/evcp/.test(ch), f1&&f1.dry&&f1.dry.d.getDate()===16&&f1.dry.m===11*60, f2&&!f2.dry&&f2.indoor.length>=1&&f2.indoor.some(o=>o.x.p==='gct'||o.x.p==='subway'), /Next dry day it runs: Monday, Nov 16/.test(h1)&&/data-evday/.test(h1)]; })()""")
         check("Events: crowd timing with a quiet window for the big days, and a rain fallback with the next dry day or an indoor idea nearby", cr==[True,True,True,True,True], cr)
+        t4=pg.evaluate("""(()=>{ const now=new Date(), t=[],pop=[],cc=[],code=[],tt=[]; for(let k=0;k<8;k++){ const dd=new Date(now.getFullYear(),now.getMonth(),now.getDate()+k); for(let h=0;h<24;h++){ t.push(dd.getFullYear()+"-"+String(dd.getMonth()+1).padStart(2,"0")+"-"+String(dd.getDate()).padStart(2,"0")+"T"+String(h).padStart(2,"0")+":00"); const ov=k===0; pop.push(5); cc.push(ov?95:10); code.push(ov?3:1); tt.push(9);} }
+          const was=WEATHER.nyc; WEATHER.nyc={updated:new Date().toISOString(),temp_c:9,condition_text:"Overcast",hourly:{time:t,pop,mm:pop.map(()=>0),cc,code,t:tt}};
+          const n15=new Date(now.getFullYear(),now.getMonth(),now.getDate(),15,10), G=goOrWait(n15), gh=goOrWaitHtml(n15);
+          const d3=new Date(now.getFullYear(),now.getMonth(),now.getDate()-3,19,30), keepLog=JSON.stringify(state.log); state.log['tsq-energy']=[{t:+d3,k:'night',s:'cloud',r:'again'}]; state.log['tsq-place']=[{t:+d3+9e5,k:'night',s:'cloud',r:'keep'}];
+          const n21=new Date(now.getFullYear(),now.getMonth(),now.getDate(),21,30), SL=sameLightOuting(n21), sh=sameLightHtml(n21);
+          const L20=lastChance(new Date(2026,10,20,10)), L5=lastChance(new Date(2026,10,5,10)), lh=lastChanceHtml(new Date(2026,10,20,10));
+          const {list}=todayWindows(now), g=list.find(x=>x.name==="Golden hour"), c1=countdownTxt(clk(evDay(now),g.s-60)), c2=countdownTxt(clk(evDay(now),g.s+10)), c3=countdownTxt(clk(evDay(now),g.s-300));
+          state.log=JSON.parse(keepLog); WEATHER.nyc=was;
+          return [G&&G.wait===true&&G.next.k===0&&G.next.when==="evening"&&G.best.k===1&&G.best.sk.k==="clear", /Wait for tomorrow evening/.test(gh)&&(gh.match(/<li/g)||[]).length>=3,
+            !!SL&&SL.shots.length===2&&SL.key==="night"&&SL.kind==="dull", /Last time in this light/.test(sh)&&/try again/.test(sh)&&sh.indexOf('tsq-energy')<sh.indexOf('tsq-place'),
+            L20.length>=3&&L20.every(o=>o.x.m&&o.x.m.includes(11)&&!o.x.m.includes(12)), L5.length===0, /Last chance · 10 days left/.test(lh),
+            c1&&!c1.on&&/Golden hour in 60 min/.test(c1.txt), c2&&c2.on&&/on now/.test(c2.txt), c3===null]; })()""")
+        check("Today: go now or wait from the forecast, last time in this light from the log, last chance for ideas ending with the month, and a countdown to the next window", t4==[True]*10, t4)
         idq=pg.evaluate("""(()=>{ const X=id=>IDEAS.find(x=>x.id===id), nw=['midtown-saksshow','gct-parkave','midtown-ornaments','midtown-menorah','chelsea-vessel','wsp-tree','subway-nostalgia','cpark-midnight','soho-silhouette','midtown-bus','bushwick-bodega','jh-laundromat'];
           const hk=[hanukkahOn(new Date(2026,11,4,18)), hanukkahOn(new Date(2026,11,11,18)), hanukkahOn(new Date(2026,11,12,18)), hanukkahOn(new Date(2027,11,24,18))];
           const open=[ideaOpen(X('midtown-menorah'),new Date(2026,11,6,17,30)), ideaOpen(X('midtown-menorah'),new Date(2026,10,27,17,30)), ideaOpen(X('subway-nostalgia'),new Date(2026,11,13,11)), ideaOpen(X('subway-nostalgia'),new Date(2026,11,14,11))];
