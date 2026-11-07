@@ -3728,9 +3728,12 @@ function daySlots(d){ d=evDay(d); const w=WEATHER[state.city], key=state.city+":
   if(eg) add("gold","Golden hour",eg.s,eg.e,eg.s+Math.min(30,(eg.e-eg.s)/2));
   const ns=eb?eb.s:L.set+30; add("night",eb?"Blue hour and after dark":"After dark",ns,Math.min(1439,(eb?eb.e:ns)+150),Math.max(ns+10,L.set+35));
   S.sort((a,b)=>a.rank-b.rank||a.s-b.s); S.fit=new Map(); TM_CACHE.set(+d,{key,v:S}); if(TM_CACHE.size>4) TM_CACHE.delete(TM_CACHE.keys().next().value); return S; }
-function dayFit(x,d){ const S=daySlots(d); if(S.fit.has(x.id)) return S.fit.get(x.id); const r=S.find(o=>x.w.includes(o.k)&&ideaOpen(x,o.t,o.sky))||null; S.fit.set(x.id,r); return r; }
+/* The Light filter narrows the slots: Morning keeps the morning, Golden hour the golden hour, Night the blue hour and after dark,
+   Rain any slot where rain is forecast. */
+const slotOk = (o,w) => !w||w==="all" ? true : w==="rain" ? o.k==="rain" : o.id===({am:"am",mid:"mid",gold:"gold",night:"night"}[w]);
+function dayFit(x,d,w){ const S=daySlots(d), key=(w||"all")+":"+x.id; if(S.fit.has(key)) return S.fit.get(key); const r=S.find(o=>slotOk(o,w)&&x.w.includes(o.k)&&ideaOpen(x,o.t,o.sky))||null; S.fit.set(key,r); return r; }
 const tmrwSlots = () => daySlots(tmrwDay());
-const tmrwFit = x => dayFit(x,tmrwDay());
+const tmrwFit = x => dayFit(x,tmrwDay(),state.when);
 const tmrwSky = o => o.sky===undefined ? "no forecast yet" : o.k==="rain" ? (o.sky==="snow"?"snow likely":"rain likely") : o.sky ? WX_WORD[o.sky].toLowerCase() : "clear or some cloud";
 
 /* The shortlist for a day: ideas starred from the Tomorrow list, with the light each was picked for, so a change in the forecast shows.
@@ -3742,14 +3745,14 @@ function picksAll(){ if(state.tmPicks) return state.tmPicks; const P=store.get("
 function picksFor(dk){ const P=picksAll(); return P[dk]||{ids:[],snap:{}}; }
 function picksSave(){ store.set("tmPicks",picksAll()); }
 function pickToggle(id,dk){ const P=picksAll(), E=P[dk]||(P[dk]={ids:[],snap:{}}), x=IDEAS.find(i=>i.id===id); if(!x) return;
-  const i=E.ids.indexOf(id); if(i>=0){ E.ids.splice(i,1); delete E.snap[id]; } else { const o=dayFit(x,ymdDate(dk)); E.ids.push(id); E.snap[id]=o?{slot:o.id,k:o.k}:null; }
+  const i=E.ids.indexOf(id); if(i>=0){ E.ids.splice(i,1); delete E.snap[id]; } else { const o=dayFit(x,ymdDate(dk),state.tmrw?state.when:"all")||dayFit(x,ymdDate(dk)); E.ids.push(id); E.snap[id]=o?{slot:o.id,k:o.k}:null; }
   if(!E.ids.length) delete P[dk]; picksSave(); }
 /* What changed since a pick was made: its slot's light is different now (golden hour turned to rain), or it no longer fits the day.
    For each, up to two swaps that suit the new light, at the same place or nearby. */
 function picksWarn(dk){ const E=picksFor(dk), d=ymdDate(dk), S=daySlots(d), out=[];
   for(const id of E.ids){ const x=IDEAS.find(i=>i.id===id), sn=E.snap[id]; if(!x||!sn) continue; const o=S.find(s=>s.id===sn.slot), f=dayFit(x,d);
     if(o&&o.k===sn.k&&f) continue;
-    const slot=o||f, P0=PLACES[x.p], cand=R=>slot?cityIdeas().filter(y=>y.id!==x.id&&!E.ids.includes(y.id)&&dayFit(y,d)===slot&&typeof PLACES[y.p].lat==="number"&&typeof P0.lat==="number"&&kmBetween(P0,PLACES[y.p])<=R)
+    const slot=o||f, P0=PLACES[x.p], cand=R=>slot?cityIdeas().filter(y=>y.id!==x.id&&!E.ids.includes(y.id)&&y.w.includes(slot.k)&&ideaOpen(y,slot.t,slot.sky)&&typeof PLACES[y.p].lat==="number"&&typeof P0.lat==="number"&&kmBetween(P0,PLACES[y.p])<=R)
       .sort((a,b)=>(state.done.has(a.id)-state.done.has(b.id))||(kmBetween(P0,PLACES[a.p])-kmBetween(P0,PLACES[b.p]))).slice(0,2):[], near=cand(1.5), alt=near.length?near:cand(3.5);   // within about 1.5 km, or 3.5 km when nothing is closer
     out.push({x,sn,o,f,alt}); }
   return out; }
@@ -3764,7 +3767,7 @@ function picksBarHtml(dk,label){ const E=picksFor(dk); if(!E.ids.length) return 
 /* Today: the shortlist for today (made last night), or tomorrow's after it is made, with its warnings and the ideas */
 function picksTodayHtml(){ const tk=ymdKey(new Date()), mk=ymdKey(tmrwDay()), dk=picksFor(tk).ids.length?tk:picksFor(mk).ids.length?mk:null; if(!dk) return "";
   const lab=dk===tk?"today":"tomorrow", E=picksFor(dk), d=ymdDate(dk), xs=E.ids.map(id=>IDEAS.find(i=>i.id===id)).filter(Boolean);
-  return '<section class="tcard tpicks"><p class="tlabel">Your shortlist for '+lab+'</p>'+picksWarnHtml(dk)+xs.map(x=>{ const o=dayFit(x,d); return '<button type="button" class="row" data-id="'+x.id+'"><span class="dot" style="background:'+INTENTS[x.i].color+'"></span><span class="t"><b>'+esc(x.t)+'</b><span>'+esc(PLACES[x.p].name+(o?' · '+o.name.toLowerCase()+' '+hmSpan(o.s,o.e):''))+'</span></span><span class="go" aria-hidden="true">›</span></button>'; }).join("")+
+  return '<section class="tcard tpicks"><p class="tlabel">Your shortlist for '+lab+'</p>'+picksWarnHtml(dk)+xs.map(x=>{ const sn=E.snap[x.id], so=sn&&daySlots(d).find(s=>s.id===sn.slot), o=so&&x.w.includes(so.k)&&ideaOpen(x,so.t,so.sky)?so:dayFit(x,d); return '<button type="button" class="row" data-id="'+x.id+'"><span class="dot" style="background:'+INTENTS[x.i].color+'"></span><span class="t"><b>'+esc(x.t)+'</b><span>'+esc(PLACES[x.p].name+(o?' · '+o.name.toLowerCase()+' '+hmSpan(o.s,o.e):''))+'</span></span><span class="go" aria-hidden="true">›</span></button>'; }).join("")+
     '<div class="callinks"><button type="button" class="chip primary" data-tmplan="'+dk+'">'+(state.plan&&evDay(state.plan.start)>=evDay(d)&&+evDay(state.plan.start)===+evDay(d)?'Plan it again':'Plan '+lab)+'</button><button type="button" class="chip" data-tmshow="1">Change the shortlist</button></div></section>'; }
 /* Plan the day from the shortlist: its places, in the order and at the start time that puts the most picked ideas in light that suits
    them (every order of up to six places, starts every 20 minutes from before sunrise to after dark; not earlier than now on the day). */
@@ -4357,7 +4360,7 @@ function renderList(){ qCount();
       return '<div class="tmrow"><button type="button" class="row'+(state.done.has(x.id)?" done":"")+'" data-id="'+x.id+'"><span class="dot" style="background:'+INTENTS[x.i].color+'"></span><span class="t"><b>'+qMarkTitle(x)+'</b><span>'+esc(pl.name)+(mi!==null?' · '+milesText(mi):'')+' · '+esc(INTENTS[x.i].name)+(state.done.has(x.id)?' · shot '+esc(agoText(last?last.t:Date.now())):'')+'</span></span>'+
         '<span class="marks">'+(state.saved.has(x.id)?'<span class="pill">Saved</span>':'')+'</span></button><button type="button" class="tmstar" data-tmpick="'+x.id+'" data-day="'+dk+'" aria-pressed="'+on+'" aria-label="'+(on?'On tomorrow\u2019s shortlist: tap to remove':'Add to tomorrow\u2019s shortlist')+'">'+(on?'★':'☆')+'</button></div>'; };
     box.innerHTML=head.replace(sortSel,'')+'<p class="msg tmlead">Tomorrow, '+esc(d.toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"}))+': the ideas that suit its light'+(anyFc?' and forecast':'')+', by when to shoot them (best light first) and by places within a walk of each other. Tap ☆ to put one on tomorrow\u2019s shortlist.'+(anyFc?'':' The hourly forecast is not loaded, so rain is not taken into account.')+'</p>'+picksBarHtml(dk,"tomorrow")+
-      S.map(o=>{ const L=m.filter(x=>tmrwFit(x)===o); if(!L.length) return "";
+      S.filter(o=>slotOk(o,state.when)).map(o=>{ const L=m.filter(x=>tmrwFit(x)===o); if(!L.length) return "";
         const pids=[...new Set(L.map(x=>x.p))].sort((a,b)=>{ const da=milesTo(PLACES[a]), db=milesTo(PLACES[b]); return (da===null?1e9:da)-(db===null?1e9:db); }), G=walkGroups(pids);
         G.forEach(g=>{ g.L=L.filter(x=>g.pids.includes(x.p)).sort((a,b)=>(state.done.has(a.id)-state.done.has(b.id))||(g.pids.indexOf(a.p)-g.pids.indexOf(b.p))); });
         G.sort((a,b)=>b.L.length-a.L.length);

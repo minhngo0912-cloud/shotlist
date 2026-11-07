@@ -1329,6 +1329,9 @@ def run(path, name):
           const S=tmrwSlots(), g=S.find(o=>o.id==='gold'), G=[...document.querySelectorAll('#list .tmgroup')], gh=G.find(x=>x.querySelector('.group-head b').textContent==='Golden hour'), ids=gh?[...gh.querySelectorAll('.row')].map(b=>b.dataset.id):[];
           const r=[g&&g.k, !!gh&&/rain likely/.test(gh.textContent), ids.length>0&&ids.every(id=>IDEAS.find(x=>x.id===id).w.includes('rain'))]; WEATHER[state.city]=keep; return r; })()""")
         check("Ideas › Tomorrow: a wet golden hour brings rain ideas instead, and says rain is likely", tr==["rain",True,True], tr)
+        lf=pg.evaluate("""(()=>{ state.when='morning'==='x'?'':'am'; render(); const heads=[...document.querySelectorAll('#list .tmgroup .group-head b')].map(b=>b.textContent), ids=[...document.querySelectorAll('#list .tmgroup .row')].map(b=>b.dataset.id);
+          const r=[heads, ids.length>0&&ids.every(id=>IDEAS.find(x=>x.id===id).w.includes('am'))]; state.when='night'; render(); r.push([...document.querySelectorAll('#list .tmgroup .group-head b')].map(b=>b.textContent)); state.when='all'; render(); return r; })()""")
+        check("Ideas › Tomorrow with the Light filter: Morning shows only the morning, Night only blue hour and after dark", lf[0]==["Morning golden hour and after"] and lf[1] and lf[2]==["Blue hour and after dark"], lf)
         pg.click("#onNow"); pg.wait_for_timeout(100); ct=pg.evaluate("[state.onNow, state.tmrw]"); pg.click("#onNow"); pg.click("#tmrw"); pg.wait_for_timeout(100)
         pg.evaluate("state.view='shoot'; pick(); render()"); cc=pg.evaluate("[!!state.current, !!tmrwFit(IDEAS.find(x=>x.id===state.current)), $('qCount').textContent]")
         pg.evaluate("state.tmrw=false; store.set('tmrw',false); syncOnNow(); state.view='today'; render()")
