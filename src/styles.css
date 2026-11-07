@@ -1592,3 +1592,17 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 .xlead .intents{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
 .wetlead .msg,.newlead .msg{max-width:none}
 .planleave,.planmsg{margin:6px 0 0} .planbest{margin-top:6px}
+/* Street happenings (city permits) and subway changes */
+.mlayer .lg.permit{border:0;background:#fff;box-shadow:0 0 0 2px #1e9e48 inset}
+.m-pmd{fill:#fff;stroke:#1e9e48} .m-pm.on .m-pmd{fill:var(--yellow);stroke:#14161a} .m-pm text{pointer-events:none}
+.m-pml{fill:none;stroke:#1e9e48;stroke-opacity:.6;stroke-linecap:round;pointer-events:none}
+.evpm .pmrow{border-top:1px solid var(--line);border-bottom:0;min-height:52px}
+.pmico{flex:none;width:28px;text-align:center;font-size:20px}
+.pmday{margin:12px 0 2px;font-size:13px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.pmnote{margin:4px 0 8px} .pmkinds{margin-bottom:4px} .pmmore{margin:6px 0 2px}
+.mtal{list-style:none;margin:4px 0 0;padding:0;display:flex;flex-direction:column;gap:8px} .mtal li{display:flex;gap:8px;align-items:flex-start;font-size:14px}
+.mtar{flex:none;display:flex;gap:2px;margin-top:1px} .mtapart .label .bullet{width:16px;height:16px;font-size:10px;vertical-align:-3px;margin-left:2px}
+.evmta{display:inline-block;font-size:12px;font-weight:700;color:#b86d0c}
+.mapsel>.hint{margin:8px 14px 0} .mapsel>.mtapart{margin:10px 14px 0} .mtapart p.msg{font-size:14px} .mtapart .hint{margin-top:6px}
+.event-body .mtapart p.msg{font-size:14px}
+.mtapart p.hint{font-size:12px}

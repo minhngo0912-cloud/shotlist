@@ -1610,6 +1610,20 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 .xlead .intents{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
 .wetlead .msg,.newlead .msg{max-width:none}
 .planleave,.planmsg{margin:6px 0 0} .planbest{margin-top:6px}
+/* Street happenings (city permits) and subway changes */
+.mlayer .lg.permit{border:0;background:#fff;box-shadow:0 0 0 2px #1e9e48 inset}
+.m-pmd{fill:#fff;stroke:#1e9e48} .m-pm.on .m-pmd{fill:var(--yellow);stroke:#14161a} .m-pm text{pointer-events:none}
+.m-pml{fill:none;stroke:#1e9e48;stroke-opacity:.6;stroke-linecap:round;pointer-events:none}
+.evpm .pmrow{border-top:1px solid var(--line);border-bottom:0;min-height:52px}
+.pmico{flex:none;width:28px;text-align:center;font-size:20px}
+.pmday{margin:12px 0 2px;font-size:13px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.pmnote{margin:4px 0 8px} .pmkinds{margin-bottom:4px} .pmmore{margin:6px 0 2px}
+.mtal{list-style:none;margin:4px 0 0;padding:0;display:flex;flex-direction:column;gap:8px} .mtal li{display:flex;gap:8px;align-items:flex-start;font-size:14px}
+.mtar{flex:none;display:flex;gap:2px;margin-top:1px} .mtapart .label .bullet{width:16px;height:16px;font-size:10px;vertical-align:-3px;margin-left:2px}
+.evmta{display:inline-block;font-size:12px;font-weight:700;color:#b86d0c}
+.mapsel>.hint{margin:8px 14px 0} .mapsel>.mtapart{margin:10px 14px 0} .mtapart p.msg{font-size:14px} .mtapart .hint{margin-top:6px}
+.event-body .mtapart p.msg{font-size:14px}
+.mtapart p.hint{font-size:12px}
 </style>
 
 <div class="app">
@@ -3586,7 +3600,7 @@ function renderNow(){
 /* Saved on the device. When the browser's storage is full, a save of your own data (shots, plans, walks, notes) first drops the
    copies that can be fetched again, largest first in practice (closures and shoots, pedestrian counts, the forecast, prices, events),
    then tries again; App health records it. A copy that cannot be stored is simply not kept. set() says whether the save stuck. */
-const STORE_CACHES = ["works","ped","weather","prices","events","photosWarm"];
+const STORE_CACHES = ["works","permits","ped","mta","weather","prices","events","photosWarm"];
 const store = {
   get(k,d){ try{ const v=localStorage.getItem("shotlist."+k); return v===null?d:JSON.parse(v);}catch(e){return d;} },
   set(k,v){ let txt; try{ txt=JSON.stringify(v); }catch(e){ return false; }
@@ -3600,7 +3614,7 @@ const store = {
 };
 const state = {
   city: store.get("city","nyc"), intent: store.get("intent","all"), place: store.get("place","all"), when: store.get("when","all"),
-  camera: store.get("camera","q343"), view:"today", tab:"idea", cond:"auto", camCmp:store.get("camCmp",["q343","x100vi","griv"]), evNear:!!store.get("evNear",false), evRadius:store.get("evRadius",1)===2?2:1, lfF:43, lfN:8, lfS:3, drills:new Set(store.get("drills",[])), evType:"all", mapZoom:store.get("mapZoom","city"), ideasMode:store.get("ideasMode","card")==="list"?"list":"card", listView:"browse", home:(h=>h&&typeof h.lat==="number"&&typeof h.lon==="number"?h:null)(store.get("home",null)), homeEdit:false, weekSel:null, mapSel:null, mapEv:null, mapT:null, mapD:0, mapHead:false, heading:null, mapIntent:"all", mapShowEv:store.get("mapShowEv",true)!==false, mapShowLm:store.get("mapShowLm",true)!==false, mapShowSub:store.get("mapShowSub",true)!==false, mapShowStn:store.get("mapShowStn",true)!==false, mapShowSunny:store.get("mapShowSunny",true)!==false, mapShowSpots:store.get("mapShowSpots",true)!==false, mapShowNames:store.get("mapShowNames",true)!==false, mapShowHenge:store.get("mapShowHenge",true)!==false, mapShowShots:store.get("mapShowShots",true)!==false, mapShowReach:store.get("mapShowReach",true)!==false, mapShowWalk:store.get("mapShowWalk",true)!==false, mapShowRadar:!!store.get("mapShowRadar",false), mapShowWorks:store.get("mapShowWorks",true)!==false, mapShowWet:store.get("mapShowWet",true)!==false, mapShowNew:!!store.get("mapShowNew",false), mapShowBusy:!!store.get("mapShowBusy",false), mapWork:null, walkSel:null, mapNowOnly:!!store.get("mapNowOnly",false), ivIds:null, ivFocus:null, mapEvSpot:null, mapShowFerry:store.get("mapShowFerry",true)!==false, mapRun:null, mapFerry:null, sheet:"peek", mapLm:null, mapSpot:null, notes: store.get("notes",{}) || {}, pos:null, plan:null,
+  camera: store.get("camera","q343"), view:"today", tab:"idea", cond:"auto", camCmp:store.get("camCmp",["q343","x100vi","griv"]), evNear:!!store.get("evNear",false), evRadius:store.get("evRadius",1)===2?2:1, lfF:43, lfN:8, lfS:3, drills:new Set(store.get("drills",[])), evType:"all", mapZoom:store.get("mapZoom","city"), ideasMode:store.get("ideasMode","card")==="list"?"list":"card", listView:"browse", home:(h=>h&&typeof h.lat==="number"&&typeof h.lon==="number"?h:null)(store.get("home",null)), homeEdit:false, weekSel:null, mapSel:null, mapEv:null, mapT:null, mapD:0, mapHead:false, heading:null, mapIntent:"all", mapShowEv:store.get("mapShowEv",true)!==false, mapShowLm:store.get("mapShowLm",true)!==false, mapShowSub:store.get("mapShowSub",true)!==false, mapShowStn:store.get("mapShowStn",true)!==false, mapShowSunny:store.get("mapShowSunny",true)!==false, mapShowSpots:store.get("mapShowSpots",true)!==false, mapShowNames:store.get("mapShowNames",true)!==false, mapShowHenge:store.get("mapShowHenge",true)!==false, mapShowShots:store.get("mapShowShots",true)!==false, mapShowReach:store.get("mapShowReach",true)!==false, mapShowWalk:store.get("mapShowWalk",true)!==false, mapShowRadar:!!store.get("mapShowRadar",false), mapShowWorks:store.get("mapShowWorks",true)!==false, mapShowWet:store.get("mapShowWet",true)!==false, mapShowNew:!!store.get("mapShowNew",false), mapShowBusy:!!store.get("mapShowBusy",false), mapShowPermits:store.get("mapShowPermits",true)!==false, mapWork:null, walkSel:null, mapNowOnly:!!store.get("mapNowOnly",false), ivIds:null, ivFocus:null, mapEvSpot:null, mapShowFerry:store.get("mapShowFerry",true)!==false, mapRun:null, mapFerry:null, sheet:"peek", mapLm:null, mapSpot:null, notes: store.get("notes",{}) || {}, pos:null, plan:null,
   saved: new Set(store.get("saved",[])), done: new Set(store.get("done",[])), current:null, history:[],
   log: (o=>o&&typeof o==="object"&&!Array.isArray(o)?o:{})(store.get("log",{})), justShot:null, street:false, stayPrev:null
 };
@@ -3967,6 +3981,7 @@ function guideStop(silent){ const g=state.guide; if(!g) return; try{ if(g.watch!
 function eventGeo(id){ const d=EVENT_DOCS[id]; return (d&&typeof d.lat==="number"&&typeof d.lon==="number"&&d.lat>40.4&&d.lat<41&&d.lon>-74.3&&d.lon<-73.6)?[d.lat,d.lon]:EVENT_GEO[id]||null; }
 function guideTarget(id){ if(id.startsWith("evs:")){ const k=id.slice(4), S=evRouteSpot(k); return S?[S[0],S[1],S[2],S[3],S[4]]:null; } if(id.startsWith("ev:")){ const e=EVENTS.find(x=>x.id===id.slice(3))||{id:id.slice(3),name:id.slice(3)}, g=eventGeo(id.slice(3)); const V=EVENT_VIEW[e.id]||{}; return g?[g[0],g[1],V.face||29,e.map&&e.map[0]?e.map[0]:e.name,e.spot||""]:null; }
   if(id.startsWith("wet:")){ const P=WET_SPOTS[+id.slice(4)]; return P?[P[1],P[2],P[3],P[0],P[4]]:null; }
+  if(id.startsWith("permit:")){ const it=pmItems().find(x=>x.id===id.slice(7)); return it&&it.lat!=null?[it.lat,it.lon,0,it.n,it.place]:null; }
   if(id.startsWith("lm:")){ const L=LANDMARKS[+id.slice(3)]; return L?[L[1],L[2],L[6]||0,L[0],L[5]]:null; } const [pid,i]=id.split(":"); return SPOTS[pid]&&SPOTS[pid][+i]||null; }
 function guideInfo(){ const g=state.guide; if(!g||!state.pos) return null; const S=guideTarget(g.id); if(!S) return null;
   const to={lat:S[0],lon:S[1]}, km=kmBetween(state.pos,to); return {S, km, brg:bearingTo(state.pos,to), here:km*1000<=Math.max(20,Math.min(40,g.acc||0))}; }
@@ -4719,7 +4734,7 @@ function renderEvents(){
   const laterOpen=!!state.evLaterOpen||!!DAYF;
   box.innerHTML += secs.map(S=>{ const fold=!NEAR&&S.k===3&&S.rows.length>2;
     return '<section class="evsec'+(S.k==="go"?' evgo':'')+'">'+(fold?'<button type="button" class="evgroup evfold" data-evlater="1" aria-expanded="'+laterOpen+'">'+S.title+' · '+S.rows.length+' events <span aria-hidden="true">'+(laterOpen?'▴':'▾')+'</span></button>':'<p class="evgroup">'+S.title+'</p>')+
-      (fold&&!laterOpen?'':S.rows.map(r=>evCard(r)).join(""))+'</section>'; }).join("")+(NEAR?nearSearchHtml(R):"");
+      (fold&&!laterOpen?'':S.rows.map(r=>evCard(r)).join(""))+'</section>'; }).join("")+(NEAR?pmSectionHtml(today,true)+nearSearchHtml(R):DAYF?"":pmSectionHtml(today,false));
   function evCard(r){
     const head="", e=r.e, o=r.o, yr=o?o[0].getFullYear():today.getFullYear(), other=o&&yr!==today.getFullYear(), games=r.game?list.filter(x=>x.game&&x.e.id===e.id):[];
     const full=o ? fmt(o[0],dm)+(o[1]?" to "+fmt(o[1],dm):"")+(other?", "+yr:"") : "Date not announced";
@@ -4729,7 +4744,7 @@ function renderEvents(){
     const src=typeof r.source==="string" && /^https:\/\//.test(r.source) ? r.source : null;
     return head+'<details class="event" data-id="'+esc(e.id)+'"><summary>'+
       '<span class="cal">'+(o?'<small>'+fmt(o[0],{month:"short"})+'</small><b>'+o[0].getDate()+'</b>':'<small>TBA</small><b>·</b>')+'</span>'+
-      '<span class="t">'+(EVENT_TYPES[e.type]?'<span class="etag'+(PHOTO_TYPES.has(e.type)?" ph":"")+'">'+EVENT_TYPES[e.type]+(r.confirmed?' <span class="eok">✓ Confirmed</span>':r.added?' <span class="enew">New</span>':'')+'</span>':'')+'<b>'+esc(e.name)+'</b>'+dist+evMeta(r,today)+'<span>'+esc(r.game?'Next: '+r.game.title+', '+o[0].toLocaleDateString("en-US",{weekday:"short"})+' '+hmText(r.game.at.getHours()*60+r.game.at.getMinutes()):e.where)+'</span></span>'+
+      '<span class="t">'+(EVENT_TYPES[e.type]?'<span class="etag'+(PHOTO_TYPES.has(e.type)?" ph":"")+'">'+EVENT_TYPES[e.type]+(r.confirmed?' <span class="eok">✓ Confirmed</span>':r.added?' <span class="enew">New</span>':'')+'</span>':'')+'<b>'+esc(e.name)+'</b>'+dist+evMeta(r,today)+(state.evGoing&&state.evGoing.has(e.id)?evMtaFlag(r,today):'')+'<span>'+esc(r.game?'Next: '+r.game.title+', '+o[0].toLocaleDateString("en-US",{weekday:"short"})+' '+hmText(r.game.at.getHours()*60+r.game.at.getMinutes()):e.where)+'</span></span>'+
       '<span class="soon'+(/now|Today|today|Tomorrow|days|Cancelled/.test(soon)?" near":"")+'">'+soon+(o&&!r.cancelled&&!r.game?'<button type="button" class="evstar" data-evgo="'+esc(e.id)+'" aria-pressed="'+(state.evGoing&&state.evGoing.has(e.id)?'true':'false')+'" aria-label="'+(state.evGoing&&state.evGoing.has(e.id)?'Going: tap to remove':'Mark as going')+'">'+(state.evGoing&&state.evGoing.has(e.id)?'★':'☆')+'</button>':'')+'</span></summary>'+
       '<div class="event-body" data-lazy="1"></div></details>'; }
   /* The body of a card is built only when the card is opened: the list has thirty-odd cards and each body is a few
@@ -4747,7 +4762,7 @@ function renderEvents(){
       (e.spot?'<div class="part"><span class="label">'+(PHOTO_TYPES.has(e.type)?"Good to know":"Where to be")+'</span><p>'+esc(e.spot)+'</p></div>':'')+
       (o&&!PHOTO_TYPES.has(e.type)?'<div class="part evlight"><span class="label">The light during the event</span>'+eventLight(e,evDay(o[0])).map(x=>'<p>'+esc(x)+'</p>').join("")+'</div>':'')+
       evNotesHtml(r,today)+evDayBar(r)+((EV_RACE[r.e.id]||EV_PARADE[r.e.id])&&r.o&&!r.cancelled?raceBestHtml(r.e.id,evDay(r.o[0]<evDay(new Date())?new Date():r.o[0])):'')+evFaceBlock(r)+evCrowdHtml(r)+evKitHtml(r)+evRainPlan(r,today,cam)+evRainFallbackHtml(r,today)+evPairHtml(r)+
-      (EVENT_VIEW[e.id]&&EVENT_VIEW[e.id].arrive?'<div class="part"><span class="label">Getting there and when</span><p>'+esc(EVENT_VIEW[e.id].arrive)+'</p></div>':'')+
+      (EVENT_VIEW[e.id]&&EVENT_VIEW[e.id].arrive?'<div class="part"><span class="label">Getting there and when</span><p>'+esc(EVENT_VIEW[e.id].arrive)+'</p></div>':'')+evMtaHtml(r,today)+
       (o&&(EVENT_GEO[e.id]||(EVENT_DOCS[e.id]&&typeof EVENT_DOCS[e.id].lat==="number"))&&!r.cancelled?'<div class="callinks"><button type="button" class="chip primary" data-planev="'+esc(e.id)+'">Plan this outing</button><button type="button" class="chip" data-mapev="'+esc(e.id)+'">'+(EV_ROUTE[e.id]?(EV_ROUTE[e.id].walk?'The walk on the map':EV_ROUTE[e.id].festival?'The street on the map':'Route and viewing spots on the map'):'Viewing spot on the map')+'</button>'+(e.id!=="lightswalk"&&(e.type==="light"||e.type==="holiday"||e.type==="market")&&o&&o[0].getMonth()>=10&&(()=>{ const g=EVENT_GEO[e.id]||(EVENT_DOCS[e.id]&&typeof EVENT_DOCS[e.id].lat==="number"?[EVENT_DOCS[e.id].lat,EVENT_DOCS[e.id].lon]:null); return g&&kmBetween({lat:g[0],lon:g[1]},{lat:40.759,lon:-73.979})<1.6; })()?'<button type="button" class="chip" data-mapev="lightswalk">Fifth Avenue lights walk</button>':'')+'</div>':'')+
       '<div class="callinks evacts">'+(e.ideas.length&&o&&!r.cancelled?'<button type="button" class="chip primary" data-evshoot="'+esc(e.id)+'">📷 Shoot this event'+(()=>{ const S=(state.evShots||store.get("evShots",{})||{})[e.id], n=S?Object.keys(S).length:0; return n?' · '+n+' of '+e.ideas.length+' shot':''; })()+'</button>':'')+'<button type="button" class="chip" data-evshare="'+esc(e.id)+'">Share ↗</button></div>'+
       (e.map?'<a class="check" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(e.map[1])+'" target="_blank" rel="noopener">'+(e.map[0]===""?(PHOTO_TYPES.has(e.type)?"Open the venue in Google Maps":"Open the viewing spot in Google Maps"):e.map[0]==="area"?"Open the area in Google Maps":(PHOTO_TYPES.has(e.type)?"Venue: ":"Viewing spot: ")+esc(e.map[0]))+' ↗</a>':'')+
@@ -4756,6 +4771,7 @@ function renderEvents(){
       calLinks(e,o)+(src?'<a class="check" href="'+esc(src)+'" target="_blank" rel="noopener">Source for this date ↗</a>':'<a class="check" href="'+q+'" target="_blank" rel="noopener">Check this year\'s date and route ↗</a>');
   }
   EV_BODY.clear(); shown.forEach(r=>EV_BODY.set(r.e.id,()=>evBody(r)));
+  if(PHOTOS_INLINE&&state.evGoing&&shown.some(r=>state.evGoing.has(r.e.id)&&evSpan(r,today))) mtaGet();
   if(state.evOpen){ if(box.querySelector('details.event[data-id="'+CSS.escape(state.evOpen)+'"]')) evSheetOpen(state.evOpen,true); else state.evOpen=null; }
 }
 const EV_BODY=new Map();
@@ -5218,9 +5234,9 @@ function mapLayout(){ const m=$("map"); if(!m||state.view!=="map") return; if(st
   setSheet(state.sheet||"peek",true); headSize(); mapDraw(); }
 /* Map layers you can turn on and off */
 const MAP_LAYERS = [["mapShowEv","Events","Upcoming events, and what is on now","lg ev"],["mapShowLm","Landmarks","Buildings, views and bridge walkway entrances, with tips","lg lmk"],["mapShowSub","Subway lines","In MTA colours","lg sub"],["mapShowStn","Stations","Every subway station when zoomed in","lg stn"],
-  ["mapShowSunny","Sunny side","Which side of each street is in sun, while the sun is up","lg sunny"],["mapShowHenge","Light down the street","Streets that line up with the low sun on this day, and when","lg henge"],["mapShowFerry","Ferries","NYC Ferry and Staten Island Ferry routes, and which side of the boat has the light","lg ferry"],["mapShowSpots","Where to stand","Spots and lens wedges when zoomed in","lg spot"],["mapShowShots","My shots","Where you tapped Shot it: gold for keepers, grey for try again","lg myshot"],["mapShowReach","Time to get there","From where you are: minutes to each place, 15 and 30 min walking rings, and places you can't reach before the light ends fade","lg reach"],["mapShowWalk","My walks","Your route while Follow me is on, kept on this phone","lg walk"],["mapShowWet","Wet streets","After rain, while the pavement is still wet: where puddles and wet paving hold the best reflections","lg wet"],["mapShowNew","New to you","Shades the blocks you have walked or shot and marks the spots you have never stood at","lg new"],["mapShowNames","Street and area names","","lg names"]].concat(PHOTOS_INLINE?[["mapShowBusy","How busy","Quiet, busy or packed at 114 count sites for the hour you pick (NYC DOT pedestrian counts)","lg busy"],["mapShowWorks","Closures and film shoots","Streets closed for work, and film and TV shoots, this week (NYC Open Data)","lg works"],["mapShowRadar","Rain radar","The latest radar picture of rain and snow, every 10 minutes (RainViewer)","lg radar"]]:[]);
+  ["mapShowSunny","Sunny side","Which side of each street is in sun, while the sun is up","lg sunny"],["mapShowHenge","Light down the street","Streets that line up with the low sun on this day, and when","lg henge"],["mapShowFerry","Ferries","NYC Ferry and Staten Island Ferry routes, and which side of the boat has the light","lg ferry"],["mapShowSpots","Where to stand","Spots and lens wedges when zoomed in","lg spot"],["mapShowShots","My shots","Where you tapped Shot it: gold for keepers, grey for try again","lg myshot"],["mapShowReach","Time to get there","From where you are: minutes to each place, 15 and 30 min walking rings, and places you can't reach before the light ends fade","lg reach"],["mapShowWalk","My walks","Your route while Follow me is on, kept on this phone","lg walk"],["mapShowWet","Wet streets","After rain, while the pavement is still wet: where puddles and wet paving hold the best reflections","lg wet"],["mapShowNew","New to you","Shades the blocks you have walked or shot and marks the spots you have never stood at","lg new"],["mapShowNames","Street and area names","","lg names"]].concat(PHOTOS_INLINE?[["mapShowPermits","Street happenings","Street fairs, block parties, markets and processions with a city permit, on the day you pick (NYC Open Data)","lg permit"],["mapShowBusy","How busy","Quiet, busy or packed at 114 count sites for the hour you pick (NYC DOT pedestrian counts)","lg busy"],["mapShowWorks","Closures and film shoots","Streets closed for work, and film and TV shoots, this week (NYC Open Data)","lg works"],["mapShowRadar","Rain radar","The latest radar picture of rain and snow, every 10 minutes (RainViewer)","lg radar"]]:[]);
 /* Three ready-made sets of layers; single layers can still be changed below them. */
-const LAYER_SETS = {shoot:["mapShowEv","mapShowLm","mapShowSub","mapShowSpots","mapShowNames","mapShowShots","mapShowReach","mapShowWalk","mapShowWorks","mapShowWet"], light:["mapShowEv","mapShowLm","mapShowSub","mapShowSpots","mapShowNames","mapShowShots","mapShowReach","mapShowWalk","mapShowWorks","mapShowWet","mapShowSunny","mapShowHenge"], all:MAP_LAYERS.map(l=>l[0])};
+const LAYER_SETS = {shoot:["mapShowEv","mapShowLm","mapShowSub","mapShowSpots","mapShowNames","mapShowShots","mapShowReach","mapShowWalk","mapShowWorks","mapShowWet","mapShowPermits"], light:["mapShowEv","mapShowLm","mapShowSub","mapShowSpots","mapShowNames","mapShowShots","mapShowReach","mapShowWalk","mapShowWorks","mapShowWet","mapShowPermits","mapShowSunny","mapShowHenge"], all:MAP_LAYERS.map(l=>l[0])};
 const layerSetNow = () => Object.keys(LAYER_SETS).find(k=>MAP_LAYERS.every(([L])=>!!state[L]===LAYER_SETS[k].includes(L)))||"custom";
 function layerSet(k){ const S=LAYER_SETS[k]; if(!S) return; MAP_LAYERS.forEach(([L])=>{ state[L]=S.includes(L); store.set(L,state[L]); }); store.set("mapSet",k);
   if(!state.mapShowEv) state.mapEv=null; if(!state.mapShowLm) state.mapLm=null; if(!state.mapShowHenge) state.mapRun=null; if(!state.mapShowFerry) state.mapFerry=null; }
@@ -5229,7 +5245,8 @@ else if(store.get("mapSetV",0)<2 && store.get("mapSet",null)!=="all"){ state.map
 if(store.get("mapSetV",0)<3){ const all=store.get("mapSet",null)==="all"; ["mapShowReach","mapShowWalk"].concat(all&&PHOTOS_INLINE?["mapShowRadar"]:[]).forEach(L=>{ state[L]=true; store.set(L,true); }); }
 if(store.get("mapSetV",0)<4&&PHOTOS_INLINE){ state.mapShowWorks=true; store.set("mapShowWorks",true); }
 if(store.get("mapSetV",0)<5){ state.mapShowWet=true; store.set("mapShowWet",true); if(store.get("mapSet",null)==="all") ["mapShowNew"].concat(PHOTOS_INLINE?["mapShowBusy"]:[]).forEach(L=>{ state[L]=true; store.set(L,true); }); }
-store.set("mapSetV",5);
+if(store.get("mapSetV",0)<6&&PHOTOS_INLINE){ state.mapShowPermits=true; store.set("mapShowPermits",true); }
+store.set("mapSetV",6);
 function mapLayersHtml(nLive){ const cur=layerSetNow(); return '<div class="mlayers-head"><b>Map layers</b><button type="button" class="mapselx" data-layersclose="1" aria-label="Close">×</button></div>'+
   '<div class="lsets" role="group" aria-label="Layer sets">'+[["shoot","Shoot","Pins, subway, events"],["light","Light","Adds sunny side and light down the street"],["all","Everything","Every layer"]].map(([k,t,sub])=>'<button type="button" class="lset" data-lset="'+k+'" aria-pressed="'+(cur===k)+'"><b>'+t+'</b><span>'+sub+'</span></button>').join("")+'</div>'+(cur==="custom"?'<p class="mlayers-sub">Your own mix</p>':'<p class="mlayers-sub">Or choose single layers</p>')+
   MAP_LAYERS.map(([k,t,sub,ic])=>'<button type="button" class="mlayer" data-layer="'+k+'" aria-pressed="'+!!state[k]+'"><span class="'+ic+'"></span><span class="t"><b>'+t+(k==="mapShowEv"&&nLive?' · '+nLive+' on now':'')+'</b>'+(sub?'<span>'+sub+'</span>':'')+'</span><span class="sw" aria-hidden="true"></span></button>').join("")+
@@ -6258,7 +6275,7 @@ function workPanel(k){ if(X_KINDS.test(k)) return xPanel(k); const it=worksItems
   return head+when+body+'<div class="callinks"><a class="chip" href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint='+g[0].toFixed(6)+','+g[1].toFixed(6)+'&heading=0&pitch=0&fov=80" target="_blank" rel="noopener">Street View ↗</a><a class="chip" href="https://www.google.com/maps/dir/?api=1&destination='+g[0].toFixed(5)+','+g[1].toFixed(5)+'&travelmode=walking" target="_blank" rel="noopener">Walking directions ↗</a></div><p class="hint">NYC Open Data: '+(it.k==="film"?"Film Permits (Mayor's Office of Media and Entertainment)":"Street Closures due to Construction (DOT)")+', fetched '+hmText(new Date(WORKS.at).getHours()*60+new Date(WORKS.at).getMinutes())+'.</p></section>'; }
 /* Four map additions: the outing in the best order for the light, how busy each count site is, the spots new to you, and wet streets after rain.
    Their map items reuse the closures' tap path (data-wk), with ids that start "busy:", "wet:" or "new:". */
-const X_KINDS = /^(busy|wet|new):/;
+const X_KINDS = /^(busy|wet|new|permit):/;
 
 /* The outing in the best order for the light. The start time stays; every order of the stops is tried (up to seven, a greedy pass for more)
    and the one that puts the most stops in light their ideas suit wins, with less travel as the tie-break. Event stops keep fixed times,
@@ -6419,12 +6436,124 @@ function wetPanel(i){ const P=WET_SPOTS[+i]; if(!P) return '<p class="lead mlead
     '<p class="hint">How long the ground stays wet is a rule of thumb from the hourly forecast: about two hours after the rain stops, three when it is cold, one when it is warm or the shower was light.</p></section>'; }
 function wetLead(){ if(!state.mapShowWet) return ""; const W=wetAt(mapNow()); if(!W) return ""; return '<div class="xlead wetlead"><p class="msg"><b>💧 '+esc(wetWords(W))+'.</b> Tap a drop for the spots where wet paving holds the best reflections.</p></div>'; }
 
-function xPanel(k){ const id=k.slice(k.indexOf(":")+1); return k.startsWith("busy:")?busyPanel(id):k.startsWith("wet:")?wetPanel(id):newPanel(id); }
+function xPanel(k){ const id=k.slice(k.indexOf(":")+1); return k.startsWith("permit:")?permitPanel(id):k.startsWith("busy:")?busyPanel(id):k.startsWith("wet:")?wetPanel(id):newPanel(id); }
 function xItem(k){ const id=k.slice(k.indexOf(":")+1);
   if(k.startsWith("busy:")){ const r=(PED.rows||[]).find(x=>x.id===id); return r?mapXY(r.lat,r.lon):null; }
   if(k.startsWith("wet:")){ const P=WET_SPOTS[+id]; return P?mapXY(P[1],P[2]):null; }
+  if(k.startsWith("permit:")){ const it=pmItems().find(x=>x.id===id); return it&&it.lat!=null?mapXY(it.lat,it.lon):null; }
   const [pid,i]=id.split(":"), S=SPOTS[pid]&&SPOTS[pid][+i]; return S?mapXY(S[0],S[1]):null; }
 const xLead = () => wetLead()+newLead();
+/* Street happenings from the city's permits (installed app): NYC Open Data's "NYC Permitted Event Information", every approved event for the
+   coming month. Kept: street fairs, block parties, farmers markets, plaza and Open Streets events, parades and processions, races, and
+   park events with a name that is not a private gathering. Left out: youth and adult sports, film productions, theatre load-ins and
+   clean-ups. Street permits are placed on the map's own streets, as film shoots are; park permits at the park (positions approximate).
+   Fetched at most every 6 hours, for today and the next 8 days. */
+const PERMITS={at:0,busy:false,raw:null,items:null,stamp:""};
+const PM_URL="https://data.cityofnewyork.us/resource/tvpp-9vvx.json";
+const PM_TYPES={"Street Event":"fair","Street Festival":"fair","Single Block Festival":"fair","BID Multi-Block":"fair","Block Party":"block","Farmers Market":"market","Sidewalk Sale":"market",
+  "Plaza Event":"plaza","Plaza Partner Event":"plaza","Open Street Partner Event":"plaza","Bike the Block":"plaza","Parade":"parade","Religious Event":"parade","Athletic Race / Tour":"race","Special Event":"park"};
+const PM_KIND={fair:["Street fair","🎪"],block:["Block party","🎈"],market:["Market","🥕"],plaza:["Plaza or Open Street","🪑"],parade:["Parade or procession","🥁"],race:["Race","🏃"],park:["In a park","🌳"]};
+const PM_SKIP=/\b(celebrations?|picnics?|birthdays?|b-?day|weddings?|reunions?|gatherings?|baby ?showers?|graduations?|bbq|barbe?cues?|memorials?|meetings?|photo ?shoots?|private|family|classes|class|practices?|training|rehearsals?|clean[- ]?ups?|bridal|anniversary|church event|outreach|sermons?|prayers?|bible|permit|test|fitness|yoga|boot ?camp|softball|soccer|baseball|basketball|football|cricket|volleyball|tennis|kickball|league)\b/i;
+const PM_TIP={fair:"Grill smoke, awnings and crowds. Work the stalls from the side with the smoke lit from behind, and watch the people waiting rather than the people buying.",
+  block:"A closed street turns into a living room: kids on bikes, chalk, a DJ, folding chairs. Say hello at the organisers' table first; once people know you are there, you are part of the block.",
+  market:"Hands weighing produce, a stallholder's face over the scales, crates stacked by colour. Buy something before you photograph a stall up close.",
+  plaza:"Tables, games and performers on a car-free plaza or street. Stand at an edge and let the activity come to you.",
+  parade:"A procession passes at walking pace. Pick a spot where the light falls on the marchers' faces; at a religious procession keep a respectful distance from the statue and the faithful.",
+  race:"Runners and the people cheering them on: a long lens at a corner, or a slow shutter panning with one runner.",
+  park:"Park permits name the lawn or plaza; look for it when you arrive. Many are small, so the edges of the crowd are often the picture."};
+/* Parks the permits name most, with a point near the middle (approximate). [name, borough or "", lat, lon] */
+const PM_PARKS=[["central park","",40.7812,-73.9665],["prospect park","",40.6602,-73.9690],["washington square park","",40.7308,-73.9973],["union square park","",40.7359,-73.9906],["madison square park","",40.7420,-73.9877],
+  ["tompkins square park","",40.7265,-73.9817],["columbus park","manhattan",40.7156,-73.9999],["columbus park","brooklyn",40.6957,-73.9897],["riverside park","",40.8010,-73.9720],["battery park","",40.7033,-74.0170],["the battery","",40.7033,-74.0170],
+  ["bowling green","",40.7049,-74.0137],["city hall park","",40.7127,-74.0060],["thomas paine park","",40.7144,-74.0028],["sara d. roosevelt park","",40.7210,-73.9925],["seward park","",40.7145,-73.9887],["marcus garvey park","",40.8045,-73.9445],
+  ["morningside park","",40.8065,-73.9585],["st. nicholas park","",40.8175,-73.9475],["fort tryon park","",40.8620,-73.9320],["inwood hill park","",40.8720,-73.9250],["highbridge park","",40.8420,-73.9310],["carl schurz park","",40.7754,-73.9433],
+  ["mccarren park","",40.7206,-73.9516],["fort greene park","",40.6913,-73.9754],["grand army plaza","",40.6740,-73.9700],["herbert von king park","",40.6893,-73.9468],["sunset park","",40.6475,-74.0040],["maria hernandez park","",40.7030,-73.9230],
+  ["coney island beach","",40.5727,-73.9800],["flushing meadows corona park","",40.7400,-73.8407],["astoria park","",40.7790,-73.9220],["queensbridge park","",40.7561,-73.9452],["travers park","",40.7550,-73.8920],["crotona park","",40.8390,-73.8975],
+  ["van cortlandt park","",40.8975,-73.8860],["pelham bay park","",40.8670,-73.8100],["st. mary's park","",40.8100,-73.9130],["clove lakes park","",40.6200,-74.1100],["rockaway beach","",40.5840,-73.8160]];
+const pmIso = d => wkIso(d).slice(0,19);
+function pmGet(force){ if(!PHOTOS_INLINE) return; if(!PERMITS.raw){ const c=store.get("permits",null); if(c&&c.at&&Array.isArray(c.rows)){ PERMITS.raw=c; PERMITS.at=c.at; } }
+  if(PERMITS.busy||(!force&&Date.now()-PERMITS.at<6*36e5)) return; PERMITS.busy=true;
+  const now=new Date(), d0=new Date(now.getFullYear(),now.getMonth(),now.getDate()), d9=new Date(+d0+9*864e5);
+  const where="start_date_time<'"+pmIso(d9)+"' AND end_date_time>='"+pmIso(d0)+"' AND event_type in("+Object.keys(PM_TYPES).map(t=>"'"+t.replace(/'/g,"''")+"'").join(",")+")";
+  const u=PM_URL+"?$select=event_id,event_name,start_date_time,end_date_time,event_type,event_borough,event_location,street_closure_type&$where="+encodeURIComponent(where)+"&$order=start_date_time&$limit=4000";
+  fetch(u).then(r=>r.ok?r.json():Promise.reject(r.status)).then(rows=>{ if(!Array.isArray(rows)) return;
+      const keep=rows.map(r=>({id:String(r.event_id||""),n:String(r.event_name||"").trim(),s:r.start_date_time,e:r.end_date_time,t:r.event_type,b:r.event_borough||"",l:String(r.event_location||"").replace(/\s+/g," ").trim(),c:r.street_closure_type||""})).filter(r=>r.id&&r.n&&r.l&&PM_TYPES[r.t]);
+      PERMITS.raw={at:Date.now(),rows:keep}; PERMITS.items=null; try{ store.set("permits",PERMITS.raw); }catch(e){} })
+    .catch(()=>{}).finally(()=>{ PERMITS.busy=false; PERMITS.at=Date.now(); if(state.view==="map"){ mapDraw(); mapPanel(); } if(state.view==="events") renderEvents(); }); }
+const pmName = n => /[a-z]/.test(n) ? n : wkCap(n);
+function pmPark(loc,b){ const head=loc.split(":")[0].trim().toLowerCase(), bb=String(b).toLowerCase(); const hits=PM_PARKS.filter(P=>head===P[0]||head.startsWith(P[0]+" ")); return (hits.find(P=>P[1]&&P[1]===bb)||hits.find(P=>!P[1])||null); }
+/* All the permits as items: a place on the map for each (or none), merged when the same event repeats on one day */
+function pmItems(){ const raw=PERMITS.raw; if(!raw) return []; if(PERMITS.items&&PERMITS.stamp===raw.at) return PERMITS.items; const out=[], seen=new Set(), ids=new Set();
+  for(const r of raw.rows){ const kind=PM_TYPES[r.t], s=wkDate(r.s), e=wkDate(r.e); if(!kind||!s||!e) continue; if(kind==="park"&&PM_SKIP.test(r.n)) continue;
+    const key=(r.n+"|"+r.l+"|"+s.toDateString()).toLowerCase(); if(seen.has(key)) continue; seen.add(key);
+    let lat=null, lon=null, place=r.l, parts=null;
+    if(kind==="park"||(!/between/i.test(r.l)&&r.l.includes(":"))){ const P=pmPark(r.l,r.b); if(P){ lat=P[2]; lon=P[3]; } place=r.l.split(":").map(x=>x.trim()).filter((x,i,a)=>x&&(i===0||x.toLowerCase()!==a[0].toLowerCase())).join(", "); }
+    else if(typeof MAPD_SN!=="undefined"){ const body=r.l.includes(":")&&/between/i.test(r.l.split(":").slice(1).join(":"))?r.l.split(":").slice(1).join(":"):r.l, segs=[];
+      for(const piece of body.split(/,\s*/)){ const m=piece.match(/^(.+?)\s+between\s+(.+?)\s+and\s+(.+)$/i); if(!m) continue; let q=null; try{ q=snBetween(m[1],m[2],m[3]); }catch(err){} if(q) segs.push(q.pts); }
+      if(segs.length){ const P=segs[0], mx=(P[0][0]+P[P.length-1][0])/2, my=(P[0][1]+P[P.length-1][1])/2; lat=40.95-my/2000; lon=mx/(0.758*2000)-74.30; parts=segs; }
+      place=body.split(/,\s*/).map(p=>{ const m=p.match(/^(.+?)\s+between\s+(.+?)\s+and\s+(.+)$/i); return m?wkStreet(m[1])+" ("+wkStreet(m[2])+"–"+wkStreet(m[3])+")":wkCap(p); }).join(", "); }
+    const id=ids.has(r.id)?r.id+"-"+s.getDate():r.id; ids.add(id); out.push({id,n:pmName(r.n),kind,type:r.t,s,e,b:r.b,place,closure:r.c&&r.c!=="N/A"?r.c:"",lat,lon,parts}); }
+  out.sort((a,b)=>a.s-b.s); PERMITS.stamp=raw.at; return PERMITS.items=out; }
+const pmOnDay = (it,day) => { const d0=evDay(day), d1=new Date(+d0+864e5); return it.s<d1&&it.e>=d0; };
+const pmWhen = (it,day) => wkWhen(it.s,it.e,day);
+function pmRow(it,day,mi){ const K=PM_KIND[it.kind]; return '<button type="button" class="row pmrow" data-pm="'+esc(it.id)+'"><span class="pmico" aria-hidden="true">'+K[1]+'</span><span class="t"><b>'+esc(it.n)+'</b><span>'+esc([K[0],pmWhen(it,day),it.place+(it.b?" · "+it.b:"")].join(" · "))+(mi!=null?' · '+milesText(mi):'')+(it.lat==null?' · not on the map':'')+'</span></span><span class="go" aria-hidden="true">›</span></button>'; }
+/* The Events tab section: the next seven days, a filter by kind, a few per day with the rest folded */
+function pmSectionHtml(today,near){ if(!PHOTOS_INLINE) return ""; pmGet(); const all=pmItems(); if(!PERMITS.raw) return PERMITS.busy?'<section class="evsec evpm"><p class="evgroup">On the street · city permits</p><p class="msg">Loading the city’s permits…</p></section>':"";
+  const K=state.pmKind||"all", ok=it=>K==="all"||it.kind===K, open=state.pmOpen||(state.pmOpen=new Set());
+  if(near){ if(!state.pos) return ""; const R=state.evRadius===2?2:1, t1=new Date(+today+864e5);
+    const L=all.filter(it=>it.lat!=null&&(pmOnDay(it,today)||pmOnDay(it,t1))&&it.e>new Date()).map(it=>({it,mi:kmBetween(state.pos,{lat:it.lat,lon:it.lon})/1.609})).filter(x=>x.mi<=R).sort((a,b)=>a.it.s-b.it.s||a.mi-b.mi).slice(0,12);
+    return L.length?'<section class="evsec evpm"><p class="evgroup">On the street near you · city permits</p>'+L.map(x=>pmRow(x.it,pmOnDay(x.it,today)?today:t1,x.mi)).join("")+'</section>':""; }
+  const kinds=Object.keys(PM_KIND).filter(k=>all.some(it=>it.kind===k));
+  let html="";
+  for(let i=0;i<7;i++){ const d=new Date(today.getFullYear(),today.getMonth(),today.getDate()+i), L=all.filter(it=>ok(it)&&pmOnDay(it,d)&&!(i===0&&it.e<new Date())); if(!L.length) continue;
+    const lab=i===0?"Today":i===1?"Tomorrow":d.toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"}), dk=+d, more=open.has(dk), show=more?L:L.slice(0,5);
+    html+='<p class="pmday">'+lab+' · '+L.length+'</p>'+show.map(it=>pmRow(it,d)).join("")+(L.length>5&&!more?'<button type="button" class="linkbtn pmmore" data-pmmore="'+dk+'">Show all '+L.length+'</button>':''); }
+  const fold=!!state.pmFold;
+  return '<section class="evsec evpm"><button type="button" class="evgroup evfold" data-pmfold="1" aria-expanded="'+!fold+'">On the street this week · city permits <span aria-hidden="true">'+(fold?'▾':'▴')+'</span></button>'+(fold?'':
+    '<p class="msg pmnote">Street fairs, block parties, markets, processions and plaza events with a city permit. Small and local: confirm on the day, and ask before photographing at a block party.</p>'+
+    (kinds.length>1?'<div class="intents pmkinds"><button type="button" class="chip" data-pmkind="all" aria-pressed="'+(K==="all")+'">All</button>'+kinds.map(k=>'<button type="button" class="chip" data-pmkind="'+k+'" aria-pressed="'+(K===k)+'">'+PM_KIND[k][1]+' '+PM_KIND[k][0]+'</button>').join("")+'</div>':'')+
+    (html||'<p class="msg">Nothing of this kind on the permits for the next seven days.</p>'))+'</section>'; }
+function pmSvg(x0,y0,x1,y1,u,w,f){ if(!PHOTOS_INLINE||!state.mapShowPermits||w>=200) return ""; pmGet(); const day=mapDay(); let s="";
+  for(const it of pmItems()){ if(it.lat==null||!pmOnDay(it,day)) continue; const [x,y]=mapXY(it.lat,it.lon); if(x<x0||x>x1||y<y0||y>y1) continue; const on=state.mapWork==="permit:"+it.id, r=(w<60?8:6.5)*u;
+    if(it.parts&&w<60) s+=it.parts.map(P=>'<path d="M'+P.map(([a,b])=>f(a)+' '+f(b)).join('L')+'" class="m-pml" stroke-width="'+f((on?5:3.5)*u)+'"/>').join("");
+    s+='<g class="m-xit m-pm'+(on?' on':'')+'" data-wk="permit:'+esc(it.id)+'" role="button" tabindex="0" aria-label="'+esc(PM_KIND[it.kind][0]+': '+it.n+', '+pmWhen(it,day))+'"><circle cx="'+f(x)+'" cy="'+f(y)+'" r="'+f(r+6*u)+'" class="m-hit"/><circle cx="'+f(x)+'" cy="'+f(y)+'" r="'+f(r)+'" stroke-width="'+f(1.3*u)+'" class="m-pmd"/><text x="'+f(x)+'" y="'+f(y+r*0.38)+'" text-anchor="middle" font-size="'+f(r*1.05)+'">'+PM_KIND[it.kind][1]+'</text></g>'; }
+  return s; }
+function permitPanel(id){ const it=pmItems().find(x=>x.id===id); if(!it) return '<p class="lead mlead">That permit has gone from the list.</p>'; const day=mapDay(), K=PM_KIND[it.kind], g=it.lat!=null?[it.lat,it.lon]:null, sub=g?mtaHtml(g[0],g[1],it.s,it.e):"";
+  return '<section class="group mapsel"><button type="button" class="mapselx" data-unsel="1" aria-label="Close">×</button><div class="group-head"><b>'+K[1]+' '+esc(it.n)+'</b><span class="where">'+esc(K[0]+(it.b?' · '+it.b:''))+'</span></div>'+
+    '<p class="mapcount"><b>'+esc(pmWhen(it,day))+'</b>'+(it.s<new Date()&&it.e>new Date()?' <span class="pill">On now</span>':'')+'</p><p class="mapcount">'+esc(it.place)+(it.closure?' · '+esc(it.closure.toLowerCase()):'')+'</p>'+
+    '<p class="hint">'+esc(PM_TIP[it.kind])+'</p>'+sub+
+    (g?'<div class="callinks guidecta">'+(state.guide&&state.guide.id==="permit:"+id?'<button type="button" class="chip" data-guidestop="1">Stop guiding</button>':'<button type="button" class="chip primary" data-guide="permit:'+esc(id)+'">Guide me there</button>')+'<a class="chip" href="https://www.google.com/maps/dir/?api=1&destination='+g[0].toFixed(5)+','+g[1].toFixed(5)+'&travelmode=transit" target="_blank" rel="noopener">Directions ↗</a></div>':'')+
+    '<p class="hint">NYC Open Data: NYC Permitted Event Information. A permit is not a listing: the event may be small, private or cancelled, and '+(it.kind==="park"?'park permits are placed at the middle of the park.':'the dot sits at the middle of the first block on the permit.')+'</p></section>'; }
+
+/* Subway changes (installed app): the MTA's service alerts feed, open to anyone. For an event, the lines at stations within about
+   600 m (the nearest three) and the alerts on those lines whose times overlap the event. Fetched at most every 15 minutes while it is needed. */
+const MTA={at:0,busy:false,list:null,err:false};
+const MTA_URL="https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/camsys%2Fsubway-alerts.json";
+function mtaTxt(t){ const L=t&&t.translation; if(!Array.isArray(L)) return ""; const x=L.find(y=>y.language==="en")||L.find(y=>!/html/.test(y.language||""))||L[0]; return x&&x.text?String(x.text).replace(/\s+/g," ").trim():""; }
+function mtaParse(j){ const out=[]; for(const en of (j&&j.entity)||[]){ const a=en&&en.alert; if(!a) continue; const M=a["transit_realtime.mercury_alert"]||{}, type=String(M.alert_type||"");
+    if(/elevator|escalator/i.test(type)) continue; const routes=[...new Set((a.informed_entity||[]).map(x=>x&&x.route_id).filter(Boolean).map(String))]; if(!routes.length) continue;
+    const per=(a.active_period||[]).map(p=>[+p.start||0,+p.end||0]); out.push({id:String(en.id||""),routes,type,head:mtaTxt(a.header_text),when:mtaTxt(M.human_readable_active_period),per}); }
+  return out; }
+function mtaGet(){ if(!PHOTOS_INLINE) return; if(!MTA.list){ const c=store.get("mta",null); if(c&&c.at&&Array.isArray(c.list)&&Date.now()-c.at<36e5){ MTA.list=c.list; MTA.at=c.at; } }
+  if(MTA.busy||Date.now()-MTA.at<15*6e4) return; MTA.busy=true;
+  fetch(MTA_URL).then(r=>r.ok?r.json():Promise.reject(r.status)).then(j=>{ const L=mtaParse(j); MTA.list=L; MTA.err=false; try{ store.set("mta",{at:Date.now(),list:L}); }catch(e){} })
+    .catch(()=>{ MTA.err=true; }).finally(()=>{ MTA.busy=false; MTA.at=Date.now(); if(state.view==="events"&&state.evOpen) evRefreshOpen(); if(state.view==="map"&&state.mapWork) mapPanel(); }); }
+function mtaLines(lat,lon){ const set=new Set(); if(typeof MAPD_STATIONS==="undefined") return set;
+  const near=MAPD_STATIONS.map(S=>({S,d:kmBetween({lat,lon},{lat:S[1],lon:S[2]})})).filter(x=>x.d<=0.6).sort((a,b)=>a.d-b.d).slice(0,3);   // the three nearest stations within 600 m
+  for(const {S} of near) for(const c of String(S[3]||"")) set.add(c); return set; }
+function mtaFor(lat,lon,s,e){ mtaGet(); if(!MTA.list) return null; const lines=mtaLines(lat,lon); if(!lines.size) return {lines,list:[]}; const a=+s/1000, b=+e/1000;
+  const hit=MTA.list.filter(x=>x.routes.some(r=>lines.has(r))&&(!x.per.length||x.per.some(([p,q])=>p<b&&(!q||q>a))));
+  const seen=new Set(), list=hit.filter(x=>{ const k=x.head; if(seen.has(k)) return false; seen.add(k); return true; }).slice(0,5); return {lines,list}; }
+function mtaHtml(lat,lon,s,e){ const R=mtaFor(lat,lon,s,e); if(!R||!R.lines.size) return "";
+  const L=[...R.lines].sort().join(""), cc=state.city;
+  return '<div class="part mtapart"><span class="label">Subway on the day '+bullets(L,cc)+'</span>'+(R.list.length?'<ul class="mtal">'+R.list.map(x=>'<li><span class="mtar">'+bullets(x.routes.filter(r=>R.lines.has(r)).join(""),cc)+'</span><span><b>'+esc(x.type||"Service change")+'</b>'+(x.when?' · '+esc(x.when):'')+'<br>'+esc(x.head.length>220?x.head.slice(0,217)+"…":x.head)+'</span></li>').join("")+'</ul>':'<p class="msg">No changes posted for the lines near here at that time.</p>')+
+    '<p class="hint">From the MTA’s service alerts, checked '+hmText(new Date(MTA.at).getHours()*60+new Date(MTA.at).getMinutes())+'. Weekend work is usually posted by midweek.</p></div>'; }
+/* For an event row: its place and the hours it runs on the day it next happens */
+function evSpan(r,today){ if(!r.o||r.cancelled) return null; const g=r.e.geo||eventGeo(r.e.id); if(!g) return null; const d=evDay(r.o[0]<today?today:r.o[0]); if((d-today)/864e5>7) return null;
+  const w=evWindow(r.e,d)||[10*60,18*60]; return {g,s:clk(d,w[0]),e:clk(d,Math.max(w[1],w[0]+60))}; }
+function evMtaHtml(r,today){ if(!PHOTOS_INLINE) return ""; const S=evSpan(r,today); return S?mtaHtml(S.g[0],S.g[1],S.s,S.e):""; }
+const evMtaFlag = (r,today) => { if(!PHOTOS_INLINE||!MTA.list) return ""; const S=evSpan(r,today); if(!S) return ""; const R=mtaFor(S.g[0],S.g[1],S.s,S.e); return R&&R.list.length?' <span class="evmta" title="Subway changes on the day">🚇 Subway changes</span>':""; };
+function evRefreshOpen(){ const id=state.evOpen, d=id&&document.querySelector('#events details.event[data-id="'+CSS.escape(id)+'"]'); if(!d) return; const body=d.querySelector(".event-body"), f=EV_BODY.get(id); if(body&&f){ try{ body.innerHTML=f(); }catch(e){} } }
+
 function mapSelectWork(k){ state.mapWork=k; state.mapSel=null; state.mapEv=null; state.mapLm=null; state.mapRun=null; state.mapFerry=null; state.mapSpot=null; state.mapEvSpot=null; mapDraw(); mapPanel(); const xi=X_KINDS.test(k)?xItem(k):null, it=xi?{x:xi[0],y:xi[1]}:worksItems(mapDay()).find(x=>x.id===k); if(it) requestAnimationFrame(()=>{ mapDraw(); if(!state.mapHead) mapFly(mapAim({cx:it.x,cy:it.y,w:Math.min(mapV.w,X_KINDS.test(k)?30:16)})); }); }
 function mapDraw(){
   const svg=$("mapSvg"); if(!svg||!mapV) return; const cw=($("mapWrap")&&$("mapWrap").clientWidth)||svg.clientWidth||360, zf=state.mapHead?Math.max(1,(svg.clientWidth||cw)/cw):1, ar=svg.clientHeight/svg.clientWidth; if(!state.mapHead&&ar>0.3&&ar<4) MAP_ASPECT=ar;
@@ -6649,7 +6778,7 @@ function mapDraw(){
       else { const r=(on?9:7.5)*u; works+='<g class="m-film'+(on?' on':'')+'" data-wk="'+esc(it.id)+'" tabindex="0" role="button" aria-label="'+esc(wkTitle(it)+', '+wkWhen(it.s,it.e,mapDay()))+'"><path d="'+d+'" class="m-filml" stroke-width="'+f((on?5:3.5)*u)+'"/>'+
         '<circle cx="'+f(it.x)+'" cy="'+f(it.y)+'" r="'+f(r+6*u)+'" class="m-hit"/><circle cx="'+f(it.x)+'" cy="'+f(it.y)+'" r="'+f(r)+'" stroke-width="'+f(1.4*u)+'" class="m-filmdot"/><g transform="translate('+f(it.x)+' '+f(it.y)+') scale('+f(r/9)+')"><path d="M-5 -1.5h10v6h-10zM-5 -1.5l1.5-3.5h10l-1.5 3.5zM-2.2 -1.5l1.5-3.5M0.8 -1.5l1.5-3.5M3.8 -1.5l1.5-3.5" class="m-clap" stroke-width="1.1"/></g></g>'; } } } }
   const radarLab=radarDraw(x0,y0,x1,y1), nglowDef=pts.some(p=>p.night&&p.nopen)?'<defs><radialGradient id="nglowG"><stop offset="0" stop-color="#ffd66b" stop-opacity=".6"/><stop offset=".55" stop-color="#ffc23d" stop-opacity=".22"/><stop offset="1" stop-color="#ffc23d" stop-opacity="0"/></radialGradient></defs>':'';
-  $("mapDyn").innerHTML=nglowDef+tint+wxSvg(x0,y0,wb,h,u)+sun+moonSvg+bridges+ferries+sunny+henge+detail+seenSvg(x0,y0,x1,y1,u,w,f)+allStn+hengeLabs+route+routes+works+busySvg(x0,y0,x1,y1,u,w,f)+walkSvg(f,u,w)+ring+stations+flags+labels+lms+dim+comp+(w<60?"":moonLines+sunLines+spotsSvg+spotLabs)+evs+guideLine+wetSvg(x0,y0,x1,y1,u,w,f)+clus+pins;
+  $("mapDyn").innerHTML=nglowDef+tint+wxSvg(x0,y0,wb,h,u)+sun+moonSvg+bridges+ferries+sunny+henge+detail+seenSvg(x0,y0,x1,y1,u,w,f)+allStn+hengeLabs+route+routes+works+pmSvg(x0,y0,x1,y1,u,w,f)+busySvg(x0,y0,x1,y1,u,w,f)+walkSvg(f,u,w)+ring+stations+flags+labels+lms+dim+comp+(w<60?"":moonLines+sunLines+spotsSvg+spotLabs)+evs+guideLine+wetSvg(x0,y0,x1,y1,u,w,f)+clus+pins;
   if(sc&&radarLab) sc.insertAdjacentHTML("afterbegin",'<span class="mradar">'+esc(radarLab)+'</span>');
   let myShots=""; if(state.mapShowShots&&w<330){ const ES=state.evShots||store.get("evShots",{})||{}; for(const [eid,m] of Object.entries(ES)) for(const en of Object.values(m||{})){ if(!en||!en.p) continue; const [x,y]=mapXY(en.p[0],en.p[1]); if(!inside(x,y,0)) continue; const r=(w<60?5:3.6)*u;
       myShots+='<g class="m-shot ev" data-shot="ev:'+esc(eid)+'" role="button" tabindex="0" aria-label="Event shot"><circle cx="'+f(x)+'" cy="'+f(y)+'" r="'+f(r+6*u)+'" class="m-hit"/><rect x="'+f(x-r)+'" y="'+f(y-r*0.75)+'" width="'+f(2*r)+'" height="'+f(1.5*r)+'" rx="'+f(0.35*r)+'" stroke-width="'+f(1*u)+'" class="m-shotr"/></g>'; } for(const [id,l] of Object.entries(state.log||{})){ (l||[]).forEach(en=>{ if(!en||!en.p) return; const [x,y]=mapXY(en.p[0],en.p[1]); if(!inside(x,y,0)) return; const r=(w<60?5:3.6)*u;
@@ -8238,6 +8367,11 @@ $("events").addEventListener("click",e=>{
   const gs=e.target.closest("[data-evgo]"); if(gs){ e.preventDefault(); e.stopPropagation(); evGoToggle(gs.dataset.evgo); return; }
   const dy=e.target.closest("[data-evday]"); if(dy){ const v=dy.dataset.evday; state.evDay = v&&state.evDay!==+v ? +v : null; renderEvents(); return; }
   if(e.target.closest("[data-evlater]")){ state.evLaterOpen=!state.evLaterOpen; renderEvents(); return; }
+  { const pk=e.target.closest("[data-pmkind]"); if(pk){ state.pmKind=pk.dataset.pmkind; renderEvents(); return; } }
+  { const pmo=e.target.closest("[data-pmmore]"); if(pmo){ (state.pmOpen||(state.pmOpen=new Set())).add(+pmo.dataset.pmmore); renderEvents(); return; } }
+  if(e.target.closest("[data-pmfold]")){ state.pmFold=!state.pmFold; renderEvents(); return; }
+  { const pr=e.target.closest("[data-pm]"); if(pr){ const it=pmItems().find(x=>x.id===pr.dataset.pm); if(!it) return; const t0=evDay(new Date()), off=Math.round((evDay(it.s<t0?t0:it.s)-t0)/864e5);
+      state.mapShowPermits=true; store.set("mapShowPermits",true); state.mapD=off>0&&off<=6?off:0; state.mapT=null; state.view="map"; render(); requestAnimationFrame(()=>mapSelectWork("permit:"+it.id)); return; } }
   const q=e.target.closest(".evquick [data-q]"); if(q){ const k=q.dataset.q, Q=state.evQuick||(state.evQuick=new Set()); if(Q.has(k)) Q.delete(k); else Q.add(k); renderEvents(); return; }
   const pe=e.target.closest("[data-planev]"); if(pe){ planEvent(pe.dataset.planev); return; }
   const mvs=e.target.closest("[data-mapevsp]"); if(mvs){ const k=mvs.dataset.mapevsp; state.mapT=null; if(mvs.dataset.mapd!=null){ state.mapD=+mvs.dataset.mapd; state.mapT=+mvs.dataset.mapt; } state.view="map"; render(); requestAnimationFrame(()=>requestAnimationFrame(()=>{ state.mapShowEv=true; state.mapSel=null; state.mapSpot=null; state.mapLm=null; state.mapRun=null; state.mapFerry=null; mapSelectEvSpot(k); setSheet("half"); })); return; }

@@ -78,6 +78,21 @@ def run(path, name):
             return r
         _peds=[_ped(i) for i in range(1,11)]+[{"loc":"99","street_nam":"No place"}]
         pg.route("**/data.cityofnewyork.us/resource/cqsj-cfgu.json*", lambda r: r.fulfill(status=200, content_type="application/json", body=_j.dumps(_peds)))
+        # City event permits, as the dataset gives them, and the MTA's subway alerts
+        _pm=lambda i,n,t,a,b,l,bo="Manhattan": {"event_id":str(i),"event_name":n,"start_date_time":a+":00.000","end_date_time":b+":00.000","event_type":t,"event_borough":bo,"event_location":l,"street_closure_type":"Full Street Closure"}
+        _pms=[_pm(1,"W 47TH ST BLOCK PARTY","Block Party","2026-10-11T12:00","2026-10-11T18:00","WEST 47 STREET between 6 AVENUE and 7 AVENUE"),
+              _pm(1,"W 47TH ST BLOCK PARTY","Block Party","2026-10-11T12:00","2026-10-11T18:00","WEST 47 STREET between 6 AVENUE and 7 AVENUE"),
+              _pm(2,"Celebration","Special Event","2026-10-11T13:00","2026-10-11T15:00","Central Park: Ladies' Pavilion"),
+              _pm(3,"Jazz at Ellison Island","Special Event","2026-10-11T13:00","2026-10-11T18:00","Riverside Park: Ellison Island"),
+              _pm(4,"Youth Soccer","Sport - Youth","2026-10-11T09:00","2026-10-11T12:00","Central Park: North Meadow"),
+              _pm(5,"Feast of San Gennaro procession","Religious Event","2026-10-13T14:00","2026-10-13T16:00","MOTT STREET between CANAL STREET and HESTER STREET"),
+              _pm(6,"Greenmarket","Farmers Market","2026-10-12T08:00","2026-10-12T17:00","NOWHERE ROAD between HERE and THERE","Queens")]
+        pg.route("**/data.cityofnewyork.us/resource/tvpp-9vvx.json*", lambda r: r.fulfill(status=200, content_type="application/json", body=_j.dumps(_pms)))
+        _tr=lambda t:{"translation":[{"text":t,"language":"en"},{"text":"<p>"+t+"</p>","language":"en-html"}]}
+        _al=lambda i,routes,typ,a,b,head:{"id":i,"alert":{"active_period":[{"start":a,"end":b}],"informed_entity":[{"agency_id":"MTASBWY","route_id":r} for r in routes],"header_text":_tr(head),"transit_realtime.mercury_alert":{"alert_type":typ,"human_readable_active_period":_tr("Sun 10 AM to 8 PM")}}}
+        _mta={"header":{},"entity":[_al("lmm:1",["B","D","F","M"],"Planned - Part Suspended",1791727200,1791763200,"No B D F M trains between 47-50 Sts and W 4 St"),
+              _al("lmm:2",["F"],"Elevator Outage",1791727200,1791763200,"Elevator out"),_al("lmm:3",["7"],"Planned - Express to Local",1791986400,1792022400,"7 trains run local")]}
+        pg.route("**/api-endpoint.mta.info/**", lambda r: r.fulfill(status=200, content_type="application/json", body=_j.dumps(_mta)))
         pg.route("**/data.cityofnewyork.us/resource/i6b5-j7bu.geojson*", lambda r: r.fulfill(status=200, content_type="application/json", body=_j.dumps(_cl)))
         pg.goto("file://" + path); pg.wait_for_timeout(700)
 
@@ -409,7 +424,7 @@ def run(path, name):
         check("The parks' lakes are drawn on the map, with their names close in", lk==[18,True,True,True], lk)
         check("Every subway station is listed with its lines", pg.evaluate("MAPD_STATIONS.length")>=470 and pg.evaluate("MAPD_STATIONS.every(s=>s[3]&&s[1]>40.5&&s[1]<40.92&&s[2]>-74.26&&s[2]<-73.7)"))
         pg.click("#mapLayersBtn"); pg.wait_for_timeout(150)
-        check("Layers menu opens", pg.evaluate("!document.getElementById('mapLayers').hidden && document.querySelectorAll('#mapLayers [data-layer]').length===MAP_LAYERS.length && MAP_LAYERS.length===(PHOTOS_INLINE?17:14)"))
+        check("Layers menu opens", pg.evaluate("!document.getElementById('mapLayers').hidden && document.querySelectorAll('#mapLayers [data-layer]').length===MAP_LAYERS.length && MAP_LAYERS.length===(PHOTOS_INLINE?18:14)"))
         pg.click("[data-z=man]"); pg.wait_for_timeout(500)
         check("Jump to Manhattan closes the menu", pg.evaluate("document.getElementById('mapLayers').hidden"))
         check("Map draws pins", pg.evaluate("document.querySelectorAll('.m-pin').length") > 10)
@@ -1278,6 +1293,23 @@ def run(path, name):
           [['works',keepW],['ped',keepP],['health',keepH]].forEach(([k,v])=>{ if(v===null) localStorage.removeItem('shotlist.'+k); else localStorage.setItem('shotlist.'+k,v); });
           return [i>0, ok, gone, logged, cache, still]; })()""")
         check("Storage full: a save of your own data clears the cached closures and goes through, App health notes it; a cache that does not fit is just not kept", sf==[True,True,True,True,False,True], sf)
+        if pg.evaluate("PHOTOS_INLINE"):
+            # Street happenings from the city's permits, and subway changes from the MTA
+            pg.evaluate("store.set('permits',null); PERMITS.raw=null; PERMITS.at=0; PERMITS.items=null; state.evNear=false; state.evDay=null; state.pmKind='all'; state.pmFold=false; state.view='events'; render()"); pg.wait_for_timeout(700)
+            pe=pg.evaluate("""(()=>{ const sec=document.querySelector('#events .evpm'), rows=[...document.querySelectorAll('#events .evpm .pmrow')].map(b=>b.textContent), I=pmItems(), bp=I.find(x=>x.id==='1'), jz=I.find(x=>x.id==='3'), gm=I.find(x=>x.id==='6');
+              return [!!sec, I.length, rows.some(t=>/W 47th St Block Party/.test(t)), rows.some(t=>/Celebration|Soccer/.test(t)), !!bp&&bp.lat>40.757&&bp.lat<40.760&&bp.place==='W 47th St (6th Av–7th Av)', !!jz&&jz.lat!=null&&jz.kind==='park', !!gm&&gm.lat===null, /Today · 2/.test(sec.textContent), document.querySelectorAll('#events .pmkinds [data-pmkind]').length]; })()""")
+            check("Street happenings: the week's permits by day (block party placed on its block, a park event at the park, an unplaceable one listed but not mapped), private and sports permits left out, a filter by kind",
+                  pe==[True,4,True,False,True,True,True,True,5], pe)
+            pg.click("#events .evpm [data-pm='1']"); pg.wait_for_timeout(900)
+            pp=pg.evaluate("[state.view, state.mapWork, !!document.querySelector('#mapDyn .m-pm.on'), /Block party/.test(document.querySelector('#mapPanel').textContent), /Planned - Part Suspended/.test(document.querySelector('#mapPanel').textContent), !/Elevator/.test(document.querySelector('#mapPanel').textContent), !!guideTarget('permit:1')]")
+            check("A permit opens on the map, with a panel that says what it is and the subway changes on the nearby lines at that time (not elevator work or other days)", pp==["map","permit:1",True,True,True,True,True], pp)
+            mt=pg.evaluate("""(()=>{ const a=mtaFor(40.7585,-73.9820,new Date(2026,9,11,12),new Date(2026,9,11,18)), b=mtaFor(40.7585,-73.9820,new Date(2026,9,12,12),new Date(2026,9,12,18)), c=mtaFor(40.7431,-73.9184,new Date(2026,9,11,12),new Date(2026,9,11,18));
+              return [a&&a.list.map(x=>x.id), a&&a.lines.has('B'), b&&b.list.length, c&&c.list.length]; })()""")
+            check("Subway changes: only alerts on lines at nearby stations whose times overlap", mt==[["lmm:1"],True,0,0], mt)
+            pg.evaluate("mapSelect(null); state.mapShowPermits=false; mapDraw()"); pe2=pg.evaluate("document.querySelectorAll('.m-pm').length"); pg.evaluate("state.mapShowPermits=true; state.mapD=0; mapV=mapPreset('city'); mapDraw(); mapPanel()")
+            check("Street happenings leave the map when the layer is off", pe2==0, pe2)
+        else:
+            check("Street happenings and subway changes are not offered in the Claude version", pg.evaluate("[MAP_LAYERS.some(l=>l[0]==='mapShowPermits'), (state.view='events', render(), !!document.querySelector('#events .evpm'))]")==[False,False])
         # Dark theme renders too
         pg.evaluate("document.documentElement.dataset.theme='dark'; state.view='shoot'; render()"); pg.wait_for_timeout(80)
         check("no script errors", not errors, errors[:3])
