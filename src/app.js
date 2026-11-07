@@ -1950,14 +1950,31 @@ const qTokens = () => qNorm(state.q).trim().split(" ").filter(Boolean);
 const qHit = x => { const T=qTokens(); if(!T.length) return true; const h=ideaHay(x); return T.every(t=>h.includes(" "+t)); };
 /* On now: the idea is open (days, hours, season, weather) and suits the light at this moment. */
 function onNowIdea(x,t,sky){ t=t||new Date(); return ideaOpen(x,t,sky===undefined?skyAt(t):sky)&&x.w.includes(lightAt(t)); }
+/* Tomorrow: the day split into the light it brings (morning, midday, golden hour, blue hour and after dark), each read against the
+   hourly forecast for its time, so a wet afternoon brings rain ideas instead of golden-hour ones. An idea counts when it suits one of
+   the slots and is on then (its days, hours, season and weather); it is listed under the best of them. */
+const TM_RANK = {gold:0,night:1,am:2,rain:3,mid:4};
+const tmrwDay = () => { const n=new Date(); return new Date(n.getFullYear(),n.getMonth(),n.getDate()+1); };
+function tmrwSlots(){ const d=tmrwDay(), w=WEATHER[state.city], key=state.city+":"+(+d)+":"+(w&&w.updated||"")+":"+state.cond; if(tmrwSlots.c&&tmrwSlots.c.key===key) return tmrwSlots.c.v;
+  const {L,list}=todayWindows(d), eg=list.find(x=>x.name==="Golden hour"), eb=list.find(x=>x.name==="Blue hour"), mg=list.find(x=>x.name==="Morning golden hour"), S=[];
+  const add=(id,name,s,e,at)=>{ s=Math.round(s); e=Math.round(e); at=Math.round(Math.min(Math.max(at,s),e-1)); if(e<=s) return; const t=clk(d,at), k=lightAt(t), sky=skyAt(t); S.push({id,name,s,e,at,t,k,sky,rank:TM_RANK[k]===undefined?5:TM_RANK[k]}); };
+  add("am",mg?"Morning golden hour and after":"Morning",L.rise,L.rise+170,L.rise+40);
+  add("mid","Midday",L.rise+180,eg?eg.s:L.set-120,12*60+30);
+  if(eg) add("gold","Golden hour",eg.s,eg.e,eg.s+Math.min(30,(eg.e-eg.s)/2));
+  const ns=eb?eb.s:L.set+30; add("night",eb?"Blue hour and after dark":"After dark",ns,Math.min(1439,(eb?eb.e:ns)+150),Math.max(ns+10,L.set+35));
+  S.sort((a,b)=>a.rank-b.rank||a.s-b.s); tmrwSlots.c={key,v:S,fit:new Map()}; return S; }
+function tmrwFit(x){ const S=tmrwSlots(), F=tmrwSlots.c.fit; if(F.has(x.id)) return F.get(x.id); const r=S.find(o=>x.w.includes(o.k)&&ideaOpen(x,o.t,o.sky))||null; F.set(x.id,r); return r; }
+const tmrwSky = o => o.sky===undefined ? "no forecast yet" : o.k==="rain" ? (o.sky==="snow"?"snow likely":"rain likely") : o.sky ? WX_WORD[o.sky].toLowerCase() : "clear or some cloud";
+const tmrwHead = o => o.name+" "+hmSpan(o.s,o.e)+" · "+tmrwSky(o);
 function matches(savedOnly){ const t=new Date(), sky=state.onNow?skyAt(t):undefined;
   return cityIdeas().filter(x => (state.intent==="all"||x.i===state.intent) && (state.place==="all"||(state.place==="near"?nearSet().has(x.p):x.p===state.place))
-    && (state.when==="all"||x.w.includes(state.when)) && (!savedOnly||state.saved.has(x.id)) && qHit(x) && (!state.onNow||onNowIdea(x,t,sky)));
+    && (state.when==="all"||x.w.includes(state.when)) && (!savedOnly||state.saved.has(x.id)) && qHit(x) && (!state.onNow||onNowIdea(x,t,sky)) && (!state.tmrw||!!tmrwFit(x)));
 }
 /* What to say when search or On now leaves nothing, with a way out. */
-function qEmptyHtml(){ if(!state.q&&!state.onNow) return ""; const b=[];
+function qEmptyHtml(){ if(!state.q&&!state.onNow&&!state.tmrw) return ""; const b=[];
+  if(state.tmrw) b.push('<button type="button" class="chip" data-qclear="tmrw">Show every day</button>');
   if(state.q) b.push('<button type="button" class="chip" data-qclear="q">Clear the search</button>'); if(state.onNow) b.push('<button type="button" class="chip" data-qclear="now">Show all times</button>');
-  return '<p class="plain">Nothing'+(state.q?' matches “'+esc(state.q.trim())+'”':'')+(state.onNow?(state.q?' that is':'')+' on right now':'')+' with these filters.</p><div class="intents">'+b.join("")+'</div>'; }
+  return '<p class="plain">Nothing'+(state.q?' matches “'+esc(state.q.trim())+'”':'')+(state.onNow?(state.q?' that is':'')+' on right now':'')+(state.tmrw?' for tomorrow\u2019s light':'')+' with these filters.</p><div class="intents">'+b.join("")+'</div>'; }
 /* A short piece of the idea's text around the first search word, for list rows when the title alone does not show the match. */
 function qSnippet(x){ const T=qTokens(); if(!T.length) return ""; if(T.every(t=>qNorm(x.t).includes(" "+t))) return "";
   for(const src of [x.look,x.work,x.rule]){ const words=String(src).split(/\s+/); for(let i=0;i<words.length;i++){ if(T.some(t=>qNorm(words[i]).includes(" "+t))){ const a=Math.max(0,i-5), z=Math.min(words.length,i+7);
@@ -1990,7 +2007,7 @@ function pick(){
   const m = matches(false); if(!m.length){ state.current=null; return; }
   let pool = m.filter(x=>x.id!==state.current); if(!pool.length) pool = m;
   const t=new Date(), key=state.when!=="all"?state.when:lightAt(t), sky=skyAt(t);
-  const best=pool.map(x=>({x,s:shootScore(x,t,key,sky)+Math.random()*1.2})).sort((a,b)=>a.s-b.s)[0];
+  const best=pool.map(x=>{ const o=state.tmrw&&tmrwFit(x); return {x,s:(o?shootScore(x,o.t,o.k,o.sky)+o.rank*0.35:shootScore(x,t,key,sky))+Math.random()*1.2}; }).sort((a,b)=>a.s-b.s)[0];
   show(best.x.id);
 }
 function goNext(){ const m=matches(false), before=state.current; state.onlyOne=m.length<=1&&!!before&&m.some(x=>x.id===before);
@@ -2496,7 +2513,7 @@ function renderList(){ qCount();
   const again=state.view==="again", saved=state.view==="saved"||again, box=$("list"), m=again?matches(false).filter(x=>(lastShot(x.id)||{}).r==="again"):matches(state.view==="saved");
   const nAgain=cityIdeas().filter(x=>(lastShot(x.id)||{}).r==="again").length, nSaved0=cityIdeas().filter(x=>state.saved.has(x.id)).length;
   const sw='<div class="intents savedswitch"><button type="button" class="chip" data-listv="browse" aria-pressed="'+!saved+'">All ideas</button><button type="button" class="chip" data-listv="saved" aria-pressed="'+(state.view==="saved")+'">Saved ('+nSaved0+')</button>'+(nAgain||again?'<button type="button" class="chip" data-listv="again" aria-pressed="'+again+'">Try again ('+nAgain+')</button>':'')+'</div>';
-  if(!m.length&&!again&&!saved&&(state.q||state.onNow)){ box.innerHTML=sw+'<div class="empty">'+qEmptyHtml()+'</div>'; return; }
+  if(!m.length&&!again&&!saved&&(state.q||state.onNow||state.tmrw)){ box.innerHTML=sw+'<div class="empty">'+qEmptyHtml()+'</div>'; return; }
   if(!m.length){ box.innerHTML=sw+'<p class="empty">'+(again?"Nothing marked try again here. After Shot it, tap Try again on the card to bring an idea back when the light suits it.":saved?"Nothing saved here yet. Tap Save on an idea in Shoot to keep it in this list.":"No ideas fit these filters. Choose Any, or widen the place or the light.")+'</p>'; return; }
   const noted=cityIdeas().filter(x=>state.notes[x.id]);
   const nSaved=cityIdeas().filter(x=>state.saved.has(x.id)).length;
@@ -2514,6 +2531,13 @@ function renderList(){ qCount();
       '<span class="t"><b>'+qMarkTitle(x)+'</b><span>'+(!flat&&fit&&open?'<span class="nowtag">Now</span>':'')+(flat?esc(pl.name)+(mi!==null?' · '+milesText(mi):'')+' · '+status+(sort==="recent"&&last?' · shot '+esc(agoText(last.t)):''):esc(INTENTS[x.i].name)+(COMPOSE[x.id]?' · '+esc(TECH[COMPOSE[x.id][0]][0]):''))+'</span>'+(snip?'<span class="qsnip">'+snip+'</span>':'')+'</span>'+
       '<span class="marks">'+(state.saved.has(x.id)?'<span class="pill">Saved</span>':'')+(state.done.has(x.id)?'<span class="pill">'+((last||{}).r==="keep"?'Keeper':(last||{}).r==="again"?'Try again':'Shot')+'</span>':'')+(state.notes[x.id]?'<span class="pill">Note</span>':'')+'</span>'+
       '<span class="go" aria-hidden="true">›</span></button>'; };
+  if(state.tmrw&&!saved){ const d=tmrwDay(), S=tmrwSlots(), anyFc=S.some(o=>o.sky!==undefined);
+    const trow=(x,o)=>{ const pl=PLACES[x.p], mi=milesTo(pl), last=lastShot(x.id);
+      return '<button type="button" class="row'+(state.done.has(x.id)?" done":"")+'" data-id="'+x.id+'"><span class="dot" style="background:'+INTENTS[x.i].color+'"></span><span class="t"><b>'+qMarkTitle(x)+'</b><span>'+esc(pl.name)+(mi!==null?' · '+milesText(mi):'')+' · '+esc(INTENTS[x.i].name)+(state.done.has(x.id)?' · shot '+esc(agoText(last?last.t:Date.now())):'')+'</span></span>'+
+        '<span class="marks">'+(state.saved.has(x.id)?'<span class="pill">Saved</span>':'')+'</span><span class="go" aria-hidden="true">›</span></button>'; };
+    box.innerHTML=head.replace(sortSel,'')+'<p class="msg tmlead">Tomorrow, '+esc(d.toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"}))+': the ideas that suit its light'+(anyFc?' and forecast':'')+', grouped by when to shoot them, best light first.'+(anyFc?'':' The hourly forecast is not loaded, so rain is not taken into account.')+'</p>'+
+      S.map(o=>{ const L=m.filter(x=>tmrwFit(x)===o).map(x=>({x,d:milesTo(PLACES[x.p])})).sort((a,b)=>(state.done.has(a.x.id)-state.done.has(b.x.id))||((a.d===null?1e9:a.d)-(b.d===null?1e9:b.d))); if(!L.length) return "";
+        return '<section class="group flat tmgroup"><div class="group-head"><b>'+esc(o.name)+'</b><span class="where">'+esc(hmSpan(o.s,o.e)+' · '+tmrwSky(o)+' · '+L.length+' idea'+(L.length>1?'s':''))+'</span></div>'+L.map(r=>trow(r.x,o)).join("")+'</section>'; }).join("")+followAll(); return; }
   if(sort!=="place"){ const R=m.map(x=>({x,n:nowRank(x,t0,key0,sky0),d:milesTo(PLACES[x.p]),l:lastShot(x.id)}));
     if(sort==="now") R.sort((a,b)=>a.n-b.n);
     if(sort==="near") R.sort((a,b)=>(a.d===null?1e9:a.d)-(b.d===null?1e9:b.d)||a.n-b.n);
@@ -6449,15 +6473,17 @@ document.addEventListener("click",e=>{ const b=e.target.closest&&e.target.closes
   if(b.dataset.variant==="1") m[state.current]=1; else delete m[state.current]; store.set("ideaVariant",m); if(b.dataset.vgo) state.tab="settings"; render(); if(state.street) renderStreet(); });
 function refilter(){ if(!matches(false).some(x=>x.id===state.current)) pick(); render(); qCount(); }
 state.evGoing=new Set(store.get("evGoing",[])||[]); state.evLightFirst=!!store.get("evLightFirst",false); state.evWhenF=store.get("evWhenF","any")||"any";
-state.q=""; state.onNow=!!store.get("onNow",false); state.sort=store.get("isort","place")||"place";
-function qCount(){ const el=$("qCount"); if(!el) return; if((!state.q&&!state.onNow)||state.view!=="shoot"){ el.hidden=true; return; } const n=matches(false).length; el.hidden=false; el.textContent=n?n+" idea"+(n===1?"":"s")+(state.q?(n===1?" matches":" match"):"")+(state.onNow?(state.q?", on now":" on now"):"")+".":""; if(!n) el.hidden=true; }
+state.q=""; state.onNow=!!store.get("onNow",false); state.tmrw=!state.onNow&&!!store.get("tmrw",false); state.sort=store.get("isort","place")||"place";
+function qCount(){ const el=$("qCount"); if(!el) return; if((!state.q&&!state.onNow&&!state.tmrw)||state.view!=="shoot"){ el.hidden=true; return; } const n=matches(false).length; el.hidden=false; el.textContent=n?n+" idea"+(n===1?"":"s")+(state.q?(n===1?" matches":" match"):"")+(state.onNow?(state.q?", on now":" on now"):"")+(state.tmrw?(state.q?", for tomorrow\u2019s light":" for tomorrow\u2019s light"):"")+".":""; if(!n) el.hidden=true; }
 function syncDark(){ const b=$("afterDark"); if(!b) return; const on=state.when==="night"; b.setAttribute("aria-pressed",String(on)); b.textContent=on?"After dark ✓":"After dark"; }
-function syncOnNow(){ syncDark(); const b=$("onNow"); if(!b) return; b.setAttribute("aria-pressed",String(state.onNow)); b.textContent=state.onNow?"On now ✓":"On now"; }
+function syncOnNow(){ syncDark(); const b=$("onNow"); if(!b) return; b.setAttribute("aria-pressed",String(state.onNow)); b.textContent=state.onNow?"On now ✓":"On now";
+  const tb=$("tmrw"); if(tb){ tb.setAttribute("aria-pressed",String(!!state.tmrw)); tb.textContent=state.tmrw?"Tomorrow ✓":"Tomorrow"; } }
 let qT=0; $("q").addEventListener("input",e=>{ state.q=e.target.value; clearTimeout(qT); qT=setTimeout(refilter,160); });
 $("q").addEventListener("keydown",e=>{ if(e.key==="Enter") e.target.blur(); if(e.key==="Escape"){ e.target.value=""; state.q=""; refilter(); } });
-$("onNow").addEventListener("click",()=>{ state.onNow=!state.onNow; store.set("onNow",state.onNow); syncOnNow(); refilter(); });
+$("onNow").addEventListener("click",()=>{ state.onNow=!state.onNow; store.set("onNow",state.onNow); if(state.onNow){ state.tmrw=false; store.set("tmrw",false); } syncOnNow(); refilter(); });
+$("tmrw").addEventListener("click",()=>{ state.tmrw=!state.tmrw; store.set("tmrw",state.tmrw); if(state.tmrw){ state.onNow=false; store.set("onNow",false); } syncOnNow(); refilter(); });
 document.addEventListener("change",e=>{ if(e.target.id!=="isort") return; state.sort=e.target.value; store.set("isort",state.sort); render(); });
-document.addEventListener("click",e=>{ const b=e.target.closest&&e.target.closest("[data-qclear]"); if(!b) return; if(b.dataset.qclear==="q"){ state.q=""; $("q").value=""; } else { state.onNow=false; store.set("onNow",false); syncOnNow(); } refilter(); });
+document.addEventListener("click",e=>{ const b=e.target.closest&&e.target.closest("[data-qclear]"); if(!b) return; if(b.dataset.qclear==="q"){ state.q=""; $("q").value=""; } else if(b.dataset.qclear==="tmrw"){ state.tmrw=false; store.set("tmrw",false); syncOnNow(); } else { state.onNow=false; store.set("onNow",false); syncOnNow(); } refilter(); });
 syncOnNow();
 function cardToTop(){ const r=$("card").getBoundingClientRect(); if(r.top<0) window.scrollTo({top:window.scrollY+r.top-12,behavior:"smooth"}); }
 

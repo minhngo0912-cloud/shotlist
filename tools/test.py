@@ -1317,6 +1317,22 @@ def run(path, name):
         jr=pg.evaluate("((document.querySelector('#events details.event[data-id=marathon] .soon')||{}).textContent||'')")
         pg.clock.set_system_time("2026-10-11T15:00:00-04:00"); pg.evaluate("state.view='today'; render()")
         check("Events: yearly events more than four months away fold behind one button; the marathon a week after says it ran and when it is back", fr==[False,True,None,True] and jr.startswith("Ran Nov 1 · next Nov 7, 2027"), [fr,jr])
+        # Ideas: Tomorrow, grouped by tomorrow's light and forecast
+        pg.evaluate("state.view='browse'; state.intent='all'; state.place='all'; state.when='all'; state.q=''; state.onNow=false; state.tmrw=false; render()"); pg.wait_for_timeout(100)
+        pg.click("#tmrw"); pg.wait_for_timeout(150)
+        tm=pg.evaluate("""(()=>{ const S=tmrwSlots(), G=[...document.querySelectorAll('#list .tmgroup')], heads=G.map(g=>g.querySelector('.group-head b').textContent), n=G.reduce((a,g)=>a+g.querySelectorAll('.row').length,0), m=matches(false);
+          const goldIds=G.length&&heads[0]==='Golden hour'?[...G[0].querySelectorAll('.row')].map(b=>b.dataset.id):[];
+          return [state.tmrw, S.map(o=>o.k).join(), heads[0], n===m.length&&n>0, goldIds.length>0&&goldIds.every(id=>IDEAS.find(x=>x.id===id).w.includes('gold')), /Tomorrow, Monday, Oct 12/.test(document.querySelector('#list .tmlead').textContent), $('tmrw').getAttribute('aria-pressed')]; })()""")
+        check("Ideas › Tomorrow: tomorrow's light in slots (golden hour first), every listed idea under the slot it suits, the chip pressed", tm[0]==True and tm[1]=="gold,night,am,mid" and tm[2]=="Golden hour" and tm[3] and tm[4] and tm[5] and tm[6]=="true", tm)
+        tr=pg.evaluate("""(()=>{ const keep=WEATHER[state.city], T=[],P=[],M=[],C=[],K=[]; for(const d of ['11','12']) for(let h=0;h<24;h++){ T.push('2026-10-'+d+'T'+String(h).padStart(2,'0')+':00'); const r=d==='12'&&h>=15&&h<20; P.push(r?90:5); M.push(r?2:0); C.push(r?100:20); K.push(r?61:1); }
+          WEATHER[state.city]=Object.assign({},keep||{},{updated:'x'+Date.now(),hourly:{time:T,pop:P,mm:M,cc:C,code:K}}); render();
+          const S=tmrwSlots(), g=S.find(o=>o.id==='gold'), G=[...document.querySelectorAll('#list .tmgroup')], gh=G.find(x=>x.querySelector('.group-head b').textContent==='Golden hour'), ids=gh?[...gh.querySelectorAll('.row')].map(b=>b.dataset.id):[];
+          const r=[g&&g.k, !!gh&&/rain likely/.test(gh.textContent), ids.length>0&&ids.every(id=>IDEAS.find(x=>x.id===id).w.includes('rain'))]; WEATHER[state.city]=keep; return r; })()""")
+        check("Ideas › Tomorrow: a wet golden hour brings rain ideas instead, and says rain is likely", tr==["rain",True,True], tr)
+        pg.click("#onNow"); pg.wait_for_timeout(100); ct=pg.evaluate("[state.onNow, state.tmrw]"); pg.click("#onNow"); pg.click("#tmrw"); pg.wait_for_timeout(100)
+        pg.evaluate("state.view='shoot'; pick(); render()"); cc=pg.evaluate("[!!state.current, !!tmrwFit(IDEAS.find(x=>x.id===state.current)), $('qCount').textContent]")
+        pg.evaluate("state.tmrw=false; store.set('tmrw',false); syncOnNow(); state.view='today'; render()")
+        check("Ideas › Tomorrow and On now turn each other off; one at a time picks an idea for tomorrow's light", ct==[True,False] and cc[0] and cc[1] and "for tomorrow" in cc[2], [ct,cc])
         # Dark theme renders too
         pg.evaluate("document.documentElement.dataset.theme='dark'; state.view='shoot'; render()"); pg.wait_for_timeout(80)
         check("no script errors", not errors, errors[:3])
