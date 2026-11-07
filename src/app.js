@@ -1854,7 +1854,7 @@ const store = {
 };
 const state = {
   city: store.get("city","nyc"), intent: store.get("intent","all"), place: store.get("place","all"), when: store.get("when","all"),
-  camera: store.get("camera","q343"), view:"today", tab:"idea", cond:"auto", camCmp:store.get("camCmp",["q343","x100vi","griv"]), evNear:!!store.get("evNear",false), evRadius:store.get("evRadius",1)===2?2:1, lfF:43, lfN:8, lfS:3, drills:new Set(store.get("drills",[])), evType:"all", mapZoom:store.get("mapZoom","city"), ideasMode:store.get("ideasMode","card")==="list"?"list":"card", listView:"browse", home:(h=>h&&typeof h.lat==="number"&&typeof h.lon==="number"?h:null)(store.get("home",null)), homeEdit:false, weekSel:null, mapSel:null, mapEv:null, mapT:null, mapD:0, mapHead:false, heading:null, mapIntent:"all", mapShowEv:store.get("mapShowEv",true)!==false, mapShowLm:store.get("mapShowLm",true)!==false, mapShowSub:store.get("mapShowSub",true)!==false, mapShowStn:store.get("mapShowStn",true)!==false, mapShowSunny:store.get("mapShowSunny",true)!==false, mapShowSpots:store.get("mapShowSpots",true)!==false, mapShowNames:store.get("mapShowNames",true)!==false, mapShowHenge:store.get("mapShowHenge",true)!==false, mapShowShots:store.get("mapShowShots",true)!==false, mapShowReach:store.get("mapShowReach",true)!==false, mapShowWalk:store.get("mapShowWalk",true)!==false, mapShowRadar:!!store.get("mapShowRadar",false), mapShowWorks:store.get("mapShowWorks",true)!==false, mapWork:null, walkSel:null, mapNowOnly:!!store.get("mapNowOnly",false), ivIds:null, ivFocus:null, mapEvSpot:null, mapShowFerry:store.get("mapShowFerry",true)!==false, mapRun:null, mapFerry:null, sheet:"peek", mapLm:null, mapSpot:null, notes: store.get("notes",{}) || {}, pos:null, plan:null,
+  camera: store.get("camera","q343"), view:"today", tab:"idea", cond:"auto", camCmp:store.get("camCmp",["q343","x100vi","griv"]), evNear:!!store.get("evNear",false), evRadius:store.get("evRadius",1)===2?2:1, lfF:43, lfN:8, lfS:3, drills:new Set(store.get("drills",[])), evType:"all", mapZoom:store.get("mapZoom","city"), ideasMode:store.get("ideasMode","card")==="list"?"list":"card", listView:"browse", home:(h=>h&&typeof h.lat==="number"&&typeof h.lon==="number"?h:null)(store.get("home",null)), homeEdit:false, weekSel:null, mapSel:null, mapEv:null, mapT:null, mapD:0, mapHead:false, heading:null, mapIntent:"all", mapShowEv:store.get("mapShowEv",true)!==false, mapShowLm:store.get("mapShowLm",true)!==false, mapShowSub:store.get("mapShowSub",true)!==false, mapShowStn:store.get("mapShowStn",true)!==false, mapShowSunny:store.get("mapShowSunny",true)!==false, mapShowSpots:store.get("mapShowSpots",true)!==false, mapShowNames:store.get("mapShowNames",true)!==false, mapShowHenge:store.get("mapShowHenge",true)!==false, mapShowShots:store.get("mapShowShots",true)!==false, mapShowReach:store.get("mapShowReach",true)!==false, mapShowWalk:store.get("mapShowWalk",true)!==false, mapShowRadar:!!store.get("mapShowRadar",false), mapShowWorks:store.get("mapShowWorks",true)!==false, mapShowWet:store.get("mapShowWet",true)!==false, mapShowNew:!!store.get("mapShowNew",false), mapShowBusy:!!store.get("mapShowBusy",false), mapWork:null, walkSel:null, mapNowOnly:!!store.get("mapNowOnly",false), ivIds:null, ivFocus:null, mapEvSpot:null, mapShowFerry:store.get("mapShowFerry",true)!==false, mapRun:null, mapFerry:null, sheet:"peek", mapLm:null, mapSpot:null, notes: store.get("notes",{}) || {}, pos:null, plan:null,
   saved: new Set(store.get("saved",[])), done: new Set(store.get("done",[])), current:null, history:[],
   log: (o=>o&&typeof o==="object"&&!Array.isArray(o)?o:{})(store.get("log",{})), justShot:null, street:false, stayPrev:null
 };
@@ -2214,12 +2214,13 @@ function guideStart(id){
   const fail=()=>{ if(state.guide!==g) return; if(!g.fix){ g.err=true; } guideRender(); };
   if(!navigator.geolocation){ g.err=true; guideRender(); return; }
   try{ g.watch=navigator.geolocation.watchPosition(p=>{ if(state.guide!==g) return; state.pos={lat:p.coords.latitude,lon:p.coords.longitude}; g.acc=p.coords.accuracy; g.err=false;
-      state.posAcc=p.coords.accuracy; if(!g.fix){ g.fix=true; guideFit(); } mapDraw(); guideRender(); }, fail, {enableHighAccuracy:true, maximumAge:5000, timeout:20000}); }catch(e){ g.err=true; }
+      state.posAcc=p.coords.accuracy; seenAdd(p.coords.latitude,p.coords.longitude,p.coords.accuracy); if(!g.fix){ g.fix=true; guideFit(); } mapDraw(); guideRender(); }, fail, {enableHighAccuracy:true, maximumAge:5000, timeout:20000}); }catch(e){ g.err=true; }
   guideRender(); mapPanel(); }
 function guideStop(silent){ const g=state.guide; if(!g) return; try{ if(g.watch!=null) navigator.geolocation.clearWatch(g.watch); }catch(e){}
   state.guide=null; if(!state.mapHead) headingStop(); if(!silent){ guideRender(); mapDraw(); mapPanel(); } }
 function eventGeo(id){ const d=EVENT_DOCS[id]; return (d&&typeof d.lat==="number"&&typeof d.lon==="number"&&d.lat>40.4&&d.lat<41&&d.lon>-74.3&&d.lon<-73.6)?[d.lat,d.lon]:EVENT_GEO[id]||null; }
 function guideTarget(id){ if(id.startsWith("evs:")){ const k=id.slice(4), S=evRouteSpot(k); return S?[S[0],S[1],S[2],S[3],S[4]]:null; } if(id.startsWith("ev:")){ const e=EVENTS.find(x=>x.id===id.slice(3))||{id:id.slice(3),name:id.slice(3)}, g=eventGeo(id.slice(3)); const V=EVENT_VIEW[e.id]||{}; return g?[g[0],g[1],V.face||29,e.map&&e.map[0]?e.map[0]:e.name,e.spot||""]:null; }
+  if(id.startsWith("wet:")){ const P=WET_SPOTS[+id.slice(4)]; return P?[P[1],P[2],P[3],P[0],P[4]]:null; }
   if(id.startsWith("lm:")){ const L=LANDMARKS[+id.slice(3)]; return L?[L[1],L[2],L[6]||0,L[0],L[5]]:null; } const [pid,i]=id.split(":"); return SPOTS[pid]&&SPOTS[pid][+i]||null; }
 function guideInfo(){ const g=state.guide; if(!g||!state.pos) return null; const S=guideTarget(g.id); if(!S) return null;
   const to={lat:S[0],lon:S[1]}, km=kmBetween(state.pos,to); return {S, km, brg:bearingTo(state.pos,to), here:km*1000<=Math.max(20,Math.min(40,g.acc||0))}; }
@@ -2379,7 +2380,7 @@ function shootWhy(x){ const t=new Date(), key=lightAt(t), sky=skyAt(t), a=AVAIL[
 /* The shot log: each Shot it records when, and in what light; the last one can be rated keeper or try again. Kept on the device. */
 const shotLog = id => state.log[id]||[];
 const lastShot = id => { const l=state.log[id]; return l&&l.length?l[l.length-1]:null; };
-function saveLog(){ store.set("log",state.log); store.set("done",[...state.done]); }
+function saveLog(){ if(typeof SEEN!=="undefined") SEEN=null; store.set("log",state.log); store.set("done",[...state.done]); }
 function logShot(id){ const t=new Date(), i=nowInfo(), l=state.log[id]=state.log[id]||[], en={t:+t,k:lightAt(t),s:i.sky||null}; l.push(en); if(l.length>50) l.shift(); state.done.add(id); state.justShot=id; saveLog();
   // where you stood, for My shots on the map: a fresh fix if the phone gives one quickly
   try{ if(navigator.geolocation) navigator.geolocation.getCurrentPosition(p=>{ const a=p.coords.accuracy; if(a&&a>300) return; en.p=[+p.coords.latitude.toFixed(5),+p.coords.longitude.toFixed(5)]; state.pos={lat:p.coords.latitude,lon:p.coords.longitude}; state.posAcc=a; saveLog(); if(state.view==="map") mapDraw(); },()=>{},{enableHighAccuracy:true,maximumAge:60000,timeout:8000}); }catch(e){} }
@@ -3417,9 +3418,9 @@ function mapLayout(){ const m=$("map"); if(!m||state.view!=="map") return; if(st
   setSheet(state.sheet||"peek",true); headSize(); mapDraw(); }
 /* Map layers you can turn on and off */
 const MAP_LAYERS = [["mapShowEv","Events","Upcoming events, and what is on now","lg ev"],["mapShowLm","Landmarks","Buildings, views and bridge walkway entrances, with tips","lg lmk"],["mapShowSub","Subway lines","In MTA colours","lg sub"],["mapShowStn","Stations","Every subway station when zoomed in","lg stn"],
-  ["mapShowSunny","Sunny side","Which side of each street is in sun, while the sun is up","lg sunny"],["mapShowHenge","Light down the street","Streets that line up with the low sun on this day, and when","lg henge"],["mapShowFerry","Ferries","NYC Ferry and Staten Island Ferry routes, and which side of the boat has the light","lg ferry"],["mapShowSpots","Where to stand","Spots and lens wedges when zoomed in","lg spot"],["mapShowShots","My shots","Where you tapped Shot it: gold for keepers, grey for try again","lg myshot"],["mapShowReach","Time to get there","From where you are: minutes to each place, 15 and 30 min walking rings, and places you can't reach before the light ends fade","lg reach"],["mapShowWalk","My walks","Your route while Follow me is on, kept on this phone","lg walk"],["mapShowNames","Street and area names","","lg names"]].concat(PHOTOS_INLINE?[["mapShowWorks","Closures and film shoots","Streets closed for work, and film and TV shoots, this week (NYC Open Data)","lg works"],["mapShowRadar","Rain radar","The latest radar picture of rain and snow, every 10 minutes (RainViewer)","lg radar"]]:[]);
+  ["mapShowSunny","Sunny side","Which side of each street is in sun, while the sun is up","lg sunny"],["mapShowHenge","Light down the street","Streets that line up with the low sun on this day, and when","lg henge"],["mapShowFerry","Ferries","NYC Ferry and Staten Island Ferry routes, and which side of the boat has the light","lg ferry"],["mapShowSpots","Where to stand","Spots and lens wedges when zoomed in","lg spot"],["mapShowShots","My shots","Where you tapped Shot it: gold for keepers, grey for try again","lg myshot"],["mapShowReach","Time to get there","From where you are: minutes to each place, 15 and 30 min walking rings, and places you can't reach before the light ends fade","lg reach"],["mapShowWalk","My walks","Your route while Follow me is on, kept on this phone","lg walk"],["mapShowWet","Wet streets","After rain, while the pavement is still wet: where puddles and wet paving hold the best reflections","lg wet"],["mapShowNew","New to you","Shades the blocks you have walked or shot and marks the spots you have never stood at","lg new"],["mapShowNames","Street and area names","","lg names"]].concat(PHOTOS_INLINE?[["mapShowBusy","How busy","Quiet, busy or packed at 114 count sites for the hour you pick (NYC DOT pedestrian counts)","lg busy"],["mapShowWorks","Closures and film shoots","Streets closed for work, and film and TV shoots, this week (NYC Open Data)","lg works"],["mapShowRadar","Rain radar","The latest radar picture of rain and snow, every 10 minutes (RainViewer)","lg radar"]]:[]);
 /* Three ready-made sets of layers; single layers can still be changed below them. */
-const LAYER_SETS = {shoot:["mapShowEv","mapShowLm","mapShowSub","mapShowSpots","mapShowNames","mapShowShots","mapShowReach","mapShowWalk","mapShowWorks"], light:["mapShowEv","mapShowLm","mapShowSub","mapShowSpots","mapShowNames","mapShowShots","mapShowReach","mapShowWalk","mapShowWorks","mapShowSunny","mapShowHenge"], all:MAP_LAYERS.map(l=>l[0])};
+const LAYER_SETS = {shoot:["mapShowEv","mapShowLm","mapShowSub","mapShowSpots","mapShowNames","mapShowShots","mapShowReach","mapShowWalk","mapShowWorks","mapShowWet"], light:["mapShowEv","mapShowLm","mapShowSub","mapShowSpots","mapShowNames","mapShowShots","mapShowReach","mapShowWalk","mapShowWorks","mapShowWet","mapShowSunny","mapShowHenge"], all:MAP_LAYERS.map(l=>l[0])};
 const layerSetNow = () => Object.keys(LAYER_SETS).find(k=>MAP_LAYERS.every(([L])=>!!state[L]===LAYER_SETS[k].includes(L)))||"custom";
 function layerSet(k){ const S=LAYER_SETS[k]; if(!S) return; MAP_LAYERS.forEach(([L])=>{ state[L]=S.includes(L); store.set(L,state[L]); }); store.set("mapSet",k);
   if(!state.mapShowEv) state.mapEv=null; if(!state.mapShowLm) state.mapLm=null; if(!state.mapShowHenge) state.mapRun=null; if(!state.mapShowFerry) state.mapFerry=null; }
@@ -3427,7 +3428,8 @@ if(store.get("mapSet",null)===null) layerSet("shoot");
 else if(store.get("mapSetV",0)<2 && store.get("mapSet",null)!=="all"){ state.mapShowLm=true; store.set("mapShowLm",true); state.mapShowShots=true; store.set("mapShowShots",true); }
 if(store.get("mapSetV",0)<3){ const all=store.get("mapSet",null)==="all"; ["mapShowReach","mapShowWalk"].concat(all&&PHOTOS_INLINE?["mapShowRadar"]:[]).forEach(L=>{ state[L]=true; store.set(L,true); }); }
 if(store.get("mapSetV",0)<4&&PHOTOS_INLINE){ state.mapShowWorks=true; store.set("mapShowWorks",true); }
-store.set("mapSetV",4);
+if(store.get("mapSetV",0)<5){ state.mapShowWet=true; store.set("mapShowWet",true); if(store.get("mapSet",null)==="all") ["mapShowNew"].concat(PHOTOS_INLINE?["mapShowBusy"]:[]).forEach(L=>{ state[L]=true; store.set(L,true); }); }
+store.set("mapSetV",5);
 function mapLayersHtml(nLive){ const cur=layerSetNow(); return '<div class="mlayers-head"><b>Map layers</b><button type="button" class="mapselx" data-layersclose="1" aria-label="Close">×</button></div>'+
   '<div class="lsets" role="group" aria-label="Layer sets">'+[["shoot","Shoot","Pins, subway, events"],["light","Light","Adds sunny side and light down the street"],["all","Everything","Every layer"]].map(([k,t,sub])=>'<button type="button" class="lset" data-lset="'+k+'" aria-pressed="'+(cur===k)+'"><b>'+t+'</b><span>'+sub+'</span></button>').join("")+'</div>'+(cur==="custom"?'<p class="mlayers-sub">Your own mix</p>':'<p class="mlayers-sub">Or choose single layers</p>')+
   MAP_LAYERS.map(([k,t,sub,ic])=>'<button type="button" class="mlayer" data-layer="'+k+'" aria-pressed="'+!!state[k]+'"><span class="'+ic+'"></span><span class="t"><b>'+t+(k==="mapShowEv"&&nLive?' · '+nLive+' on now':'')+'</b>'+(sub?'<span>'+sub+'</span>':'')+'</span><span class="sw" aria-hidden="true"></span></button>').join("")+
@@ -4172,10 +4174,11 @@ function lightMarks(){ const L=lightDay(), tf=hmText, out=[], pos=m=>'calc(13px 
   { const c=CITIES[state.city], d=new Date(+mapDay()+12*36e5); const mt=moonTimes(d,c.lat,c.lon), mo=moonPos(d,c.lat,c.lon); if(mt.rise!==null&&mo.frac>0.15) out.push(["moon",mt.rise,(mo.frac>=0.97?"Full moonrise ":"Moonrise ")+tf(mt.rise)]); }
   if(state.mapShowHenge) for(const m of hengeDay().peaks) out.push(["henge",m,"Sun down the streets "+tf(m)]);
   for(const r of wxRuns().filter(r=>wxWet(r.k)).slice(0,2)) out.push(["rain",r.s*60,(r.k==="snow"?"Snow ":"Rain ")+tf(r.s*60)+" to "+tf(r.e*60)]);
+  if(state.mapShowWet) for(const r of wetSpells().slice(0,2)) out.push(["wet",r.s,"Wet streets "+tf(r.s)+" to "+tf(r.e)]);
   out.sort((a,b)=>a[1]-b[1]);
   const cur=state.mapT===null?(()=>{ const n=new Date(); return n.getHours()*60+n.getMinutes(); })():state.mapT, live=mapIsNow();
   $("lightTicks").innerHTML=[L.rise,L.set].map(m=>'<i style="left:'+pos(m)+'"></i>').join("");
-  const dur=k=>k==="gold"?60:k==="blue"?25:k==="henge"?15:k==="rain"?60:10, upcoming=x=>!live||x[1]+dur(x[0])>cur;
+  const dur=k=>k==="gold"?60:k==="blue"?25:k==="henge"?15:k==="rain"||k==="wet"?60:10, upcoming=x=>!live||x[1]+dur(x[0])>cur;
   return out.filter(upcoming).concat(out.filter(x=>!upcoming(x))).map(([k,m,t])=>'<button type="button" class="chip lmark'+(cur>=m&&cur<m+dur(k)?' on':'')+(m<cur&&live?' past':'')+'" data-jump="'+m+'"><span class="lk '+k+'"></span>'+t+'</button>').join(""); }
 /* Today's outing: kept on the device so it survives closing the app; editable from the map. */
 function savePlan(){ const p=state.plan; store.set("plan", p ? {start:+p.start,end:+p.end,stops:p.stops.map(s=>({place:s.place,at:+s.at,key:s.key,ideas:s.ideas.map(x=>x.id),leg:s.leg||null,ev:s.ev||null,mins:s.mins||null}))} : null); }
@@ -4188,10 +4191,10 @@ function legBetween(a,b){ const km=kmBetween(PLACES[a],PLACES[b]), walk=Math.rou
 function retimePlan(p){ let t=new Date(p.stops[0].at); p.stops.forEach((s,n)=>{ s.at=new Date(t); const k=lightAt(s.at); if(!s.ev&&(k!==s.key||!s.ideas.length)){ s.key=k; s.ideas=pickIdeas(s.place,k,Math.max(2,s.ideas.length),s.at); }
     t=new Date(+t+(s.ev?(s.mins||120):Math.max(1,s.ideas.length)*25)*6e4); if(n<p.stops.length-1){ s.leg=legBetween(s.place,p.stops[n+1].place); t=new Date(+t+s.leg.mins*6e4); } else delete s.leg; });
   p.start=new Date(p.stops[0].at); p.end=t; return p; }
-function planAdd(pid){ if(!state.plan){ const now=new Date(), k=lightAt(now); state.plan={start:now,end:now,stops:[{place:pid,at:now,key:k,ideas:pickIdeas(pid,k,2)}]}; }
+function planAdd(pid){ state.planMsg=null; if(!state.plan){ const now=new Date(), k=lightAt(now); state.plan={start:now,end:now,stops:[{place:pid,at:now,key:k,ideas:pickIdeas(pid,k,2)}]}; }
   else state.plan.stops.push({place:pid,at:new Date(),key:"",ideas:[]});
   retimePlan(state.plan); savePlan(); }
-function planRemove(pid){ if(!state.plan) return; state.plan.stops=state.plan.stops.filter(s=>s.place!==pid); if(!state.plan.stops.length) state.plan=null; else retimePlan(state.plan); savePlan(); }
+function planRemove(pid){ state.planMsg=null; if(!state.plan) return; state.plan.stops=state.plan.stops.filter(s=>s.place!==pid); if(!state.plan.stops.length) state.plan=null; else retimePlan(state.plan); savePlan(); }
 const planIndex = pid => state.plan ? state.plan.stops.findIndex(s=>s.place===pid) : -1;
 function nextStopIndex(){ const p=state.plan; if(!p) return -1; const now=Date.now(); const i=p.stops.findIndex(s=>+s.at+(s.ev?(s.mins||120):Math.max(1,s.ideas.length)*25)*6e4>now); return i<0?p.stops.length-1:i; }
 function mapGoStop(i){ const p=state.plan, s=p&&p.stops[i]; if(!s) return; const today=new Date(); today.setHours(0,0,0,0);
@@ -4219,6 +4222,7 @@ function mapPlanBar(){ const p=state.plan, tf=d=>d.toLocaleTimeString("en-US",{h
   if(!p) return '<div class="planhint"><p class="hint">Tap a pin and choose Add to today to build an outing on the map, or let the app plan one.</p><button type="button" class="chip primary" data-openplan="1">Plan an outing</button></div>';
   const nx=nextStopIndex();
   return '<div class="planbar"><div class="planbar-head"><b>Today\u2019s outing</b><span>'+tf(p.start)+' to about '+tf(p.end)+'</span><button type="button" class="chip primary" data-nextstop="1">Next stop ›</button><button type="button" class="chip" data-openplan="1">Details</button><button type="button" class="chip" data-clearplan="1">Clear</button></div>'+
+    (()=>{ const lb=planLeaveBy(), ok=planBestOK(), m=state.planMsg; return (lb?'<p class="msg planleave">'+esc(lb)+'</p>':'')+(ok?'<div class="intents planbest"><button type="button" class="chip" data-planbest="1">Best order for the light</button></div>':'')+(m?'<p class="msg planmsg">'+esc(m)+'</p>':''); })()+
     '<div class="intents planstops">'+p.stops.map((s,n)=>'<button type="button" class="chip stopchip'+(n===nx?" next":"")+'" data-stop="'+n+'"><span class="stopn">'+(n+1)+'</span>'+esc(s.ev?(EVENTS.find(x=>x.id===s.ev)||{name:s.ev}).name:PLACES[s.place].name)+' · '+tf(s.at)+'</button>').join("")+'</div>'+planLinks()+'</div>'; }
 function mapPts(){ const key=lightAt(mapNow()), ideas=cityIdeas().filter(i=>(state.mapIntent==="all"||i.i===state.mapIntent)&&(!state.mapDark||i.w.includes("night"))), t=mapNow(), cc=CITIES[state.city], night=sunPos(t,cc.lat,cc.lon).alt<-6, sky=night?skyAt(t):null;
   return Object.keys(CITIES[state.city].places).filter(id=>typeof PLACES[id].lat==="number").map(id=>{ const [x,y]=mapXY(PLACES[id].lat,PLACES[id].lon), mine=ideas.filter(i=>i.p===id);
@@ -4444,7 +4448,7 @@ function worksNear(lat,lon,day){ if(!state.mapShowWorks) return []; const [x,y]=
   return out.sort((a,b)=>a.d-b.d).slice(0,3); }
 function worksNearHtml(lat,lon){ const L=worksNear(lat,lon,mapDay()); if(!L.length) return ""; const day=mapDay();
   return '<p class="mapcount mworks">'+L.map(it=>'<button type="button" class="linkbtn" data-work="'+esc(it.id)+'">'+(it.k==="film"?'🎬 '+esc(wkTitle(it))+' on '+esc(it.segs.find(g=>g.pts).txt.split(" (")[0]):'🚧 Street work on '+esc(it.st))+', '+esc(wkWhen(it.s,it.e,day))+'</button>').join('<br>')+'</p>'; }
-function workPanel(k){ const it=worksItems(mapDay()).find(x=>x.id===k); if(!it) return '<p class="lead mlead">That has gone from the list.</p>'; const day=mapDay(), g=[40.95-it.y/2000, it.x/(0.758*2000)-74.30];
+function workPanel(k){ if(X_KINDS.test(k)) return xPanel(k); const it=worksItems(mapDay()).find(x=>x.id===k); if(!it) return '<p class="lead mlead">That has gone from the list.</p>'; const day=mapDay(), g=[40.95-it.y/2000, it.x/(0.758*2000)-74.30];
   const head='<section class="group mapsel"><button type="button" class="mapselx" data-unsel="1" aria-label="Close">×</button><div class="group-head"><b>'+(it.k==="film"?'🎬 '+esc(wkTitle(it)):'🚧 Street closed for work')+'</b><span class="where">'+esc(it.k==="film"?(it.b||"")+(it.b?' · ':'')+'film permit':it.st+(it.from?' · '+it.from+' to '+it.to:''))+'</span></div>';
   const when='<p class="mapcount"><b>'+esc(wkWhen(it.s,it.e,day))+'</b>'+(it.s<new Date()&&it.e>new Date()?' <span class="pill">On now</span>':'')+'</p>';
   const body=it.k==="film"
@@ -4452,7 +4456,165 @@ function workPanel(k){ const it=worksItems(mapDay()).find(x=>x.id===k); if(!it) 
       '<p class="hint">A permit holds parking and kerb space for trucks and equipment; the crew and the lit set can be anywhere on these blocks, and police often hold the sidewalk during takes. A set is a scene in itself: lights, vintage cars, extras in costume. The production is not named on the permit.</p>'
     : '<p class="mapcount">'+esc(it.why||"Construction")+'.</p><p class="hint">A full closure of the block for work: no through traffic, fences and plates, and often a crew in the road. Walk round it, or make it the picture.</p>';
   return head+when+body+'<div class="callinks"><a class="chip" href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint='+g[0].toFixed(6)+','+g[1].toFixed(6)+'&heading=0&pitch=0&fov=80" target="_blank" rel="noopener">Street View ↗</a><a class="chip" href="https://www.google.com/maps/dir/?api=1&destination='+g[0].toFixed(5)+','+g[1].toFixed(5)+'&travelmode=walking" target="_blank" rel="noopener">Walking directions ↗</a></div><p class="hint">NYC Open Data: '+(it.k==="film"?"Film Permits (Mayor's Office of Media and Entertainment)":"Street Closures due to Construction (DOT)")+', fetched '+hmText(new Date(WORKS.at).getHours()*60+new Date(WORKS.at).getMinutes())+'.</p></section>'; }
-function mapSelectWork(k){ state.mapWork=k; state.mapSel=null; state.mapEv=null; state.mapLm=null; state.mapRun=null; state.mapFerry=null; state.mapSpot=null; state.mapEvSpot=null; mapDraw(); mapPanel(); const it=worksItems(mapDay()).find(x=>x.id===k); if(it) requestAnimationFrame(()=>{ mapDraw(); if(!state.mapHead) mapFly(mapAim({cx:it.x,cy:it.y,w:Math.min(mapV.w,16)})); }); }
+/* Four map additions: the outing in the best order for the light, how busy each count site is, the spots new to you, and wet streets after rain.
+   Their map items reuse the closures' tap path (data-wk), with ids that start "busy:", "wet:" or "new:". */
+const X_KINDS = /^(busy|wet|new):/;
+
+/* The outing in the best order for the light. The start time stays; every order of the stops is tried (up to seven, a greedy pass for more)
+   and the one that puts the most stops in light their ideas suit wins, with less travel as the tie-break. Event stops keep fixed times,
+   so an outing with an event is left as it is. */
+function planSim(order,start){ let t=new Date(start), fits=0, score=0, travel=0; const IDX=planSim.idx||(planSim.idx={});
+  order.forEach((s,n)=>{ const all=IDX[s.place]||(IDX[s.place]=cityIdeas().filter(x=>x.p===s.place)), k=lightAt(t), open=all.filter(x=>ideaOpen(x,t)), fit=open.filter(x=>x.w.includes(k)).length;
+    if(fit){ fits++; score+=10+Math.min(fit,3)+(k==="gold"?4:0); } else if(open.length) score+=1;
+    t=new Date(+t+Math.max(1,s.ideas.length)*25*6e4);
+    if(n<order.length-1){ const L=legBetween(s.place,order[n+1].place); travel+=L.mins; t=new Date(+t+L.mins*6e4); } });
+  return {fits,score:score-travel/6,travel,end:t}; }
+const planBestOK = () => { const p=state.plan; return !!p&&p.stops.length>=3&&!p.stops.some(s=>s.ev); };
+function planBestOrder(apply){ const p=state.plan; if(!planBestOK()) return null; planSim.idx={};
+  const start=new Date(p.stops[0].at), n=p.stops.length, cur=planSim(p.stops,start); let best={o:p.stops,r:cur};
+  const consider=o=>{ const r=planSim(o,start); if(r.score>best.r.score+0.01) best={o:o.slice(),r}; };
+  if(n<=7){ const a=p.stops.slice(), c=new Array(n).fill(0); let i=0; while(i<n){ if(c[i]<i){ const j=i%2?c[i]:0; [a[j],a[i]]=[a[i],a[j]]; consider(a); c[i]++; i=0; } else { c[i]=0; i++; } } }
+  else p.stops.forEach(f=>{ const o=[f], rest=p.stops.filter(s=>s!==f); while(rest.length){ let bi=0, bs=-1e9; rest.forEach((r,i)=>{ const sc=planSim(o.concat([r]),start).score; if(sc>bs){ bs=sc; bi=i; } }); o.push(rest.splice(bi,1)[0]); } consider(o); });
+  const same=best.o===p.stops, out={same,before:cur.fits,after:best.r.fits,n,travelBefore:cur.travel,travelAfter:best.r.travel};
+  if(apply&&!same){ p.stops=best.o.map(s=>({place:s.place,at:new Date(start),key:"",ideas:s.ideas.slice()})); retimePlan(p); savePlan(); }
+  return out; }
+function planBestMsg(r){ if(!r) return ""; const tr=(a,b)=>b<a?", "+(a-b)+" min less travel":b>a?", "+(b-a)+" min more travel":"";
+  return r.same ? "Already the best order: "+r.before+" of "+r.n+" stops are in light that suits their ideas."
+    : "Reordered: "+r.after+" of "+r.n+" stops now in light that suits their ideas (was "+r.before+")"+tr(r.travelBefore,r.travelAfter)+"."; }
+/* When to leave for the first stop, from where you are. */
+function planLeaveBy(){ const p=state.plan; if(!p||!state.pos) return ""; const s=p.stops[0], P=s&&PLACES[s.place]; if(!P||typeof P.lat!=="number") return "";
+  const now=new Date(); if(s.at<=now) return ""; const r=tripTo(s.place); if(!r||kmBetween(state.pos,P)<0.15) return "";
+  const leave=new Date(+s.at-r.min*6e4), how=r.by==="train"?"by train":"on foot";
+  return leave<=now ? "Leave now: the first stop is "+r.min+" min away "+how : "Leave by "+hmText(leave.getHours()*60+leave.getMinutes())+" · "+r.min+" min "+how; }
+
+/* How busy: NYC DOT's pedestrian counts at 114 sites (mostly shopping streets and the East River bridges), counted every spring and autumn
+   on a weekday morning, a weekday evening and at midday. The installed app fetches them once a month. Each site is ranked against the
+   others for the hour you pick: quiet (the lower 40%), busy, or packed (the top 20%). No counts are taken at night. */
+const PED={at:0,busy:false,rows:null,err:false};
+const PED_URL="https://data.cityofnewyork.us/resource/cqsj-cfgu.json?$limit=500";
+const PED_MON={may:5,jun:6,june:6,sep:9,sept:9,oct:10};
+const PED_NAME={am:"weekday morning",md:"midday",pm:"weekday evening"};
+const MONTH_NAME=["","January","February","March","April","May","June","July","August","September","October","November","December"];
+function pedParse(rows){ const out=[]; for(const r of rows||[]){ const g=r&&r.the_geom&&r.the_geom.coordinates; if(!g||g.length<2||!(+g[1]>40.4&&+g[1]<41)) continue; const per={am:[],md:[],pm:[]};
+    for(const [k,v] of Object.entries(r)){ const m=/^([a-z]+?)_?(\d\d)_(am|pm|p_m|md)$/.exec(k); if(!m||PED_MON[m[1]]===undefined) continue; const n=parseFloat(String(v).replace(/,/g,"")); if(!(n>=0)) continue; per[m[3]==="p_m"?"pm":m[3]].push({y:2000+(+m[2]),mo:PED_MON[m[1]],n}); }
+    const c={}; for(const k of ["am","md","pm"]){ const L=per[k].sort((a,b)=>a.y-b.y||a.mo-b.mo); if(!L.length) continue; const z=L[L.length-1], last=L.slice(-4);
+      c[k]={n:z.n,y:z.y,mo:z.mo,avg:Math.round(last.reduce((a,o)=>a+o.n,0)/last.length)}; }
+    if(!Object.keys(c).length) continue;
+    out.push({id:String(r.loc||r.objectid),lat:+(+g[1]).toFixed(5),lon:+(+g[0]).toFixed(5),st:String(r.street_nam||"").trim(),from:String(r.from_stree||"").trim(),to:String(r.to_street||"").trim(),b:String(r.borough||"").trim(),c}); }
+  return out; }
+function pedGet(){ if(!PHOTOS_INLINE||!state.mapShowBusy) return; if(!PED.rows){ const c=store.get("ped",null); if(c&&c.at&&Array.isArray(c.rows)){ PED.rows=c.rows; PED.at=c.at; pedRank(); } }
+  if(PED.busy||Date.now()-PED.at<30*864e5) return; PED.busy=true;
+  fetch(PED_URL).then(r=>r.ok?r.json():Promise.reject(r.status)).then(j=>{ const rows=pedParse(j); if(rows.length){ PED.rows=rows; PED.err=false; pedRank(); try{ store.set("ped",{at:Date.now(),rows}); }catch(e){} } })
+    .catch(()=>{ PED.err=true; }).finally(()=>{ PED.busy=false; PED.at=Date.now(); if(state.view==="map"){ mapDraw(); mapPanel(); } }); }
+/* The cut-offs for each count period: the 40th and 80th percentile across the sites */
+function pedRank(){ PED.q={}; for(const k of ["am","md","pm"]){ const v=(PED.rows||[]).map(r=>r.c[k]&&r.c[k].avg).filter(n=>n>0).sort((a,b)=>a-b); if(!v.length) continue; const q=f=>v[Math.min(v.length-1,Math.floor(f*v.length))]; PED.q[k]=[q(0.4),q(0.8),v]; } }
+function pedPeriod(t){ const d=t.getDay(), h=t.getHours(), we=d===0||d===6, night=h>=21||h<6; return {k:we?"md":h<11?"am":h<15?"md":"pm",we,night}; }
+function pedTier(r,k){ const kk=r.c[k]?k:["md","pm","am"].find(q=>r.c[q]), c=kk&&r.c[kk], Q=PED.q&&PED.q[kk]; if(!c||!Q) return null;
+  const pct=Math.round(100*Q[2].filter(n=>n<c.avg).length/Q[2].length); return {t:c.avg<Q[0]?"quiet":c.avg<Q[1]?"busy":"packed",c,pct,k:kk}; }
+const PED_WORD={quiet:"Quiet",busy:"Busy",packed:"Packed"};
+const PED_TIP={quiet:"Room for one figure: pick a background with some light on it and wait for a single walker to cross it.",
+  busy:"A steady stream: fix the frame on a lit shop front or a corner and shoot the gaps and overlaps as people pass.",
+  packed:"Crowds: go long to stack the faces, shoot down from steps or a raised spot, or slow the shutter and let the stream blur round someone standing still."};
+const pedName = r => r.st+(r.from&&r.to?" ("+r.from+" to "+r.to+")":"");
+function busySvg(x0,y0,x1,y1,u,w,f){ if(!PHOTOS_INLINE||!state.mapShowBusy) return ""; pedGet(); if(!PED.rows||w>=260) return ""; const P=pedPeriod(mapNow()); let s="";
+  for(const r of PED.rows){ const [x,y]=mapXY(r.lat,r.lon); if(x<x0||x>x1||y<y0||y>y1) continue; const T=pedTier(r,P.k); if(!T) continue; const on=state.mapWork==="busy:"+r.id, rad=({quiet:3.6,busy:5.4,packed:7.4})[T.t]*u*(w<60?1.25:1);
+    s+='<g class="m-xit m-busy '+T.t+(P.night?' late':'')+(on?' on':'')+'" data-wk="busy:'+esc(r.id)+'" role="button" tabindex="0" aria-label="'+esc(PED_WORD[T.t]+': '+pedName(r))+'"><circle cx="'+f(x)+'" cy="'+f(y)+'" r="'+f(rad+6*u)+'" class="m-hit"/><circle cx="'+f(x)+'" cy="'+f(y)+'" r="'+f(rad)+'" stroke-width="'+f(1.3*u)+'" class="m-busyd"/>'+
+      (w<60?'<text x="'+f(x+rad+3*u)+'" y="'+f(y+3*u)+'" font-size="'+f(8.5*u)+'" class="m-busyt">'+PED_WORD[T.t]+'</text>':'')+'</g>'; }
+  return s; }
+function busyPanel(id){ const r=(PED.rows||[]).find(x=>x.id===id); if(!r) return '<p class="lead mlead">That count site has gone from the list.</p>'; const t=mapNow(), P=pedPeriod(t), T=pedTier(r,P.k);
+  const row=k=>{ const c=r.c[k]; if(!c) return ""; const X=pedTier(r,k); return '<li>'+PED_NAME[k][0].toUpperCase()+PED_NAME[k].slice(1)+': <b class="busyw '+X.t+'">'+esc(PED_WORD[X.t].toLowerCase())+'</b> · '+c.n.toLocaleString("en-US")+' people in the '+MONTH_NAME[c.mo]+' '+c.y+' count</li>'; };
+  return '<section class="group mapsel"><button type="button" class="mapselx" data-unsel="1" aria-label="Close">×</button><div class="group-head"><b>🚶 '+esc(r.st)+'</b><span class="where">'+esc((r.from&&r.to?r.from+' to '+r.to:'')+(r.b?' · '+r.b:''))+'</span></div>'+
+    (T?'<p class="mapcount"><b class="busyw '+T.t+'">'+PED_WORD[T.t]+'</b> at '+hmText(t.getHours()*60+t.getMinutes())+(P.we?' on a weekend':'')+': busier than '+T.pct+'% of the city’s count sites, going by the '+PED_NAME[T.k]+' counts.'+(P.night?' There are no counts at night, so this is the evening’s level and the street will be quieter.':'')+'</p><p class="hint">'+esc(PED_TIP[T.t])+'</p>':'')+
+    '<ul class="wkl">'+["am","md","pm"].map(row).join("")+'</ul>'+
+    '<div class="callinks"><a class="chip" href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint='+r.lat.toFixed(6)+','+r.lon.toFixed(6)+'&heading=0&pitch=0&fov=80" target="_blank" rel="noopener">Street View ↗</a><a class="chip" href="https://www.google.com/maps/dir/?api=1&destination='+r.lat.toFixed(5)+','+r.lon.toFixed(5)+'&travelmode=walking" target="_blank" rel="noopener">Walking directions ↗</a></div>'+
+    '<p class="hint">NYC Open Data: Bi-Annual Pedestrian Counts (DOT), counted on the sidewalks mid-block each spring and autumn. Each level is the average of the last four counts for that time of day, ranked against the other sites. Counts only cover these sites, not every street.</p></section>'; }
+
+/* New to you: where you have been, in squares of about 100 m, from Follow me and Guide me fixes, your walks and where you marked Shot it.
+   It is kept on this phone. A spot counts as yours once you have stood within one square of it, or shot its idea. */
+const SEEN_LAT=0.0009, SEEN_LON=0.0012, seenKey=(lat,lon)=>Math.round(lat/SEEN_LAT)+":"+Math.round(lon/SEEN_LON);
+var SEEN=null;   // var: saveLog resets it and may run before this line in theory
+function seenAll(){ if(SEEN) return SEEN; const s=new Set(store.get("seen",[])||[]);
+  for(const wk of (state.walks||walksAll())) for(const p of wk.pts||[]) s.add(seenKey(p[0],p[1]));
+  for(const l of Object.values(state.log||{})) (l||[]).forEach(en=>{ if(en&&en.p) s.add(seenKey(en.p[0],en.p[1])); });
+  const ES=state.evShots||store.get("evShots",{})||{}; for(const m of Object.values(ES)) for(const en of Object.values(m||{})) if(en&&en.p) s.add(seenKey(en.p[0],en.p[1]));
+  return SEEN=s; }
+function seenAdd(lat,lon,acc){ if(!(acc>0)||acc>60||typeof lat!=="number") return; const k=seenKey(lat,lon), S=seenAll(); if(S.has(k)) return; S.add(k);
+  const L=store.get("seen",[])||[]; L.push(k); while(L.length>20000) L.shift(); store.set("seen",L); }
+function seenNear(lat,lon){ const S=seenAll(), a=Math.round(lat/SEEN_LAT), b=Math.round(lon/SEEN_LON); for(let i=-1;i<=1;i++) for(let j=-1;j<=1;j++) if(S.has((a+i)+":"+(b+j))) return true; return false; }
+function spotsAll(){ const out=[], C=CITIES[state.city].places; for(const [pid,list] of Object.entries(SPOTS)){ if(!PLACES[pid]||!C[pid]) continue; list.forEach((S,i)=>out.push({pid,i,S,id:pid+":"+i})); } return out; }
+const spotNew = o => !seenNear(o.S[0],o.S[1]) && !(o.S[5]&&state.done.has(o.S[5]));
+function newSpots(){ const all=spotsAll(); return {all,fresh:all.filter(spotNew)}; }
+const minsFrom = (from,o) => walkMin(kmBetween(from,{lat:o.S[0],lon:o.S[1]}));
+function seenSvg(x0,y0,x1,y1,u,w,f){ if(!state.mapShowNew||w>=150) return ""; let s=""; const dx=SEEN_LON*0.758*2000, dy=SEEN_LAT*2000;
+  for(const k of seenAll()){ const [a,b]=k.split(":").map(Number), [x,y]=mapXY(a*SEEN_LAT,b*SEEN_LON); if(x<x0-dx||x>x1+dx||y<y0-dy||y>y1+dy) continue; s+='M'+f(x-dx/2)+' '+f(y-dy/2)+'h'+f(dx)+'v'+f(dy)+'h'+f(-dx)+'z'; }
+  return s?'<path d="'+s+'" class="m-seen"/>':""; }
+function newSvg(x0,y0,x1,y1,u,w,f){ if(!state.mapShowNew||w>=330) return ""; let s=""; const r=(w<60?6:4.6)*u;
+  for(const o of newSpots().fresh){ const [sx,sy]=mapXY(o.S[0],o.S[1]); if(sx<x0||sx>x1||sy<y0||sy>y1) continue; const on=state.mapWork==="new:"+o.id, near=w<130, x=sx+(near?8.5*u:0), y=sy-(near?8.5*u:0);
+    s+='<g class="m-xit m-new'+(on?' on':'')+'" data-wk="new:'+esc(o.id)+'" role="button" tabindex="0" aria-label="'+esc('New to you: '+o.S[3]+', '+PLACES[o.pid].name)+'"><circle cx="'+f(x)+'" cy="'+f(y)+'" r="'+f(r+6*u)+'" class="m-hit"/><path d="'+starPath(x,y,r,f)+'" stroke-width="'+f(1.1*u)+'" class="m-newd"/></g>'; }
+  return s; }
+function starPath(x,y,r,f){ let d=""; for(let i=0;i<8;i++){ const a=i*Math.PI/4-Math.PI/2, rr=i%2?r*0.45:r; d+=(i?'L':'M')+f(x+Math.cos(a)*rr)+' '+f(y+Math.sin(a)*rr); } return d+'Z'; }
+function newPanel(id){ const [pid,i]=id.split(":"), S=SPOTS[pid]&&SPOTS[pid][+i]; if(!S) return '<p class="lead mlead">That spot has gone.</p>'; const o={pid,i:+i,S,id}, fresh=spotNew(o), t=mapNow(), lf=lightFacing(S[2],t);
+  const others=newSpots().fresh.filter(q=>q.id!==id).map(q=>({q,m:minsFrom({lat:S[0],lon:S[1]},q)})).sort((a,b)=>a.m-b.m).slice(0,4);
+  const from=state.pos?minsFrom(state.pos,o):null;
+  return '<section class="group mapsel"><button type="button" class="mapselx" data-unsel="1" aria-label="Close">×</button><div class="group-head"><b>✦ '+esc(S[3])+'</b><span class="where">'+esc(PLACES[pid].name)+(from!==null&&from<=90?' · '+from+' min walk from you':'')+'</span></div>'+
+    '<p class="mapcount">'+(fresh?'<b>New to you.</b> You have not stood within about 100 m of here or shot this idea yet.':'<b>You have been here.</b>')+'</p><p class="mapcount">'+esc(S[4])+'</p>'+
+    '<p class="maplight"><span class="sdot '+lf.k+'"></span><b>'+lf.txt+' at '+hmText(t.getHours()*60+t.getMinutes())+'</b> facing '+compass(S[2])+'.</p>'+
+    '<div class="callinks guidecta">'+(state.guide&&state.guide.id===id?'<button type="button" class="chip" data-guidestop="1">Stop guiding</button>':'<button type="button" class="chip primary" data-guide="'+esc(id)+'">Guide me there</button>')+'<button type="button" class="chip" data-spot="'+esc(id)+'">The spot and its idea</button></div>'+
+    (others.length?'<p class="spothead">Also new nearby</p><div class="intents">'+others.map(({q,m})=>'<button type="button" class="chip" data-wkgo="new:'+esc(q.id)+'">'+esc(q.S[3])+' · '+m+' min</button>').join("")+'</div>':'')+
+    '<p class="hint">Where you have been comes from Follow me, Guide me there, your walks and Shot it, and stays on this phone.</p></section>'; }
+function newLead(){ if(!state.mapShowNew) return ""; const N=newSpots(), done=N.all.length-N.fresh.length, from=state.pos||(mapV?{lat:40.95-mapV.cy/2000,lon:mapV.cx/(0.758*2000)-74.30}:CITIES[state.city]);
+  const near=N.fresh.map(q=>({q,m:minsFrom(from,q)})).sort((a,b)=>a.m-b.m).slice(0,3);
+  return '<div class="xlead newlead"><p class="msg"><b>✦ New to you</b> · you have stood at '+done+' of '+N.all.length+' spots.'+(near.length?' Nearest new'+(state.pos?' to you':' to the middle of the map')+':':'')+'</p>'+(near.length?'<div class="intents">'+near.map(({q,m})=>'<button type="button" class="chip" data-wkgo="new:'+esc(q.id)+'">'+esc(q.S[3])+' · '+m+' min</button>').join("")+'</div>':'')+'</div>'; }
+
+/* Wet streets: rain leaves the pavement shining for an hour or two after it stops (longer when it is cold, less after a light shower).
+   Reads the hourly forecast. The spots are wide paving, cobbles and lit streets where puddles hold a reflection; positions are approximate. */
+const WET_SPOTS=[
+  ["Times Square, the red steps",40.7590,-73.9851,190,"Billboards double in the wet square. After dark, crouch until a puddle holds the screens and a walker crosses them."],
+  ["Washington Street cobbles, DUMBO",40.7033,-73.9897,0,"Wet Belgian blocks shine under the Manhattan Bridge. Get the lens a hand above the stones so the street becomes a mirror."],
+  ["Flatiron plazas, Fifth Avenue at 23rd",40.7414,-73.9894,195,"Wide paving in front of the Flatiron: stand so its prow is reflected in the plaza and wait for an umbrella."],
+  ["42nd Street at Vanderbilt",40.7525,-73.9785,90,"Taxi lights and the terminal's windows in wet asphalt. Shoot east along 42nd from the corner as the lights change."],
+  ["Channel Gardens, Rockefeller Center",40.7586,-73.9775,250,"The wet promenade between Fifth Avenue and the plaza mirrors the lights and, in season, the tree."],
+  ["Lincoln Center plaza",40.7724,-73.9835,270,"The plaza's stone holds the opera house windows; after dark the fountain lights stretch across the wet paving."],
+  ["Bethesda Terrace",40.7740,-73.9710,0,"Wet steps and terrace stone below the arcade, with walkers under umbrellas. The arcade is cover if it starts again."],
+  ["Gansevoort Street cobbles",40.7393,-74.0068,270,"Old cobbles in the Meatpacking District catch the shop lights and the low sun when the rain clears to the west."],
+  ["Stone Street, Financial District",40.7043,-74.0104,225,"A narrow cobbled lane between old buildings. The wet stones lead the eye to a figure at the far end."],
+  ["Mott Street at Pell Street, Chinatown",40.7149,-73.9980,340,"Neon and shop signs bleed colour into the wet street. Shoot up Mott from Pell as the umbrellas pass."],
+  ["Herald Square",40.7497,-73.9877,90,"Crowds, crossing lights and the store front in the wet road. Stand on the island and look across 34th Street."],
+  ["Columbus Circle",40.7681,-73.9819,200,"The circle's paving reflects the towers and traffic lights. The fountains' rim is a low edge to shoot from."],
+  ["Union Square north plaza",40.7365,-73.9906,180,"Open paving that floods in shallow sheets. Reflections of the market stalls and walkers, upside down."],
+  ["St. Marks Place, East Village",40.7290,-73.9878,90,"Shop signs and neon on the short block east of Third Avenue, doubled in the wet pavement after dark."],
+  ["32nd Street, Koreatown",40.7477,-73.9867,90,"Stacked signs up the buildings, reflected in the street. Best from the Broadway end at night."],
+  ["Oculus and the WTC plaza",40.7115,-74.0112,90,"The white ribs of the Oculus over wet granite. Find a shallow puddle on the plaza and shoot low into it."]];
+function wetAt(t){ const f0=hourlyAt(t); if(!f0) return null; const s0=skyAt(t); if(s0==="rain"||(f0.mm!=null&&f0.mm>=0.3&&s0!=="snow")) return {k:"rain"}; if(s0==="snow") return null;
+  const base=new Date(t); base.setMinutes(0,0,0); let mm=0, end=null;
+  for(let k=1;k<=4;k++){ const tt=new Date(+base-k*36e5), f=hourlyAt(tt); if(!f) break; const w=skyAt(tt)==="rain"||(f.mm!=null&&f.mm>=0.3); if(w){ if(end===null) end=new Date(+tt+36e5); mm+=f.mm||0; } else if(end!==null) break; }
+  if(end===null) return null; const fe=hourlyAt(new Date(+end-36e5)), temp=fe&&fe.temp!=null?fe.temp:f0.temp; let dry=temp==null?2:temp>=22?1:temp<=8?3:2; if(mm<0.5) dry=Math.max(1,dry-1);
+  const until=new Date(+end+dry*36e5); return t<until?{k:"wet",since:end,until,mm}:null; }
+/* The wet spells on the map's day, for the light marks: from when the rain stops to when the pavement should be dry */
+function wetSpells(){ const d=mapDay(), out=[], seen=new Set(); for(let h=0;h<24;h++){ const W=wetAt(clk(d,h*60+30)); if(!W||W.k!=="wet"||seen.has(+W.since)) continue; seen.add(+W.since);
+    out.push({s:Math.max(0,Math.round((W.since-d)/6e4)),e:Math.min(1439,Math.round((W.until-d)/6e4))}); } return out; }
+function wetSvg(x0,y0,x1,y1,u,w,f){ if(!state.mapShowWet||w>=330) return ""; const W=wetAt(mapNow()); if(!W) return ""; let s=""; const r=(w<60?7:5.5)*u;
+  WET_SPOTS.forEach((P,i)=>{ const [x,y]=mapXY(P[1],P[2]); if(x<x0||x>x1||y<y0||y>y1) return; const on=state.mapWork==="wet:"+i;
+    s+='<g class="m-xit m-wet'+(on?' on':'')+(W.k==="rain"?' raining':'')+'" data-wk="wet:'+i+'" role="button" tabindex="0" aria-label="'+esc('Wet street reflections: '+P[0])+'"><circle cx="'+f(x)+'" cy="'+f(y)+'" r="'+f(r+6*u)+'" class="m-hit"/>'+
+      '<path d="M'+f(x)+' '+f(y-r)+'C'+f(x+r*0.35)+' '+f(y-r*0.4)+' '+f(x+r*0.75)+' '+f(y-r*0.05)+' '+f(x+r*0.75)+' '+f(y+r*0.3)+'A'+f(r*0.75)+' '+f(r*0.75)+' 0 0 1 '+f(x-r*0.75)+' '+f(y+r*0.3)+'C'+f(x-r*0.75)+' '+f(y-r*0.05)+' '+f(x-r*0.35)+' '+f(y-r*0.4)+' '+f(x)+' '+f(y-r)+'Z" stroke-width="'+f(1.2*u)+'" class="m-wetd"/>'+
+      (w<60?'<text x="'+f(x+r+3*u)+'" y="'+f(y+3*u)+'" font-size="'+f(8.5*u)+'" class="m-wett">'+esc(P[0])+'</text>':'')+'</g>'; });
+  return s; }
+function wetWords(W){ const tf=d=>hmText(d.getHours()*60+d.getMinutes()); return !W?"":W.k==="rain"?"Raining at this hour: puddles are forming":"Streets wet until about "+tf(W.until)+" · the rain "+(W.since<=mapNow()?"stopped":"stops")+" around "+tf(W.since); }
+function wetPanel(i){ const P=WET_SPOTS[+i]; if(!P) return '<p class="lead mlead">That spot has gone.</p>'; const t=mapNow(), W=wetAt(t), cc=CITIES[state.city], dark=sunPos(t,cc.lat,cc.lon).alt<-4;
+  return '<section class="group mapsel"><button type="button" class="mapselx" data-unsel="1" aria-label="Close">×</button><div class="group-head"><b>💧 '+esc(P[0])+'</b><span class="where">Reflections after rain</span></div>'+
+    '<p class="mapcount"><b>'+esc(W?wetWords(W):"Dry at this hour. This spot shines for an hour or two after rain.")+'</b></p><p class="mapcount">'+esc(P[4])+'</p>'+
+    '<p class="hint">'+(dark?'After dark the puddles hold the lights: expose for the brightest sign and let the street go dark around it.':'By day the puddles hold the sky and the buildings: the brighter the sky, the stronger the reflection, so a clearing sky is best.')+' Get the lens close to the water and focus on the reflection, not the puddle’s surface.</p>'+
+    '<div class="callinks guidecta">'+(state.guide&&state.guide.id==="wet:"+i?'<button type="button" class="chip" data-guidestop="1">Stop guiding</button>':'<button type="button" class="chip primary" data-guide="wet:'+i+'">Guide me there</button>')+'<a class="chip" href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint='+P[1].toFixed(6)+','+P[2].toFixed(6)+'&heading='+P[3]+'&pitch=0&fov=80" target="_blank" rel="noopener">Street View ↗</a></div>'+
+    '<p class="hint">How long the ground stays wet is a rule of thumb from the hourly forecast: about two hours after the rain stops, three when it is cold, one when it is warm or the shower was light.</p></section>'; }
+function wetLead(){ if(!state.mapShowWet) return ""; const W=wetAt(mapNow()); if(!W) return ""; return '<div class="xlead wetlead"><p class="msg"><b>💧 '+esc(wetWords(W))+'.</b> Tap a drop for the spots where wet paving holds the best reflections.</p></div>'; }
+
+function xPanel(k){ const id=k.slice(k.indexOf(":")+1); return k.startsWith("busy:")?busyPanel(id):k.startsWith("wet:")?wetPanel(id):newPanel(id); }
+function xItem(k){ const id=k.slice(k.indexOf(":")+1);
+  if(k.startsWith("busy:")){ const r=(PED.rows||[]).find(x=>x.id===id); return r?mapXY(r.lat,r.lon):null; }
+  if(k.startsWith("wet:")){ const P=WET_SPOTS[+id]; return P?mapXY(P[1],P[2]):null; }
+  const [pid,i]=id.split(":"), S=SPOTS[pid]&&SPOTS[pid][+i]; return S?mapXY(S[0],S[1]):null; }
+const xLead = () => wetLead()+newLead();
+function mapSelectWork(k){ state.mapWork=k; state.mapSel=null; state.mapEv=null; state.mapLm=null; state.mapRun=null; state.mapFerry=null; state.mapSpot=null; state.mapEvSpot=null; mapDraw(); mapPanel(); const xi=X_KINDS.test(k)?xItem(k):null, it=xi?{x:xi[0],y:xi[1]}:worksItems(mapDay()).find(x=>x.id===k); if(it) requestAnimationFrame(()=>{ mapDraw(); if(!state.mapHead) mapFly(mapAim({cx:it.x,cy:it.y,w:Math.min(mapV.w,X_KINDS.test(k)?30:16)})); }); }
 function mapDraw(){
   const svg=$("mapSvg"); if(!svg||!mapV) return; const cw=($("mapWrap")&&$("mapWrap").clientWidth)||svg.clientWidth||360, zf=state.mapHead?Math.max(1,(svg.clientWidth||cw)/cw):1, ar=svg.clientHeight/svg.clientWidth; if(!state.mapHead&&ar>0.3&&ar<4) MAP_ASPECT=ar;
   // w is the width you see across the screen; in heading-up the drawn square (wb) is wider so the corners stay filled as it turns
@@ -4676,7 +4838,7 @@ function mapDraw(){
       else { const r=(on?9:7.5)*u; works+='<g class="m-film'+(on?' on':'')+'" data-wk="'+esc(it.id)+'" tabindex="0" role="button" aria-label="'+esc(wkTitle(it)+', '+wkWhen(it.s,it.e,mapDay()))+'"><path d="'+d+'" class="m-filml" stroke-width="'+f((on?5:3.5)*u)+'"/>'+
         '<circle cx="'+f(it.x)+'" cy="'+f(it.y)+'" r="'+f(r+6*u)+'" class="m-hit"/><circle cx="'+f(it.x)+'" cy="'+f(it.y)+'" r="'+f(r)+'" stroke-width="'+f(1.4*u)+'" class="m-filmdot"/><g transform="translate('+f(it.x)+' '+f(it.y)+') scale('+f(r/9)+')"><path d="M-5 -1.5h10v6h-10zM-5 -1.5l1.5-3.5h10l-1.5 3.5zM-2.2 -1.5l1.5-3.5M0.8 -1.5l1.5-3.5M3.8 -1.5l1.5-3.5" class="m-clap" stroke-width="1.1"/></g></g>'; } } } }
   const radarLab=radarDraw(x0,y0,x1,y1), nglowDef=pts.some(p=>p.night&&p.nopen)?'<defs><radialGradient id="nglowG"><stop offset="0" stop-color="#ffd66b" stop-opacity=".6"/><stop offset=".55" stop-color="#ffc23d" stop-opacity=".22"/><stop offset="1" stop-color="#ffc23d" stop-opacity="0"/></radialGradient></defs>':'';
-  $("mapDyn").innerHTML=nglowDef+tint+wxSvg(x0,y0,wb,h,u)+sun+moonSvg+bridges+ferries+sunny+henge+detail+allStn+hengeLabs+route+routes+works+walkSvg(f,u,w)+ring+stations+flags+labels+lms+dim+comp+(w<60?"":moonLines+sunLines+spotsSvg+spotLabs)+evs+guideLine+clus+pins;
+  $("mapDyn").innerHTML=nglowDef+tint+wxSvg(x0,y0,wb,h,u)+sun+moonSvg+bridges+ferries+sunny+henge+detail+seenSvg(x0,y0,x1,y1,u,w,f)+allStn+hengeLabs+route+routes+works+busySvg(x0,y0,x1,y1,u,w,f)+walkSvg(f,u,w)+ring+stations+flags+labels+lms+dim+comp+(w<60?"":moonLines+sunLines+spotsSvg+spotLabs)+evs+guideLine+wetSvg(x0,y0,x1,y1,u,w,f)+clus+pins;
   if(sc&&radarLab) sc.insertAdjacentHTML("afterbegin",'<span class="mradar">'+esc(radarLab)+'</span>');
   let myShots=""; if(state.mapShowShots&&w<330){ const ES=state.evShots||store.get("evShots",{})||{}; for(const [eid,m] of Object.entries(ES)) for(const en of Object.values(m||{})){ if(!en||!en.p) continue; const [x,y]=mapXY(en.p[0],en.p[1]); if(!inside(x,y,0)) continue; const r=(w<60?5:3.6)*u;
       myShots+='<g class="m-shot ev" data-shot="ev:'+esc(eid)+'" role="button" tabindex="0" aria-label="Event shot"><circle cx="'+f(x)+'" cy="'+f(y)+'" r="'+f(r+6*u)+'" class="m-hit"/><rect x="'+f(x-r)+'" y="'+f(y-r*0.75)+'" width="'+f(2*r)+'" height="'+f(1.5*r)+'" rx="'+f(0.35*r)+'" stroke-width="'+f(1*u)+'" class="m-shotr"/></g>'; } for(const [id,l] of Object.entries(state.log||{})){ (l||[]).forEach(en=>{ if(!en||!en.p) return; const [x,y]=mapXY(en.p[0],en.p[1]); if(!inside(x,y,0)) return; const r=(w<60?5:3.6)*u;
@@ -4685,7 +4847,7 @@ function mapDraw(){
       if(P.length>1) asg+='<path d="M'+P.map(([x,y])=>f(x)+' '+f(y)).join('L')+'" class="m-asgl" stroke-width="'+f(1.6*u)+'" stroke-dasharray="'+f(4*u)+' '+f(3*u)+'"/>';
       A.forEach((a,i)=>{ const [x,y]=P[i], r=(w<60?9:7.5)*u; if(!inside(x,y,-10*u)) return; asg+='<g class="m-shot m-asg'+(a.done?' done':'')+'" data-shot="'+esc(a.id)+'" role="button" tabindex="0" aria-label="'+esc('This week: '+a.t+', '+a.when)+'"><circle cx="'+f(x)+'" cy="'+f(y)+'" r="'+f(r+6*u)+'" class="m-hit"/><circle cx="'+f(x)+'" cy="'+f(y)+'" r="'+f(r)+'" stroke-width="'+f(1.6*u)+'" class="m-asgc"/><text x="'+f(x)+'" y="'+f(y+r*0.38)+'" text-anchor="middle" font-size="'+f(r*1.05)+'" class="m-asgn">'+(a.done?'✓':'★')+'</text>'+
         (w<130?'<text x="'+f(x+r+3*u)+'" y="'+f(y-r*0.15)+'" font-size="'+f(8.5*u)+'" class="m-asgt">'+esc((i+1)+'. '+a.t)+'</text><text x="'+f(x+r+3*u)+'" y="'+f(y+r*0.95)+'" font-size="'+f(7.5*u)+'" class="m-asgw">'+esc(a.done?'Shot this week':a.when)+'</text>':'')+'</g>'; }); } }
-  $("mapOver").innerHTML=myShots+over+badges+asg+(w<60?moonLines+sunLines+spotsSvg+spotLabs:"")+headCone+you;
+  $("mapOver").innerHTML=myShots+over+badges+asg+(w<60?moonLines+sunLines+spotsSvg+spotLabs:"")+newSvg(x0,y0,x1,y1,u,w,f)+headCone+you;
   const sl=$("sunLine"); if(sl) sl.innerHTML=sunLine();
 }
 /* Pins that would overlap at this zoom merge into one bubble with a count; a tap zooms in until they separate.
@@ -4741,7 +4903,7 @@ const cShort = d => ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","W
 /* Follow me: after Find me, the map keeps you in the middle as you walk, until you drag it or tap Find me again. */
 const FOLLOWME={watch:null};
 function followStart(){ if(state.mapFollow||!navigator.geolocation) return; state.mapFollow=true; const b=document.querySelector("#map [data-locate]"); if(b){ b.setAttribute("aria-pressed","true"); b.title="Following you: tap to stop"; }
-  try{ FOLLOWME.watch=navigator.geolocation.watchPosition(p=>{ state.pos={lat:p.coords.latitude,lon:p.coords.longitude}; state.posAcc=p.coords.accuracy; walkRec(p);
+  try{ FOLLOWME.watch=navigator.geolocation.watchPosition(p=>{ state.pos={lat:p.coords.latitude,lon:p.coords.longitude}; state.posAcc=p.coords.accuracy; walkRec(p); seenAdd(p.coords.latitude,p.coords.longitude,p.coords.accuracy);
       if(state.mapFollow&&!state.mapHead&&posOnMap()&&mapV){ cancelAnimationFrame(mapAnim); const [x,y]=mapXY(state.pos.lat,state.pos.lon); mapV=mapClamp(mapAim({cx:x,cy:y,w:mapV.w})); } mapDraw(); },()=>{},{enableHighAccuracy:true,maximumAge:3000,timeout:20000}); }catch(e){}
   mapDraw(); }
 function followStop(){ if(!state.mapFollow) return; state.mapFollow=false; walkSave(); try{ if(FOLLOWME.watch!=null) navigator.geolocation.clearWatch(FOLLOWME.watch); }catch(e){} FOLLOWME.watch=null;
@@ -4804,7 +4966,7 @@ function mapPanel(){
   const evSel=state.mapShowEv&&state.mapEv&&mapEvents().find(e=>e.id===state.mapEv), hasEv=state.mapShowEv&&mapEvents().length;
   const mine=sel?cityIdeas().filter(i=>i.p===sel.id&&(state.mapIntent==="all"||i.i===state.mapIntent)).sort((a,b)=>b.w.includes(key)-a.w.includes(key)):[];
   const lmSel=state.mapShowLm&&typeof state.mapLm==="number"&&LANDMARKS[state.mapLm];
-  const spotSel=state.mapSpot&&SPOTS[state.mapSpot.split(":")[0]], runSel=state.mapShowHenge&&state.mapRun!==null, ferrySel=state.mapShowFerry&&state.mapFerry&&FERRIES[state.mapFerry], workSel=!!(state.mapShowWorks&&state.mapWork);
+  const spotSel=state.mapSpot&&SPOTS[state.mapSpot.split(":")[0]], runSel=state.mapShowHenge&&state.mapRun!==null, ferrySel=state.mapShowFerry&&state.mapFerry&&FERRIES[state.mapFerry], workSel=!!(state.mapWork&&(X_KINDS.test(state.mapWork)||state.mapShowWorks));
   $("mapPanel").classList.toggle("hassel",!!(sel||evSel||lmSel||spotSel||runSel||ferrySel||workSel));
   const legendHtml='<p class="msg maplegend"><span><span class="lg fit"></span>'+(state.mapIntent==="all"?"Ideas":INTENTS[state.mapIntent].name+" ideas")+' for the light now ('+esc(WHEN[key].toLowerCase())+')</span><span><span class="lg"></span>Other places</span><span><span class="lg arc"></span>Ring: one mark per idea, coloured when it suits the light</span><span><span class="lg badge"></span>How many suit the light now</span><span><span class="lg done"></span>You have shot here</span><span><span class="lg stn"></span>Subway station</span>'+(state.mapShowShots?'<span><span class="lg myshot"></span>Where you shot (gold: keeper)</span>':'')+'<span><span class="lg sunny"></span>Sunny side of the street</span>'+(state.mapShowHenge&&hengeDay().runs.length?'<span><span class="lg henge"></span>Lines up with the low sun '+(state.mapD?'on '+esc(mapDayName()):'today')+' (bright: right now)</span>':'')+(state.mapShowFerry?'<span><span class="lg ferry"></span>NYC Ferry route</span><span><span class="lg ferry sif"></span>Staten Island Ferry</span>':'')+(state.mapShowLm?'<span><span class="lg lmk"></span>Landmark</span>':'')+(hasEv?'<span><span class="lg ev"></span>Events in the next 6 weeks</span>'+(nLive?'<span><span class="lg evlive"></span>Event on now</span>':''):'')+
       (state.plan?'<span><span class="lg route"></span>Your plan</span>':'')+(state.pos?'<span><span class="lg you"></span>You</span><span><span class="lg walk"></span>10 min walk from you</span>':'')+'</p>';
@@ -4832,7 +4994,7 @@ function mapPanel(){
           '<span class="t"><b>'+esc(x.t)+'</b></span>'+(x.w.includes(key)?'<span class="inow">now</span>':'')+'</button>'+
           (sp?'<button type="button" class="snum sbadge '+lf.k+'" data-spot="'+sp.id+'" aria-label="Where to stand: spot '+spotNum(sp.id)+', '+esc(sp.S[3])+', face '+compass(sp.S[2])+', '+esc(lf.txt.toLowerCase())+'">'+spotNum(sp.id)+'</button>':'<span class="sbadge none" aria-hidden="true"></span>')+'</div>'; }).join("")+
         '<div class="callinks">'+(planIndex(sel.id)<0?'<button type="button" class="chip primary" data-addplan="'+sel.id+'">+ Add to today</button>':'<span class="pill instop">Stop '+(planIndex(sel.id)+1)+' · '+state.plan.stops[planIndex(sel.id)].at.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}).toLowerCase()+'</span><button type="button" class="chip" data-rmplan="'+sel.id+'">Remove from today</button>')+(START[sel.id]?'<a class="chip" href="https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(mapAddr(sel.id))+'&travelmode=transit" target="_blank" rel="noopener">Directions from where I am ↗</a>':'')+'<button type="button" class="chip" data-plan="'+sel.id+'">Plan an outing from here</button><button type="button" class="chip" data-go="'+sel.id+'">Open in Browse</button></div></section>'
-      : state.mapInView ? inViewPanel() : state.mapNear ? nearPanel() : '<p class="lead mlead">Tap a pin to see a place and its ideas. Drag the bar above to see more.</p><div class="callinks mleadcta"><button type="button" class="chip primary" data-nearspots="1">Spots near me</button></div>');
+      : state.mapInView ? xLead()+inViewPanel() : state.mapNear ? xLead()+nearPanel() : xLead()+'<p class="lead mlead">Tap a pin to see a place and its ideas. Drag the bar above to see more.</p><div class="callinks mleadcta"><button type="button" class="chip primary" data-nearspots="1">Spots near me</button></div>');
   guideRender(); if(state.mapHead) headMsgShow();
   { const db=document.querySelector("#map [data-mapdark]"); if(db){ db.setAttribute("aria-pressed",String(!!state.mapDark)); db.classList.toggle("on",!!state.mapDark); }
     const pnl=$("mapPanel"); if(pnl){ let el=pnl.querySelector(".mapdarkbar"); if(state.mapDark){ const n=pts.filter(p=>p.n>0).length, nI=pts.reduce((a,p)=>a+p.n,0); const h='<b>After-dark map</b> · '+n+' places, '+nI+' night ideas, the lights and events that run into the dark. <button type="button" class="linkbtn" data-mapdark="1">Show everything</button>';
@@ -5006,7 +5168,7 @@ function mapGestures(svg){
   const start=()=>{ const p=[...ptr.values()]; g={v:Object.assign({},mapV), moved:g?g.moved:false, pin:g?g.pin:null, ev:g?g.ev:null, lm:g?g.lm:null, spot:g?g.spot:null, run:g?g.run:null, ferry:g?g.ferry:null, cl:g?g.cl:null, shot:g?g.shot:null, moon:g?g.moon:false, wk:g?g.wk:null, evsp:g?g.evsp:null, evrt:g?g.evrt:null, p0:p.map(q=>({x:q.clientX,y:q.clientY}))}; };
   let lpT=0; const lpClear=()=>{ clearTimeout(lpT); lpT=0; };
   svg.addEventListener("pointerdown",e=>{ cancelAnimationFrame(mapAnim); lpClear(); if(PLAY.raf) mapPlayStop();
-    if(!state.mapHead&&!(e.target.closest&&e.target.closest(".m-pin,.m-ev,.m-lm,.m-spotg,.m-clu,[data-r],.m-ferryg,.m-moon,.m-evrt,.m-work,.m-film"))){ const e0={clientX:e.clientX,clientY:e.clientY}; lpT=setTimeout(()=>{ lpT=0; if(!g||g.moved||ptr.size!==1) return; g.moved=true; const [mx,my]=at(e0,mapV); mapLongPress(mx,my); },560); } const pin=e.target.closest&&e.target.closest(".m-pin"), ev=e.target.closest&&e.target.closest(".m-ev"), lm=e.target.closest&&e.target.closest(".m-lm"), sp=e.target.closest&&e.target.closest(".m-spotg"), rn=e.target.closest&&e.target.closest("[data-r]"), fy=e.target.closest&&e.target.closest(".m-ferryg"), cl=e.target.closest&&e.target.closest(".m-clu"), ms=e.target.closest&&e.target.closest(".m-shot"), mn=e.target.closest&&e.target.closest(".m-moon"), es=e.target.closest&&e.target.closest(".m-evsp"), ert=e.target.closest&&e.target.closest(".m-evrt"), wk=e.target.closest&&e.target.closest("[data-wk]"); ptr.set(e.pointerId,e); if(ptr.size===1) g={moved:false,moon:!!mn,wk:wk?wk.dataset.wk:null,evsp:es?es.dataset.evsp:null,evrt:ert?ert.dataset.evrt:null,shot:ms?ms.dataset.shot:null,cl:cl?cl.dataset.cl:null,pin:pin?pin.dataset.p:null,ev:ev?ev.dataset.e:null,lm:lm?+lm.dataset.l:null,spot:sp?sp.dataset.s:null,run:rn?+rn.dataset.r:null,ferry:fy?fy.dataset.f:null}; start(); try{ svg.setPointerCapture(e.pointerId); }catch(err){} });
+    if(!state.mapHead&&!(e.target.closest&&e.target.closest(".m-pin,.m-ev,.m-lm,.m-spotg,.m-clu,[data-r],.m-ferryg,.m-moon,.m-evrt,.m-work,.m-film,.m-xit"))){ const e0={clientX:e.clientX,clientY:e.clientY}; lpT=setTimeout(()=>{ lpT=0; if(!g||g.moved||ptr.size!==1) return; g.moved=true; const [mx,my]=at(e0,mapV); mapLongPress(mx,my); },560); } const pin=e.target.closest&&e.target.closest(".m-pin"), ev=e.target.closest&&e.target.closest(".m-ev"), lm=e.target.closest&&e.target.closest(".m-lm"), sp=e.target.closest&&e.target.closest(".m-spotg"), rn=e.target.closest&&e.target.closest("[data-r]"), fy=e.target.closest&&e.target.closest(".m-ferryg"), cl=e.target.closest&&e.target.closest(".m-clu"), ms=e.target.closest&&e.target.closest(".m-shot"), mn=e.target.closest&&e.target.closest(".m-moon"), es=e.target.closest&&e.target.closest(".m-evsp"), ert=e.target.closest&&e.target.closest(".m-evrt"), wk=e.target.closest&&e.target.closest("[data-wk]"); ptr.set(e.pointerId,e); if(ptr.size===1) g={moved:false,moon:!!mn,wk:wk?wk.dataset.wk:null,evsp:es?es.dataset.evsp:null,evrt:ert?ert.dataset.evrt:null,shot:ms?ms.dataset.shot:null,cl:cl?cl.dataset.cl:null,pin:pin?pin.dataset.p:null,ev:ev?ev.dataset.e:null,lm:lm?+lm.dataset.l:null,spot:sp?sp.dataset.s:null,run:rn?+rn.dataset.r:null,ferry:fy?fy.dataset.f:null}; start(); try{ svg.setPointerCapture(e.pointerId); }catch(err){} });
   svg.addEventListener("pointermove",e=>{ if(!ptr.has(e.pointerId)||!g) return; ptr.set(e.pointerId,e); const p=[...ptr.values()], r=svg.getBoundingClientRect(), k=g.v.w/r.width;
     if(p.length===1){ const dx=p[0].clientX-g.p0[0].x, dy=p[0].clientY-g.p0[0].y; if(!g.moved && Math.hypot(dx,dy)<7) return; g.moved=true;
       if(state.mapHead){ if(Math.hypot(dx,dy)<24) return; headUp(false); g.v=Object.assign({},mapV); g.p0=[{x:p[0].clientX,y:p[0].clientY}]; return; }
@@ -6324,7 +6486,9 @@ $("map").addEventListener("click",e=>{
   const rp=e.target.closest("[data-rmplan]"); if(rp){ planRemove(rp.dataset.rmplan); mapPanel(); mapDraw(); return; }
   const sc=e.target.closest("[data-stop]"); if(sc){ mapGoStop(+sc.dataset.stop); return; }
   if(e.target.closest("[data-nextstop]")){ mapGoStop(nextStopIndex()); return; }
-  if(e.target.closest("[data-clearplan]")){ state.plan=null; savePlan(); mapPanel(); mapDraw(); return; }
+  if(e.target.closest("[data-planbest]")){ const r=planBestOrder(true); state.planMsg=planBestMsg(r); mapPanel(); mapDraw(); return; }
+  { const xg=e.target.closest("[data-wkgo]"); if(xg){ mapSelectWork(xg.dataset.wkgo); return; } }
+  if(e.target.closest("[data-clearplan]")){ state.planMsg=null; state.plan=null; savePlan(); mapPanel(); mapDraw(); return; }
   if(e.target.closest("#mapDayBtn")){ const d=$("mapDays"), on=d.hidden; d.hidden=!on; $("mapDayBtn").setAttribute("aria-expanded",on); if(state.sheet) setSheet(state.sheet,true); return; }
   if(e.target.closest("[data-gexp]")){ state.guideOpen=!state.guideOpen; guideRender(); return; }
   const dc=e.target.closest("#mapDays [data-day]"); if(dc){ $("mapDays").hidden=true; $("mapDayBtn").setAttribute("aria-expanded","false"); setTimeout(()=>setSheet(state.sheet||"peek",true),0); const k=+dc.dataset.day, n=new Date(); state.mapD=k; if(k&&state.mapT===null) state.mapT=Math.round((n.getHours()*60+n.getMinutes())/5)*5; if(!k&&state.mapT!==null&&Math.abs(state.mapT-(n.getHours()*60+n.getMinutes()))<5) state.mapT=null;

@@ -70,6 +70,14 @@ def run(path, name):
         _bld=[{"height_roof":"200","ground_elevation":"30","the_geom":{"type":"MultiPolygon","coordinates":[[[_ll(-40,-40),_ll(-15,-40),_ll(-15,-15),_ll(-40,-15),_ll(-40,-40)]]]}}]
         pg.route("**/data.cityofnewyork.us/**", lambda r: r.fulfill(status=200, content_type="application/json", body=_j.dumps(_bld)))
         pg.route("**/data.cityofnewyork.us/resource/tg4x-b46p.json*", lambda r: r.fulfill(status=200, content_type="application/json", body=_j.dumps(_films)))
+        # NYC DOT pedestrian counts: column names as the dataset spells them, which change over the years
+        def _ped(i):
+            b=100*i; r={"the_geom":{"type":"Point","coordinates":[-73.995,40.72+0.001*i]},"loc":str(i),"borough":"Manhattan","street_nam":"Test Street %d"%i,"from_stree":"1st Av","to_street":"2nd Av"}
+            for y in ("may_22","june_24","oct24","may25","oct25"):
+                r[y+"_am"]=str(b); r[y+"_md"]=str(2*b); r[y+("_p_m" if y=="may_22" else "_pm")]=str(3*b)
+            return r
+        _peds=[_ped(i) for i in range(1,11)]+[{"loc":"99","street_nam":"No place"}]
+        pg.route("**/data.cityofnewyork.us/resource/cqsj-cfgu.json*", lambda r: r.fulfill(status=200, content_type="application/json", body=_j.dumps(_peds)))
         pg.route("**/data.cityofnewyork.us/resource/i6b5-j7bu.geojson*", lambda r: r.fulfill(status=200, content_type="application/json", body=_j.dumps(_cl)))
         pg.goto("file://" + path); pg.wait_for_timeout(700)
 
@@ -401,7 +409,7 @@ def run(path, name):
         check("The parks' lakes are drawn on the map, with their names close in", lk==[18,True,True,True], lk)
         check("Every subway station is listed with its lines", pg.evaluate("MAPD_STATIONS.length")>=470 and pg.evaluate("MAPD_STATIONS.every(s=>s[3]&&s[1]>40.5&&s[1]<40.92&&s[2]>-74.26&&s[2]<-73.7)"))
         pg.click("#mapLayersBtn"); pg.wait_for_timeout(150)
-        check("Layers menu opens", pg.evaluate("!document.getElementById('mapLayers').hidden && document.querySelectorAll('#mapLayers [data-layer]').length===MAP_LAYERS.length && MAP_LAYERS.length===(PHOTOS_INLINE?14:12)"))
+        check("Layers menu opens", pg.evaluate("!document.getElementById('mapLayers').hidden && document.querySelectorAll('#mapLayers [data-layer]').length===MAP_LAYERS.length && MAP_LAYERS.length===(PHOTOS_INLINE?17:14)"))
         pg.click("[data-z=man]"); pg.wait_for_timeout(500)
         check("Jump to Manhattan closes the menu", pg.evaluate("document.getElementById('mapLayers').hidden"))
         check("Map draws pins", pg.evaluate("document.querySelectorAll('.m-pin').length") > 10)
@@ -1210,6 +1218,55 @@ def run(path, name):
                   d1==[1,0] and d2==["film:1",1,True,True,True] and d3==[1,["work:99"],["film:1"],0], [d1,d2,d3])
         else:
             check("Closures and shoots are not offered in the Claude version", not pg.evaluate("MAP_LAYERS.some(l=>l[0]==='mapShowWorks')"))
+        # Wet streets: from the hourly forecast, while it rains and for a while after
+        wt=pg.evaluate("""(()=>{ const keep=WEATHER[state.city], mk=cold=>{ const T=[],P=[],M=[],C=[],K=[],TT=[]; for(let h=0;h<24;h++){ T.push('2026-10-11T'+String(h).padStart(2,'0')+':00'); const r=h>=14&&h<16; P.push(r?90:5); M.push(r?2:0); C.push(r?100:20); K.push(r?61:1); TT.push(cold?5:h===18?5:15); } WEATHER[state.city]=Object.assign({},keep||{},{hourly:{time:T,pop:P,mm:M,cc:C,code:K,t:TT}}); };
+          const at=(h,m)=>{ const W=wetAt(new Date(2026,9,11,h,m||0)); return W?W.k+(W.until?W.until.getHours():''):null; };
+          mk(false); const r=[at(13), at(15), at(16,30), at(17,45), at(18,10)];
+          state.mapShowWet=true; state.mapD=0; state.mapT=16*60+30; state.mapInView=false; state.mapNear=false; mapSelect(null); mapV=mapClamp({cx:mapXY(40.745,-73.99)[0],cy:mapXY(40.745,-73.99)[1],w:60}); mapDraw(); mapPanel();
+          r.push(document.querySelectorAll('#mapDyn .m-wet').length>=5, /Streets wet until about 6 pm/.test((document.querySelector('.wetlead')||{}).textContent||''), [...document.querySelectorAll('#lightMarks .lmark')].some(b=>/Wet streets 4 pm to 6 pm/.test(b.textContent)));
+          mapSelectWork('wet:0'); r.push(/Times Square/.test(document.querySelector('#mapPanel').textContent)&&!!document.querySelector('#mapPanel [data-guide="wet:0"]'), !!guideTarget('wet:0'));
+          state.mapT=12*60; mapSelect(null); mapDraw(); r.push(document.querySelectorAll('#mapDyn .m-wet').length);
+          state.mapT=16*60+30; state.mapShowWet=false; mapDraw(); r.push(document.querySelectorAll('#mapDyn .m-wet').length); state.mapShowWet=true;
+          mk(true); r.push(at(18,10));
+          WEATHER[state.city]=keep; state.mapT=null; mapDraw(); mapPanel(); return r; })()""")
+        check("Wet streets: puddle spots while it rains and for about two hours after, three when cold, with a banner, a light mark and a panel; none when dry or with the layer off",
+              wt==[None,"rain","wet18","wet18",None,True,True,True,True,True,0,0,"wet19"], wt)
+        # New to you: where you have been, kept on the phone; the spots you have never stood at
+        nw=pg.evaluate("""(()=>{ const keep=[state.log,state.done,store.get('seen',[]),state.walks]; store.set('seen',[]); state.walks=[]; state.log={}; state.done=new Set(); SEEN=null;
+          const N0=newSpots(), S=SPOTS.soho[0], one={pid:'soho',i:0,S};
+          seenAdd(S[0]+0.0003,S[1]-0.0003,20); seenAdd(40.6,-73.9,500);
+          const N1=newSpots(), other=SPOTS.wsp.findIndex(x=>x[5]); state.done.add(SPOTS.wsp[other][5]);
+          const r=[N0.all.length>100, N0.fresh.length===N0.all.length, store.get('seen',[]).length, spotNew(one), N1.fresh.length<N0.fresh.length, spotNew({pid:'wsp',i:other,S:SPOTS.wsp[other]})];
+          state.mapShowNew=true; state.mapInView=false; state.mapNear=false; mapSelect(null); mapV=mapClamp({cx:mapXY(S[0],S[1])[0],cy:mapXY(S[0],S[1])[1],w:30}); mapDraw(); mapPanel();
+          r.push(document.querySelectorAll('#mapOver .m-new').length>0, !!document.querySelector('#mapDyn .m-seen'), /you have stood at \d+ of \d+ spots/.test((document.querySelector('.newlead')||{}).textContent||''));
+          const fresh=newSpots().fresh.find(o=>o.pid==='soho'); mapSelectWork('new:'+fresh.id);
+          r.push(/New to you/.test(document.querySelector('#mapPanel').textContent), !!document.querySelector('#mapPanel [data-guide="'+fresh.id+'"]'));
+          state.mapShowNew=false; mapSelect(null); mapDraw(); r.push(document.querySelectorAll('.m-new,.m-seen').length);
+          [state.log,state.done]=keep; store.set('seen',keep[2]); state.walks=keep[3]; SEEN=null; mapPanel(); return r; })()""")
+        check("New to you: close fixes are kept (poor ones are not), a spot you stood at or shot is no longer new, stars and shaded blocks on the map, a summary and a panel with Guide me there, nothing with the layer off",
+              nw==[True,True,1,False,True,False,True,True,True,True,True,0], nw)
+        # The outing in the best order for the light
+        bo=pg.evaluate("""(()=>{ const keep=state.plan; state.plan=null; state.planMsg=null; ['dumbo','wsp','chinatown','soho'].forEach(planAdd); const p=state.plan, start=+p.start, set=p.stops.map(s=>s.place).sort().join();
+          mapPanel(); const btn=!!document.querySelector('#mapPlan [data-planbest]'); document.querySelector('#mapPlan [data-planbest]').click();
+          const r1=state.planMsg, after=state.plan.stops.map(s=>s.place).sort().join(), again=planBestOrder(false);
+          const r=[btn, /^(Reordered|Already the best order)/.test(r1), after===set, +state.plan.stops[0].at===start, !!again&&again.same, !!document.querySelector('#mapPlan .planmsg')];
+          planRemove('soho'); r.push(!state.planMsg); planRemove('chinatown'); mapPanel(); r.push(!document.querySelector('#mapPlan [data-planbest]'));
+          state.plan.stops[0].at=new Date(Date.now()+2*36e5); retimePlan(state.plan); state.pos={lat:40.7230,lon:-73.9990}; r.push(/^Leave by \d/.test(planLeaveBy()));
+          state.plan=keep; savePlan(); mapPanel(); return r; })()""")
+        check("Best order for the light: offered with three or more stops, keeps the stops and the start, says what changed, and a second try finds nothing better; Leave by for the first stop",
+              bo==[True,True,True,True,True,True,True,True,True], bo)
+        if pg.evaluate("PHOTOS_INLINE"):
+            # How busy: NYC DOT pedestrian counts, the latest of each time of day, ranked across the sites
+            pg.evaluate("store.set('ped',null); PED.rows=null; PED.at=0; state.mapShowBusy=true; mapV=mapClamp({cx:mapXY(40.725,-73.995)[0],cy:mapXY(40.725,-73.995)[1],w:30}); mapDraw()"); pg.wait_for_timeout(600)
+            bz=pg.evaluate("""(()=>{ const R=PED.rows||[], g=id=>R.find(x=>x.id===id); state.mapD=1; state.mapT=17*60; mapSelect(null); mapDraw(); mapPanel();
+              const r=[R.length, g('10')&&[g('10').c.pm.n,g('10').c.pm.y,g('10').c.pm.mo], g('3')&&g('3').c.am.avg, ['1','5','10'].map(id=>pedTier(g(id),'pm').t), pedPeriod(new Date(2026,9,12,8)).k, pedPeriod(new Date(2026,9,17,17)).k, pedPeriod(new Date(2026,9,12,23)).night,
+                document.querySelectorAll('#mapDyn .m-busy').length, document.querySelectorAll('#mapDyn .m-busy.packed').length];
+              mapSelectWork('busy:10'); const t=document.querySelector('#mapPanel').textContent; r.push(/Packed at 5 pm/.test(t)&&/Weekday evening: packed · 3,000 people in the October 2025 count/.test(t));
+              state.mapShowBusy=false; mapSelect(null); mapDraw(); r.push(document.querySelectorAll('.m-busy').length); state.mapD=0; state.mapT=null; mapV=mapPreset('city'); mapDraw(); mapPanel(); return r; })()""")
+            check("How busy: the latest count for each time of day (old column spellings too), quiet, busy or packed against the other sites, dots on the map and a panel; nothing with the layer off",
+                  bz==[10,[3000,2025,10],300,["quiet","busy","packed"],"am","md",True,10,2,True,0], bz)
+        else:
+            check("How busy is not offered in the Claude version", not pg.evaluate("MAP_LAYERS.some(l=>l[0]==='mapShowBusy')"))
         # Dark theme renders too
         pg.evaluate("document.documentElement.dataset.theme='dark'; state.view='shoot'; render()"); pg.wait_for_timeout(80)
         check("no script errors", not errors, errors[:3])

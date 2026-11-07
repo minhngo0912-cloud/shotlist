@@ -1573,3 +1573,22 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 .gw-list{list-style:none;margin:0;padding:0} .gw-list li{display:grid;grid-template-columns:22px auto 1fr auto;gap:8px;align-items:center;padding:4px 0;border-top:1px solid var(--line,rgba(127,127,127,.2));font-size:.88rem}
 .gw-list li:first-child{border-top:0} .gw-list .gw-sky svg{width:20px;height:20px;display:block} .gw-list li span:not(.gw-sky){opacity:.8} .gw-list li em{font-style:normal;font-size:.72rem;font-weight:800;color:#1e9e48;text-transform:uppercase;letter-spacing:.04em}
 .gw-list li.best b{color:#1e9e48}
+/* Wet streets, how busy, new to you, and the outing's best order */
+.lk.wet{background:radial-gradient(circle at 50% 60%,#7fd3ff,#1f7fd1);border-radius:50% 50% 50% 0;transform:rotate(-45deg)}
+.mlayer .lg.wet{border:0;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:linear-gradient(135deg,#9be0ff,#1f7fd1)}
+.mlayer .lg.new{border:0;border-radius:0;background:#f2b705;clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%)}
+.mlayer .lg.busy{border:0;background:radial-gradient(circle,#d6453d 0 35%,transparent 36%),radial-gradient(circle at 20% 70%,#f2a33a 0 22%,transparent 23%),radial-gradient(circle at 80% 70%,#8fbf6a 0 18%,transparent 19%)}
+.m-xit{cursor:pointer}
+.m-wetd{fill:#3aa7f0;stroke:#fff} .m-wet.raining .m-wetd{fill:#1f6fc4} .m-wet.on .m-wetd{fill:#e0a100;stroke:#14161a}
+.m-wett,.m-busyt{fill:var(--mTxt,#14161a);stroke:var(--mHalo,#fff);stroke-width:.3em;stroke-linejoin:round;paint-order:stroke;font-weight:700;font-family:var(--sans);pointer-events:none}
+.m-busyd{stroke:#fff;fill-opacity:.85} .m-busy.quiet .m-busyd{fill:#6aa84f} .m-busy.busy .m-busyd{fill:#f2a33a} .m-busy.packed .m-busyd{fill:#d6453d}
+.m-busy.late{opacity:.55} .m-busy.on .m-busyd{stroke:#14161a;fill-opacity:1}
+.m-seen{fill:#6b7280;fill-opacity:.22;stroke:none;pointer-events:none} [data-sky="night"] .m-seen{fill:#c9ced8;fill-opacity:.16}
+.m-newd{fill:#f2b705;stroke:#14161a;stroke-linejoin:round} .m-new.on .m-newd{fill:#fff}
+.busyw.quiet{color:#3f7f2a} .busyw.busy{color:#b86d0c} .busyw.packed{color:#c23a32}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .busyw.quiet{color:#8fd16a} :root:not([data-theme="light"]) .busyw.busy{color:#f2b65a} :root:not([data-theme="light"]) .busyw.packed{color:#ff7a70} }
+:root[data-theme="dark"] .busyw.quiet{color:#8fd16a} :root[data-theme="dark"] .busyw.busy{color:#f2b65a} :root[data-theme="dark"] .busyw.packed{color:#ff7a70}
+.xlead{display:flex;flex-direction:column;gap:6px;margin:0 0 10px}
+.xlead .intents{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.wetlead .msg,.newlead .msg{max-width:none}
+.planleave,.planmsg{margin:6px 0 0} .planbest{margin-top:6px}
