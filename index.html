@@ -3583,9 +3583,20 @@ function renderNow(){
   $("nowIco").innerHTML='<svg viewBox="0 0 24 24">'+(WX_ICON[ik]||WX_ICON.sun)+'</svg>';
   $("useLight").setAttribute("aria-pressed", state.when===k);
 }
+/* Saved on the device. When the browser's storage is full, a save of your own data (shots, plans, walks, notes) first drops the
+   copies that can be fetched again, largest first in practice (closures and shoots, pedestrian counts, the forecast, prices, events),
+   then tries again; App health records it. A copy that cannot be stored is simply not kept. set() says whether the save stuck. */
+const STORE_CACHES = ["works","ped","weather","prices","events","photosWarm"];
 const store = {
   get(k,d){ try{ const v=localStorage.getItem("shotlist."+k); return v===null?d:JSON.parse(v);}catch(e){return d;} },
-  set(k,v){ try{ localStorage.setItem("shotlist."+k,JSON.stringify(v)); }catch(e){} }
+  set(k,v){ let txt; try{ txt=JSON.stringify(v); }catch(e){ return false; }
+    try{ localStorage.setItem("shotlist."+k,txt); return true; }catch(e){}
+    if(STORE_CACHES.includes(k)||k==="health") return false;   // a cache (or the health log) never pushes out anything else
+    const freed=[];
+    for(const c of STORE_CACHES){ try{ if(localStorage.getItem("shotlist."+c)===null) continue; localStorage.removeItem("shotlist."+c); freed.push(c); localStorage.setItem("shotlist."+k,txt);
+        store.full("Storage full: cleared the saved copy of "+freed.join(", ")+" to save "+k); return true; }catch(e){} }
+    store.full("Storage full: could not save "+k+(freed.length?" even after clearing "+freed.join(", "):"")); return false; },
+  full(msg){ if(store.busy) return; store.busy=true; try{ if(typeof healthLog==="function") healthLog("error",msg); }catch(e){} store.busy=false; }
 };
 const state = {
   city: store.get("city","nyc"), intent: store.get("intent","all"), place: store.get("place","all"), when: store.get("when","all"),
@@ -6322,13 +6333,24 @@ function busyPanel(id){ const r=(PED.rows||[]).find(x=>x.id===id); if(!r) return
    It is kept on this phone. A spot counts as yours once you have stood within one square of it, or shot its idea. */
 const SEEN_LAT=0.0009, SEEN_LON=0.0012, seenKey=(lat,lon)=>Math.round(lat/SEEN_LAT)+":"+Math.round(lon/SEEN_LON);
 var SEEN=null;   // var: saveLog resets it and may run before this line in theory
-function seenAll(){ if(SEEN) return SEEN; const s=new Set(store.get("seen",[])||[]);
+/* Stored as one string of base-36 square numbers ("a.b,a.b"), the newest 12,000 squares (about 120 km²), written at most every 30 s. */
+var SEEN_L=null, SEEN_T=0;
+const seenEnc = k => { const [a,b]=k.split(":").map(Number); return a.toString(36)+"."+b.toString(36); };
+const seenDec = t => { const [a,b]=t.split("."); return parseInt(a,36)+":"+parseInt(b,36); };
+function seenStored(){ if(SEEN_L) return SEEN_L; const t=store.get("seen2",null);
+  if(typeof t==="string") return SEEN_L=t?t.split(",").map(seenDec):[];
+  const old=store.get("seen",null); SEEN_L=Array.isArray(old)?old.filter(x=>typeof x==="string"&&/^-?\d+:-?\d+$/.test(x)).slice(-12000):[];
+  if(old!==null){ seenSave(true); try{ localStorage.removeItem("shotlist.seen"); }catch(e){} } return SEEN_L; }
+function seenSave(now){ if(!SEEN_L) return; clearTimeout(seenSave.t); if(!now&&Date.now()-SEEN_T<30000){ seenSave.t=setTimeout(()=>seenSave(true),30000); return; }
+  SEEN_T=Date.now(); store.set("seen2",SEEN_L.map(seenEnc).join(",")); }
+document.addEventListener("visibilitychange",()=>{ if(document.hidden&&seenSave.t) seenSave(true); });
+function seenAll(){ if(SEEN) return SEEN; const s=new Set(seenStored());
   for(const wk of (state.walks||walksAll())) for(const p of wk.pts||[]) s.add(seenKey(p[0],p[1]));
   for(const l of Object.values(state.log||{})) (l||[]).forEach(en=>{ if(en&&en.p) s.add(seenKey(en.p[0],en.p[1])); });
   const ES=state.evShots||store.get("evShots",{})||{}; for(const m of Object.values(ES)) for(const en of Object.values(m||{})) if(en&&en.p) s.add(seenKey(en.p[0],en.p[1]));
   return SEEN=s; }
 function seenAdd(lat,lon,acc){ if(!(acc>0)||acc>60||typeof lat!=="number") return; const k=seenKey(lat,lon), S=seenAll(); if(S.has(k)) return; S.add(k);
-  const L=store.get("seen",[])||[]; L.push(k); while(L.length>20000) L.shift(); store.set("seen",L); }
+  const L=seenStored(); L.push(k); while(L.length>12000) L.shift(); seenSave(); }
 function seenNear(lat,lon){ const S=seenAll(), a=Math.round(lat/SEEN_LAT), b=Math.round(lon/SEEN_LON); for(let i=-1;i<=1;i++) for(let j=-1;j<=1;j++) if(S.has((a+i)+":"+(b+j))) return true; return false; }
 function spotsAll(){ const out=[], C=CITIES[state.city].places; for(const [pid,list] of Object.entries(SPOTS)){ if(!PLACES[pid]||!C[pid]) continue; list.forEach((S,i)=>out.push({pid,i,S,id:pid+":"+i})); } return out; }
 const spotNew = o => !seenNear(o.S[0],o.S[1]) && !(o.S[5]&&state.done.has(o.S[5]));

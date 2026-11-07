@@ -47,7 +47,7 @@ def run(path, name):
         pg = ctx.new_page(); pg.set_default_timeout(8000)
         errors = []
         pg.on("pageerror", lambda e: errors.append(str(e)))
-        pg.clock.install(time="2026-10-11T15:00:00")
+        pg.clock.install(time="2026-10-11T15:00:00-04:00")   # New York time, stated so it does not depend on how the string is read
         # A fixed forecast for the installed app: rain from 3 pm to 6 pm, overcast before, clear after
         times=["2026-10-%sT%02d:00"%(d,h) for d in ("11","12") for h in range(24)]
         code=[61 if (d=="11" and 15<=h<18) else 3 if (d=="11" and 12<=h<15) else 1 for d in ("11","12") for h in range(24)]
@@ -173,12 +173,12 @@ def run(path, name):
         pg.click("#today [data-weekmap]"); pg.wait_for_timeout(300)
         check("See it on the map opens the map on that day at golden hour", pg.evaluate("[state.view, state.mapD, state.mapT!==null]")==["map",3,True])
         # After dark: tomorrow morning on top, the outing card steps aside, one tap adds it to Google Calendar (Claude version)
-        pg.clock.set_system_time("2026-10-11T21:30:00"); pg.evaluate("state.view='today'; state.weekSel=null; render()"); pg.wait_for_timeout(100)
+        pg.clock.set_system_time("2026-10-11T21:30:00-04:00"); pg.evaluate("state.view='today'; state.weekSel=null; render()"); pg.wait_for_timeout(100)
         tm=pg.evaluate("[!!document.querySelector('#today .ttmr'), /Tomorrow morning/.test((document.querySelector('#today .ttmr .tlabel')||{}).textContent||''), !!document.querySelector('#today .ttmr [data-planoff=\"1\"]'), !!document.querySelector('#today .tplan'), [...document.querySelectorAll('#today > .tsec')].map(e=>e.id.slice(5)).indexOf('tmr')]")
         check("After dark Today shows tomorrow morning second, with a plan button, and no separate outing card", tm[:4]==[True,True,True,False] and tm[4]==1, tm)
         ca=pg.evaluate("(async()=>{ const had=!!document.querySelector('#today .ttmr [data-caladd]'); CAL_MCP={callTool:async(s,t,i)=>{ window._cal=[s,t,i]; return {content:[]}; }}; renderToday(); document.querySelector('#today .ttmr [data-caladd]').click(); await new Promise(r=>setTimeout(r,30)); const c=window._cal; renderToday(); const ok=!!document.querySelector('#today .ttmr .calok'); CAL_MCP=null; renderToday(); return [had, c[0], c[1], /^2026-10-12T0[5-7]:/.test(c[2].startTime), c[2].overrideReminders[0].minutes, ok]; })()")
         check("Add to Google Calendar appears only with the connector, adds tomorrow morning with a reminder, and stays marked as added", ca==[False,"Google Calendar","create_event",True,60,True], ca)
-        pg.clock.set_system_time("2026-10-11T15:00:00"); pg.evaluate("render()")
+        pg.clock.set_system_time("2026-10-11T15:00:00-04:00"); pg.evaluate("render()")
         pg.evaluate("state.mapD=0; state.mapT=null; state.view='today'; state.weekSel=3; render()"); pg.click("#today [data-weekplan]"); pg.wait_for_timeout(300)
         check("Plan this evening plans that day", pg.evaluate("[state.view, $('pDay').value, !!(state.plan&&state.plan.stops.length), state.plan&&state.plan.start.getDate()]")==["plan","3",True,14+0] or pg.evaluate("[state.view, $('pDay').value]")==["plan","3"], pg.evaluate("[state.view, $('pDay').value, state.plan&&state.plan.start.toString()]"))
         pg.evaluate("state.home=null; store.set('home',null); state.weekSel=null; state.plan=null; savePlan(); state.view='today'; render()")
@@ -1097,12 +1097,12 @@ def run(path, name):
             check("Marathon on the map on race day: the field band, the leaders and where they are", rm==[1,2,True,True], rm)
         pg.wait_for_timeout(600); pg.evaluate("cancelAnimationFrame(mapAnim); mapSelect(null); state.mapD=0; state.mapT=null")
         db=pg.evaluate("""(()=>{ const r=eventRows(evDay(new Date())).find(x=>x.e.id==='halloween'), h=evDayBar(r), q=eventRows(evDay(new Date())).find(x=>x.e.id==='balloons'), hb=evDayBar(q), m=evDayBar(eventRows(evDay(new Date())).find(x=>x.e.id==='marathon'));
-          return [/evdwin/.test(h), /7 pm to 1\d pm<\/b>: after dark the whole time/.test(h), /Sunset 5:5\d pm/.test(h), /1 pm to 6 pm<\/b>: midday sun until 3:5\d pm, golden hour/.test(hb), /8 am to 6 pm<\/b>: daylight until 4:1\d pm, golden hour/.test(m), evLightTag(q,evDay(new Date())), eventLight(EVENTS.find(e=>e.id==='marathon'),new Date(2026,10,1)).join(' ').includes('4:54 pm')]; })()""")
+          return [/evdwin/.test(h), /7 pm to 1\\d pm<\\/b>: after dark the whole time/.test(h), /Sunset 5:5\\d pm/.test(h), /1 pm to 6 pm<\\/b>: midday sun until 3:5\\d pm, golden hour/.test(hb), /8 am to 6 pm<\\/b>: daylight until 4:1\\d pm, golden hour/.test(m), evLightTag(q,evDay(new Date())), eventLight(EVENTS.find(e=>e.id==='marathon'),new Date(2026,10,1)).join(' ').includes('4:54 pm')]; })()""")
         check("Event day bar: the hours over the day's light, what the light does while it is on; the tag says when an event runs into golden hour; sunset right on the day the clocks change",
               db==[True,True,True,True,True,"runs into golden hour",True], db)
         rb=pg.evaluate("""(()=>{ const off=[]; EV_ROUTE.marathon.spots.forEach(S=>{ const L=EV_ROUTE.marathon.line; let bi=0,bd=1e9; L.forEach((q,i)=>{const d=(q[0]-S[0])**2+((q[1]-S[1])*0.76)**2; if(d<bd){bd=d;bi=i;}}); const a=L[Math.max(0,bi-1)], c=L[Math.min(L.length-1,bi+1)], onc=(Math.atan2((c[1]-a[1])*0.76,c[0]-a[0])*180/Math.PI+540)%360; if(angDiff(S[2],onc)>60) off.push(S[3]); });
           const B=raceBest('marathon',new Date(2026,10,1)), h=raceBestHtml('marathon',new Date(2026,10,1));
-          return [off, B.rank.length, B.rank[0].L.k, B.rank[0].S[3], B.plan.length, B.plan.every((p,i)=>!i||(p.s.T.mile>B.plan[i-1].s.T.mile&&p.t>=B.plan[i-1].t+45+p.tr)), B.plan.every(p=>p.t+45<=p.s.T.thick[1]), /Best spots for photos/.test(h)&&/Follow the race: \d stops/.test(h), (h.match(/data-mapevsp=/g)||[]).length]; })()""")
+          return [off, B.rank.length, B.rank[0].L.k, B.rank[0].S[3], B.plan.length, B.plan.every((p,i)=>!i||(p.s.T.mile>B.plan[i-1].s.T.mile&&p.t>=B.plan[i-1].t+45+p.tr)), B.plan.every(p=>p.t+45<=p.s.T.thick[1]), /Best spots for photos/.test(h)&&/Follow the race: \\d stops/.test(h), (h.match(/data-mapevsp=/g)||[]).length]; })()""")
         check("Marathon viewing spots face the oncoming runners, rank by light and plan a hop-along day", rb[0]==[] and rb[1]==10 and rb[2]=="front" and rb[3].startswith("Fifth Avenue") and rb[4]>=3 and rb[5] and rb[6] and rb[7] and rb[8]==10, rb)
         pd=pg.evaluate("""(()=>{ const d=new Date(2026,10,26), B=raceBest('thanksgiving',d), h=raceBestHtml('veterans',new Date(2026,10,11)), hT=raceBestHtml('thanksgiving',d), S6=B.rank.find(o=>o.S[3].startsWith('Sixth Avenue at 45th'));
           const T=paradeSpotTimes('veterans',0.5), H=raceBestHtml('halloween',new Date(2026,9,31));
@@ -1124,7 +1124,7 @@ def run(path, name):
           const n1=evKitSet('light','28',new Date(2026,11,10,19),null,null), d1=evKitSet('parade','43',new Date(2026,10,11,12,30),'back',0), P=evPairs(v)||[];
           const W1=evWeekendDays(new Date(2026,10,5)).map(d=>d.getDate()), W2=evWeekendDays(new Date(2026,10,8)).length, ds=new Date(2026,11,1), sr=evSeasonRows(eventRows(ds),ds), sh=evSeasonHtml(eventRows(ds),ds), off=evSeasonHtml(eventRows(new Date(2027,2,1)),new Date(2027,2,1));
           return [/Bring the Q3 43/.test(kv)&&(kv.match(/<li>/g)||[]).length>=3&&/about ISO/.test(kv), /Bring the Q3 28/.test(kw)&&(kw.match(/<li>/g)||[]).length===6,
-            /f\/2\.8/.test(n1.set)&&/full frame/.test(n1.crop), /\+0\.3/.test(d1.ec)&&/1\/1000 s/.test(d1.set), P.map(p=>p.tag).join(), P.every(p=>p.mi<=1.25&&AVAIL[p.x.id]?.ev!=='veterans'),
+            /f\\/2\\.8/.test(n1.set)&&/full frame/.test(n1.crop), /\\+0\\.3/.test(d1.ec)&&/1\\/1000 s/.test(d1.set), P.map(p=>p.tag).join(), P.every(p=>p.mi<=1.25&&AVAIL[p.x.id]?.ev!=='veterans'),
             W1.join(), W2, sr.length>=4&&sr.every((x,i)=>!i||sr[i-1].a<=x.a), /evstoday/.test(sh)&&/Holiday season/.test(sh), off]; })()""")
         check("Events: lens and settings for each viewing spot, an idea before and after, this weekend side by side, and the holiday season at a glance", e4==[True,True,True,True,"Before,After",True,"7,8",1,True,True,""], e4)
         pv=pg.evaluate("state.view"); pg.evaluate("(()=>{ state.view='events'; state.evNear=false; state.evDay=null; render(); window.scrollTo(0,0); })()"); pg.wait_for_timeout(200)
@@ -1232,26 +1232,28 @@ def run(path, name):
         check("Wet streets: puddle spots while it rains and for about two hours after, three when cold, with a banner, a light mark and a panel; none when dry or with the layer off",
               wt==[None,"rain","wet18","wet18",None,True,True,True,True,True,0,0,"wet19"], wt)
         # New to you: where you have been, kept on the phone; the spots you have never stood at
-        nw=pg.evaluate("""(()=>{ const keep=[state.log,state.done,store.get('seen',[]),state.walks]; store.set('seen',[]); state.walks=[]; state.log={}; state.done=new Set(); SEEN=null;
+        nw=pg.evaluate("""(()=>{ const keep=[state.log,state.done,store.get('seen2',''),state.walks]; store.set('seen2',''); state.walks=[]; state.log={}; state.done=new Set(); SEEN=null; SEEN_L=null;
           const N0=newSpots(), S=SPOTS.soho[0], one={pid:'soho',i:0,S};
           seenAdd(S[0]+0.0003,S[1]-0.0003,20); seenAdd(40.6,-73.9,500);
           const N1=newSpots(), other=SPOTS.wsp.findIndex(x=>x[5]); state.done.add(SPOTS.wsp[other][5]);
-          const r=[N0.all.length>100, N0.fresh.length===N0.all.length, store.get('seen',[]).length, spotNew(one), N1.fresh.length<N0.fresh.length, spotNew({pid:'wsp',i:other,S:SPOTS.wsp[other]})];
+          const r=[N0.all.length>100, N0.fresh.length===N0.all.length, (seenSave(true), store.get('seen2','').split(',').filter(Boolean).length), spotNew(one), N1.fresh.length<N0.fresh.length, spotNew({pid:'wsp',i:other,S:SPOTS.wsp[other]})];
           state.mapShowNew=true; state.mapInView=false; state.mapNear=false; mapSelect(null); mapV=mapClamp({cx:mapXY(S[0],S[1])[0],cy:mapXY(S[0],S[1])[1],w:30}); mapDraw(); mapPanel();
-          r.push(document.querySelectorAll('#mapOver .m-new').length>0, !!document.querySelector('#mapDyn .m-seen'), /you have stood at \d+ of \d+ spots/.test((document.querySelector('.newlead')||{}).textContent||''));
+          r.push(document.querySelectorAll('#mapOver .m-new').length>0, !!document.querySelector('#mapDyn .m-seen'), /you have stood at \\d+ of \\d+ spots/.test((document.querySelector('.newlead')||{}).textContent||''));
           const fresh=newSpots().fresh.find(o=>o.pid==='soho'); mapSelectWork('new:'+fresh.id);
           r.push(/New to you/.test(document.querySelector('#mapPanel').textContent), !!document.querySelector('#mapPanel [data-guide="'+fresh.id+'"]'));
           state.mapShowNew=false; mapSelect(null); mapDraw(); r.push(document.querySelectorAll('.m-new,.m-seen').length);
-          [state.log,state.done]=keep; store.set('seen',keep[2]); state.walks=keep[3]; SEEN=null; mapPanel(); return r; })()""")
-        check("New to you: close fixes are kept (poor ones are not), a spot you stood at or shot is no longer new, stars and shaded blocks on the map, a summary and a panel with Guide me there, nothing with the layer off",
-              nw==[True,True,1,False,True,False,True,True,True,True,True,0], nw)
+          [state.log,state.done]=keep; store.set('seen2',keep[2]); state.walks=keep[3]; SEEN=null; SEEN_L=null;
+          store.set('seen2',null); store.set('seen',['100:-200','bad',45300]); SEEN_L=null; const mig=seenStored().slice(); r.push(mig.length===1&&mig[0]==='100:-200'&&store.get('seen',null)===null&&seenDec(seenEnc('45301:-61600'))==='45301:-61600');
+          store.set('seen2',keep[2]); SEEN_L=null; SEEN=null; mapPanel(); return r; })()""")
+        check("New to you: close fixes are kept (poor ones are not), a spot you stood at or shot is no longer new, stars and shaded blocks on the map, a summary and a panel with Guide me there, nothing with the layer off; the old stored list moves to the compact one",
+              nw==[True,True,1,False,True,False,True,True,True,True,True,0,True], nw)
         # The outing in the best order for the light
         bo=pg.evaluate("""(()=>{ const keep=state.plan; state.plan=null; state.planMsg=null; ['dumbo','wsp','chinatown','soho'].forEach(planAdd); const p=state.plan, start=+p.start, set=p.stops.map(s=>s.place).sort().join();
           mapPanel(); const btn=!!document.querySelector('#mapPlan [data-planbest]'); document.querySelector('#mapPlan [data-planbest]').click();
           const r1=state.planMsg, after=state.plan.stops.map(s=>s.place).sort().join(), again=planBestOrder(false);
           const r=[btn, /^(Reordered|Already the best order)/.test(r1), after===set, +state.plan.stops[0].at===start, !!again&&again.same, !!document.querySelector('#mapPlan .planmsg')];
           planRemove('soho'); r.push(!state.planMsg); planRemove('chinatown'); mapPanel(); r.push(!document.querySelector('#mapPlan [data-planbest]'));
-          state.plan.stops[0].at=new Date(Date.now()+2*36e5); retimePlan(state.plan); state.pos={lat:40.7230,lon:-73.9990}; r.push(/^Leave by \d/.test(planLeaveBy()));
+          state.plan.stops[0].at=new Date(Date.now()+2*36e5); retimePlan(state.plan); state.pos={lat:40.7230,lon:-73.9990}; r.push(/^Leave by \\d/.test(planLeaveBy()));
           state.plan=keep; savePlan(); mapPanel(); return r; })()""")
         check("Best order for the light: offered with three or more stops, keeps the stops and the start, says what changed, and a second try finds nothing better; Leave by for the first stop",
               bo==[True,True,True,True,True,True,True,True,True], bo)
@@ -1267,6 +1269,15 @@ def run(path, name):
                   bz==[10,[3000,2025,10],300,["quiet","busy","packed"],"am","md",True,10,2,True,0], bz)
         else:
             check("How busy is not offered in the Claude version", not pg.evaluate("MAP_LAYERS.some(l=>l[0]==='mapShowBusy')"))
+        # Storage full: your own data still saves, by dropping copies that can be fetched again; a cache never pushes anything out
+        sf=pg.evaluate("""(()=>{ const keepW=localStorage.getItem('shotlist.works'), keepP=localStorage.getItem('shotlist.ped'), keepH=localStorage.getItem('shotlist.health');
+          store.set('works',{at:1,raw:'x'.repeat(1e6)}); let i=0; try{ for(;i<400;i++) localStorage.setItem('shotlist.junk'+i,'y'.repeat(5e5)); }catch(e){}
+          const ok=store.set('fulltest',{a:'z'.repeat(6e5)}), gone=localStorage.getItem('shotlist.works')===null, logged=healthList().some(x=>/Storage full: cleared the saved copy of works/.test(x.m));
+          const cache=store.set('ped',{x:'q'.repeat(2e6)}), still=localStorage.getItem('shotlist.fulltest')!==null;
+          for(let j=0;j<=i;j++) localStorage.removeItem('shotlist.junk'+j); localStorage.removeItem('shotlist.fulltest');
+          [['works',keepW],['ped',keepP],['health',keepH]].forEach(([k,v])=>{ if(v===null) localStorage.removeItem('shotlist.'+k); else localStorage.setItem('shotlist.'+k,v); });
+          return [i>0, ok, gone, logged, cache, still]; })()""")
+        check("Storage full: a save of your own data clears the cached closures and goes through, App health notes it; a cache that does not fit is just not kept", sf==[True,True,True,True,False,True], sf)
         # Dark theme renders too
         pg.evaluate("document.documentElement.dataset.theme='dark'; state.view='shoot'; render()"); pg.wait_for_timeout(80)
         check("no script errors", not errors, errors[:3])
