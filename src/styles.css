@@ -1611,3 +1611,12 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 /* Ideas: Tomorrow */
 @media (max-width:560px){ .isearch{flex-wrap:wrap} .isearch input{flex-basis:100%} }
 .tmlead{margin:4px 0 10px;max-width:none} .tmgroup{margin-bottom:12px}
+/* Tomorrow's shortlist, walk groups and forecast warnings */
+.tmrow{display:flex;align-items:stretch;border-bottom:1px solid var(--line)} .tmrow .row{border-bottom:0;flex:1;min-width:0}
+.tmstar{flex:none;width:48px;border:0;background:none;color:var(--muted);font-size:22px;cursor:pointer} .tmstar[aria-pressed="true"]{color:#e0a100}
+.tmwalk{margin:0;padding:8px 14px 4px;font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line);background:var(--bg)}
+.tmbar{background:var(--panel);border:1.5px solid #e0a100;border-radius:10px;padding:10px 12px;margin:0 0 12px}
+.tmbar-h{display:flex;flex-direction:column;gap:2px} .tmbar-h span{font-size:13px;color:var(--muted)}
+.tmwarn{margin:8px 0 4px;padding:8px 10px;border-radius:8px;background:rgba(31,111,196,.1);font-size:14px} .tmwarn ul{margin:6px 0 0;padding-left:16px;display:flex;flex-direction:column;gap:8px}
+.tmwarn li{display:flex;flex-direction:column;gap:4px} .tmalt{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;color:var(--muted)} .tmalt .chip{min-height:34px;font-size:13px;white-space:normal;text-align:left}
+.tpicks .row{border-top:1px solid var(--line)}

@@ -1629,6 +1629,15 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 /* Ideas: Tomorrow */
 @media (max-width:560px){ .isearch{flex-wrap:wrap} .isearch input{flex-basis:100%} }
 .tmlead{margin:4px 0 10px;max-width:none} .tmgroup{margin-bottom:12px}
+/* Tomorrow's shortlist, walk groups and forecast warnings */
+.tmrow{display:flex;align-items:stretch;border-bottom:1px solid var(--line)} .tmrow .row{border-bottom:0;flex:1;min-width:0}
+.tmstar{flex:none;width:48px;border:0;background:none;color:var(--muted);font-size:22px;cursor:pointer} .tmstar[aria-pressed="true"]{color:#e0a100}
+.tmwalk{margin:0;padding:8px 14px 4px;font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line);background:var(--bg)}
+.tmbar{background:var(--panel);border:1.5px solid #e0a100;border-radius:10px;padding:10px 12px;margin:0 0 12px}
+.tmbar-h{display:flex;flex-direction:column;gap:2px} .tmbar-h span{font-size:13px;color:var(--muted)}
+.tmwarn{margin:8px 0 4px;padding:8px 10px;border-radius:8px;background:rgba(31,111,196,.1);font-size:14px} .tmwarn ul{margin:6px 0 0;padding-left:16px;display:flex;flex-direction:column;gap:8px}
+.tmwarn li{display:flex;flex-direction:column;gap:4px} .tmalt{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;color:var(--muted)} .tmalt .chip{min-height:34px;font-size:13px;white-space:normal;text-align:left}
+.tpicks .row{border-top:1px solid var(--line)}
 </style>
 
 <div class="app">
@@ -3707,19 +3716,77 @@ function onNowIdea(x,t,sky){ t=t||new Date(); return ideaOpen(x,t,sky===undefine
 /* Tomorrow: the day split into the light it brings (morning, midday, golden hour, blue hour and after dark), each read against the
    hourly forecast for its time, so a wet afternoon brings rain ideas instead of golden-hour ones. An idea counts when it suits one of
    the slots and is on then (its days, hours, season and weather); it is listed under the best of them. */
+/* Tomorrow's light in slots, for any day (tomorrow for the list; today too, for a shortlist made last night). */
 const TM_RANK = {gold:0,night:1,am:2,rain:3,mid:4};
 const tmrwDay = () => { const n=new Date(); return new Date(n.getFullYear(),n.getMonth(),n.getDate()+1); };
-function tmrwSlots(){ const d=tmrwDay(), w=WEATHER[state.city], key=state.city+":"+(+d)+":"+(w&&w.updated||"")+":"+state.cond; if(tmrwSlots.c&&tmrwSlots.c.key===key) return tmrwSlots.c.v;
+const TM_CACHE = new Map();
+function daySlots(d){ d=evDay(d); const w=WEATHER[state.city], key=state.city+":"+(+d)+":"+(w&&w.updated||"")+":"+state.cond; const hit=TM_CACHE.get(+d); if(hit&&hit.key===key) return hit.v;
   const {L,list}=todayWindows(d), eg=list.find(x=>x.name==="Golden hour"), eb=list.find(x=>x.name==="Blue hour"), mg=list.find(x=>x.name==="Morning golden hour"), S=[];
   const add=(id,name,s,e,at)=>{ s=Math.round(s); e=Math.round(e); at=Math.round(Math.min(Math.max(at,s),e-1)); if(e<=s) return; const t=clk(d,at), k=lightAt(t), sky=skyAt(t); S.push({id,name,s,e,at,t,k,sky,rank:TM_RANK[k]===undefined?5:TM_RANK[k]}); };
   add("am",mg?"Morning golden hour and after":"Morning",L.rise,L.rise+170,L.rise+40);
   add("mid","Midday",L.rise+180,eg?eg.s:L.set-120,12*60+30);
   if(eg) add("gold","Golden hour",eg.s,eg.e,eg.s+Math.min(30,(eg.e-eg.s)/2));
   const ns=eb?eb.s:L.set+30; add("night",eb?"Blue hour and after dark":"After dark",ns,Math.min(1439,(eb?eb.e:ns)+150),Math.max(ns+10,L.set+35));
-  S.sort((a,b)=>a.rank-b.rank||a.s-b.s); tmrwSlots.c={key,v:S,fit:new Map()}; return S; }
-function tmrwFit(x){ const S=tmrwSlots(), F=tmrwSlots.c.fit; if(F.has(x.id)) return F.get(x.id); const r=S.find(o=>x.w.includes(o.k)&&ideaOpen(x,o.t,o.sky))||null; F.set(x.id,r); return r; }
+  S.sort((a,b)=>a.rank-b.rank||a.s-b.s); S.fit=new Map(); TM_CACHE.set(+d,{key,v:S}); if(TM_CACHE.size>4) TM_CACHE.delete(TM_CACHE.keys().next().value); return S; }
+function dayFit(x,d){ const S=daySlots(d); if(S.fit.has(x.id)) return S.fit.get(x.id); const r=S.find(o=>x.w.includes(o.k)&&ideaOpen(x,o.t,o.sky))||null; S.fit.set(x.id,r); return r; }
+const tmrwSlots = () => daySlots(tmrwDay());
+const tmrwFit = x => dayFit(x,tmrwDay());
 const tmrwSky = o => o.sky===undefined ? "no forecast yet" : o.k==="rain" ? (o.sky==="snow"?"snow likely":"rain likely") : o.sky ? WX_WORD[o.sky].toLowerCase() : "clear or some cloud";
-const tmrwHead = o => o.name+" "+hmSpan(o.s,o.e)+" · "+tmrwSky(o);
+
+/* The shortlist for a day: ideas starred from the Tomorrow list, with the light each was picked for, so a change in the forecast shows.
+   Kept on the phone by day; days that have passed are dropped. */
+const ymdKey = d => d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const ymdDate = k => { const [y,m,d]=k.split("-").map(Number); return new Date(y,m-1,d); };
+function picksAll(){ if(state.tmPicks) return state.tmPicks; const P=store.get("tmPicks",{})||{}, today=ymdKey(new Date());
+  for(const k of Object.keys(P)) if(k<today||!P[k]||!Array.isArray(P[k].ids)) delete P[k]; return state.tmPicks=P; }
+function picksFor(dk){ const P=picksAll(); return P[dk]||{ids:[],snap:{}}; }
+function picksSave(){ store.set("tmPicks",picksAll()); }
+function pickToggle(id,dk){ const P=picksAll(), E=P[dk]||(P[dk]={ids:[],snap:{}}), x=IDEAS.find(i=>i.id===id); if(!x) return;
+  const i=E.ids.indexOf(id); if(i>=0){ E.ids.splice(i,1); delete E.snap[id]; } else { const o=dayFit(x,ymdDate(dk)); E.ids.push(id); E.snap[id]=o?{slot:o.id,k:o.k}:null; }
+  if(!E.ids.length) delete P[dk]; picksSave(); }
+/* What changed since a pick was made: its slot's light is different now (golden hour turned to rain), or it no longer fits the day.
+   For each, up to two swaps that suit the new light, at the same place or nearby. */
+function picksWarn(dk){ const E=picksFor(dk), d=ymdDate(dk), S=daySlots(d), out=[];
+  for(const id of E.ids){ const x=IDEAS.find(i=>i.id===id), sn=E.snap[id]; if(!x||!sn) continue; const o=S.find(s=>s.id===sn.slot), f=dayFit(x,d);
+    if(o&&o.k===sn.k&&f) continue;
+    const slot=o||f, P0=PLACES[x.p], cand=R=>slot?cityIdeas().filter(y=>y.id!==x.id&&!E.ids.includes(y.id)&&dayFit(y,d)===slot&&typeof PLACES[y.p].lat==="number"&&typeof P0.lat==="number"&&kmBetween(P0,PLACES[y.p])<=R)
+      .sort((a,b)=>(state.done.has(a.id)-state.done.has(b.id))||(kmBetween(P0,PLACES[a.p])-kmBetween(P0,PLACES[b.p]))).slice(0,2):[], near=cand(1.5), alt=near.length?near:cand(3.5);   // within about 1.5 km, or 3.5 km when nothing is closer
+    out.push({x,sn,o,f,alt}); }
+  return out; }
+function picksWarnHtml(dk){ const W=picksWarn(dk); if(!W.length) return "";
+  return '<div class="tmwarn" role="status"><b>The forecast changed for '+(W.length===1?'one of your picks':W.length+' of your picks')+'</b><ul>'+W.map(w=>{ const SL={am:"the morning",mid:"midday",gold:"golden hour",night:"blue hour and after dark"}, was=SL[w.sn.slot]||(WHEN[w.sn.k]||w.sn.k).toLowerCase();
+      const now=w.o?(w.o.name+' is now '+tmrwSky(w.o)):'it no longer fits the day';
+      return '<li><span><b>'+esc(w.x.t)+'</b> ('+esc(PLACES[w.x.p].name)+'): picked for '+esc(was)+'; '+esc(now)+(w.f&&w.o&&w.f!==w.o?'. It still works at '+esc(w.f.name.toLowerCase())+'.':'.')+'</span>'+
+        (w.alt.length?'<span class="tmalt">Swap for: '+w.alt.map(y=>'<button type="button" class="chip" data-tmswap="'+esc(w.x.id+'|'+y.id+'|'+dk)+'">'+esc(y.t)+' · '+esc(PLACES[y.p].name)+'</button>').join("")+'</span>':'')+'</li>'; }).join("")+'</ul></div>'; }
+function picksBarHtml(dk,label){ const E=picksFor(dk); if(!E.ids.length) return ""; const xs=E.ids.map(id=>IDEAS.find(i=>i.id===id)).filter(Boolean), places=[...new Set(xs.map(x=>x.p))];
+  return '<section class="tmbar"><div class="tmbar-h"><b>Shortlist for '+label+' · '+xs.length+'</b><span>'+esc(places.map(p=>PLACES[p].name).join(", "))+'</span></div>'+picksWarnHtml(dk)+
+    '<div class="callinks"><button type="button" class="chip primary" data-tmplan="'+dk+'">Plan '+label+' from the shortlist</button><button type="button" class="chip" data-tmclear="'+dk+'">Clear</button></div></section>'; }
+/* Today: the shortlist for today (made last night), or tomorrow's after it is made, with its warnings and the ideas */
+function picksTodayHtml(){ const tk=ymdKey(new Date()), mk=ymdKey(tmrwDay()), dk=picksFor(tk).ids.length?tk:picksFor(mk).ids.length?mk:null; if(!dk) return "";
+  const lab=dk===tk?"today":"tomorrow", E=picksFor(dk), d=ymdDate(dk), xs=E.ids.map(id=>IDEAS.find(i=>i.id===id)).filter(Boolean);
+  return '<section class="tcard tpicks"><p class="tlabel">Your shortlist for '+lab+'</p>'+picksWarnHtml(dk)+xs.map(x=>{ const o=dayFit(x,d); return '<button type="button" class="row" data-id="'+x.id+'"><span class="dot" style="background:'+INTENTS[x.i].color+'"></span><span class="t"><b>'+esc(x.t)+'</b><span>'+esc(PLACES[x.p].name+(o?' · '+o.name.toLowerCase()+' '+hmSpan(o.s,o.e):''))+'</span></span><span class="go" aria-hidden="true">›</span></button>'; }).join("")+
+    '<div class="callinks"><button type="button" class="chip primary" data-tmplan="'+dk+'">'+(state.plan&&evDay(state.plan.start)>=evDay(d)&&+evDay(state.plan.start)===+evDay(d)?'Plan it again':'Plan '+lab)+'</button><button type="button" class="chip" data-tmshow="1">Change the shortlist</button></div></section>'; }
+/* Plan the day from the shortlist: its places, in the order and at the start time that puts the most picked ideas in light that suits
+   them (every order of up to six places, starts every 20 minutes from before sunrise to after dark; not earlier than now on the day). */
+function picksPlan(dk){ const E=picksFor(dk), d=ymdDate(dk), xs=E.ids.map(id=>IDEAS.find(i=>i.id===id)).filter(x=>x&&typeof PLACES[x.p].lat==="number"); if(!xs.length) return null;
+  const by=new Map(); xs.forEach(x=>{ if(!by.has(x.p)) by.set(x.p,[]); by.get(x.p).push(x); });
+  let places=[...by.keys()].sort((a,b)=>by.get(b).length-by.get(a).length).slice(0,6);
+  const L=lightDay(d), legs={}, leg=(a,b)=>legs[a+">"+b]||(legs[a+">"+b]=legBetween(a,b)), now=Date.now();
+  const KM=new Map(), FM=new Map(), kAt=t=>{ let v=KM.get(t); if(!v){ const tt=new Date(t); v={tt,k:lightAt(tt),sky:skyAt(tt)}; KM.set(t,v); } return v; };
+  const fitAt=(pid,t)=>{ const key=pid+"@"+t; let f=FM.get(key); if(f===undefined){ const {tt,k,sky}=kAt(t); f=by.get(pid).filter(x=>x.w.includes(k)&&ideaOpen(x,tt,sky)).length; FM.set(key,f); } return [f,kAt(t).k]; };
+  const sim=(order,start)=>{ let t=+start, fits=0, score=0, travel=0; order.forEach((pid,n)=>{ const I=by.get(pid), [f,k]=fitAt(pid,t);
+      fits+=f; score+=f*10+(f&&k==="gold"?3:0); t+=Math.max(1,I.length)*25*6e4; if(n<order.length-1){ const g=leg(pid,order[n+1]); travel+=g.mins; t+=g.mins*6e4; } }); return {fits,score:score-travel/6}; };
+  const orders=[]; const perm=(a,k)=>{ if(k===a.length){ orders.push(a.slice()); return; } for(let i=k;i<a.length;i++){ [a[k],a[i]]=[a[i],a[k]]; perm(a,k+1); [a[k],a[i]]=[a[i],a[k]]; } }; perm(places.slice(),0);
+  let best=null; for(let m=Math.max(0,L.rise-40);m<=Math.min(1380,L.set+150);m+=20){ const st=clk(d,m); if(+st<now) continue; for(const o of orders){ const r=sim(o,st); if(!best||r.score>best.r.score+0.01) best={o,st,r}; } }
+  if(!best) return null;
+  const p={start:best.st,end:best.st,stops:best.o.map(pid=>({place:pid,at:new Date(best.st),key:"",ideas:by.get(pid).slice()}))};
+  let t=+best.st; p.stops.forEach((s,n)=>{ s.at=new Date(t); s.key=lightAt(s.at); t+=Math.max(1,s.ideas.length)*25*6e4; if(n<p.stops.length-1) t+=leg(s.place,p.stops[n+1].place).mins*6e4; });
+  retimePlan(p); state.plan=p; savePlan(); state.planMsg="Planned from your shortlist: "+best.r.fits+" of "+xs.length+" picked ideas in light that suits them"+(places.length<by.size?" (the six places with the most picks)":"")+"."; return p; }
+/* Within a slot of the Tomorrow list, the places that make one walk, nearest to you first */
+function walkGroups(pids){ const G=[], near=(a,b)=>typeof PLACES[a].lat==="number"&&typeof PLACES[b].lat==="number"&&walkMin(kmBetween(PLACES[a],PLACES[b]))<=20;
+  for(const p of pids){ const g=G.find(g=>g.every(q=>near(p,q))); if(g) g.push(p); else G.push([p]); }   // every place in a group is within a 20-minute walk of every other
+  return G.map(g=>{ let span=0; for(const a of g) for(const b of g) if(a<b&&typeof PLACES[a].lat==="number"&&typeof PLACES[b].lat==="number") span=Math.max(span,walkMin(kmBetween(PLACES[a],PLACES[b])));
+    const names=g.map(p=>PLACES[p].name); return {pids:g,span,name:names.length>2?names.slice(0,2).join(", ")+" and "+(names.length-2)+" more":names.join(" and ")}; }); }
 function matches(savedOnly){ const t=new Date(), sky=state.onNow?skyAt(t):undefined;
   return cityIdeas().filter(x => (state.intent==="all"||x.i===state.intent) && (state.place==="all"||(state.place==="near"?nearSet().has(x.p):x.p===state.place))
     && (state.when==="all"||x.w.includes(state.when)) && (!savedOnly||state.saved.has(x.id)) && qHit(x) && (!state.onNow||onNowIdea(x,t,sky)) && (!state.tmrw||!!tmrwFit(x)));
@@ -4285,13 +4352,17 @@ function renderList(){ qCount();
       '<span class="t"><b>'+qMarkTitle(x)+'</b><span>'+(!flat&&fit&&open?'<span class="nowtag">Now</span>':'')+(flat?esc(pl.name)+(mi!==null?' · '+milesText(mi):'')+' · '+status+(sort==="recent"&&last?' · shot '+esc(agoText(last.t)):''):esc(INTENTS[x.i].name)+(COMPOSE[x.id]?' · '+esc(TECH[COMPOSE[x.id][0]][0]):''))+'</span>'+(snip?'<span class="qsnip">'+snip+'</span>':'')+'</span>'+
       '<span class="marks">'+(state.saved.has(x.id)?'<span class="pill">Saved</span>':'')+(state.done.has(x.id)?'<span class="pill">'+((last||{}).r==="keep"?'Keeper':(last||{}).r==="again"?'Try again':'Shot')+'</span>':'')+(state.notes[x.id]?'<span class="pill">Note</span>':'')+'</span>'+
       '<span class="go" aria-hidden="true">›</span></button>'; };
-  if(state.tmrw&&!saved){ const d=tmrwDay(), S=tmrwSlots(), anyFc=S.some(o=>o.sky!==undefined);
-    const trow=(x,o)=>{ const pl=PLACES[x.p], mi=milesTo(pl), last=lastShot(x.id);
-      return '<button type="button" class="row'+(state.done.has(x.id)?" done":"")+'" data-id="'+x.id+'"><span class="dot" style="background:'+INTENTS[x.i].color+'"></span><span class="t"><b>'+qMarkTitle(x)+'</b><span>'+esc(pl.name)+(mi!==null?' · '+milesText(mi):'')+' · '+esc(INTENTS[x.i].name)+(state.done.has(x.id)?' · shot '+esc(agoText(last?last.t:Date.now())):'')+'</span></span>'+
-        '<span class="marks">'+(state.saved.has(x.id)?'<span class="pill">Saved</span>':'')+'</span><span class="go" aria-hidden="true">›</span></button>'; };
-    box.innerHTML=head.replace(sortSel,'')+'<p class="msg tmlead">Tomorrow, '+esc(d.toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"}))+': the ideas that suit its light'+(anyFc?' and forecast':'')+', grouped by when to shoot them, best light first.'+(anyFc?'':' The hourly forecast is not loaded, so rain is not taken into account.')+'</p>'+
-      S.map(o=>{ const L=m.filter(x=>tmrwFit(x)===o).map(x=>({x,d:milesTo(PLACES[x.p])})).sort((a,b)=>(state.done.has(a.x.id)-state.done.has(b.x.id))||((a.d===null?1e9:a.d)-(b.d===null?1e9:b.d))); if(!L.length) return "";
-        return '<section class="group flat tmgroup"><div class="group-head"><b>'+esc(o.name)+'</b><span class="where">'+esc(hmSpan(o.s,o.e)+' · '+tmrwSky(o)+' · '+L.length+' idea'+(L.length>1?'s':''))+'</span></div>'+L.map(r=>trow(r.x,o)).join("")+'</section>'; }).join("")+followAll(); return; }
+  if(state.tmrw&&!saved){ const d=tmrwDay(), dk=ymdKey(d), S=tmrwSlots(), anyFc=S.some(o=>o.sky!==undefined), PK=picksFor(dk);
+    const trow=x=>{ const pl=PLACES[x.p], mi=milesTo(pl), last=lastShot(x.id), on=PK.ids.includes(x.id);
+      return '<div class="tmrow"><button type="button" class="row'+(state.done.has(x.id)?" done":"")+'" data-id="'+x.id+'"><span class="dot" style="background:'+INTENTS[x.i].color+'"></span><span class="t"><b>'+qMarkTitle(x)+'</b><span>'+esc(pl.name)+(mi!==null?' · '+milesText(mi):'')+' · '+esc(INTENTS[x.i].name)+(state.done.has(x.id)?' · shot '+esc(agoText(last?last.t:Date.now())):'')+'</span></span>'+
+        '<span class="marks">'+(state.saved.has(x.id)?'<span class="pill">Saved</span>':'')+'</span></button><button type="button" class="tmstar" data-tmpick="'+x.id+'" data-day="'+dk+'" aria-pressed="'+on+'" aria-label="'+(on?'On tomorrow\u2019s shortlist: tap to remove':'Add to tomorrow\u2019s shortlist')+'">'+(on?'★':'☆')+'</button></div>'; };
+    box.innerHTML=head.replace(sortSel,'')+'<p class="msg tmlead">Tomorrow, '+esc(d.toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"}))+': the ideas that suit its light'+(anyFc?' and forecast':'')+', by when to shoot them (best light first) and by places within a walk of each other. Tap ☆ to put one on tomorrow\u2019s shortlist.'+(anyFc?'':' The hourly forecast is not loaded, so rain is not taken into account.')+'</p>'+picksBarHtml(dk,"tomorrow")+
+      S.map(o=>{ const L=m.filter(x=>tmrwFit(x)===o); if(!L.length) return "";
+        const pids=[...new Set(L.map(x=>x.p))].sort((a,b)=>{ const da=milesTo(PLACES[a]), db=milesTo(PLACES[b]); return (da===null?1e9:da)-(db===null?1e9:db); }), G=walkGroups(pids);
+        G.forEach(g=>{ g.L=L.filter(x=>g.pids.includes(x.p)).sort((a,b)=>(state.done.has(a.id)-state.done.has(b.id))||(g.pids.indexOf(a.p)-g.pids.indexOf(b.p))); });
+        G.sort((a,b)=>b.L.length-a.L.length);
+        return '<section class="group flat tmgroup"><div class="group-head"><b>'+esc(o.name)+'</b><span class="where">'+esc(hmSpan(o.s,o.e)+' · '+tmrwSky(o)+' · '+L.length+' idea'+(L.length>1?'s':''))+'</span></div>'+
+          G.map(g=>'<p class="tmwalk">'+esc(g.name)+' · '+g.L.length+' idea'+(g.L.length>1?'s':'')+(g.pids.length>1?' · up to '+g.span+' min apart on foot':'')+'</p>'+g.L.map(trow).join("")).join("")+'</section>'; }).join("")+followAll(); return; }
   if(sort!=="place"){ const R=m.map(x=>({x,n:nowRank(x,t0,key0,sky0),d:milesTo(PLACES[x.p]),l:lastShot(x.id)}));
     if(sort==="now") R.sort((a,b)=>a.n-b.n);
     if(sort==="near") R.sort((a,b)=>(a.d===null?1e9:a.d)-(b.d===null?1e9:b.d)||a.n-b.n);
@@ -6071,7 +6142,8 @@ function planLinks(){ const p=state.plan; if(!p) return ""; const nx=Math.max(0,
 function mapPlanBar(){ const p=state.plan, tf=d=>d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}).toLowerCase();
   if(!p) return '<div class="planhint"><p class="hint">Tap a pin and choose Add to today to build an outing on the map, or let the app plan one.</p><button type="button" class="chip primary" data-openplan="1">Plan an outing</button></div>';
   const nx=nextStopIndex();
-  return '<div class="planbar"><div class="planbar-head"><b>Today\u2019s outing</b><span>'+tf(p.start)+' to about '+tf(p.end)+'</span><button type="button" class="chip primary" data-nextstop="1">Next stop ›</button><button type="button" class="chip" data-openplan="1">Details</button><button type="button" class="chip" data-clearplan="1">Clear</button></div>'+
+  const pday=Math.round((evDay(p.start)-evDay(new Date()))/864e5);
+  return '<div class="planbar"><div class="planbar-head"><b>'+(pday===1?'Tomorrow\u2019s outing':pday>1?esc(DAY_NAMES[p.start.getDay()])+'\u2019s outing':'Today\u2019s outing')+'</b><span>'+tf(p.start)+' to about '+tf(p.end)+'</span><button type="button" class="chip primary" data-nextstop="1">Next stop ›</button><button type="button" class="chip" data-openplan="1">Details</button><button type="button" class="chip" data-clearplan="1">Clear</button></div>'+
     (()=>{ const lb=planLeaveBy(), ok=planBestOK(), m=state.planMsg; return (lb?'<p class="msg planleave">'+esc(lb)+'</p>':'')+(ok?'<div class="intents planbest"><button type="button" class="chip" data-planbest="1">Best order for the light</button></div>':'')+(m?'<p class="msg planmsg">'+esc(m)+'</p>':''); })()+
     '<div class="intents planstops">'+p.stops.map((s,n)=>'<button type="button" class="chip stopchip'+(n===nx?" next":"")+'" data-stop="'+n+'"><span class="stopn">'+(n+1)+'</span>'+esc(s.ev?(EVENTS.find(x=>x.id===s.ev)||{name:s.ev}).name:PLACES[s.place].name)+' · '+tf(s.at)+'</button>').join("")+'</div>'+planLinks()+'</div>'; }
 function mapPts(){ const key=lightAt(mapNow()), ideas=cityIdeas().filter(i=>(state.mapIntent==="all"||i.i===state.mapIntent)&&(!state.mapDark||i.w.includes("night"))), t=mapNow(), cc=CITIES[state.city], night=sunPos(t,cc.lat,cc.lon).alt<-6, sky=night?skyAt(t):null;
@@ -8169,13 +8241,13 @@ function renderToday(){ const box=$("today"); if(!box) return; todayAutoLoc();
   S.events=evCard; S.day=dayCard; S.week=weekHtml();
   S.plan=(tmrCard&&planFor.off?'':'<section class="tcard tplan"><p class="tlabel">Plan an outing</p><p>'+planFor.txt+'</p>'+(planFor.when==="tonight"?(tp=>tp?leaveBy(START_GEO[tp.id]||[PLACES[tp.id].lat,PLACES[tp.id].lon],planFor.h*60+15,null,""):"")(todayPicks(atMin(planFor.h*60+60))[0]):'')+'<button type="button" class="btn primary" data-planday="'+planFor.h+'" data-planoff="'+planFor.off+'">Plan '+planFor.when+'</button></section>');
   S.gow=goOrWaitHtml(now); S.last=lastChanceHtml(now); S.same=sameLightHtml(now);
-  S.assign=assignHtml(); S.prices=priceTodayCard(); S.nudge=nudge?'<section class="tcard">'+nudge+'</section>':'';
+  S.picks=picksTodayHtml(); S.assign=assignHtml(); S.prices=priceTodayCard(); S.nudge=nudge?'<section class="tcard">'+nudge+'</section>':'';
   // the order follows the time of day: after dark tomorrow morning and your outing come first; before golden hour, where to go and the plan
   const goldOn=cur&&cur.k, beforeGold=!dark&&!goldOn&&eg&&eg.s>nm, morning=nm<720&&!dark;
-  const order = dark ? ["now","tmr","gow","out","events","alerts","where","same","last","assign","week","day","prices","nudge","plan"]
-    : goldOn ? ["now","same","where","out","events","alerts","plan","last","assign","day","week","prices","nudge","gow"]
-    : beforeGold&&!morning ? ["now","gow","where","same","plan","alerts","events","out","last","assign","day","week","prices","nudge"]
-    : ["now","gow","where","same","alerts","events","last","assign","day","out","plan","week","prices","nudge"];
+  const order = dark ? ["now","picks","tmr","gow","out","events","alerts","where","same","last","assign","week","day","prices","nudge","plan"]
+    : goldOn ? ["now","picks","same","where","out","events","alerts","plan","last","assign","day","week","prices","nudge","gow"]
+    : beforeGold&&!morning ? ["now","picks","gow","where","same","plan","alerts","events","out","last","assign","day","week","prices","nudge"]
+    : ["now","picks","gow","where","same","alerts","events","last","assign","day","out","plan","week","prices","nudge"];
   const JUMP={tmr:"Tomorrow",gow:"Go or wait",where:"Where to go",events:"Events",out:"Your outing",plan:"Plan",last:"Last chance",assign:"This week",week:"Week"};
   const jumps=order.filter(k=>JUMP[k]&&S[k]).slice(0,5);
   box.innerHTML='<header class="thead"><h2>'+now.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})+'</h2>'+asOf+'</header>'+
@@ -8630,6 +8702,15 @@ $("today").addEventListener("click",e=>{
   const r=e.target.closest(".row[data-id]"); if(r){ show(r.dataset.id); state.view="shoot"; render(); window.scrollTo({top:0}); }
 });
 setInterval(()=>{ try{ if(state.view==="today"&&!document.hidden&&performance.now()-HEALTH.touch>8000) renderToday(); }catch(e){} }, 60000);
+/* Tomorrow's shortlist: star, swap, clear, change and plan, from Ideas and Today */
+document.addEventListener("click",e=>{ if(!e.target.closest) return;
+  { const tp=e.target.closest("[data-tmpick]"); if(tp){ pickToggle(tp.dataset.tmpick,tp.dataset.day); render(); return; } }
+  { const tw=e.target.closest("[data-tmswap]"); if(tw){ const [a,b,dk]=tw.dataset.tmswap.split("|"); pickToggle(a,dk); pickToggle(b,dk); render(); return; } }
+  { const tc=e.target.closest("[data-tmclear]"); if(tc){ const P=picksAll(); delete P[tc.dataset.tmclear]; picksSave(); render(); return; } }
+  if(e.target.closest("[data-tmshow]")){ state.tmrw=true; state.onNow=false; store.set("tmrw",true); store.set("onNow",false); state.view="browse"; syncOnNow(); render(); window.scrollTo({top:0}); return; }
+  { const tl=e.target.closest("[data-tmplan]"); if(tl){ const dk=tl.dataset.tmplan, p=picksPlan(dk); if(!p){ evToast('<span>Nothing on the shortlist can be planned for the hours left.</span>'); return; } const off=Math.round((evDay(p.start)-evDay(new Date()))/864e5);
+      state.mapD=off>0&&off<=6?off:0; state.mapT=p.start.getHours()*60+Math.round(p.start.getMinutes()/5)*5; state.view="map"; render(); requestAnimationFrame(()=>{ mapPanel(); mapDraw(); }); return; } }
+});
 document.addEventListener("click",e=>{ const ca=e.target.closest("[data-caladd]"); if(ca&&!ca.closest("#today")) calAdd(ca); });
 /* Refresh Today: fetch the weather (and the events and prices files) again, then redraw. Pull down at the top of Today does the same. */
 function todayRefresh(){ try{ if(typeof window.liveRefresh==="function") window.liveRefresh(); }catch(e){} renderNow(); if(state.view==="today") renderToday();

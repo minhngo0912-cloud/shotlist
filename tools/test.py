@@ -1333,6 +1333,25 @@ def run(path, name):
         pg.evaluate("state.view='shoot'; pick(); render()"); cc=pg.evaluate("[!!state.current, !!tmrwFit(IDEAS.find(x=>x.id===state.current)), $('qCount').textContent]")
         pg.evaluate("state.tmrw=false; store.set('tmrw',false); syncOnNow(); state.view='today'; render()")
         check("Ideas › Tomorrow and On now turn each other off; one at a time picks an idea for tomorrow's light", ct==[True,False] and cc[0] and cc[1] and "for tomorrow" in cc[2], [ct,cc])
+        # Tomorrow's shortlist: star ideas, plan the day from them, warnings when the forecast turns, on Today too
+        pg.evaluate("state.tmPicks=null; store.set('tmPicks',{'2026-10-01':{ids:['soho-place'],snap:{}}}); state.view='browse'; state.intent='all'; state.place='all'; state.when='all'; state.q=''; state.onNow=false; state.tmrw=true; syncOnNow(); render()"); pg.wait_for_timeout(100)
+        sl=pg.evaluate("""(()=>{ const old=!('2026-10-01' in picksAll()), G=document.querySelector('#list .tmgroup'), rows=[...G.querySelectorAll('.tmrow')], picks=[]; const seenP=new Set();
+          for(const r of rows){ const id=r.querySelector('.row').dataset.id, x=IDEAS.find(i=>i.id===id); if(!seenP.has(x.p)&&picks.length<2){ seenP.add(x.p); picks.push(id); } }
+          picks.forEach(id=>document.querySelector('#list [data-tmpick="'+id+'"]').click());
+          const E=picksFor('2026-10-12'); return [old, !!document.querySelector('#list .tmwalk'), picks.length, E.ids.join()===picks.join(), E.snap[picks[0]]&&E.snap[picks[0]].k, document.querySelectorAll('#list .tmstar[aria-pressed=true]').length, /Shortlist for tomorrow · 2/.test((document.querySelector('#list .tmbar')||{}).textContent||''), picks]; })()""")
+        check("Shortlist: old days drop off, ideas grouped into walks, ☆ puts an idea on tomorrow's shortlist with the light it was picked for", sl[:7]==[True,True,2,True,"gold",2,True], sl)
+        pg.click("#list [data-tmplan]"); pg.wait_for_timeout(300)
+        pl=pg.evaluate("[state.view, state.plan&&state.plan.start.getDate(), state.plan&&state.plan.stops.map(s=>s.place).sort().join(), /Tomorrow\\u2019s outing/.test(document.querySelector('#mapPlan').textContent), /Planned from your shortlist/.test(state.planMsg||''), state.plan&&state.plan.stops.every(s=>s.ideas.every(x=>picksFor('2026-10-12').ids.includes(x.id))), state.mapD]")
+        exp=pg.evaluate("[...new Set(picksFor('2026-10-12').ids.map(id=>IDEAS.find(x=>x.id===id).p))].sort().join()")
+        check("Plan tomorrow from the shortlist: tomorrow's outing with exactly the picked places and ideas, opened on the map on that day", pl[0]=="map" and pl[1]==12 and pl[2]==exp and pl[3] and pl[4] and pl[5] and pl[6]==1, [pl,exp])
+        wn=pg.evaluate("""(()=>{ const keep=WEATHER[state.city], T=[],P=[],M=[],C=[],K=[]; for(const d of ['11','12']) for(let h=0;h<24;h++){ T.push('2026-10-'+d+'T'+String(h).padStart(2,'0')+':00'); const r=d==='12'&&h>=15&&h<20; P.push(r?90:5); M.push(r?2:0); C.push(r?100:20); K.push(r?61:1); }
+          WEATHER[state.city]=Object.assign({},keep||{},{updated:'w'+Date.now(),hourly:{time:T,pop:P,mm:M,cc:C,code:K}}); TM_CACHE.clear();
+          const W=picksWarn('2026-10-12'); state.view='today'; render(); const card=document.querySelector('#tsec-picks'), txt=card?card.textContent:'';
+          const sw=card&&card.querySelector('[data-tmswap]'), before=picksFor('2026-10-12').ids.slice(); let after=null; if(sw){ const [a,b]=sw.dataset.tmswap.split('|'); sw.click(); after=[picksFor('2026-10-12').ids.includes(a), picksFor('2026-10-12').ids.includes(b)]; }
+          WEATHER[state.city]=keep; TM_CACHE.clear(); return [W.length, W.every(w=>w.o&&w.o.k==='rain'), /Your shortlist for tomorrow/.test(txt), /The forecast changed/.test(txt), /rain likely/.test(txt), after]; })()""")
+        check("When the forecast turns, the shortlist says which picks are hit and offers nearby swaps that suit the new light; it shows on Today", wn[0]==2 and wn[1] and wn[2] and wn[3] and wn[4] and wn[5] in ([False,True],None), wn)
+        pg.evaluate("document.querySelector('#tsec-picks') && 0; const P=picksAll(); delete P['2026-10-12']; picksSave(); state.plan=null; savePlan(); state.tmrw=false; store.set('tmrw',false); syncOnNow(); state.mapD=0; state.mapT=null; render()")
+        check("Clearing the shortlist removes it from Today", pg.evaluate("!document.querySelector('#tsec-picks')"))
         # Dark theme renders too
         pg.evaluate("document.documentElement.dataset.theme='dark'; state.view='shoot'; render()"); pg.wait_for_timeout(80)
         check("no script errors", not errors, errors[:3])
