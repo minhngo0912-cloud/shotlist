@@ -1310,6 +1310,13 @@ def run(path, name):
             check("Street happenings leave the map when the layer is off", pe2==0, pe2)
         else:
             check("Street happenings and subway changes are not offered in the Claude version", pg.evaluate("[MAP_LAYERS.some(l=>l[0]==='mapShowPermits'), (state.view='events', render(), !!document.querySelector('#events .evpm'))]")==[False,False])
+        # Events a year away fold away; a card that just happened says when it ran and when it is back
+        pg.evaluate("state.evNear=false; state.evDay=null; state.evType='all'; state.evFarShow=false; state.evLaterOpen=true; state.view='events'; render()"); pg.wait_for_timeout(100)
+        fr=pg.evaluate("[!!document.querySelector('#events details.event[data-id=stpat]'), !!document.querySelector('#events [data-evfar]'), (document.querySelector('#events [data-evfar]')||{click(){}}).click(), !!document.querySelector('#events details.event[data-id=stpat]')]")
+        pg.evaluate("state.evFarShow=false"); pg.clock.set_system_time("2026-11-07T12:00:00-05:00"); pg.evaluate("render()"); pg.wait_for_timeout(100)
+        jr=pg.evaluate("((document.querySelector('#events details.event[data-id=marathon] .soon')||{}).textContent||'')")
+        pg.clock.set_system_time("2026-10-11T15:00:00-04:00"); pg.evaluate("state.view='today'; render()")
+        check("Events: yearly events more than four months away fold behind one button; the marathon a week after says it ran and when it is back", fr==[False,True,None,True] and jr.startswith("Ran Nov 1 · next Nov 7, 2027"), [fr,jr])
         # Dark theme renders too
         pg.evaluate("document.documentElement.dataset.theme='dark'; state.view='shoot'; render()"); pg.wait_for_timeout(80)
         check("no script errors", not errors, errors[:3])

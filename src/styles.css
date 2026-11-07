@@ -1606,3 +1606,5 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 .mapsel>.hint{margin:8px 14px 0} .mapsel>.mtapart{margin:10px 14px 0} .mtapart p.msg{font-size:14px} .mtapart .hint{margin-top:6px}
 .event-body .mtapart p.msg{font-size:14px}
 .mtapart p.hint{font-size:12px}
+.evfar{margin:10px 0 4px}
+.evfar .linkbtn{font-size:14px;text-align:left} .cal.ran{opacity:.6}

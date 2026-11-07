@@ -2977,7 +2977,9 @@ function renderEvents(){
   // Going first, then the usual groups; each group is its own section so its heading only sticks while it is on screen; Later folds
   const GO=state.evGoing||new Set(), going=NEAR||DAYF?[]:shown.filter(r=>GO.has(r.e.id)&&r.o&&!r.cancelled),
     jh=NEAR||DAYF?[]:shown.filter(r=>{ if(going.includes(r)) return false; const L=evLastOcc(r.e,today); return L&&(today-L)/864e5<=10&&!(EV_NOTES[r.e.id]||[]).some(n=>n.d===evNoteKey(L)); }),
-    rest=shown.filter(r=>!going.includes(r)&&!jh.includes(r)), secs=[];
+    FAR=new Date(today.getFullYear(),today.getMonth(),today.getDate()+120),
+    farRows=NEAR||DAYF?[]:shown.filter(r=>!going.includes(r)&&!jh.includes(r)&&r.o&&r.o[0]>=FAR),
+    rest=shown.filter(r=>!going.includes(r)&&!jh.includes(r)&&(state.evFarShow||!farRows.includes(r))), secs=[];
   if(going.length) secs.push({k:"go",title:"Going",rows:going});
   if(jh.length) secs.push({k:"jh",title:"Just happened · a note for next time",rows:jh});
   for(const r of rest){ const k=NEAR?evWhen[r.e.id][0]:grpOf(r), t=NEAR?(k===0?'On today':'Coming up nearby'):GRP[k]; const last=secs[secs.length-1]; if(last&&last.k===k) last.rows.push(r); else secs.push({k,title:t,rows:[r]}); }
@@ -2985,17 +2987,19 @@ function renderEvents(){
   const laterOpen=!!state.evLaterOpen||!!DAYF;
   box.innerHTML += secs.map(S=>{ const fold=!NEAR&&S.k===3&&S.rows.length>2;
     return '<section class="evsec'+(S.k==="go"?' evgo':'')+'">'+(fold?'<button type="button" class="evgroup evfold" data-evlater="1" aria-expanded="'+laterOpen+'">'+S.title+' · '+S.rows.length+' events <span aria-hidden="true">'+(laterOpen?'▴':'▾')+'</span></button>':'<p class="evgroup">'+S.title+'</p>')+
-      (fold&&!laterOpen?'':S.rows.map(r=>evCard(r)).join(""))+'</section>'; }).join("")+(NEAR?pmSectionHtml(today,true)+nearSearchHtml(R):DAYF?"":pmSectionHtml(today,false));
+      (fold&&!laterOpen?'':S.rows.map(r=>evCard(r)).join(""))+'</section>'; }).join("")+
+    (farRows.length?'<p class="evfar"><button type="button" class="linkbtn" data-evfar="1">'+(state.evFarShow?'Hide the yearly events more than four months away':farRows.length+' yearly event'+(farRows.length>1?'s':'')+' more than four months away · Show')+'</button></p>':'')+(NEAR?pmSectionHtml(today,true)+nearSearchHtml(R):DAYF?"":pmSectionHtml(today,false));
   function evCard(r){
     const head="", e=r.e, o=r.o, yr=o?o[0].getFullYear():today.getFullYear(), other=o&&yr!==today.getFullYear(), games=r.game?list.filter(x=>x.game&&x.e.id===e.id):[];
     const full=o ? fmt(o[0],dm)+(o[1]?" to "+fmt(o[1],dm):"")+(other?", "+yr:"") : "Date not announced";
-    const soon=r.cancelled?"Cancelled":NEAR&&evWhen[e.id]?evWhen[e.id][1]:(o?(o[0]<=today?evOngoingLabel(r,today):eventSoon(o,today)):"");
+    const ranOn=jh.includes(r)?evLastOcc(e,today):null, md=d=>fmt(d,{month:"short",day:"numeric"})+(d.getFullYear()!==today.getFullYear()?", "+d.getFullYear():"");
+    const soon=r.cancelled?"Cancelled":ranOn?"Ran "+md(ranOn)+(o?" · next "+md(o[0]):""):NEAR&&evWhen[e.id]?evWhen[e.id][1]:(o?(o[0]<=today?evOngoingLabel(r,today):eventSoon(o,today)):"");
     const mi=NEAR?evMi[e.id]:null, dist=mi!=null?'<span class="evdist">'+(mi<0.1?'Right here':milesText(mi)+' · about '+Math.max(1,Math.round(mi*1.25*20))+' min walk')+'</span>':'';
     const q="https://www.google.com/search?q="+encodeURIComponent(e.name+" "+CITIES[e.city].name+" "+yr+" date route");
     const src=typeof r.source==="string" && /^https:\/\//.test(r.source) ? r.source : null;
     return head+'<details class="event" data-id="'+esc(e.id)+'"><summary>'+
-      '<span class="cal">'+(o?'<small>'+fmt(o[0],{month:"short"})+'</small><b>'+o[0].getDate()+'</b>':'<small>TBA</small><b>·</b>')+'</span>'+
-      '<span class="t">'+(EVENT_TYPES[e.type]?'<span class="etag'+(PHOTO_TYPES.has(e.type)?" ph":"")+'">'+EVENT_TYPES[e.type]+(r.confirmed?' <span class="eok">✓ Confirmed</span>':r.added?' <span class="enew">New</span>':'')+'</span>':'')+'<b>'+esc(e.name)+'</b>'+dist+evMeta(r,today)+(state.evGoing&&state.evGoing.has(e.id)?evMtaFlag(r,today):'')+'<span>'+esc(r.game?'Next: '+r.game.title+', '+o[0].toLocaleDateString("en-US",{weekday:"short"})+' '+hmText(r.game.at.getHours()*60+r.game.at.getMinutes()):e.where)+'</span></span>'+
+      (()=>{ const cd=ranOn||(o&&o[0]); return '<span class="cal'+(ranOn?' ran':'')+'">'+(cd?'<small>'+fmt(cd,{month:"short"})+'</small><b>'+cd.getDate()+'</b>':'<small>TBA</small><b>·</b>')+'</span>'; })()+
+      '<span class="t">'+(EVENT_TYPES[e.type]?'<span class="etag'+(PHOTO_TYPES.has(e.type)?" ph":"")+'">'+EVENT_TYPES[e.type]+(r.confirmed?' <span class="eok">✓ Confirmed</span>':r.added?' <span class="enew">New</span>':'')+'</span>':'')+'<b>'+esc(e.name)+'</b>'+dist+(ranOn?'':evMeta(r,today))+(state.evGoing&&state.evGoing.has(e.id)?evMtaFlag(r,today):'')+'<span>'+esc(r.game?'Next: '+r.game.title+', '+o[0].toLocaleDateString("en-US",{weekday:"short"})+' '+hmText(r.game.at.getHours()*60+r.game.at.getMinutes()):e.where)+'</span></span>'+
       '<span class="soon'+(/now|Today|today|Tomorrow|days|Cancelled/.test(soon)?" near":"")+'">'+soon+(o&&!r.cancelled&&!r.game?'<button type="button" class="evstar" data-evgo="'+esc(e.id)+'" aria-pressed="'+(state.evGoing&&state.evGoing.has(e.id)?'true':'false')+'" aria-label="'+(state.evGoing&&state.evGoing.has(e.id)?'Going: tap to remove':'Mark as going')+'">'+(state.evGoing&&state.evGoing.has(e.id)?'★':'☆')+'</button>':'')+'</span></summary>'+
       '<div class="event-body" data-lazy="1"></div></details>'; }
   /* The body of a card is built only when the card is opened: the list has thirty-odd cards and each body is a few
@@ -6564,6 +6568,7 @@ $("events").addEventListener("click",e=>{
   const gs=e.target.closest("[data-evgo]"); if(gs){ e.preventDefault(); e.stopPropagation(); evGoToggle(gs.dataset.evgo); return; }
   const dy=e.target.closest("[data-evday]"); if(dy){ const v=dy.dataset.evday; state.evDay = v&&state.evDay!==+v ? +v : null; renderEvents(); return; }
   if(e.target.closest("[data-evlater]")){ state.evLaterOpen=!state.evLaterOpen; renderEvents(); return; }
+  if(e.target.closest("[data-evfar]")){ state.evFarShow=!state.evFarShow; if(state.evFarShow) state.evLaterOpen=true; renderEvents(); return; }
   { const pk=e.target.closest("[data-pmkind]"); if(pk){ state.pmKind=pk.dataset.pmkind; renderEvents(); return; } }
   { const pmo=e.target.closest("[data-pmmore]"); if(pmo){ (state.pmOpen||(state.pmOpen=new Set())).add(+pmo.dataset.pmmore); renderEvents(); return; } }
   if(e.target.closest("[data-pmfold]")){ state.pmFold=!state.pmFold; renderEvents(); return; }
