@@ -1726,3 +1726,43 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 .cf.open .cfw{color:#1e9e48;font-weight:600} .cf.shut .cfw{color:#d9534f} .cf.on .cft b::after{content:" ✓"}
 .cfb{grid-column:2;display:flex;gap:8px;flex-wrap:wrap} .cfb .chip{min-height:36px} .cfb .chip:disabled{opacity:.45}
 .m-cf{pointer-events:none} .m-cfd{fill:#fff7e8;stroke:#7a4b1d} .m-cf.on .m-cfd{fill:#ffd23f}
+
+/* Outing tabs */
+.ptabs{display:flex;gap:4px;margin:10px 0 0;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.ptab{flex:none;border:0;background:none;color:var(--muted);font:inherit;font-size:14px;font-weight:600;padding:9px 10px;border-bottom:2.5px solid transparent;cursor:pointer;display:flex;align-items:center;gap:5px;min-height:40px}
+.ptab[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--fg)}
+.ptbadge{font-size:11px;font-weight:700;background:var(--line);color:var(--fg);border-radius:9px;padding:1px 6px}
+.ptabbody{padding-top:8px} .ptabbody .planpark>.linkbtn,.ptabbody .plancoffee>.linkbtn{display:none}
+.ptabbody .planpark,.ptabbody .plancoffee{margin-top:0}
+
+/* Walk mode */
+#map.walkmode #mapSheet{display:none}
+.walkcard{position:absolute;left:10px;right:10px;bottom:10px;z-index:5;background:var(--panel);color:var(--fg);border-radius:18px;box-shadow:0 6px 24px rgba(0,0,0,.35);padding:14px 14px 10px}
+.wkhead{display:flex;align-items:flex-start;gap:10px} .wkn{flex:none;font-size:26px;font-weight:800;line-height:1;background:#ffd23f;color:#14161a;border-radius:12px;padding:8px 10px} .wkn small{font-size:13px;font-weight:700;opacity:.7}
+.wkt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px} .wkt b{font-size:18px;line-height:1.2} .wkt span{font-size:13px;color:var(--muted)}
+.wkx{flex:none;width:40px;height:40px;border:0;border-radius:10px;background:var(--line);color:var(--fg);font-size:18px;cursor:pointer}
+.wkdue{margin:10px 0 0;font-size:15px} .wkway{margin:6px 0 0;display:flex;align-items:center;gap:10px;font-size:15px;min-height:32px}
+.wkarrow{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:50%;background:#2563eb;color:#fff;font-size:20px;font-weight:800;transition:transform .3s} .wkhere{font-weight:700;color:#1e9e48}
+.wkbtns{display:grid;grid-template-columns:64px 1fr 64px;gap:10px;margin-top:12px} .wkb{min-height:56px;border-radius:14px;border:1.5px solid var(--line);background:transparent;color:var(--fg);font-size:28px;font-weight:700;cursor:pointer}
+.wkshot{font-size:18px;background:#ffd23f;border-color:#ffd23f;color:#14161a} .wkshot.on{background:#1e9e48;border-color:#1e9e48;color:#fff}
+.wklinks{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:14px}
+
+/* Legend */
+.mapbtns button[data-maplegend]{order:3;font-size:20px;font-weight:800}
+.mapkey{position:absolute;left:10px;right:62px;top:calc(max(10px,env(safe-area-inset-top,0px)) + 58px);z-index:6;max-height:62%;overflow:auto;background:var(--panel);color:var(--fg);border-radius:16px;box-shadow:0 6px 24px rgba(0,0,0,.35);padding:12px 14px}
+.lg-head{display:flex;align-items:center;justify-content:space-between;gap:10px} .lg-list{list-style:none;margin:10px 0 6px;padding:0;display:flex;flex-direction:column;gap:9px;font-size:14px}
+.lg-list li{display:grid;grid-template-columns:36px 1fr;gap:8px;align-items:center} .lg-sw{display:grid;place-items:center}
+.lg-pin{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#14161a;color:#fff;font-size:12px;font-weight:800;box-shadow:0 0 0 2.5px #ffd23f}
+.lg-cone{width:22px;height:22px;clip-path:polygon(50% 100%,0 0,100% 0);opacity:.85}
+.lg-stop{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#fccc0a;color:#14161a;font-size:12px;font-weight:800;box-shadow:0 0 0 2px #14161a,0 0 0 5px #ffd23f}
+.lg-line{display:block;width:28px} .lg-start{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#fff;color:#14161a;border:2px solid #14161a;font-size:12px}
+.lg-pk{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:5px;background:#2563eb;color:#fff;font-weight:800;font-size:13px}
+.lg-dots{display:flex;gap:3px} .lg-dots i{width:8px;height:8px;border-radius:50%} .lg-ico{font-size:18px} .lg-ev{color:#d6453d}
+.lg-you{width:14px;height:14px;border-radius:50%;background:#2563eb;box-shadow:0 0 0 3px #fff,0 0 0 7px rgba(37,99,235,.25)}
+/* Fewer buttons: the after-dark map and turn-with-me move into ⋯ unless they are on */
+.mapbtns:not(.more) button[data-head]:not([aria-pressed="true"]),.mapbtns:not(.more) button[data-mapdark]:not(.on){display:none}
+
+/* The sheet says what dragging does */
+.mgrab{height:26px;flex-direction:column;gap:3px} .mgrab::after{font-size:10.5px;color:var(--muted);line-height:1;letter-spacing:.02em}
+#mapSheet[data-state="peek"] .mgrab::after{content:"Drag up for more"} #mapSheet[data-state="half"] .mgrab::after{content:"Up for all · down for the map"} #mapSheet[data-state="full"] .mgrab::after{content:"Drag down for the map"}
+.planbar-head.pbh2{display:flex;align-items:center;gap:10px;flex-wrap:nowrap} .pbh-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px} .pbh-t span{font-size:13px;color:var(--muted)} .pbh-t .linkbtn{font-size:13px}

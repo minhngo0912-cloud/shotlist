@@ -453,7 +453,7 @@ def run(path, name):
         pg.evaluate("state.plan=null; mapPanel()"); pg.click("[data-addplan]"); pg.wait_for_timeout(100)
         pg.evaluate("mapSelect('wsp')"); pg.click("[data-addplan]"); pg.wait_for_timeout(100)
         check("Map builds an outing", pg.evaluate("state.plan.stops.map(s=>s.place).join()") == "union,wsp")
-        links=pg.evaluate("[...document.querySelectorAll('.planlinks a')].map(a=>a.href)")
+        links=pg.evaluate("(()=>{ state.planTab='go'; mapPanel(); const L=[...document.querySelectorAll('.planlinks a')].map(a=>a.href); state.planTab='stops'; mapPanel(); return L; })()")
         check("Outing opens in Google Maps", len(links)==2 and "destination=" in links[0] and "waypoints=" in links[1] and links[1].count("destination=")==1, links)
         pg.evaluate("setSheet('full')"); pg.wait_for_timeout(300)
         pg.click(".planstep [data-planstop]:last-child"); pg.wait_for_timeout(500)
@@ -1217,7 +1217,7 @@ def run(path, name):
         check("Searching for the marathon shows its whole route", r5==["marathon",1,True], r5)
         pg.evaluate("mapSelect(null); mapV=mapPreset('city'); mapDraw(); mapPanel()")
         nAll=pg.evaluate("mapPts().length")
-        pg.click("#map .mapbtns [data-mapdark]"); pg.wait_for_timeout(300)
+        pg.click("#map .mapbtns [data-mapbtnmore]"); pg.click("#map .mapbtns [data-mapdark]"); pg.click("#map .mapbtns [data-mapbtnmore]"); pg.wait_for_timeout(300)
         dk=pg.evaluate("""(()=>{ const c=CITIES[state.city], P=mapPts(); return [state.mapDark, document.querySelector('#map .mapbtns [data-mapdark]').getAttribute('aria-pressed'), !!document.querySelector('#mapPanel .mapdarkbar'),
           P.length>0&&P.every(p=>p.n>0), cityIdeas().filter(i=>P.some(p=>p.id===i.p)).length>0, sunPos(mapNow(),c.lat,c.lon).alt<-6, mapEvents().every(e=>evDarkOK(e.r))]; })()""")
         nDark=pg.evaluate("mapPts().length")
@@ -1456,9 +1456,9 @@ def run(path, name):
         check("Planned outing when the forecast turns: the bar says which stops, Swap puts in ideas for the new light, Keep accepts it", fw==[True]*6, fw)
         # Where the outing starts: home for tomorrow, a point you set, or where you are
         st=pg.evaluate("""(()=>{ const keepH=state.home, keepP=state.pos; state.home={lat:40.9585,lon:-73.9582,mode:'car'}; state.pos={lat:40.7230,lon:-73.9990};
-          picksPlan('2026-10-12',['soho-place','chinatown-place']); state.view='map'; state.mapD=1; render(); mapV=mapClamp({cx:mapXY(40.88,-73.97)[0],cy:mapXY(40.88,-73.97)[1],w:250}); mapDraw(); mapPanel();
+          picksPlan('2026-10-12',['soho-place','chinatown-place']); state.view='map'; state.mapD=1; render(); mapV=mapClamp({cx:mapXY(40.88,-73.97)[0],cy:mapXY(40.88,-73.97)[1],w:250}); mapDraw(); state.planTab='go'; mapPanel();
           const r=[planStart().kind, /^Leave home by \\d/.test(planLeaveBy())&&/by car/.test(planLeaveBy()), !!document.querySelector('#mapOver .m-pstart'), !!document.querySelector('#mapDyn .m-startleg'), /Start: home/.test(document.querySelector('#mapPlan').textContent)&&/Directions to stop 1 from home by car/.test(document.querySelector('#mapPlan').textContent)&&/origin=40\\.958/.test(document.querySelector('#mapPlan .planlinks a').href)&&/travelmode=driving/.test(document.querySelector('#mapPlan .planlinks a').href)];
-          document.querySelector('#mapPlan [data-startopen]').click(); document.querySelector('#mapPlan [data-startset="here"]').click(); r.push(planStart().kind==='pick'&&/where you were/.test(planStart().label), /Leave by/.test(planLeaveBy()));
+          state.planTab='go'; mapPanel(); document.querySelector('#mapPlan [data-startopen]').click(); document.querySelector('#mapPlan [data-startset="here"]').click(); r.push(planStart().kind==='pick'&&/where you were/.test(planStart().label), /Leave by/.test(planLeaveBy()));
           document.querySelector('#mapPlan [data-startopen]').click(); document.querySelector('#mapPlan [data-startset="pick"]').click(); const [x,y]=mapXY(40.7527,-73.9772); mapLongPress(x,y); r.push(Math.abs(state.plan.from.lat-40.7527)<0.001&&!LF.open, loadPlan().from&&Math.abs(loadPlan().from.lat-40.7527)<0.001);
           document.querySelector('#mapPlan [data-startopen]').click(); document.querySelector('#mapPlan [data-startset="auto"]').click(); r.push(planStart().kind);
           state.plan.stops.forEach(s=>s.at=new Date(+s.at-864e5)); state.plan.start=new Date(+state.plan.start-864e5); r.push(planStart().kind);
@@ -1490,7 +1490,7 @@ def run(path, name):
         check("Best outing with a home outside the city: only places on the map, each with its travel time from home", bh==[True,True,True], bh)
         # Time at each stop: each idea's own minutes, and − / + 5 on a stop moves the rest
         du=pg.evaluate("""(()=>{ const m=id=>ideaMins(IDEAS.find(x=>x.id===id)); const r=[m('cpark-place'),m('cpark-moment'),m('uws-energy'), IDEAS.every(x=>{ const v=ideaMins(x); return v>=15&&v<=45; })];
-          const p=picksPlan('2026-10-12',['cpark-place','cpark-moment','uws-place']); state.view='map'; render(); state.planTimesOpen=true; mapPanel();
+          const p=picksPlan('2026-10-12',['cpark-place','cpark-moment','uws-place']); state.view='map'; render(); state.planTimesOpen=true; state.planTab='stops'; mapPanel();
           const s0=state.plan.stops[0], end0=+state.plan.end, at1=+state.plan.stops[1].at; r.push(stopMins(s0)===s0.ideas.reduce((a,x)=>a+ideaMins(x),0), !!document.querySelector('#mapPlan .plantimes'));
           document.querySelector('#mapPlan [data-stopadj="0:5"]').click(); r.push(+state.plan.stops[1].at-at1===5*6e4, +state.plan.end-end0===5*6e4, loadPlan().stops[0].adj===5, state.plan.stops[0].ideas.map(x=>x.id).join()===s0.ideas.map(x=>x.id).join());
           const W=planWalk(); r.push(W.length>=2&&+W[1].t-+W[0].t===Math.round(ideaMins(W[0].x)*stopMins(state.plan.stops[0])/s0.ideas.reduce((a,x)=>a+ideaMins(x),0))*6e4);
@@ -1574,6 +1574,51 @@ def run(path, name):
           const first=document.querySelector('#today .tpick [data-tplan]'), pid=first&&first.dataset.tplan; if(first) first.click(); r.push(state.view, !!state.plan&&state.plan.stops[0].place===pid);
           state.tMore=false; state.plan=null; savePlan(); state.view='today'; render(); return r; })()""")
         check("Where to go: ranked by new ideas and the real trip (too-late places last), a reason, heads-ups (a block party near Midtown), Show more, intent chips, Directions by the right mode, Plan from here starts at that place", wg==[True,True,True,True,True,name.startswith("Installed"),True,True,True,"map",True], wg)
+        # Map usability: outing tabs, walk mode, the legend, fewer buttons, labels clear of the buttons, start-here, Back steps the sheet down
+        pg.evaluate("""(()=>{ state.home=null; state.pos={lat:40.7150,lon:-73.9985}; picksPlan('2026-10-12',['chinatown-place','chinatown-moment','soho-place','les-place']); planShow(state.plan); })()"""); pg.wait_for_timeout(1000)
+        mu=pg.evaluate("""(()=>{ const r=[], q=s=>document.querySelector('#mapPlan '+s);
+          r.push([...document.querySelectorAll('#mapPlan .ptab')].map(b=>b.textContent.replace(/[0-9✓☕:apm ]+$/,'')).join('|'), q('.ptab[aria-selected="true"]').textContent.startsWith('Stops'), !!q('.planbest, .planwalk, .plantimes-h'), !q('.planlinks'));
+          q('[data-ptab="go"]').click(); r.push(!!q('.planlinks')&&!!q('.planstart'), !q('.plantimes-h'));
+          q('.ptab[data-parkopen]').click(); r.push(state.parkOpen&&!!q('.pkbox')&&!q('.planlinks'));
+          q('.ptab[data-cfopen]').click(); r.push(state.cfOpen&&!state.parkOpen&&!!q('.cfbox'));
+          q('[data-ptab="stops"]').click(); r.push(!state.cfOpen&&!state.parkOpen&&!q('.cfbox'));
+          return r; })()""")
+        check("Outing tabs: Stops, Getting there, Parking and Coffee, one open at a time", mu==["Stops|Getting there|Parking|Coffee",True,True,True,True,True,True,True,True], mu)
+        pg.click("#mapPlan [data-walkmode]"); pg.wait_for_timeout(1200)
+        wm=pg.evaluate("""(()=>{ const c=document.getElementById('walkCard'), W=planWalk(), k0=planCur(), r=[!!c&&!c.hidden, getComputedStyle(document.getElementById('mapSheet')).display, /Due /.test(c.textContent), /(m|mi) · \d+ min walk · head /.test(c.textContent)||/You are here/.test(c.textContent), state.mapSpot===W[k0].id];
+          c.querySelector('[data-walkstep="1"]').click(); r.push(planCur()===(k0+1)%W.length, state.mapSpot===W[(k0+1)%W.length].id);
+          const x=W[planCur()].x; c.querySelector('[data-walkshot]').click(); r.push(state.done.has(x.id), /Shot ✓/.test(document.getElementById('walkCard').textContent)); document.querySelector('#walkCard [data-walkshot]').click(); r.push(!state.done.has(x.id));
+          const svg=document.getElementById('mapSvg').getBoundingClientRect(), pt=mapXY(W[planCur()].lat,W[planCur()].lon), v=mapV, sx=svg.left+(pt[0]-(v.cx-v.w/2))/v.w*svg.width, sy=svg.top+(pt[1]-(v.cy-v.w*MAP_ASPECT/2))/(v.w*MAP_ASPECT)*svg.height, card=c.getBoundingClientRect();
+          r.push(sy<card.top&&sx>svg.left&&sx<svg.right);
+          document.querySelector('#walkCard [data-walkoff]').click(); r.push(!state.walkMode, document.getElementById('walkCard').hidden, getComputedStyle(document.getElementById('mapSheet')).display!=='none'); return r; })()""")
+        check("Walk mode: a card for the stop with when it is due and the way there, the sheet out of the way, ‹ › move on, Shot it and undo, the stop in view above the card, ✕ leaves", wm==[True,"none",True,True,True,True,True,True,True,True,True,True,True,True], wm)
+        lg=pg.evaluate("""(()=>{ planWhole(); mapDraw(); const btns=[...document.querySelectorAll('#map .mapbtns button')].filter(b=>getComputedStyle(b).display!=='none').map(b=>b.dataset.locate?'me':b.dataset.lightf?'light':b.dataset.maplegend?'?':b.dataset.mapbtnmore?'more':Object.keys(b.dataset)[0]);
+          document.querySelector('#map [data-maplegend]').click(); const k=document.getElementById('mapKey'), t=k?k.textContent:''; const r=[btns.sort().join(','), !!k&&!k.hidden, /outing's stops/.test(t), /walk between the stops/.test(t), !/Coffee on the way/.test(t)||!!document.querySelector('#map .m-cf')];
+          document.querySelector('#mapKey [data-maplegend="0"]').click(); r.push(document.getElementById('mapKey').hidden); return r; })()""")
+        check("Fewer map buttons (Find me, Light here, ?, ⋯) and a ? legend listing only what is drawn", lg==["?,light,me,more",True,True,True,True,True], lg)
+        pg.wait_for_timeout(900)
+        lb=pg.evaluate("""(()=>{ const ub=uiBoxes(), m=document.getElementById('map').getBoundingClientRect(), bb=document.querySelector('#map .mapbtns').getBoundingClientRect();
+          const L=[...document.querySelectorAll('#mapSvg .m-plab, #mapOver .m-plab')].map(t=>t.getBoundingClientRect()); const hit=L.filter(r=>r.right>bb.left&&r.left<bb.right&&r.bottom>bb.top&&r.top<bb.bottom);
+          const ov=L.some((a,i)=>L.some((b,j)=>j>i&&a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top)); return [L.length>0, hit.length, ov]; })()""")
+        check("Outing labels stay clear of the map buttons and of each other", lb==[True,0,False], lb)
+        st=pg.evaluate("""(()=>{ mapSelectSpot(planWalk()[0].id); const iv=document.getElementById('mapInView'); const r=[iv.hidden]; mapSelect(null); return r; })()""")
+        has=False
+        for fx,fy in [(0.2,0.3),(0.5,0.25),(0.3,0.45),(0.7,0.4),(0.15,0.2)]:
+            pg.evaluate("(()=>{ const t=document.getElementById('rowToast'); if(t) t.classList.remove('on'); mapSelect(null); })()")
+            svgb=pg.evaluate("([fx,fy])=>{ const r=document.getElementById('mapSvg').getBoundingClientRect(); return [r.left+r.width*fx, r.top+r.height*fy]; }",[fx,fy])
+            pg.mouse.click(svgb[0],svgb[1]); pg.wait_for_timeout(600)
+            has=pg.evaluate("!!document.querySelector('#rowToast.on [data-startat]')")
+            if has: break
+        if has: pg.click("#rowToast [data-startat]"); pg.wait_for_timeout(200)
+        st+=pg.evaluate("[!!state.plan.from&&typeof state.plan.from.lat==='number', planStart().kind]")
+        check("A spot open hides the In view line; tapping empty map offers Start the outing here, which sets the start", [st[0],has,st[1],st[2]]==[True,True,True,"pick"], [st,has])
+        bk=pg.evaluate("(()=>{ state.sheetPushed=false; setSheet('peek'); setSheet('full'); return [state.sheetPushed, state.sheet]; })()")
+        pg.go_back(); pg.wait_for_timeout(300)
+        bk+=pg.evaluate("[state.view, state.sheet]")
+        pg.go_back(); pg.wait_for_timeout(300)
+        bk+=pg.evaluate("[state.view, state.sheet]")
+        check("Back steps the map sheet down (full, then half, then the map) instead of leaving the Map", bk[:2]==[True,"full"] and bk[2:4]==["map","half"] and bk[4]=="map" and bk[5]=="peek", bk)
+        pg.evaluate("state.plan=null; savePlan(); state.parkOpen=false; state.cfOpen=false; state.view='today'; render()")
         # Dark theme renders too
         pg.evaluate("document.documentElement.dataset.theme='dark'; state.view='shoot'; render()"); pg.wait_for_timeout(80)
         check("no script errors", not errors, errors[:3])
