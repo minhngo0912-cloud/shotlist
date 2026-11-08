@@ -2033,7 +2033,7 @@ function picksPlan(dk,only,win){ const E=only?{ids:only}:picksFor(dk), d=ymdDate
 const TM_Q = {gold:3,night:2.2,am:2,rain:1.6,mid:1};
 function bestOutings(m,w){ if(w===undefined) w=state.when; const d=tmrwDay(), S=tmrwSlots().filter(o=>slotOk(o,w)), from=state.home||state.pos||null, mode=state.home&&state.home.mode==="car"?"car":"transit", out=[];
   const t0=evDay(new Date()), evs=eventRows(t0).filter(r=>!r.cancelled&&evOnDay(r,d,false)).map(r=>({r,g:r.e.geo||eventGeo(r.e.id)})).filter(x=>x.g);
-  for(const o of S){ const L=m.filter(x=>dayFit(x,d,w)===o); if(!L.length) continue; const pids=[...new Set(L.map(x=>x.p))];
+  for(const o of S){ const L=m.filter(x=>typeof PLACES[x.p].lat==="number"&&dayFit(x,d,w)===o); if(!L.length) continue; const pids=[...new Set(L.map(x=>x.p))];   // places on the map only: an outing needs somewhere to go
     for(const g of walkGroups(pids)){ const I=L.filter(x=>g.pids.includes(x.p)), fresh=I.filter(x=>!state.done.has(x.id)).length;
       const ev=evs.filter(e=>g.pids.some(p=>typeof PLACES[p].lat==="number"&&kmBetween(PLACES[p],{lat:e.g[0],lon:e.g[1]})<=1.2)).slice(0,2);
       const near=from?g.pids.filter(p=>typeof PLACES[p].lat==="number").map(p=>({p,km:kmBetween(from,PLACES[p])})).sort((a,b)=>a.km-b.km)[0]:null;
@@ -6613,7 +6613,8 @@ function healthHtml(){ const L=healthList().slice().reverse(), wk=Date.now()-7*8
   const when=t=>{ const d=new Date(t); return DAY_SHORT[d.getDay()]+" "+hmText(d.getHours()*60+d.getMinutes()); };
   return '<p class="msg">'+(nS||nE?'In the last 7 days: '+nS+' stall'+(nS===1?'':'s')+', '+nE+' error'+(nE===1?'':'s')+', opened '+nO+' time'+(nO===1?'':'s')+'.':'No stalls or errors recorded in the last 7 days'+(nO?' (opened '+nO+' time'+(nO===1?'':'s')+')':'')+'.')+' Data on this device: '+Math.round(kb)+' KB.</p>'+
     (L.length?'<ul class="healthlog">'+L.slice(0,25).map(x=>'<li class="hl-'+x.k+'"><b>'+when(x.t)+'</b> '+esc(x.k==="open"?x.m:(x.k==="stall"?"Stall: ":"Error: ")+x.m)+(x.n>1?' ×'+x.n:'')+'</li>').join("")+'</ul>':'')+
-    '<div class="callinks"><button type="button" class="chip" id="healthCopy">Copy report</button><button type="button" class="chip" id="healthClear">Clear</button></div><p class="msg" id="healthMsg" role="status"></p>'; }
+    '<div class="callinks">'+(typeof window.appUpdate==="function"?'<button type="button" class="chip" id="appUpdate">Check for updates</button>':'')+'<button type="button" class="chip" id="healthCopy">Copy report</button><button type="button" class="chip" id="healthClear">Clear</button></div><p class="msg" id="healthMsg" role="status"></p><p class="msg">Version '+APP_BUILD+'.</p>'; }
+const APP_BUILD = "@BUILD@";
 function healthReport(){ const L=healthList(); return "Shot List health report\n"+navigator.userAgent+"\nStandalone: "+(!!(window.navigator.standalone||matchMedia("(display-mode: standalone)").matches))+"\n"+L.map(x=>new Date(x.t).toISOString()+" "+x.k+" ["+x.v+"] "+x.m+(x.n>1?" x"+x.n:"")).join("\n"); }
 /* If drawing a screen fails, say so with a way out instead of leaving a half-drawn screen that ignores taps. */
 function renderBroken(e){ healthLog("error","Drawing "+state.view+": "+(e&&e.message||e)); let b=$("brokenBar"); if(!b){ b=document.createElement("div"); b.id="brokenBar"; b.className="rowtoast on brokenbar"; b.setAttribute("role","alert"); document.body.appendChild(b); }
@@ -6733,6 +6734,7 @@ function renderSettings(){ $("setCams").innerHTML=Object.entries(CAMERAS).map(([
   if($("setHomeEd")) $("setHomeEd").innerHTML=homeEditorHtml(); syncTheme(); }
 $("setOpen").addEventListener("click",()=>{ renderSettings(); sheetOpen("setSheet"); });
 $("setSheet").addEventListener("click",e=>{ if(e.target.closest("[data-sclose]")){ sheetClose("setSheet"); return; }
+  if(e.target.closest("#appUpdate")&&typeof window.appUpdate==="function"){ window.appUpdate(t=>{ const m=$("healthMsg"); if(m) m.textContent=t; }); return; }
   if(e.target.closest("#healthClear")){ store.set("health",[]); $("setHealth").innerHTML=healthHtml(); return; }
   if(e.target.closest("#healthCopy")){ const rep=healthReport(), m=$("healthMsg"); try{ navigator.clipboard.writeText(rep).then(()=>{ m.textContent="Copied. Paste it into a message to Claude."; },()=>{ m.textContent="Copying isn't available here."; }); }catch(x){ m.textContent="Copying isn't available here."; } return; }
   const c=e.target.closest("[data-cam]"); if(c&&CAMERAS[c.dataset.cam]){ state.camera=c.dataset.cam; store.set("camera",state.camera); openTip=null; renderSettings(); render(); return; }

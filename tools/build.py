@@ -10,10 +10,12 @@ weather from its Claude database, the installed app fetches events.json and Open
 
 Usage: python3 tools/build.py      (run from the repository root, or anywhere)
 """
-import hashlib, os, sys
+import datetime, hashlib, os, sys, zoneinfo
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, "src")
+# the version shown in Settings › App health: when it was built, New York time
+BUILD = datetime.datetime.now(zoneinfo.ZoneInfo("America/New_York")).strftime("%b %-d, %-I:%M %p").replace("AM","am").replace("PM","pm")
 
 def read(name):
     with open(os.path.join(SRC, name), encoding="utf-8") as f:
@@ -27,6 +29,7 @@ def replace_once(text, old, new, label):
 
 def page(live):
     app = read("mapdata.js") + read("mapextra.js") + read("maplakes.js") + read("mapnames.js") + replace_once(read("app.js"), "/*@LIVE@*/", live, "app.js")
+    app = replace_once(app, '"@BUILD@"', '"' + BUILD + '"', "app.js")
     return read("head.html") + "<style>" + read("styles.css") + "</style>" + read("markup.html") + "<script>" + app + "</script>" + read("tail.html")
 
 def build():

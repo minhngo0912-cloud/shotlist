@@ -1424,6 +1424,8 @@ def run(path, name):
           const p=state.plan, m=p?p.start.getHours()*60+p.start.getMinutes():-1; return [!!c&&txt.includes('Best outing for that light: '+c.g.name), state.view, !!p&&p.stops.every(s=>c.g.pids.includes(s.place)), m>=c.o.s-15&&m<=c.o.e-25, p&&p.start.getDate()]; })()""")
         pg.evaluate("state.plan=null; savePlan(); state.mapD=0; state.mapT=null"); pg.clock.set_system_time("2026-10-11T15:00:00-04:00"); pg.evaluate("state.view='today'; render()")
         check("Today after dark: Plan tomorrow morning plans the best morning outing (the same as Ideas › Tomorrow), starting in the morning", tmo==[True,"map",True,True,12], tmo)
+        bh=pg.evaluate("(()=>{ const keep=state.home; state.home={lat:40.9793,lon:-74.1165,mode:'car'}; const B=bestOutings(cityIdeas(),'am'); state.home=keep; return [B.length>0, B.every(c=>c.g.pids.every(p=>typeof PLACES[p].lat==='number')), B.every(c=>c.mins>0)]; })()")
+        check("Best outing with a home outside the city: only places on the map, each with its travel time from home", bh==[True,True,True], bh)
         # Dark theme renders too
         pg.evaluate("document.documentElement.dataset.theme='dark'; state.view='shoot'; render()"); pg.wait_for_timeout(80)
         check("no script errors", not errors, errors[:3])

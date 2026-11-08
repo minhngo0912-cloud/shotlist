@@ -52,4 +52,13 @@ if("serviceWorker" in navigator){
     try{ if(typeof evToast==="function") evToast('<span>A new version is ready.</span><button type="button" class="linkbtn" onclick="location.reload()">Reload</button>'); }catch(e){} });
   document.addEventListener("visibilitychange",()=>{ if(pending&&!document.hidden) apply(); });
   window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+  // An app opened from the home screen is often resumed rather than reopened, and then never looks for a new version.
+  // Look when it comes back to the front (at most every 10 minutes), and on demand from Settings › App health.
+  let swLook=0; const swCheck=()=>navigator.serviceWorker.getRegistration().then(r=>r&&r.update()).catch(()=>{});
+  document.addEventListener("visibilitychange",()=>{ if(!document.hidden&&Date.now()-swLook>10*60*1000){ swLook=Date.now(); swCheck(); } });
+  window.appUpdate=async msg=>{ msg("Looking for a new version…"); try{ const r=await navigator.serviceWorker.getRegistration(); if(!r){ msg("Updates are not available here."); return; }
+      const before=navigator.serviceWorker.controller; reloaded=false; pending=false;
+      const wait=new Promise(res=>{ const t=setTimeout(()=>res(false),15000); navigator.serviceWorker.addEventListener("controllerchange",()=>{ clearTimeout(t); res(true); },{once:true}); });
+      await r.update(); if(r.installing||r.waiting){ msg("Downloading the new version…"); if(r.waiting) r.waiting.postMessage&&r.waiting.postMessage("skip"); if(await wait){ reloaded=true; location.reload(); return; } }
+      msg(before?"You have the latest version.":"Updates start working after the app is opened once more."); }catch(e){ msg("Could not check right now. Are you online?"); } };
 }
