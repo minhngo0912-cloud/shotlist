@@ -1637,3 +1637,7 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 /* Home editor (Settings and Today) */
 .homeed{display:flex;flex-direction:column;gap:8px} .homesearch{display:flex;gap:8px} .homesearch input{flex:1;min-width:0;min-height:44px;border-radius:12px;border:1.5px solid var(--line);background:var(--panel);color:var(--fg);font:inherit;padding:0 12px}
 .homeres{flex-wrap:wrap;margin-inline:0;padding-inline:0} .homeres .chip{white-space:normal;text-align:left;min-height:40px} .homeh{margin:4px 0 0} .homenow b{color:var(--fg)} .thomeedit{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+/* Time at each stop */
+.plantimes-h{margin:8px 0 0} .plantimes{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.ptstop{border-top:1px solid var(--line);padding-top:6px} .ptrow{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px} .ptrow span{font-size:14px;color:var(--muted)}
+.ptbtns{display:flex;gap:6px;margin-left:auto} .ptbtns .chip{min-height:36px;padding:0 12px} .ptideas{margin:4px 0 0;padding-left:18px;font-size:13px;color:var(--muted)}

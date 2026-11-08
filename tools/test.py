@@ -1426,6 +1426,14 @@ def run(path, name):
         check("Today after dark: Plan tomorrow morning plans the best morning outing (the same as Ideas › Tomorrow), starting in the morning", tmo==[True,"map",True,True,12], tmo)
         bh=pg.evaluate("(()=>{ const keep=state.home; state.home={lat:40.9793,lon:-74.1165,mode:'car'}; const B=bestOutings(cityIdeas(),'am'); state.home=keep; return [B.length>0, B.every(c=>c.g.pids.every(p=>typeof PLACES[p].lat==='number')), B.every(c=>c.mins>0)]; })()")
         check("Best outing with a home outside the city: only places on the map, each with its travel time from home", bh==[True,True,True], bh)
+        # Time at each stop: each idea's own minutes, and − / + 5 on a stop moves the rest
+        du=pg.evaluate("""(()=>{ const m=id=>ideaMins(IDEAS.find(x=>x.id===id)); const r=[m('cpark-place'),m('cpark-moment'),m('uws-energy'), IDEAS.every(x=>{ const v=ideaMins(x); return v>=15&&v<=45; })];
+          const p=picksPlan('2026-10-12',['cpark-place','cpark-moment','uws-place']); state.view='map'; render(); state.planTimesOpen=true; mapPanel();
+          const s0=state.plan.stops[0], end0=+state.plan.end, at1=+state.plan.stops[1].at; r.push(stopMins(s0)===s0.ideas.reduce((a,x)=>a+ideaMins(x),0), !!document.querySelector('#mapPlan .plantimes'));
+          document.querySelector('#mapPlan [data-stopadj="0:5"]').click(); r.push(+state.plan.stops[1].at-at1===5*6e4, +state.plan.end-end0===5*6e4, loadPlan().stops[0].adj===5, state.plan.stops[0].ideas.map(x=>x.id).join()===s0.ideas.map(x=>x.id).join());
+          const W=planWalk(); r.push(W.length>=2&&+W[1].t-+W[0].t===Math.round(ideaMins(W[0].x)*stopMins(state.plan.stops[0])/s0.ideas.reduce((a,x)=>a+ideaMins(x),0))*6e4);
+          state.plan=null; savePlan(); state.planTimesOpen=false; state.view='today'; render(); return r; })()""")
+        check("Time at each stop: ideas take 15 to 45 minutes by kind (Bow Bridge 35, the arcade 20, Verdi Square 20), the stop shows them, and +5 moves the rest of the outing and stays", du==[20,35,20,True,True,True,True,True,True,True,True], du)
         # Dark theme renders too
         pg.evaluate("document.documentElement.dataset.theme='dark'; state.view='shoot'; render()"); pg.wait_for_timeout(80)
         check("no script errors", not errors, errors[:3])

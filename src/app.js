@@ -1891,7 +1891,7 @@ const AVAIL = {
   "flushing-moment":{h:[[10,21]]},"flushing-energy":{d:[1,2,3,4,5],h:[[17,19]]},"flushing-mood":{h:[[18,23]]},"flushing-odd":{h:[[8,20]]},
   "wburg-moment":{h:[[10,19]],m:[4,5,6,7,8,9,10]},"wburg-mood":{wx:"sun"},
   "midtown-place":{h:[[11,15]]},"midtown-moment":{d:[1,2,3,4,5],h:[[11,15]]},"midtown-energy":{d:[1,2,3,4,5],h:[[11,15]]},"midtown-mood":{h:[[10,15]],wx:"sun"},"midtown-odd":{d:[1,2,3,4,5],h:[[11,15]]},
-  "cpark-energy":{h:[[6,9],[17,19]]},"cpark-mood":{wx:"dull"},
+  "cpark-energy":{h:[[6,9],[17,19]]},"uws-energy":{d:[1,2,3,4,5],h:[[8,10],[17,19]]},"cpark-mood":{wx:"dull"},
   "rockaway-mood":{d:[1,2,3,4,5],h:[[6,12]],m:[11,12,1,2,3],wx:"dull"},"rockaway-odd":{h:[[7,11]],m:[5,6,7,8,9,10]},
   "arthur-moment":{h:[[8,18]]},"arthur-odd":{h:[[9,17]]},"arthur-energy":{d:[6],h:[[10,16]]},
   "union-place":{d:[1,3,5,6],h:[[8,18]]},"union-odd-s":{"span":[[9,20],[11,8]],d:[1,3,5,6],h:[[8,18]]},"union-energy":{d:[1,2,3,4,5],h:[[16,19]]},
@@ -1968,7 +1968,9 @@ function daySlots(d){ d=evDay(d); const w=WEATHER[state.city], key=state.city+":
 /* The Light filter narrows the slots: Morning keeps the morning, Golden hour the golden hour, Night the blue hour and after dark,
    Rain any slot where rain is forecast. */
 const slotOk = (o,w) => !w||w==="all" ? true : w==="rain" ? o.k==="rain" : o.id===({am:"am",mid:"mid",gold:"gold",night:"night"}[w]);
-function dayFit(x,d,w){ const S=daySlots(d), key=(w||"all")+":"+x.id; if(S.fit.has(key)) return S.fit.get(key); const r=S.find(o=>slotOk(o,w)&&x.w.includes(o.k)&&ideaOpen(x,o.t,o.sky))||null; S.fit.set(key,r); return r; }
+function dayFit(x,d,w){ const S=daySlots(d), key=(w||"all")+":"+x.id; if(S.fit.has(key)) return S.fit.get(key); const r=S.find(o=>slotOk(o,w)&&x.w.includes(o.k)&&slotOpen(x,o,d))||null; S.fit.set(key,r); return r; }
+/* Is the idea on at some point in the slot: its middle time, halfway through, or half an hour before the end (an idea that only starts at 8 am still counts for the morning) */
+function slotOpen(x,o,d){ if(ideaOpen(x,o.t,o.sky)) return true; for(const m of [(o.s+o.e)/2,o.e-30]){ if(m<=o.at||m<o.s) continue; if(ideaOpen(x,clk(d,Math.round(m)),o.sky)) return true; } return false; }
 const tmrwSlots = () => daySlots(tmrwDay());
 const tmrwFit = x => dayFit(x,tmrwDay(),state.when);
 const tmrwSky = o => o.sky===undefined ? "no forecast yet" : o.k==="rain" ? (o.sky==="snow"?"snow likely":"rain likely") : o.sky ? WX_WORD[o.sky].toLowerCase() : "clear or some cloud";
@@ -2017,7 +2019,7 @@ function picksPlan(dk,only,win){ const E=only?{ids:only}:picksFor(dk), d=ymdDate
   const KM=new Map(), FM=new Map(), kAt=t=>{ let v=KM.get(t); if(!v){ const tt=new Date(t); v={tt,k:lightAt(tt),sky:skyAt(tt)}; KM.set(t,v); } return v; };
   const fitAt=(pid,t)=>{ const key=pid+"@"+t; let f=FM.get(key); if(f===undefined){ const {tt,k,sky}=kAt(t); f=by.get(pid).filter(x=>x.w.includes(k)&&ideaOpen(x,tt,sky)).length; FM.set(key,f); } return [f,kAt(t).k]; };
   const sim=(order,start)=>{ let t=+start, fits=0, score=0, travel=0; order.forEach((pid,n)=>{ const I=by.get(pid), [f,k]=fitAt(pid,t);
-      fits+=f; score+=f*10+(f&&k==="gold"?3:0); t+=Math.max(1,I.length)*25*6e4; if(n<order.length-1){ const g=leg(pid,order[n+1]); travel+=g.mins; t+=g.mins*6e4; } }); return {fits,score:score-travel/6}; };
+      fits+=f; score+=f*10+(f&&k==="gold"?3:0); t+=ideasMins(I)*6e4; if(n<order.length-1){ const g=leg(pid,order[n+1]); travel+=g.mins; t+=g.mins*6e4; } }); return {fits,score:score-travel/6}; };
   const orders=[]; const perm=(a,k)=>{ if(k===a.length){ orders.push(a.slice()); return; } for(let i=k;i<a.length;i++){ [a[k],a[i]]=[a[i],a[k]]; perm(a,k+1); [a[k],a[i]]=[a[i],a[k]]; } }; perm(places.slice(),0);
   if(!win&&!only){ const n={}; for(const id of E.ids){ const sn=E.snap&&E.snap[id]; if(sn&&sn.slot) n[sn.slot]=(n[sn.slot]||0)+1; } const top=Object.keys(n).sort((a,b)=>n[b]-n[a])[0];
     if(top&&n[top]*2>E.ids.length){ const o=daySlots(d).find(x=>x.id===top); if(o) win={s:o.s,e:o.e}; } }
@@ -2025,7 +2027,7 @@ function picksPlan(dk,only,win){ const E=only?{ids:only}:picksFor(dk), d=ymdDate
   let best=null; for(let m=m0;m<=m1;m+=win?10:20){ const st=clk(d,m); if(+st<now) continue; for(const o of orders){ const r=sim(o,st); if(!best||r.score>best.r.score+0.01) best={o,st,r}; } }
   if(!best) return null;
   const p={start:best.st,end:best.st,stops:best.o.map(pid=>({place:pid,at:new Date(best.st),key:"",ideas:by.get(pid).slice()}))};
-  let t=+best.st; p.stops.forEach((s,n)=>{ s.at=new Date(t); s.key=lightAt(s.at); t+=Math.max(1,s.ideas.length)*25*6e4; if(n<p.stops.length-1) t+=leg(s.place,p.stops[n+1].place).mins*6e4; });
+  let t=+best.st; p.stops.forEach((s,n)=>{ s.mine=true; s.at=new Date(t); s.key=lightAt(s.at); t+=stopMins(s)*6e4; if(n<p.stops.length-1) t+=leg(s.place,p.stops[n+1].place).mins*6e4; });
   retimePlan(p); state.plan=p; savePlan(); state.planMsg=(only?"Planned from the best outing: ":"Planned from your shortlist: ")+best.r.fits+" of "+xs.length+" picked ideas in light that suits them"+(places.length<by.size?" (the six places with the most picks)":"")+"."; return p; }
 /* The best outing tomorrow: every walk group in every slot the filters allow, scored on the light (golden hour first; rain counts,
    since rain ideas want it), how many ideas fit and how many you have not shot, events that day close by, how far it is from where
@@ -3251,7 +3253,7 @@ function makePlan(){
     const picks=[]; for(const x of pool){ if(picks.length<want && !picks.some(p=>p.i===x.i)) picks.push(x); }
     for(const x of pool){ if(picks.length<want && !picks.includes(x)) picks.push(x); }
     const stop={place:cur,at:new Date(t),key,ideas:picks}; stops.push(stop); seen.add(cur);
-    t=new Date(+t+dur(picks.length)*6e4);
+    t=new Date(+t+ideasMins(picks)*6e4);
     if(!canMove) break;
     stop.leg={to:next.id,mins:next.mins,mode:next.walk<=30?"walk":"by subway"}; t=new Date(+t+next.mins*6e4); cur=next.id;
   }
@@ -4318,23 +4320,37 @@ function lightMarks(){ const L=lightDay(), tf=hmText, out=[], pos=m=>'calc(13px 
   $("lightTicks").innerHTML=[L.rise,L.set].map(m=>'<i style="left:'+pos(m)+'"></i>').join("");
   const dur=k=>k==="gold"?60:k==="blue"?25:k==="henge"?15:k==="rain"||k==="wet"?60:10, upcoming=x=>!live||x[1]+dur(x[0])>cur;
   return out.filter(upcoming).concat(out.filter(x=>!upcoming(x))).map(([k,m,t])=>'<button type="button" class="chip lmark'+(cur>=m&&cur<m+dur(k)?' on':'')+(m<cur&&live?' past':'')+'" data-jump="'+m+'"><span class="lk '+k+'"></span>'+t+'</button>').join(""); }
+/* How long an idea takes at its spot. By technique: a slow shutter or a figure walking into the light needs more tries than a sharp
+   wide view; a close detail is quick. By intent: waiting for a moment takes longer, showing the place less. A tip that says to stay half
+   an hour means at least 35 minutes. Some ideas are set by hand. 15 to 45 minutes. */
+const IDEA_BASE = {zone:20,freeze:20,drag:25,deep:20,shallow:20,night:25,silhouette:25,interior:20,detail:15};
+const IDEA_INTENT = {moment:10,mood:5,energy:0,place:-5,odd:0};
+const IDEA_MINS_SET = {"cpark-place":20,"cpark-moment":35,"cpark-delacorte":30,"cpark-balloons":45,"cpark-midnight":40,"uws-energy":20,"uws-moment":20,"uws-odd":30};
+const IDEA_MINS_C = new Map();
+function ideaMins(x){ if(!x) return 20; if(IDEA_MINS_C.has(x.id)) return IDEA_MINS_C.get(x.id); let m=IDEA_MINS_SET[x.id];
+  if(m===undefined){ m=(IDEA_BASE[x.r]||20)+(IDEA_INTENT[x.i]||0); const T=(typeof WORK_TIPS!=="undefined"&&WORK_TIPS[x.id])||[]; if(T.some(t=>/half an hour|30 minutes|at least an hour/i.test(String(t)))) m=Math.max(m,35); }
+  m=Math.max(15,Math.min(45,m)); IDEA_MINS_C.set(x.id,m); return m; }
+const ideasMins = I => I&&I.length ? I.reduce((a,x)=>a+ideaMins(x),0) : 20;
+/* A stop's length: its ideas' minutes plus what you added or took off on the map; an event keeps its own */
+const stopMins = s => s.ev ? (s.mins||120) : Math.max(10, ideasMins(s.ideas)+(s.adj||0));
 /* Today's outing: kept on the device so it survives closing the app; editable from the map. */
-function savePlan(){ const p=state.plan; store.set("plan", p ? {start:+p.start,end:+p.end,from:p.from||null,fromHome:!!p.fromHome,stops:p.stops.map(s=>({place:s.place,at:+s.at,key:s.key,ideas:s.ideas.map(x=>x.id),leg:s.leg||null,ev:s.ev||null,mins:s.mins||null}))} : null); }
+function savePlan(){ const p=state.plan; store.set("plan", p ? {start:+p.start,end:+p.end,from:p.from||null,fromHome:!!p.fromHome,stops:p.stops.map(s=>({place:s.place,at:+s.at,key:s.key,ideas:s.ideas.map(x=>x.id),leg:s.leg||null,ev:s.ev||null,mins:s.mins||null,adj:s.adj||0,mine:!!s.mine}))} : null); }
 function loadPlan(){ const p=store.get("plan",null); if(!p||!p.stops||!p.stops.length||p.end<Date.now()-12*36e5) return null;
-  return {start:new Date(p.start),end:new Date(p.end),from:p.from&&typeof p.from.lat==="number"?p.from:null,fromHome:!!p.fromHome,stops:p.stops.filter(s=>PLACES[s.place]).map(s=>({place:s.place,at:new Date(s.at),key:s.key,ideas:s.ideas.map(id=>IDEAS.find(x=>x.id===id)).filter(Boolean),leg:s.leg,ev:s.ev||undefined,mins:s.mins||undefined}))}; }
+  return {start:new Date(p.start),end:new Date(p.end),from:p.from&&typeof p.from.lat==="number"?p.from:null,fromHome:!!p.fromHome,stops:p.stops.filter(s=>PLACES[s.place]).map(s=>({place:s.place,at:new Date(s.at),key:s.key,ideas:s.ideas.map(id=>IDEAS.find(x=>x.id===id)).filter(Boolean),leg:s.leg,ev:s.ev||undefined,mins:s.mins||undefined,adj:s.adj||0,mine:!!s.mine}))}; }
 function pickIdeas(pid,key,n,at){ const t=at||new Date(), sky=Math.abs(t-Date.now())<40*36e5?skyAt(t):undefined, all=cityIdeas().filter(x=>x.p===pid), here=all.filter(x=>ideaOpen(x,t,sky));
   const pool=(here.length?here:all).slice().sort((a,b)=>(b.w.includes(key)-a.w.includes(key))||(state.done.has(a.id)-state.done.has(b.id)));
   const out=[]; for(const x of pool) if(out.length<n&&!out.some(o=>o.i===x.i)) out.push(x); for(const x of pool) if(out.length<n&&!out.includes(x)) out.push(x); return out; }
 function legBetween(a,b){ const km=kmBetween(PLACES[a],PLACES[b]), walk=Math.round(km*1.3/0.08); return walk<=30?{to:b,mins:Math.max(3,walk),mode:"walk"}:{to:b,mins:Math.round(15+km*3),mode:"by subway"}; }
-function retimePlan(p){ let t=new Date(p.stops[0].at); p.stops.forEach((s,n)=>{ s.at=new Date(t); const k=lightAt(s.at); if(!s.ev&&(k!==s.key||!s.ideas.length)){ s.key=k; s.ideas=pickIdeas(s.place,k,Math.max(2,s.ideas.length),s.at); }
-    t=new Date(+t+(s.ev?(s.mins||120):Math.max(1,s.ideas.length)*25)*6e4); if(n<p.stops.length-1){ s.leg=legBetween(s.place,p.stops[n+1].place); t=new Date(+t+s.leg.mins*6e4); } else delete s.leg; });
+function retimePlan(p){ let t=new Date(p.stops[0].at); p.stops.forEach((s,n)=>{ s.at=new Date(t); const k=lightAt(s.at); if(!s.ev&&!s.mine&&(k!==s.key||!s.ideas.length)){ s.key=k; s.ideas=pickIdeas(s.place,k,Math.max(2,s.ideas.length),s.at); }
+    else if(s.mine&&k!==s.key&&s.ideas.every(x=>x.w.includes(k))) s.key=k;   // your own ideas stay; the light only counts as changed when they no longer suit it
+    t=new Date(+t+stopMins(s)*6e4); if(n<p.stops.length-1){ s.leg=legBetween(s.place,p.stops[n+1].place); t=new Date(+t+s.leg.mins*6e4); } else delete s.leg; });
   p.start=new Date(p.stops[0].at); p.end=t; return p; }
 function planAdd(pid){ state.planMsg=null; if(!state.plan){ const now=new Date(), k=lightAt(now); state.plan={start:now,end:now,stops:[{place:pid,at:now,key:k,ideas:pickIdeas(pid,k,2)}]}; }
   else state.plan.stops.push({place:pid,at:new Date(),key:"",ideas:[]});
   retimePlan(state.plan); savePlan(); }
 function planRemove(pid){ state.planMsg=null; if(!state.plan) return; state.plan.stops=state.plan.stops.filter(s=>s.place!==pid); if(!state.plan.stops.length) state.plan=null; else retimePlan(state.plan); savePlan(); }
 const planIndex = pid => state.plan ? state.plan.stops.findIndex(s=>s.place===pid) : -1;
-function nextStopIndex(){ const p=state.plan; if(!p) return -1; const now=Date.now(); const i=p.stops.findIndex(s=>+s.at+(s.ev?(s.mins||120):Math.max(1,s.ideas.length)*25)*6e4>now); return i<0?p.stops.length-1:i; }
+function nextStopIndex(){ const p=state.plan; if(!p) return -1; const now=Date.now(); const i=p.stops.findIndex(s=>+s.at+stopMins(s)*6e4>now); return i<0?p.stops.length-1:i; }
 function mapGoStop(i){ const p=state.plan, s=p&&p.stops[i]; if(!s) return; const today=new Date(); today.setHours(0,0,0,0);
   const dayOff=Math.round((evDay(s.at)-today)/864e5), sameDay=dayOff===0, live=sameDay&&(Math.abs(s.at-Date.now())<15*6e4 || (i===nextStopIndex() && s.at<=Date.now()));
   state.mapD = dayOff>0&&dayOff<=6 ? dayOff : 0;
@@ -4375,12 +4391,13 @@ function planStartTrip(){ const p=state.plan, S=planStart(), W=planWalk(); if(!p
 function planWalk(){ const p=state.plan; if(!p) return []; const out=[];
   p.stops.forEach((s,n)=>{ if(s.ev){ const g=eventGeo(s.ev); if(g) out.push({n,lat:g[0],lon:g[1],t:new Date(s.at),name:(EVENTS.find(e=>e.id===s.ev)||{name:s.ev}).name}); return; }
     const P=PLACES[s.place]; if(!P||typeof P.lat!=="number") return; const seen=new Set(); let i=0, base=false;
-    for(const x of (s.ideas.length?s.ideas:[null])){ const sp=x&&spotFor(x), t=new Date(+s.at+i*25*6e4);
-      if(sp){ if(seen.has(sp.id)) continue; seen.add(sp.id); out.push({n,x,id:sp.id,lat:sp.S[0],lon:sp.S[1],face:sp.S[2],name:sp.S[3],t}); i++; }
-      else if(!base){ base=true; const g=START_GEO[s.place]||[P.lat,P.lon]; out.push({n,x,lat:g[0],lon:g[1],name:START[s.place]?START[s.place][0]:P.name,t}); i++; } } });
+    const scale=s.ideas.length?stopMins(s)/ideasMins(s.ideas):1;   // your +/- on the stop spreads over its spots
+    for(const x of (s.ideas.length?s.ideas:[null])){ const sp=x&&spotFor(x), t=new Date(+s.at+i*6e4), dm=Math.round(ideaMins(x)*scale);
+      if(sp){ if(seen.has(sp.id)){ i+=dm; continue; } seen.add(sp.id); out.push({n,x,id:sp.id,lat:sp.S[0],lon:sp.S[1],face:sp.S[2],name:sp.S[3],t,mins:dm}); i+=dm; }
+      else{ if(!base){ base=true; const g=START_GEO[s.place]||[P.lat,P.lon]; out.push({n,x,lat:g[0],lon:g[1],name:START[s.place]?START[s.place][0]:P.name,t,mins:dm}); } i+=dm; } } });
   return out.map((w,k)=>Object.assign(w,{k:k+1})); }
 /* The next spot: on the day, the first one you have not passed; before the day, the first */
-function planWalkNext(W){ const p=state.plan; if(!p||!W.length) return null; const now=Date.now(); if(evDay(p.start)>evDay(new Date())) return W[0]; return W.find(w=>+w.t+25*6e4>now)||W[W.length-1]; }
+function planWalkNext(W){ const p=state.plan; if(!p||!W.length) return null; const now=Date.now(); if(evDay(p.start)>evDay(new Date())) return W[0]; return W.find(w=>+w.t+(w.mins||20)*6e4>now)||W[W.length-1]; }
 function planWalkSvg(f,u,w,x0,y0,x1,y1){ const W=planWalk(); if(W.length<2&&!W.length) return {route:"",marks:""}; const P=W.map(o=>mapXY(o.lat,o.lon)), nx=planWalkNext(W);
   let route=W.length>1?'<path d="M'+P.map(([x,y])=>f(x)+' '+f(y)).join("L")+'" class="m-route" stroke-width="'+f(3*u)+'" stroke-dasharray="'+f(7*u)+' '+f(5*u)+'"/>':"";
   let leg="", start=""; const T=planStartTrip(); if(T&&W.length){ const [sx,sy]=mapXY(T.S.lat,T.S.lon), [ax,ay]=P[0], r=(w<60?8:6.5)*u;
@@ -4400,6 +4417,13 @@ function planStartHtml(){ const p=state.plan, T=planStartTrip(); if(!p) return "
     (open?'<div class="intents startpick">'+(H?'<button type="button" class="chip" data-startset="home" aria-pressed="'+(!!T&&T.S.kind==="home")+'">⌂ Home</button>':'')+(state.pos?'<button type="button" class="chip" data-startset="here">◎ Where I am now</button>':'')+
       '<button type="button" class="chip" data-startset="pick" aria-pressed="'+(state.startPick==="map")+'">Pick on the map</button>'+(p.from||p.fromHome?'<button type="button" class="chip" data-startset="auto">Automatic</button>':'')+'</div>'+
       (state.startPick==="map"?'<p class="msg">Press and hold on the map where you will start.</p>':''):''); }
+/* Time at each stop: each idea's minutes, and − / + 5 minutes for the stop; the rest of the outing moves with it */
+function planTimesHtml(){ const p=state.plan; if(!p) return ""; const open=!!state.planTimesOpen, tf=d=>hmText(d.getHours()*60+d.getMinutes());
+  return '<p class="msg plantimes-h"><button type="button" class="linkbtn" data-plantimes="1" aria-expanded="'+open+'">Time at each stop '+(open?'▴':'▾')+'</button></p>'+(open?'<div class="plantimes">'+p.stops.map((s,n)=>{ const mins=stopMins(s), end=new Date(+s.at+mins*6e4);
+      return '<div class="ptstop"><div class="ptrow"><b>'+(n+1)+'. '+esc(s.ev?(EVENTS.find(e=>e.id===s.ev)||{name:s.ev}).name:PLACES[s.place].name)+'</b><span>'+tf(s.at)+'–'+tf(end)+' · '+mins+' min</span>'+
+        (s.ev?'':'<span class="ptbtns"><button type="button" class="chip" data-stopadj="'+n+':-5" aria-label="5 minutes less at stop '+(n+1)+'"'+(mins<=10?' disabled':'')+'>−5</button><button type="button" class="chip" data-stopadj="'+n+':5" aria-label="5 minutes more at stop '+(n+1)+'">+5</button></span>')+'</div>'+
+        (s.ev?'':'<ul class="ptideas">'+s.ideas.map(x=>'<li>'+esc(x.t)+' · '+ideaMins(x)+' min</li>').join("")+(s.adj?'<li>'+(s.adj>0?'+':'−')+Math.abs(s.adj)+' min you set</li>':'')+'</ul>')+'</div>'; }).join("")+
+    '<p class="hint">Each idea gets the time it usually takes: a slow shutter or waiting for a moment takes longer, a detail is quick. Walking time between stops is added.</p></div>':''); }
 function planWalkHtml(){ const W=planWalk(); if(!W.some(o=>o.id)) return ""; const nx=planWalkNext(W), tf=d=>hmText(d.getHours()*60+d.getMinutes()), lf=nx&&nx.face!=null?lightFacing(nx.face,nx.t):null;
   return '<p class="msg planwalk"><b>The walk: '+W.length+' spots.</b> Next: '+nx.k+'. '+esc(nx.name)+', '+tf(nx.t)+(lf?' · '+esc(lf.txt.toLowerCase())+', facing '+compass(nx.face):'')+'</p>'+
     (nx.id?'<div class="callinks"><button type="button" class="chip'+(state.guide&&state.guide.id===nx.id?'':' primary')+'" data-'+(state.guide&&state.guide.id===nx.id?'guidestop="1">Stop guiding':'guide="'+esc(nx.id)+'">Guide me to spot '+nx.k)+'</button></div>':''); }
@@ -4420,7 +4444,7 @@ function mapPlanBar(){ const p=state.plan, tf=d=>d.toLocaleTimeString("en-US",{h
   const nx=nextStopIndex();
   const pday=Math.round((evDay(p.start)-evDay(new Date()))/864e5);
   return '<div class="planbar"><div class="planbar-head"><b>'+(pday===1?'Tomorrow\u2019s outing':pday>1?esc(DAY_NAMES[p.start.getDay()])+'\u2019s outing':'Today\u2019s outing')+'</b><span>'+tf(p.start)+' to about '+tf(p.end)+'</span><button type="button" class="chip primary" data-nextstop="1">Next stop ›</button><button type="button" class="chip" data-openplan="1">Details</button><button type="button" class="chip" data-clearplan="1">Clear</button></div>'+
-    (()=>{ const lb=planLeaveBy(), ok=planBestOK(), m=state.planMsg; return planWarnHtml()+(lb?'<p class="msg planleave">'+esc(lb)+'</p>':'')+(ok?'<div class="intents planbest"><button type="button" class="chip" data-planbest="1">Best order for the light</button></div>':'')+(m?'<p class="msg planmsg">'+esc(m)+'</p>':'')+planStartHtml()+planWalkHtml(); })()+
+    (()=>{ const lb=planLeaveBy(), ok=planBestOK(), m=state.planMsg; return planWarnHtml()+(lb?'<p class="msg planleave">'+esc(lb)+'</p>':'')+(ok?'<div class="intents planbest"><button type="button" class="chip" data-planbest="1">Best order for the light</button></div>':'')+(m?'<p class="msg planmsg">'+esc(m)+'</p>':'')+planStartHtml()+planWalkHtml()+planTimesHtml(); })()+
     '<div class="intents planstops">'+p.stops.map((s,n)=>'<button type="button" class="chip stopchip'+(n===nx?" next":"")+'" data-stop="'+n+'"><span class="stopn">'+(n+1)+'</span>'+esc(s.ev?(EVENTS.find(x=>x.id===s.ev)||{name:s.ev}).name:PLACES[s.place].name)+' · '+tf(s.at)+'</button>').join("")+'</div>'+planLinks()+'</div>'; }
 function mapPts(){ const key=lightAt(mapNow()), ideas=cityIdeas().filter(i=>(state.mapIntent==="all"||i.i===state.mapIntent)&&(!state.mapDark||i.w.includes("night"))), t=mapNow(), cc=CITIES[state.city], night=sunPos(t,cc.lat,cc.lon).alt<-6, sky=night?skyAt(t):null;
   return Object.keys(CITIES[state.city].places).filter(id=>typeof PLACES[id].lat==="number").map(id=>{ const [x,y]=mapXY(PLACES[id].lat,PLACES[id].lon), mine=ideas.filter(i=>i.p===id);
@@ -4664,7 +4688,7 @@ const X_KINDS = /^(busy|wet|new|permit):/;
 function planSim(order,start){ let t=new Date(start), fits=0, score=0, travel=0; const IDX=planSim.idx||(planSim.idx={});
   order.forEach((s,n)=>{ const all=IDX[s.place]||(IDX[s.place]=cityIdeas().filter(x=>x.p===s.place)), k=lightAt(t), open=all.filter(x=>ideaOpen(x,t)), fit=open.filter(x=>x.w.includes(k)).length;
     if(fit){ fits++; score+=10+Math.min(fit,3)+(k==="gold"?4:0); } else if(open.length) score+=1;
-    t=new Date(+t+Math.max(1,s.ideas.length)*25*6e4);
+    t=new Date(+t+stopMins(s)*6e4);
     if(n<order.length-1){ const L=legBetween(s.place,order[n+1].place); travel+=L.mins; t=new Date(+t+L.mins*6e4); } });
   return {fits,score:score-travel/6,travel,end:t}; }
 const planBestOK = () => { const p=state.plan; return !!p&&p.stops.length>=3&&!p.stops.some(s=>s.ev); };
@@ -4674,7 +4698,7 @@ function planBestOrder(apply){ const p=state.plan; if(!planBestOK()) return null
   if(n<=7){ const a=p.stops.slice(), c=new Array(n).fill(0); let i=0; while(i<n){ if(c[i]<i){ const j=i%2?c[i]:0; [a[j],a[i]]=[a[i],a[j]]; consider(a); c[i]++; i=0; } else { c[i]=0; i++; } } }
   else p.stops.forEach(f=>{ const o=[f], rest=p.stops.filter(s=>s!==f); while(rest.length){ let bi=0, bs=-1e9; rest.forEach((r,i)=>{ const sc=planSim(o.concat([r]),start).score; if(sc>bs){ bs=sc; bi=i; } }); o.push(rest.splice(bi,1)[0]); } consider(o); });
   const same=best.o===p.stops, out={same,before:cur.fits,after:best.r.fits,n,travelBefore:cur.travel,travelAfter:best.r.travel};
-  if(apply&&!same){ p.stops=best.o.map(s=>({place:s.place,at:new Date(start),key:"",ideas:s.ideas.slice()})); retimePlan(p); savePlan(); }
+  if(apply&&!same){ p.stops=best.o.map(s=>({place:s.place,at:new Date(start),key:s.mine?lightAt(start):"",ideas:s.ideas.slice(),adj:s.adj||0,mine:!!s.mine})); retimePlan(p); savePlan(); }
   return out; }
 function planBestMsg(r){ if(!r) return ""; const tr=(a,b)=>b<a?", "+(a-b)+" min less travel":b>a?", "+(b-a)+" min more travel":"";
   return r.same ? "Already the best order: "+r.before+" of "+r.n+" stops are in light that suits their ideas."
@@ -6591,7 +6615,7 @@ function planEvent(id){ const now=new Date(), today=new Date(now.getFullYear(),n
   const end=new Date(day.getFullYear(),day.getMonth(),day.getDate(),0,Math.min(w[1],1439)), dur=Math.max(60,Math.min(240,Math.round((end-at)/6e4)));
   const stops=[{place:near.p,ev:id,at,key:lightAt(new Date(+at+30*6e4)),ideas:[],mins:dur}];
   const after=new Date(+at+dur*6e4+10*6e4); if(near&&near.km<2.5&&lightAt(after)!=="night"){ const k=lightAt(after); stops.push({place:near.p,at:after,key:k,ideas:pickIdeas(near.p,k,2,after)}); }
-  state.plan={start:at,end:new Date(+(stops[stops.length-1].at)+(stops.length>1?2*25*6e4:dur*6e4)),stops,notes:[],skipped:[]}; if(stops.length>1) stops[0].leg={to:near.p,mins:10,mode:"walk"};
+  state.plan={start:at,end:new Date(+(stops[stops.length-1].at)+(stops.length>1?ideasMins(stops[1].ideas)*6e4:dur*6e4)),stops,notes:[],skipped:[]}; if(stops.length>1) stops[0].leg={to:near.p,mins:10,mode:"walk"};
   savePlan(); state.view="plan"; render(); window.scrollTo({top:0}); }
 function planToday(h,off){ off=off||0; renderPlan(); const t=new Date(), best=todayPicks(new Date(+atMin(Math.min(1435,(+h+1)*60))+off*864e5))[0];
   if(best&&[...$("pStart").options].some(o=>o.value===best.id)) $("pStart").value=best.id;
@@ -6833,6 +6857,8 @@ $("map").addEventListener("click",e=>{
   const rp=e.target.closest("[data-rmplan]"); if(rp){ planRemove(rp.dataset.rmplan); mapPanel(); mapDraw(); return; }
   const sc=e.target.closest("[data-stop]"); if(sc){ mapGoStop(+sc.dataset.stop); return; }
   if(e.target.closest("[data-nextstop]")){ mapGoStop(nextStopIndex()); return; }
+  if(e.target.closest("[data-plantimes]")){ state.planTimesOpen=!state.planTimesOpen; mapPanel(); return; }
+  { const sa=e.target.closest("[data-stopadj]"); if(sa&&state.plan){ const [n,d]=sa.dataset.stopadj.split(":").map(Number), st=state.plan.stops[n]; if(st&&!st.ev){ st.adj=(st.adj||0)+d; if(stopMins(st)<10) st.adj-=d; retimePlan(state.plan); savePlan(); } mapPanel(); mapDraw(); return; } }
   if(e.target.closest("[data-startopen]")){ state.startPick=state.startPick?null:"open"; mapPanel(); return; }
   { const ss=e.target.closest("[data-startset]"); if(ss&&state.plan){ const k=ss.dataset.startset, p=state.plan;
       if(k==="pick"){ state.startPick="map"; mapPanel(); return; }
