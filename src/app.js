@@ -2024,6 +2024,7 @@ function picksPlan(dk,only,win,dry){ const E=only?{ids:only}:picksFor(dk), d=ymd
   const sim=(order,start)=>{ let t=+start, fits=0, score=0, travel=0; order.forEach((pid,n)=>{ const I=by.get(pid), [f,k]=fitAt(pid,t);
       fits+=f; score+=f*10+(f&&k==="gold"?3:0); t+=ideasMins(I)*6e4; if(n<order.length-1){ const g=leg(pid,order[n+1]); travel+=g.mins; t+=g.mins*6e4; } }); return {fits,score:score-travel/6}; };
   const orders=[]; const perm=(a,k)=>{ if(k===a.length){ orders.push(a.slice()); return; } for(let i=k;i<a.length;i++){ [a[k],a[i]]=[a[i],a[k]]; perm(a,k+1); [a[k],a[i]]=[a[i],a[k]]; } }; perm(places.slice(),0);
+  if(win&&win.first&&places.includes(win.first)){ const f=orders.filter(o=>o[0]===win.first); if(f.length) orders.splice(0,orders.length,...f); }   // Plan from here: this place first
   if(!win&&!only){ const n={}; for(const id of E.ids){ const sn=E.snap&&E.snap[id]; if(sn&&sn.slot) n[sn.slot]=(n[sn.slot]||0)+1; } const top=Object.keys(n).sort((a,b)=>n[b]-n[a])[0];
     if(top&&n[top]*2>E.ids.length){ const o=daySlots(d).find(x=>x.id===top); if(o) win={s:o.s,e:o.e}; } }
   const m0=win?Math.max(0,win.s-15):Math.max(0,L.rise-40), m1=win?Math.max(m0,win.e-25):Math.min(1380,L.set+150);
@@ -6715,6 +6716,63 @@ function countdownHtml(now){ const C=countdownTxt(now); if(!C) return ""; let lv
   return '<p class="tcount '+C.k+(C.on?' on':'')+'"><span class="lk '+C.k+'"></span><span class="tct">'+esc(C.txt)+'</span>'+lv+'</p>'; }
 function countdownTick(){ const el=document.querySelector("#today .tcount"); if(!el||document.hidden) return; const h=countdownHtml(new Date()); if(!h){ el.remove(); return; } const tmp=document.createElement("div"); tmp.innerHTML=h; if(tmp.firstChild.innerHTML!==el.innerHTML){ el.className=tmp.firstChild.className; el.innerHTML=tmp.firstChild.innerHTML; } }
 setInterval(()=>{ try{ if(state.view==="today") countdownTick(); }catch(e){} },20000);
+/* Where to go (Today): the places for the chosen light, ranked by ideas you have not shot and by the real trip from where you
+   are (or home): on foot under a mile or so, else by subway, or by car from a home set to car. A place you could not reach while
+   the light lasts goes to the bottom, marked. Each has a reason, heads-ups near it (street fairs, subway changes, events), and
+   Plan from here, which makes an outing of it and the places within a walk. */
+function lightEndAt(t){ const k=lightAt(t); for(let m=10;m<=360;m+=10){ const u=new Date(+t+m*6e4); if(lightAt(u)!==k){ const h=new Date(+u-5*6e4); return lightAt(h)!==k?h:u; } } return null; }
+function whereFrom(){ if(state.pos) return {lat:state.pos.lat,lon:state.pos.lon,k:"you",car:false}; const H=state.home; return H&&typeof H.lat==="number"?{lat:H.lat,lon:H.lon,k:"home",car:H.mode==="car"}:null; }
+function whereTrip(F,P,at){ if(!F) return null; const km=kmBetween(F,P); if(km<0.12) return {mins:0,how:"here",gm:"walking",txt:"you are here"};
+  if(km<1.6&&!(F.k==="home"&&F.car)){ const m=walkMin(km); return {mins:m,how:"walk",gm:"walking",txt:m+" min walk"}; }
+  const m=travelMins(F,P,F.car?"car":"transit",at); return {mins:m,how:F.car?"car":"subway",gm:F.car?"driving":"transit",txt:m+" min "+(F.car?"by car":"by subway")+(F.k==="home"?" from home":"")}; }
+function wherePicks(t,future){ const key=lightAt(t), sky=skyAt(t), F=whereFrom(), now=new Date(), nm=dayMin(now), end=lightEndAt(t), I=state.tIntent&&state.tIntent!=="all"?state.tIntent:null;
+  const out=Object.keys(CITIES[state.city].places).filter(id=>typeof PLACES[id].lat==="number").map(id=>{ const P=PLACES[id];
+    const mine=cityIdeas().filter(x=>x.p===id&&(!I||x.i===I)&&ideaOpen(x,t,sky)), fit=mine.filter(x=>x.w.includes(key)), fresh=fit.filter(x=>!state.done.has(x.id)), saved=fit.filter(x=>state.saved.has(x.id)&&!state.done.has(x.id)).length;
+    if(!fit.length) return null; const best=fresh.slice().sort((a,b)=>state.saved.has(b.id)-state.saved.has(a.id))[0]||fit[0];
+    const g=START_GEO[id]?{lat:START_GEO[id][0],lon:START_GEO[id][1]}:P, trip=whereTrip(F,g,future?new Date(+t-30*6e4):now);
+    let arrive=null, leave=null, late=false;
+    if(trip){ if(future){ leave=new Date(+t-(trip.mins+10)*6e4); if(leave<new Date(+now-5*6e4)){ arrive=new Date(+now+trip.mins*6e4); late=!end||+arrive>+end-10*6e4; } else arrive=t; }
+      else { arrive=new Date(+now+trip.mins*6e4); late=!!end&&+arrive>+end-10*6e4; } }
+    const score=fresh.length*3+fit.length+saved*1.5-(trip?Math.min(trip.mins,90)/8:0);
+    return {id,P,g,fit:fit.length,fresh:fresh.length,saved,best,trip,arrive,leave,late,score,into:future&&arrive>t?Math.round((arrive-t)/6e4):0}; }).filter(Boolean);
+  out.sort((a,b)=>(a.late-b.late)||(b.score-a.score)); return {list:out,end,key,F}; }
+function whereWhy(p,t,lname){ const sp=p.best&&spotFor(p.best), lf=sp&&lightFacing(sp.S[2],t), parts=[];
+  parts.push(p.fresh?p.fresh+" idea"+(p.fresh>1?"s":"")+" you haven’t shot for "+lname:p.fit+" idea"+(p.fit>1?"s":"")+" for "+lname+", all shot");
+  if(p.saved) parts.push(p.saved+" saved"); if(lf&&lf.k!=="dark") parts.push("the best spot is "+lf.txt.toLowerCase()+", facing "+compass(sp.S[2]));
+  else if(lf) parts.push("the best spot has "+lf.txt.toLowerCase());
+  return parts.join(" · "); }
+function whereHeads(p,t,end){ const out=[], e=end||new Date(+t+2*36e5), d0=evDay(t);
+  if(PHOTOS_INLINE){ pmGet(); for(const it of pmItems()){ if(it.lat==null||!pmOnDay(it,t)||it.e<t||it.s>e) continue; if(kmBetween(it,p.P)>0.8) continue; const K=PM_KIND[it.kind]; out.push(K[1]+" "+K[0]+": "+it.n+" ("+pmWhen(it,t)+")"); if(out.length>=2) break; } }
+  try{ for(const r of eventRows(d0)){ if(r.cancelled||!evOnDay(r,d0,false)) continue; const g=eventGeo(r.e.id); if(!g||kmBetween({lat:g[0],lon:g[1]},p.P)>0.8) continue; out.push("★ "+r.e.name+" nearby today"); break; } }catch(err){}
+  if(PHOTOS_INLINE&&p.trip&&p.trip.how==="subway"){ const R=mtaFor(p.P.lat,p.P.lon,t,e); if(R&&R.list&&R.list[0]){ const h=String(R.list[0].head||"").replace(/\s+/g," ").trim(); if(h) out.push("🚇 "+(h.length>90?h.slice(0,88)+"…":h)); } }
+  return out.slice(0,3); }
+function goWhereHtml(t,lname,list,nm){ const win=state.todayAt!==null?list.find(x=>x.s===state.todayAt):list.find(x=>x.s<=nm&&x.e>nm); if(win) lname=win.name.replace(/^Morning /,"morning ").toLowerCase(); const future=state.todayAt!==null, W=wherePicks(t,future), more=!!state.tMore, L=W.list.slice(0,more?6:3), tf=d=>hmText(dayMin(d));
+  const openId=L.some(p=>p.id===state.tpOpen)?state.tpOpen:L[0]&&L[0].id, endTxt=W.end?" until "+tf(W.end):"";
+  const wet=wetAt(t), wetTxt=wet&&wet.k==="wet"?'<p class="msg twet">Wet streets'+(wet.until?' until about '+tf(wet.until):'')+': look for reflections and puddles.</p>':'';
+  const chips='<div class="intents tintent"><button type="button" class="chip" data-tint="all" aria-pressed="'+(!state.tIntent||state.tIntent==="all")+'">All ideas</button>'+Object.keys(INTENTS).map(k=>'<button type="button" class="chip" data-tint="'+k+'" aria-pressed="'+(state.tIntent===k)+'"><span class="dot" style="background:'+INTENTS[k].color+'"></span>'+esc(INTENT_SHORT[k]||INTENTS[k].name)+'</button>').join("")+'</div>';
+  const row=(p,n)=>{ const ph2=PHOTOS_INLINE&&PLACE_PHOTO[p.id], img=ph2?'<img src="'+esc(ph2.src)+'" alt="" loading="lazy" onerror="this.remove()">':'<span class="tpickn">'+(n+1)+'</span>';
+    const tripTxt=p.trip?(p.late?'too late for this light':p.trip.txt):'';
+    if(p.id!==openId) return '<button type="button" class="tprow'+(p.late?' late':'')+'" data-tpick="'+p.id+'">'+img+'<span class="t"><b>'+esc(p.P.name)+'</b><span>'+esc([tripTxt,p.fresh+' new · '+p.fit+' idea'+(p.fit>1?'s':'')].filter(Boolean).join(' · '))+'</span></span><span class="go" aria-hidden="true">›</span></button>';
+    const sp=p.best&&spotFor(p.best), lf=sp&&lightFacing(sp.S[2],t), H=whereHeads(p,t,W.end);
+    const when=!p.trip?'':p.late?(future?'<p class="tleave late"><b>Too late to get there for '+esc(lname)+'</b>: '+p.trip.txt+', so you would arrive about '+tf(p.arrive)+'.</p>':'<p class="tleave late"><b>'+esc(WHEN[W.key]||lname)+' ends '+(W.end?tf(W.end):'soon')+'</b>, before you could get there ('+p.trip.txt+').</p>')
+      :future&&p.into>0?'<p class="tleave late"><b>Leave '+(W.F.k==="you"?'':'home ')+'now</b>: '+esc(p.trip.txt)+', there about '+tf(p.arrive)+', '+p.into+' min into '+esc(lname)+'.</p>'
+      :future?(p.trip.mins?'<p class="tleave"><b>Leave '+(p.trip.how==="walk"||W.F.k==="you"?'':'home ')+'by '+tf(p.leave)+'</b> · '+esc(p.trip.txt)+', there 10 min before '+esc(lname)+'.</p>':'<p class="tleave"><b>You are there</b> · '+esc(lname)+' at '+tf(t)+'.</p>')
+      :'<p class="tleave"><b>'+(p.trip.mins?'There by '+tf(p.arrive):'You are there')+'</b>'+(p.trip.mins?' · '+esc(p.trip.txt):'')+(endTxt?' · '+esc(lname)+endTxt:'')+'.</p>';
+    return '<article class="tpick'+(p.late?' late':'')+'">'+img+'<div class="tpickb"><b>'+esc(p.P.name)+'</b><span class="msg">'+esc([AREAS[areaOf(p.id)]||"",p.trip?p.trip.txt:(p.P.lat&&milesTo(p.P)!==null?milesText(milesTo(p.P)):"")].filter(Boolean).join(' · '))+'</span>'+
+      '<p class="msg twhy">'+esc(whereWhy(p,t,lname))+'</p>'+(H.length?'<ul class="theads">'+H.map(h=>'<li>'+esc(h)+'</li>').join("")+'</ul>':'')+
+      (p.best?'<button type="button" class="row" data-id="'+p.best.id+'"><span class="dot" style="background:'+INTENTS[p.best.i].color+'"></span><span class="t"><b>'+esc(p.best.t)+'</b><span>'+esc(INTENTS[p.best.i].name)+(state.saved.has(p.best.id)?' · saved':'')+'</span></span><span class="go" aria-hidden="true">›</span></button>':'')+
+      (sp?'<p class="msg tspot"><span class="snum '+lf.k+'">'+spotNum(sp.id)+'</span><span>'+esc(sp.S[3])+' · face '+compass(sp.S[2])+', '+esc(lf.txt.toLowerCase())+(future?' then':' now')+'</span></p>':'')+when+
+      '<div class="callinks">'+(p.late?'':'<button type="button" class="chip primary" data-tplan="'+p.id+'">Plan from here</button>')+'<button type="button" class="chip" data-mapgo="'+p.id+'">On the map</button>'+(sp&&state.pos?'<button type="button" class="chip" data-guidego="'+sp.id+'">Guide me there</button>':'')+
+      '<a class="chip" href="https://www.google.com/maps/dir/?api=1&destination='+p.g.lat.toFixed(5)+','+p.g.lon.toFixed(5)+'&travelmode='+(p.trip?p.trip.gm:'transit')+'" target="_blank" rel="noopener">Directions ↗</a></div></div></article>'; };
+  return chips+wetTxt+(L.length?L.map(row).join("")+(W.list.length>3?'<p class="tmore"><button type="button" class="linkbtn" data-tmore="1">'+(more?'Show fewer':'Show '+Math.min(3,W.list.length-3)+' more')+'</button></p>':'')
+    :'<p class="msg">No '+(state.tIntent&&state.tIntent!=="all"?esc(INTENTS[state.tIntent].name.toLowerCase())+' ':'')+'ideas suit this light. Try another time or intent above.</p>'); }
+/* Plan from here: the place and those within a walk of it whose ideas suit the light, as an outing from the chosen time (or from
+   when you get there), up to two ideas a place */
+function wherePlan(pid){ const future=state.todayAt!==null, now=new Date(), t=future?atMin(state.todayAt):now, W=wherePicks(t,future), p=W.list.find(x=>x.id===pid); if(!p) return null;
+  const key=lightAt(t), sky=skyAt(t), near=W.list.filter(o=>!o.late&&(o.id===pid||walkMin(kmBetween(PLACES[pid],PLACES[o.id]))<=15)).slice(0,3).map(o=>o.id);
+  const I=state.tIntent&&state.tIntent!=="all"?state.tIntent:null, ideas=cityIdeas().filter(x=>near.includes(x.p)&&(!I||x.i===I)&&x.w.includes(key)&&ideaOpen(x,t,sky));
+  const ids=bestIdeas({I:ideas.sort((a,b)=>(near.indexOf(a.p)-near.indexOf(b.p)))}).map(x=>x.id); if(!ids.length) return null;
+  const s=dayMin(p.arrive&&p.arrive>t?p.arrive:t), end=W.end?dayMin(W.end):s+120; return picksPlan(ymdKey(now),ids,{s,e:Math.min(1439,Math.max(s+60,end+20)),first:pid}); }
 function renderToday(){ const box=$("today"); if(!box) return; todayAutoLoc();
   const now=new Date(), nm=dayMin(now), c=CITIES[state.city], {L,list}=todayWindows(), tf=hmText, w=WEATHER[state.city];
   const ph=sunPhase(sunPos(now,c.lat,c.lon).alt), next=list.find(x=>x.e>nm);
@@ -6812,7 +6870,7 @@ function renderToday(){ const box=$("today"); if(!box) return; todayAutoLoc();
   S.now=nowStrip.replace("@@LIGHT@@",lightIn)+skyNotesHtml(now);
   S.tmr=tmrCard; S.alerts=alertsHtml(); S.out=outingHtml(now);
   S.where='<section class="tcard"><p class="tlabel">Where to go</p><div class="intents tmoments">'+moments.map(m=>'<button type="button" class="chip" data-tat="'+(m.at===null?'now':m.at)+'" aria-pressed="'+(m.at===state.todayAt)+'">'+m.label+'</button>').join("")+locChip+'</div>'+
-      '<p class="msg">Best places for '+esc(lname)+(state.todayAt===null?' now':' at '+tf(state.todayAt))+(state.pos?', nearest first among equals':'')+'.</p>'+homeHtml()+pickHtml+'</section>';
+      '<p class="msg">Best places for '+esc(((state.todayAt!==null?list.find(x=>x.s===state.todayAt):list.find(x=>x.s<=nm&&x.e>nm))||{name:lname}).name.toLowerCase())+(state.todayAt===null?' now':' at '+tf(state.todayAt))+': most ideas you haven\u2019t shot, then the shortest trip'+(state.pos?' from you':state.home&&typeof state.home.lat==="number"?' from home':'')+'.</p>'+homeHtml()+goWhereHtml(t,lname,list,nm)+'</section>';
   S.events=evCard; S.day=dayCard; S.week=weekHtml();
   S.plan=(tmrCard&&planFor.off?'':'<section class="tcard tplan"><p class="tlabel">Plan an outing</p><p>'+planFor.txt+'</p>'+(planFor.when==="tonight"?(tp=>tp?leaveBy(START_GEO[tp.id]||[PLACES[tp.id].lat,PLACES[tp.id].lon],planFor.h*60+15,null,""):"")(todayPicks(atMin(planFor.h*60+60))[0]):'')+'<button type="button" class="btn primary" data-planday="'+planFor.h+'" data-planoff="'+planFor.off+'">Plan '+planFor.when+'</button></section>');
   S.gow=goOrWaitHtml(now); S.last=lastChanceHtml(now); S.same=sameLightHtml(now);
@@ -7284,6 +7342,9 @@ $("today").addEventListener("click",e=>{
   if(e.target.closest("[data-trefresh]")){ todayRefresh(); return; }
   const ca=e.target.closest("[data-caladd]"); if(ca){ calAdd(ca); return; }
   const tm=e.target.closest("[data-tat]"); if(tm){ state.todayAt=tm.dataset.tat==="now"?null:+tm.dataset.tat; renderToday(); return; }
+  { const ti=e.target.closest("[data-tint]"); if(ti){ state.tIntent=ti.dataset.tint; state.tpOpen=null; renderToday(); return; } }
+  if(e.target.closest("[data-tmore]")){ state.tMore=!state.tMore; renderToday(); return; }
+  { const tp2=e.target.closest("[data-tplan]"); if(tp2){ const p=wherePlan(tp2.dataset.tplan); if(!p){ evToast('<span>No outing fits the time left for this light.</span>'); return; } planShow(p); return; } }
   if(e.target.closest("[data-shootnow]")){ shootNow(); return; }
   const tg=e.target.closest("[data-guidego]"); if(tg){ const id=tg.dataset.guidego; state.mapT=null; state.view="map"; render(); guideStart(id); requestAnimationFrame(()=>requestAnimationFrame(()=>{ mapSelectSpot(id); guideRender(); })); return; }
   const tl=e.target.closest("[data-todayloc]"); if(tl){ tl.textContent="…"; const done=()=>{ renderToday(); if(!state.pos) $("today").insertAdjacentHTML("afterbegin",'<p class="msg">Your location is not available here. In the installed app, allow location access for Shot List when asked.</p>'); };

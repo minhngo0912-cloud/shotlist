@@ -194,7 +194,8 @@ def run(path, name):
         lv=pg.evaluate("(()=>{ const g=[...document.querySelectorAll('#today .tmoments [data-tat]')].find(b=>/Golden hour/.test(b.textContent)); if(g) g.click(); return [...document.querySelectorAll('#today .tpick .tleave')].map(e=>e.textContent); })()")
         check("With a home saved, each place for golden hour says when to leave home", len(lv)>=1 and all(t.startswith("Leave home by ") and "by car" in t and "golden hour" in t for t in lv), lv)
         pg.evaluate("state.pos={lat:40.7230,lon:-73.9990}; renderToday()")
-        check("Leave-by times hide once you are in the city", pg.evaluate("document.querySelectorAll('#today .tleave').length")==0)
+        lvc=pg.evaluate("[...document.querySelectorAll('#today .tleave')].map(e=>e.textContent)")
+        check("Once you are in the city, leave times are from where you are, not from home", all("home" not in x for x in lvc), lvc)
         pg.evaluate("state.pos=null; renderToday()")
         wk=pg.evaluate("[document.querySelectorAll('#today .wday').length, document.querySelectorAll('#today .wday.best').length, [...document.querySelectorAll('#today .wday')].map(d=>d.querySelector('.wds').textContent)]")
         check("The week ahead shows seven evenings with sunset times and one best evening", wk[0]==7 and wk[1]<=1 and all(":" in t for t in wk[2]), wk)
@@ -1533,6 +1534,21 @@ def run(path, name):
             check("Find free parking: free blocks first near the first spot (street cleaning off on Indigenous Peoples' Day), Park here sets it, the leave time adds the walk from the car, P on the map, and it is kept with the outing",
                   len(pk[0])>=2 and pk[0][0][0]=="free" and all(c!="no" for c,_ in pk[0]) and not any("Bayard St, Mott St" in w for _,w in pk[0]) and "Meters and street cleaning" not in pk[1] and pc[0] and pc[2] and pc[3] and pc[4] and pc[5] and pc[6], [pk,pc])
             pg.evaluate("state.plan=null; savePlan(); state.parkOpen=false; state.home=null; state.view='today'; render()")
+        # Where to go: trip times, reasons, heads-ups, intent chips, more, Plan from here
+        pg.evaluate("pmGet(true)"); pg.wait_for_timeout(600)
+        wg=pg.evaluate("""(()=>{ state.plan=null; savePlan(); state.home=null; state.pos={lat:40.7230,lon:-73.9990}; state.todayAt=null; state.tIntent='all'; state.tMore=false; state.view='today'; render();
+          const sec=[...document.querySelectorAll('#today .tcard')].find(c=>/Where to go/.test(c.textContent)); if(!sec) return ['no card'];
+          const t=new Date(), W=wherePicks(t,false), L=W.list, live=L.filter(o=>!o.late), r=[];
+          r.push(live.every((o,i)=>!i||live[i-1].score>=o.score), L.findIndex(o=>o.late)<0||L.slice(L.findIndex(o=>o.late)).every(o=>o.late));
+          r.push(L.every(o=>o.trip&&(o.trip.how==='walk'?kmBetween(state.pos,o.g)<1.6:true)), !!sec.querySelector('.twhy'), /min (walk|by subway)|you are here/.test(sec.textContent));
+          const mid=wherePicks(t,false).list.find(o=>o.id==='midtown')||{id:'midtown',P:PLACES.midtown,trip:{how:'subway'}}; const H=whereHeads(mid,t,null); r.push(H.some(h=>/Block party/i.test(h)));
+          const n0=sec.querySelectorAll('.tpick,.tprow').length; sec.querySelector('[data-tmore]')&&sec.querySelector('[data-tmore]').click(); const sec2=[...document.querySelectorAll('#today .tcard')].find(c=>/Where to go/.test(c.textContent)), n1=sec2.querySelectorAll('.tpick,.tprow').length; r.push(n0===Math.min(3,L.length)&&(L.length<=3||n1>n0));
+          document.querySelector('#today [data-tint="moment"]').click(); { const bad=wherePicks(t,false).list.filter(o=>o.best.i!=='moment').map(o=>o.id+':'+o.best.id); r.push(bad.length?state.tIntent+'|'+bad.join():true); }
+          document.querySelector('#today [data-tint="all"]').click();
+          const dir=document.querySelector('#today .tpick a[href*="travelmode="]'); r.push(!!dir&&/travelmode=(walking|transit)/.test(dir.href));
+          const first=document.querySelector('#today .tpick [data-tplan]'), pid=first&&first.dataset.tplan; if(first) first.click(); r.push(state.view, !!state.plan&&state.plan.stops[0].place===pid);
+          state.tMore=false; state.plan=null; savePlan(); state.view='today'; render(); return r; })()""")
+        check("Where to go: ranked by new ideas and the real trip (too-late places last), a reason, heads-ups (a block party near Midtown), Show more, intent chips, Directions by the right mode, Plan from here starts at that place", wg==[True,True,True,True,True,name.startswith("Installed"),True,True,True,"map",True], wg)
         # Dark theme renders too
         pg.evaluate("document.documentElement.dataset.theme='dark'; state.view='shoot'; render()"); pg.wait_for_timeout(80)
         check("no script errors", not errors, errors[:3])

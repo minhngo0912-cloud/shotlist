@@ -1704,3 +1704,9 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 .nowfold{margin:10px 0} .nowfold>summary{cursor:pointer;font-weight:700;padding:10px 2px;list-style-position:inside}
 .nowplace{margin:0;padding:10px 16px 4px;font-weight:700} .nowsoon .group-head{background:#b3261e}
 .nowrow .t{text-align:left} .nowrow .t .nowleft{text-align:left}
+
+/* Where to go: intent chips, reasons, heads-ups, too-late places */
+.tintent{margin:6px 0 8px}
+.twhy{margin:4px 0 0} .theads{list-style:none;margin:6px 0 2px;padding:0;display:flex;flex-direction:column;gap:3px;font-size:13px}
+.theads li{background:var(--chipbg,rgba(127,127,127,.12));border-radius:8px;padding:4px 8px}
+.tpick.late,.tprow.late{opacity:.6} .tmore{margin:6px 0 0} .twet{margin:4px 0 6px}
