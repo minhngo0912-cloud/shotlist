@@ -1375,6 +1375,18 @@ def run(path, name):
         bm=pg.evaluate("[bestOutings(matches(false)).every(c=>c.o.id==='am'), /Morning/.test((document.querySelector('#list .tmbest')||{}).textContent||'')]")
         pg.evaluate("state.when='all'; state.tmrw=false; store.set('tmrw',false); syncOnNow(); state.view='today'; render()")
         check("Best outing follows the Light filter (Morning recommends a morning outing)", bm==[True,True], bm)
+        # The outing as a walk between spots, and forecast changes on a planned outing
+        wk=pg.evaluate("""(()=>{ const ids=['soho-place','soho-moment','chinatown-place','chinatown-energy'].filter(id=>IDEAS.find(x=>x.id===id)); const p=picksPlan('2026-10-12',ids); if(!p) return ['no plan'];
+          state.view='map'; render(); const W=planWalk(), withSpot=W.filter(o=>o.id); const g=W[0]; mapV=mapClamp({cx:mapXY(g.lat,g.lon)[0],cy:mapXY(g.lat,g.lon)[1],w:40}); mapDraw(); mapPanel();
+          return [W.length>=2, withSpot.length===ids.filter(id=>spotFor(IDEAS.find(x=>x.id===id))).length, W.every((o,i)=>!i||o.t>=W[i-1].t), document.querySelectorAll('#mapOver .m-pspot').length>0, !!document.querySelector('#mapOver .m-pspot.next'), /The walk: \\d+ spots/.test(document.querySelector('#mapPlan').textContent), !!document.querySelector('#mapPlan [data-guide]')]; })()""")
+        check("Outing walk: each planned idea's spot in order with its time, numbered on the map with the next one marked, and Guide me to the next spot", wk==[True]*7, wk)
+        fw=pg.evaluate("""(()=>{ const keep=WEATHER[state.city], T=[],P=[],M=[],C=[],K=[]; for(const d of ['11','12']) for(let h=0;h<24;h++){ T.push('2026-10-'+d+'T'+String(h).padStart(2,'0')+':00'); const r=d==='12'; P.push(r?90:5); M.push(r?2:0); C.push(r?100:20); K.push(r?61:1); }
+          WEATHER[state.city]=Object.assign({},keep||{},{updated:'p'+Date.now(),hourly:{time:T,pop:P,mm:M,cc:C,code:K}}); mapPanel();
+          const W0=planWarn(), bar=document.querySelector('#mapPlan').textContent, r=[W0.length>0, W0.every(w=>w.k==='rain'), /The forecast changed/.test(bar)];
+          const n=W0[0].n; document.querySelector('#mapPlan [data-planswap="'+n+'"]').click(); const s=state.plan.stops[n]; r.push(s.key==='rain'&&s.ideas.length>0&&s.ideas.every(x=>x.w.includes('rain')), !planWarn().some(w=>w.n===n));
+          const left=planWarn(); if(left.length){ document.querySelector('#mapPlan [data-plankeep="'+left[0].n+'"]').click(); } r.push(!planWarn().some(w=>left.length&&w.n===left[0].n));
+          WEATHER[state.city]=keep; state.plan=null; savePlan(); state.mapD=0; state.mapT=null; state.view='today'; render(); return r; })()""")
+        check("Planned outing when the forecast turns: the bar says which stops, Swap puts in ideas for the new light, Keep accepts it", fw==[True]*6, fw)
         # Dark theme renders too
         pg.evaluate("document.documentElement.dataset.theme='dark'; state.view='shoot'; render()"); pg.wait_for_timeout(80)
         check("no script errors", not errors, errors[:3])

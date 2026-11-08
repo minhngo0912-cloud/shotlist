@@ -1627,3 +1627,7 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 .tmbest .chip:not(.primary){background:transparent;color:var(--sign-fg);border-color:var(--sign-line)}
 .tmb-oth{margin:12px 0 4px;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--sign-muted)}
 .tmb-alt{display:flex;flex-direction:column;gap:2px;width:100%;text-align:left;padding:8px 0;border:0;border-top:1px solid var(--sign-line);background:none;color:var(--sign-fg);font:inherit;cursor:pointer} .tmb-alt span{font-size:13px;color:var(--sign-muted)}
+/* The outing's walk between spots, and forecast changes on the outing */
+.m-pspot{cursor:pointer} .m-pspotd{fill:#fff;stroke:#14161a} .m-pspotd.back{fill:#f28a28} .m-pspotd.side{fill:#fccc0a} .m-pspotd.front{fill:#fff3c4} .m-pspotd.dark{fill:#8296ff}
+.m-pspotn{fill:#14161a;font-family:var(--sans);font-weight:800;pointer-events:none} .m-pspot.next .m-pspotd{stroke:#1e9e48}
+.planwalk{margin:8px 0 0;max-width:none} .planwarn{margin:8px 0}
