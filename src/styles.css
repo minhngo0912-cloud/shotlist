@@ -1766,3 +1766,8 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 .mgrab{height:26px;flex-direction:column;gap:3px} .mgrab::after{font-size:10.5px;color:var(--muted);line-height:1;letter-spacing:.02em}
 #mapSheet[data-state="peek"] .mgrab::after{content:"Drag up for more"} #mapSheet[data-state="half"] .mgrab::after{content:"Up for all · down for the map"} #mapSheet[data-state="full"] .mgrab::after{content:"Drag down for the map"}
 .planbar-head.pbh2{display:flex;align-items:center;gap:10px;flex-wrap:nowrap} .pbh-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px} .pbh-t span{font-size:13px;color:var(--muted)} .pbh-t .linkbtn{font-size:13px}
+
+/* Events: search, accuracy */
+.evsearch{margin:0 0 8px} .evsearch input{width:100%;box-sizing:border-box;font:inherit;font-size:16px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--fg)}
+.ewarn{font-size:11px;font-weight:700;color:#b26b00;margin-left:4px;text-transform:none;letter-spacing:0} .epm{color:#1e7e3e}
+.evacc p{margin:4px 0}

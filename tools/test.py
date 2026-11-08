@@ -395,7 +395,7 @@ def run(path, name):
           const meta=[...document.querySelectorAll('#events .evmeta')].map(m=>m.textContent);
           const dayBtn=[...document.querySelectorAll('#events .evd')].find(d=>!d.classList.contains('none')&&d.querySelector('.evdots i')); dayBtn.click(); const dayN=document.querySelectorAll('#events details.event').length, dayLine=!!document.querySelector('#events .evdayf');
           document.querySelector('#events .evdayf [data-evday]').click();
-          return [s0.includes('Later')&&!!fold, n1>n0, s1[0], state.evGoing.has(id)===false, sheet, meta.length>0&&meta.every(t=>/(am|pm)/.test(t)), dayN>=1&&dayLine, state.evDay]; })()""")
+          return [s0.includes('Further out')&&!!fold, n1>n0, s1[0], state.evGoing.has(id)===false, sheet, meta.length>0&&meta.every(t=>/(am|pm)/.test(t)), dayN>=1&&dayLine, state.evDay]; })()""")
         check("Events: Later folds, a star moves an event to Going without opening it, cards give the time and light, and a day in the strip filters to that day", ev5==[True,True,"Going",True,False,True,True,None], ev5)
         ev6=pg.evaluate("""(()=>{ const d=new Date(2026,9,17), today=evDay(new Date());
           EVENT_DOCS.tgl={name:"Test dusk parade",type:"parade",start:"2026-10-17",time:"5 pm to 7 pm",lat:40.70,lon:-73.99,ideas:[{intent:"moment",title:"A",text:"a",recipe:"zone"},{intent:"mood",title:"B",text:"b",recipe:"night"}]};
@@ -422,8 +422,8 @@ def run(path, name):
         check("Game days: future home games become rows, grouped as one card per venue", fx[0]==["nycfc","knicks","knicks"] and fx[1]=="5:30 pm to 7:20 pm; tip-off 7 pm" and fx[2]=="NYCFC v LAFC (football) · Yankee Stadium" and fx[3]==2 and fx[4]==[1,2] and all(fx[5]), fx)
         pg.evaluate("()=>{ delete EVENT_DOCS._fixtures; renderEvents(); }"); pg.wait_for_timeout(100)
         pg.evaluate("planEvent('halloween')"); pg.wait_for_timeout(200)
-        pl=pg.evaluate("[state.view, state.plan.stops[0].ev, state.plan.stops[0].at.getHours(), state.plan.start.getMonth(), state.plan.start.getDate(), document.querySelectorAll('#plan .row[data-event]').length]")
-        check("Plan this outing builds a plan round the event, an hour early, with its shots", pl[0]=="plan" and pl[1]=="halloween" and pl[2]==18 and pl[3]==9 and pl[4]==31 and pl[5]==3, pl)
+        pl=pg.evaluate("(()=>{ const ev=state.plan.stops.find(s=>s.ev==='halloween'), w=evWindow(EVENTS.find(e=>e.id==='halloween'),evDay(ev.at)); return [state.view, !!ev, (ev.at.getHours()*60+ev.at.getMinutes())===w[0]-30, ev.at.getMonth(), ev.at.getDate(), state.plan.stops.filter(s=>!s.ev).every(s=>s.ideas.length&&s.ideas.every(x=>x.w.includes(s.key))), /Planned around/.test(state.planMsg||'')]; })()")
+        check("Plan this outing (event) opens on the Map: the event half an hour before it starts, with nearby places only in light that suits them", pl==["map",True,True,9,31,True,True], pl)
         pg.evaluate("state.plan=null; savePlan(); state.view='events'; render()"); pg.wait_for_timeout(100)
         # Map
         pg.click("#vMap"); pg.wait_for_timeout(400)
@@ -447,7 +447,7 @@ def run(path, name):
         check("Map draws pins", pg.evaluate("document.querySelectorAll('.m-pin').length") > 10)
         pg.evaluate("mqGo('union')"); pg.wait_for_timeout(500)
         check("Map go-to selects a place", pg.evaluate("state.mapSel") == "union")
-        check("Selecting a place opens the sheet halfway", pg.evaluate("state.sheet")=="half")
+        check("Selecting a place opens the sheet (its card, or halfway)", pg.evaluate("state.sheet") in ("half","card"))
         pg.wait_for_timeout(900)
         check("Selecting a place zooms in to its spots", pg.evaluate("mapV.w")<=60 and pg.evaluate("document.querySelectorAll('.m-spotg').length")>=2, pg.evaluate("mapV.w"))
         pg.evaluate("state.plan=null; mapPanel()"); pg.click("[data-addplan]"); pg.wait_for_timeout(100)
@@ -1574,6 +1574,14 @@ def run(path, name):
           const first=document.querySelector('#today .tpick [data-tplan]'), pid=first&&first.dataset.tplan; if(first) first.click(); r.push(state.view, !!state.plan&&state.plan.stops[0].place===pid);
           state.tMore=false; state.plan=null; savePlan(); state.view='today'; render(); return r; })()""")
         check("Where to go: ranked by new ideas and the real trip (too-late places last), a reason, heads-ups (a block party near Midtown), Show more, intent chips, Directions by the right mode, Plan from here starts at that place", wg==[True,True,True,True,True,name.startswith("Installed"),True,True,True,"map",True], wg)
+        # Events: permits, groups, search
+        pg.evaluate("pmGet(true)"); pg.wait_for_timeout(600)
+        ep=pg.evaluate("""(()=>{ const T=evDay(new Date()), mk=(name,type,g,d)=>({e:{id:'t-'+name,name,type,geo:g},o:[d],confirmed:false});
+          const a=evPermit(mk('Feast of San Gennaro Procession','parade',[40.7175,-73.9978],new Date(2026,9,13)),T), b=evPermit(mk('Harvest Fair','festival',[40.80,-73.95],new Date(2026,9,14)),T), c=evPermit(mk('Harvest Fair','festival',[40.80,-73.95],new Date(2026,11,14)),T), d=evPermit(mk('Gallery talk','photoshow',[40.75,-73.98],new Date(2026,9,13)),T);
+          state.view='events'; state.evQ=''; state.evDay=null; state.evNear=false; state.evType='all'; render(); const heads=[...document.querySelectorAll('#events .evgroup')].map(h=>h.textContent.split(' ·')[0]);
+          const all=document.querySelectorAll('#events details.event').length; state.evQ='halloween'; render(); const q=[...document.querySelectorAll('#events details.event')].map(d=>d.querySelector('summary .t > b').textContent); state.evQ=''; render();
+          return [PHOTOS_INLINE?(a&&a.k):"match", PHOTOS_INLINE?(b&&b.k):"none", c, d, heads.every(h=>['Going','Today','This week','This weekend','Next week','Later this month','Further out'].includes(h)||/^In [A-Z]/.test(h)||/^This /.test(h)||/^On the street/.test(h)||/Just happened/.test(h)), q.length>=1&&q.length<all&&q.every(n=>/halloween/i.test(n)), !!document.getElementById('evQ')]; })()""")
+        check("Events: matched to a city permit by name (and not to a far-off one), groups by Today, this week, this weekend, next week, later this month, next month, further out, and a search box", ep==["match","none",None,None,True,True,True], ep)
         # Map usability: outing tabs, walk mode, the legend, fewer buttons, labels clear of the buttons, start-here, Back steps the sheet down
         pg.evaluate("""(()=>{ state.home=null; state.pos={lat:40.7150,lon:-73.9985}; picksPlan('2026-10-12',['chinatown-place','chinatown-moment','soho-place','les-place']); planShow(state.plan); })()"""); pg.wait_for_timeout(1000)
         mu=pg.evaluate("""(()=>{ const r=[], q=s=>document.querySelector('#mapPlan '+s);

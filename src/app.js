@@ -3128,20 +3128,38 @@ function evRainFallback(r,today){ const rn=evRain(r,today); if(!rn) return null;
 function evRainFallbackHtml(r,today){ const F=evRainFallback(r,today); if(!F) return ""; const sky=F.dry&&(F.dry.sky==="fog"?"fog":F.dry.cc!=null&&F.dry.cc>=75?"overcast, soft light":F.dry.cc!=null&&F.dry.cc<=25?"clear":"some cloud");
   return '<div class="part evrainfb"><span class="label">☔ If the rain holds</span>'+(F.dry?'<p><b>Next dry day it runs: '+F.dry.d.toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"})+'</b>, from '+hmText(F.dry.m)+' ('+sky+'). <button type="button" class="linkbtn" data-evday="'+(+F.dry.d)+'">That day\'s events</button></p>':'<p>It is a one-day event'+(F.indoor.length?', so keep the outing and move it under a roof:':'.')+'</p>')+
     (F.indoor.length?'<ul class="eideas">'+F.indoor.map(o=>'<li><span class="tag">Indoors · '+(o.x.p==="subway"?'the nearest station':o.mi<0.1?'right there':milesText(o.mi)+', about '+Math.max(1,Math.round(o.mi*1.25*20))+' min walk')+'</span><b>'+esc(o.x.t)+'</b><span>'+esc(PLACES[o.x.p].name)+'</span><button type="button" class="chip" data-evidea="'+esc(o.x.id)+'">Open the idea</button></li>').join("")+'</ul>':'')+'</div>'; }
+/* Events against the city's permits: a street event (parade, fair, market, race, gathering) is matched to a permit the same day by
+   its name or, failing that, by being within a few blocks and the same kind. A match gives the exact hours and the streets;
+   within the permits' window (about nine days ahead) a street event with no permit is flagged. */
+const PM_EVT=new Set(["parade","festival","cultural","market","sports","gathering","holiday"]);
+const PM_STOP=new Set(["street","streets","festival","annual","the","and","new","york","nyc","avenue","block","party","fair","day","parade","event","events","celebration","with","from","for","west","east","north","south","manhattan","brooklyn","queens","bronx"]);
+const pmTok = n => String(n||"").toLowerCase().replace(/[^a-z0-9 ]/g," ").split(/\s+/).filter(w=>w.length>=4&&!PM_STOP.has(w));
+function evPermit(r,today){ if(!PHOTOS_INLINE||!r.o||r.cancelled||!PM_EVT.has(r.e.type)) return null; const raw=PERMITS.raw; if(!raw) return null;
+  const s=evDay(r.o[0]<today?today:r.o[0]), e=evDay(r.o[1]||r.o[0]), lim=new Date(+evDay(today)+9*864e5); if(s>lim) return null;
+  const T=pmTok(r.e.name), g=r.e.geo||eventGeo(r.e.id); let best=null;
+  for(const it of pmItems()){ if(it.e<s||it.s>=new Date(+e+864e5)) continue; const U=pmTok(it.n), sh=T.filter(w=>U.includes(w)).length, nm=T.length&&U.length?sh/Math.min(T.length,U.length):0;
+    const km=g&&it.lat!=null?kmBetween({lat:g[0],lon:g[1]},it):null, kindOK=(r.e.type==="parade")===(it.kind==="parade")||r.e.type==="festival"&&it.kind==="fair"||r.e.type==="market"&&it.kind==="market";
+    const sc=nm>=0.5?2+nm:km!==null&&km<=0.35&&kindOK?1+(0.35-km):0; if(sc>0&&(!best||sc>best.sc)) best={it,sc}; }
+  return best?{k:"match",it:best.it}:{k:"none"}; }
+function evChecked(r){ const d=EVENT_DOCS[r.e.id], st=EVENT_DOCS._status; return eParse(d&&d.checked)||(r.confirmed?eParse(st&&st.checked):null); }
 function renderEvents(){
   const now=new Date(), today=new Date(now.getFullYear(),now.getMonth(),now.getDate()), cam=CAMERAS[state.camera], box=$("events");
   const fmt=(d,o)=>d.toLocaleDateString("en-US",o), dm={weekday:"short",month:"short",day:"numeric"};
   const wk7=new Date(today.getFullYear(),today.getMonth(),today.getDate()+7), wk42=new Date(today.getFullYear(),today.getMonth(),today.getDate()+42);
-  const grpOf = r => !r.o?3 : r.o[0]<=today?0 : r.o[0]<wk7?1 : r.o[0]<wk42?2 : 3, GRP=["On now","This week","Next few weeks","Later"];
+  /* Today, the rest of this week, this weekend, next week, later this month, further out (weeks start on Monday) */
+  const dow=(today.getDay()+6)%7, sat=new Date(today.getFullYear(),today.getMonth(),today.getDate()+(5-dow)), mon2=new Date(today.getFullYear(),today.getMonth(),today.getDate()+(7-dow)), mon3=new Date(+mon2+7*864e5), mEnd=new Date(today.getFullYear(),today.getMonth()+1,1);
+  const m2End=new Date(today.getFullYear(),today.getMonth()+2,1), nmName=m2End>mEnd?new Date(today.getFullYear(),today.getMonth()+1,1).toLocaleDateString("en-US",{month:"long"}):"Next month";
+  const grpOf = r => !r.o?6 : r.o[0]<=today?0 : r.o[0]<sat?1 : r.o[0]<mon2?2 : r.o[0]<mon3?3 : r.o[0]<mEnd?4 : r.o[0]<m2End?5 : 6, GRP=["Today","This week","This weekend","Next week","Later this month","In "+nmName,"Further out"];
   const all=eventRows(today), kinds=Object.keys(EVENT_TYPES).filter(k=>all.some(r=>r.e.type===k));
   if(state.evType!=="all" && state.evType!=="photo" && !kinds.includes(state.evType)) state.evType="all";
   const Q=state.evQuick||(state.evQuick=new Set()), WH=state.evWhenF||"any", limW=WH==="any"?null:new Date(today.getFullYear(),today.getMonth(),today.getDate()+(+WH));
   const DAYF=state.evDay?new Date(state.evDay):null;
   const typeOk=r=>state.evType==="all"||(state.evType==="photo"?PHOTO_TYPES.has(r.e.type):r.e.type===state.evType);
   const quick=r=>(!limW||state.evNear||(r.o&&r.o[0]<=limW))&&(!Q.has("confirmed")||r.confirmed)&&(!DAYF||state.evNear||evOnDay(r,DAYF,true));
-  let list=all.filter(typeOk).filter(quick);
+  const EQ=String(state.evQ||"").trim().toLowerCase(), qOk=r=>!EQ||(r.e.name+' '+(r.e.where||'')+' '+(EVENT_TYPES[r.e.type]||'')).toLowerCase().includes(EQ);
+  let list=all.filter(typeOk).filter(quick).filter(qOk);
   const nPhoto=all.filter(r=>PHOTO_TYPES.has(r.e.type)).length;
-  const chips='<div class="intents evquick"><button type="button" class="chip evnearbtn" data-evnear="1" aria-pressed="'+!!state.evNear+'">◎ Near me now</button>'+
+  const chips='<div class="evsearch"><input type="search" id="evQ" placeholder="Search events" aria-label="Search events by name or place" value="'+esc(state.evQ||"")+'"></div><div class="intents evquick"><button type="button" class="chip evnearbtn" data-evnear="1" aria-pressed="'+!!state.evNear+'">◎ Near me now</button>'+
     (state.evNear?'':'<label class="chipsel'+(WH!=="any"?' on':'')+'"><span class="vh">When</span><select id="evWhenSel" aria-label="When">'+[["any","Any time"],["7","Next 7 days"],["30","Next 30 days"]].map(([k,l])=>'<option value="'+k+'"'+(k===WH?' selected':'')+'>'+l+'</option>').join("")+'</select></label>')+
     '<label class="chipsel'+(state.evType!=="all"?' on':'')+'"><span class="vh">Type</span><select id="evTypeSel" aria-label="Type of event"><option value="all">All types · '+all.length+'</option>'+(nPhoto?'<option value="photo"'+(state.evType==="photo"?' selected':'')+'>For photographers · '+nPhoto+'</option>':'')+
       kinds.map(k=>'<option value="'+k+'"'+(state.evType===k?' selected':'')+'>'+EVENT_TYPES[k]+' · '+all.filter(r=>r.e.type===k).length+'</option>').join("")+'</select></label>'+
@@ -3184,7 +3202,7 @@ function renderEvents(){
   for(const r of rest){ const k=NEAR?evWhen[r.e.id][0]:grpOf(r), t=NEAR?(k===0?'On today':'Coming up nearby'):GRP[k]; const last=secs[secs.length-1]; if(last&&last.k===k) last.rows.push(r); else secs.push({k,title:t,rows:[r]}); }
   if(state.evLightFirst) secs.forEach(S=>{ S.rows=S.rows.map((r,i)=>({r,i,g:evGreatLight(r,today)?0:1})).sort((a,b)=>a.g-b.g||a.i-b.i).map(x=>x.r); });
   const laterOpen=!!state.evLaterOpen||!!DAYF;
-  box.innerHTML += secs.map(S=>{ const fold=!NEAR&&S.k===3&&S.rows.length>2;
+  box.innerHTML += secs.map(S=>{ const fold=!NEAR&&S.k===6&&S.rows.length>2;
     return '<section class="evsec'+(S.k==="go"?' evgo':'')+'">'+(fold?'<button type="button" class="evgroup evfold" data-evlater="1" aria-expanded="'+laterOpen+'">'+S.title+' · '+S.rows.length+' events <span aria-hidden="true">'+(laterOpen?'▴':'▾')+'</span></button>':'<p class="evgroup">'+S.title+'</p>')+
       (fold&&!laterOpen?'':S.rows.map(r=>evCard(r)).join(""))+'</section>'; }).join("")+
     (farRows.length?'<p class="evfar"><button type="button" class="linkbtn" data-evfar="1">'+(state.evFarShow?'Hide the yearly events more than four months away':farRows.length+' yearly event'+(farRows.length>1?'s':'')+' more than four months away · Show')+'</button></p>':'')+(NEAR?pmSectionHtml(today,true)+nearSearchHtml(R):DAYF?"":pmSectionHtml(today,false));
@@ -3198,7 +3216,7 @@ function renderEvents(){
     const src=typeof r.source==="string" && /^https:\/\//.test(r.source) ? r.source : null;
     return head+'<details class="event" data-id="'+esc(e.id)+'"><summary>'+
       (()=>{ const cd=ranOn||(o&&o[0]); return '<span class="cal'+(ranOn?' ran':'')+'">'+(cd?'<small>'+fmt(cd,{month:"short"})+'</small><b>'+cd.getDate()+'</b>':'<small>TBA</small><b>·</b>')+'</span>'; })()+
-      '<span class="t">'+(EVENT_TYPES[e.type]?'<span class="etag'+(PHOTO_TYPES.has(e.type)?" ph":"")+'">'+EVENT_TYPES[e.type]+(r.confirmed?' <span class="eok">✓ Confirmed</span>':r.added?' <span class="enew">New</span>':'')+'</span>':'')+'<b>'+esc(e.name)+'</b>'+dist+(ranOn?'':evMeta(r,today))+(state.evGoing&&state.evGoing.has(e.id)?evMtaFlag(r,today):'')+'<span>'+esc(r.game?'Next: '+r.game.title+', '+o[0].toLocaleDateString("en-US",{weekday:"short"})+' '+hmText(r.game.at.getHours()*60+r.game.at.getMinutes()):e.where)+'</span></span>'+
+      '<span class="t">'+(EVENT_TYPES[e.type]?'<span class="etag'+(PHOTO_TYPES.has(e.type)?" ph":"")+'">'+EVENT_TYPES[e.type]+(r.confirmed?' <span class="eok">✓ Confirmed</span>':r.added?' <span class="enew">New</span>':'')+(()=>{ const P=evPermit(r,today); return P&&P.k==="match"?' <span class="eok epm">✓ City permit</span>':''; })()+(!r.confirmed&&!r.added&&!r.game&&o&&!r.cancelled&&o[0]>=today&&(o[0]-today)/864e5<=10&&r.e.type!=="light"?' <span class="ewarn">Estimated · check</span>':'')+'</span>':'')+'<b>'+esc(e.name)+'</b>'+dist+(ranOn?'':evMeta(r,today))+(state.evGoing&&state.evGoing.has(e.id)?evMtaFlag(r,today):'')+'<span>'+esc(r.game?'Next: '+r.game.title+', '+o[0].toLocaleDateString("en-US",{weekday:"short"})+' '+hmText(r.game.at.getHours()*60+r.game.at.getMinutes()):e.where)+'</span></span>'+
       '<span class="soon'+(/now|Today|today|Tomorrow|days|Cancelled/.test(soon)?" near":"")+'">'+soon+(o&&!r.cancelled&&!r.game?'<button type="button" class="evstar" data-evgo="'+esc(e.id)+'" aria-pressed="'+(state.evGoing&&state.evGoing.has(e.id)?'true':'false')+'" aria-label="'+(state.evGoing&&state.evGoing.has(e.id)?'Going: tap to remove':'Mark as going')+'">'+(state.evGoing&&state.evGoing.has(e.id)?'★':'☆')+'</button>':'')+'</span></summary>'+
       '<div class="event-body" data-lazy="1"></div></details>'; }
   /* The body of a card is built only when the card is opened: the list has thirty-odd cards and each body is a few
@@ -3222,8 +3240,12 @@ function renderEvents(){
       (e.map?'<a class="check" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(e.map[1])+'" target="_blank" rel="noopener">'+(e.map[0]===""?(PHOTO_TYPES.has(e.type)?"Open the venue in Google Maps":"Open the viewing spot in Google Maps"):e.map[0]==="area"?"Open the area in Google Maps":(PHOTO_TYPES.has(e.type)?"Venue: ":"Viewing spot: ")+esc(e.map[0]))+' ↗</a>':'')+
       (e.ideas.length?'<div class="part"><span class="label">Shots to look for</span><ul class="eideas">'+e.ideas.map(i=>
         '<li><span class="tag"><span class="dot" style="background:'+INTENTS[i[0]].color+'"></span>'+INTENTS[i[0]].name+'</span><b>'+esc(i[1])+'</b><span>'+esc(i[2])+'</span><span class="set">'+esc(cam.recipes[i[3]][0])+'</span></li>').join("")+'</ul></div>':'')+
-      calLinks(e,o)+(src?'<a class="check" href="'+esc(src)+'" target="_blank" rel="noopener">Source for this date ↗</a>':'<a class="check" href="'+q+'" target="_blank" rel="noopener">Check this year\'s date and route ↗</a>');
+      evAccHtml(r,today)+calLinks(e,o)+(src?'<a class="check" href="'+esc(src)+'" target="_blank" rel="noopener">Source for this date ↗</a>':'<a class="check" href="'+q+'" target="_blank" rel="noopener">Check this year\'s date and route ↗</a>');
   }
+  function evAccHtml(r,today){ if(!r.o||r.game) return ""; const ck=evChecked(r), P=evPermit(r,today), soon=(r.o[0]-today)/864e5<=10, fm=d=>fmt(d,{month:"short",day:"numeric"});
+    const line=r.confirmed?'Date confirmed'+(ck?' on '+fm(ck):'')+' against a published listing.':r.added?'Found in a published listing'+(ck?' on '+fm(ck):'')+'.':'Estimated from the usual yearly pattern, not yet matched to this year\u2019s listing.'+(soon?' Check before you go.':'');
+    const pm=!P?'':P.k==="match"?'<p><b>City permit:</b> '+esc(P.it.n)+' · '+esc(pmWhen(P.it,evDay(r.o[0]<today?today:r.o[0])))+' · '+esc(P.it.place)+(P.it.closure?' · '+esc(P.it.closure):'')+'</p>':'<p class="msg">Not in the city\u2019s street permits yet; they usually appear a week or two ahead.</p>';
+    return '<div class="part evacc"><span class="label">How sure the date is</span><p>'+esc(line)+'</p>'+pm+'</div>'; }
   EV_BODY.clear(); shown.forEach(r=>EV_BODY.set(r.e.id,()=>evBody(r)));
   if(PHOTOS_INLINE&&state.evGoing&&shown.some(r=>state.evGoing.has(r.e.id)&&evSpan(r,today))) mtaGet();
   if(state.evOpen){ if(box.querySelector('details.event[data-id="'+CSS.escape(state.evOpen)+'"]')) evSheetOpen(state.evOpen,true); else state.evOpen=null; }
@@ -7111,14 +7133,18 @@ function shootNow(){ const now=new Date(), key=lightAt(now), sky=nowInfo().sky, 
   state.view="shoot"; show(best.id); state.tab="idea"; state.flow={id:best.id}; render(); window.scrollTo({top:0}); }
 /* An outing built round an event: arrive an hour before, shoot the event with its own shots, then the nearest place while the light lasts. */
 function planEvent(id){ const now=new Date(), today=new Date(now.getFullYear(),now.getMonth(),now.getDate()), r=eventRows(today).find(x=>x.e.id===id); if(!r||!r.o) return;
-  const day=evDay(r.o[0]<today?today:r.o[0]), w=evWindow(r.e,day)||[13*60,16*60], g=eventGeo(id); if(!g) return;
-  const near=Object.keys(CITIES[state.city].places).filter(p=>typeof PLACES[p].lat==="number").map(p=>({p,km:kmBetween({lat:g[0],lon:g[1]},PLACES[p])})).sort((a,b)=>a.km-b.km)[0];
-  let at=new Date(day.getFullYear(),day.getMonth(),day.getDate(),0,Math.max(0,w[0]-60)); if(at<now) at=new Date(Math.ceil(+now/3e5)*3e5);
-  const end=new Date(day.getFullYear(),day.getMonth(),day.getDate(),0,Math.min(w[1],1439)), dur=Math.max(60,Math.min(240,Math.round((end-at)/6e4)));
-  const stops=[{place:near.p,ev:id,at,key:lightAt(new Date(+at+30*6e4)),ideas:[],mins:dur}];
-  const after=new Date(+at+dur*6e4+10*6e4); if(near&&near.km<2.5&&lightAt(after)!=="night"){ const k=lightAt(after); stops.push({place:near.p,at:after,key:k,ideas:pickIdeas(near.p,k,2,after)}); }
-  state.plan={start:at,end:new Date(+(stops[stops.length-1].at)+(stops.length>1?ideasMins(stops[1].ideas)*6e4:dur*6e4)),stops,notes:[],skipped:[]}; if(stops.length>1) stops[0].leg={to:near.p,mins:10,mode:"walk"};
-  savePlan(); state.view="plan"; render(); window.scrollTo({top:0}); }
+  const day=evDay(r.o[0]<today?today:r.o[0]), w=evWindow(r.e,day)||[13*60,16*60], g=eventGeo(id)||r.e.geo; if(!g) return; const G={lat:g[0],lon:g[1]};
+  const near=Object.keys(CITIES[state.city].places).filter(p=>typeof PLACES[p].lat==="number").map(p=>({p,km:kmBetween(G,PLACES[p])})).sort((a,b)=>a.km-b.km), base=near[0]; if(!base) return;
+  let at=new Date(day.getFullYear(),day.getMonth(),day.getDate(),0,Math.max(0,w[0]-30)); if(at<now) at=new Date(Math.ceil(+now/3e5)*3e5);
+  const end=new Date(day.getFullYear(),day.getMonth(),day.getDate(),0,Math.min(w[1],1439)), dur=Math.max(45,Math.min(150,Math.round((end-at)/6e4)));
+  const fit=(pid,t)=>{ const k=lightAt(t), sky=skyAt(t), I=pickIdeas(pid,k,2,t).filter(x=>x.w.includes(k)&&ideaOpen(x,t,sky)); return I.length?{k,I}:null; };
+  const walkable=near.filter(o=>o.km<=1.3), stops=[{place:base.p,ev:id,at,key:lightAt(new Date(+at+30*6e4)),ideas:[],mins:dur}];
+  // before: a place within a walk, if its ideas suit the light then and there is time
+  const pb=walkable[0]; if(pb){ const leg=legBetween(pb.p,base.p).mins, g0=new Date(+at-(40+leg)*6e4), F0=g0>=now&&fit(pb.p,g0); if(F0){ const t0=new Date(+at-(Math.max(10,ideasMins(F0.I))+leg)*6e4), F=t0>=now&&fit(pb.p,t0); if(F) stops.unshift({place:pb.p,at:t0,key:F.k,ideas:F.I,mine:true}); } }
+  // after: another (or the same) place, while the light still suits it
+  const pa=walkable.find(o=>o!==pb&&o.p!==base.p)||walkable[0]; if(pa){ const t1=new Date(+at+(dur+10)*6e4), F=fit(pa.p,t1); if(F&&lightAt(t1)!=="night"||F&&F.I.some(x=>x.w.includes("night"))) stops.push({place:pa.p,at:t1,key:F.k,ideas:F.I,mine:true}); }
+  const p={start:stops[0].at,end:stops[0].at,stops,notes:[],skipped:[]}; retimePlan(p);
+  state.plan=p; savePlan(); state.planMsg="Planned around "+r.e.name+(stops.length>1?", with "+(stops.length-1)+" stop"+(stops.length>2?"s":"")+" nearby in light that suits them":"")+"."; planShow(p); }
 function planToday(h,off){ off=off||0; renderPlan(); const t=new Date(), best=todayPicks(new Date(+atMin(Math.min(1435,(+h+1)*60))+off*864e5))[0];
   if(best&&[...$("pStart").options].some(o=>o.value===best.id)) $("pStart").value=best.id;
   $("pDay").value=String(off); renderPlan(); $("pTime").value=(!off&&+h*60<=dayMin(new Date()))?"now":String(h); if(!$("pTime").value) $("pTime").selectedIndex=0; $("pLen").value="150"; state.plan=makePlan(); savePlan(); if(state.plan) planShow(state.plan); else { state.view="map"; render(); } }
@@ -7272,6 +7298,7 @@ $("fClear").addEventListener("click",()=>{ state.intent="all"; store.set("intent
 $("fActive").addEventListener("click",e=>{ if(e.target.closest("[data-fopen]")) { fSync(); sheetOpen("fSheet"); } else if(e.target.closest("[data-fclear]")) $("fClear").click(); });
 document.addEventListener("keydown",e=>{ if(e.key!=="Escape") return; for(const id of ["fSheet","setSheet"]) if(!$(id).hidden){ sheetClose(id); e.preventDefault(); } const es=document.getElementById("evSheet"); if(es){ evSheetClose(); e.preventDefault(); } });
 syncTheme();
+$("events").addEventListener("input",e=>{ if(e.target.id!=="evQ") return; state.evQ=e.target.value; const pos=e.target.selectionStart; renderEvents(); const q=$("evQ"); if(q){ q.focus(); try{ q.setSelectionRange(pos,pos); }catch(err){} } });
 $("events").addEventListener("change",e=>{ if(e.target.id==="evWhenSel"){ state.evWhenF=e.target.value; store.set("evWhenF",state.evWhenF); renderEvents(); } else if(e.target.id==="evTypeSel"){ state.evType=e.target.value; renderEvents(); } });
 $("events").addEventListener("toggle",e=>{ const d=e.target; if(d&&d.classList&&d.classList.contains("event")&&d.open) evBodyFill(d.querySelector(".event-body"),d.dataset.id); },true);
 $("events").addEventListener("click",e=>{
