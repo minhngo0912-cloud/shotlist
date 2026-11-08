@@ -1734,6 +1734,7 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 .tpcheck{flex:none;align-self:center;width:30px;height:30px;margin-left:10px;border-radius:8px;border:2px solid var(--muted);background:transparent;color:var(--bg);font-size:18px;font-weight:800;line-height:1;cursor:pointer;display:grid;place-items:center}
 .tpcheck[aria-pressed="true"]{background:#1e9e48;border-color:#1e9e48;color:#fff}
 .tpcount{float:right;font-weight:600;letter-spacing:0;text-transform:none;color:var(--muted)}
+.tpdel{flex:none;width:44px;border:0;background:none;color:#d9534f;font-size:20px;font-weight:700;cursor:pointer} .tpkrow.tpedit .row{padding-left:14px} .tpedhint{margin:8px 0 0}
 </style>
 
 <div class="app">
@@ -3868,10 +3869,12 @@ function picksBarHtml(dk,label){ const E=picksFor(dk); if(!E.ids.length) return 
 /* Today: the shortlist for today (made last night), or tomorrow's after it is made, with its warnings and the ideas */
 function picksTodayHtml(){ const tk=ymdKey(new Date()), mk=ymdKey(tmrwDay()), dk=picksFor(tk).ids.length?tk:picksFor(mk).ids.length?mk:null; if(!dk) return "";
   const lab=dk===tk?"today":"tomorrow", E=picksFor(dk), d=ymdDate(dk), xs=E.ids.map(id=>IDEAS.find(i=>i.id===id)).filter(Boolean);
-  const isT=dk===tk, d0=+evDay(new Date()), shotT=id=>{ const l=lastShot(id); return !!l&&l.t>=d0; }, nDone=isT?xs.filter(x=>shotT(x.id)).length:0;
+  const ed=state.tpEdit===dk, isT=dk===tk, d0=+evDay(new Date()), shotT=id=>{ const l=lastShot(id); return !!l&&l.t>=d0; }, nDone=isT?xs.filter(x=>shotT(x.id)).length:0;
   return '<section class="tcard tpicks"><p class="tlabel">Your shortlist for '+lab+(isT&&xs.length?'<span class="tpcount">'+nDone+' of '+xs.length+' shot</span>':'')+'</p>'+picksWarnHtml(dk)+xs.map(x=>{ const sn=E.snap[x.id], so=sn&&daySlots(d).find(s=>s.id===sn.slot), o=so&&x.w.includes(so.k)&&slotOpen(x,so,d)?so:dayFit(x,d), moved=so&&o&&o!==so?' (not open in the '+so.name.toLowerCase().replace(/ and after$/,'')+')':''; const ck=isT&&shotT(x.id), row='<button type="button" class="row'+(ck?' done':'')+'" data-id="'+x.id+'"><span class="dot" style="background:'+INTENTS[x.i].color+'"></span><span class="t"><b>'+esc(x.t)+'</b><span>'+esc(PLACES[x.p].name+(o?' · '+o.name.toLowerCase()+' '+hmSpan(o.s,o.e)+moved:''))+'</span></span><span class="go" aria-hidden="true">›</span></button>';
+    if(ed) return '<div class="tpkrow tpedit">'+row+'<button type="button" class="tpdel" data-tpdel="'+x.id+'" data-day="'+dk+'" aria-label="'+esc('Remove from the shortlist: '+x.t)+'">✕</button></div>';
     return isT?'<div class="tpkrow"><button type="button" class="tpcheck" data-tpcheck="'+x.id+'" aria-pressed="'+ck+'" aria-label="'+esc((ck?'Shot today: tap to undo, ':'Mark as shot: ')+x.t)+'">'+(ck?'✓':'')+'</button>'+row+'</div>':row; }).join("")+
-    '<div class="callinks"><button type="button" class="chip primary" data-tmplan="'+dk+'">'+(state.plan&&evDay(state.plan.start)>=evDay(d)&&+evDay(state.plan.start)===+evDay(d)?'Plan it again':'Plan '+lab)+'</button><button type="button" class="chip" data-tmshow="1">Change the shortlist</button></div></section>'; }
+    (ed?'<p class="msg tpedhint">Tap ✕ to take an idea off. Add ideas opens '+(isT?'Ideas with On now':'Ideas for tomorrow')+', where ☆ puts one on.</p><div class="callinks"><button type="button" class="chip primary" data-tpedit="">Done</button><button type="button" class="chip" data-tpadd="'+dk+'">Add ideas</button><button type="button" class="chip" data-tpclear="'+dk+'">Clear the shortlist</button></div></section>'
+      :'<div class="callinks"><button type="button" class="chip primary" data-tmplan="'+dk+'">'+(state.plan&&evDay(state.plan.start)>=evDay(d)&&+evDay(state.plan.start)===+evDay(d)?'Plan it again':'Plan '+lab)+'</button><button type="button" class="chip" data-tpedit="'+dk+'">Change the shortlist</button></div></section>'); }
 /* Plan the day from the shortlist: its places, in the order and at the start time that puts the most picked ideas in light that suits
    them (every order of up to six places, starts every 20 minutes from before sunrise to after dark; not earlier than now on the day). */
 /* win: the slot the outing is for ({s,e} in minutes): the start stays inside it, so a morning outing starts in the morning even when its
@@ -4560,10 +4563,12 @@ function renderList(){ qCount();
         return '<section class="group flat tmgroup"><div class="group-head"><b>'+esc(o.name)+'</b><span class="where">'+esc(hmSpan(o.s,o.e)+' · '+tmrwSky(o)+' · '+L.length+' idea'+(L.length>1?'s':''))+'</span></div>'+
           G.map(g=>'<p class="tmwalk">'+esc(g.name)+' · '+g.L.length+' idea'+(g.L.length>1?'s':'')+(g.pids.length>1?' · up to '+g.span+' min apart on foot':'')+'</p>'+g.L.map(trow).join("")).join("")+'</section>'; }).join("")+followAll(); return; }
   if(state.onNow&&!saved&&!again){ const G=nowGroups(m,t0,key0);
-    const nrow=(o,showPlace)=>{ const x=o.x, pl=PLACES[x.p], last=lastShot(x.id), sub=[showPlace?pl.name:"",showPlace?o.reachTxt:"",esc(INTENTS[x.i].name)].filter(Boolean);
+    let nrow=(o,showPlace)=>{ const x=o.x, pl=PLACES[x.p], last=lastShot(x.id), sub=[showPlace?pl.name:"",showPlace?o.reachTxt:"",esc(INTENTS[x.i].name)].filter(Boolean);
       return '<button type="button" class="row nowrow'+(state.done.has(x.id)?" done":"")+(o.late?" late":"")+'" data-id="'+x.id+'"><span class="dot" style="background:'+INTENTS[x.i].color+'"></span>'+
         '<span class="t"><b>'+qMarkTitle(x)+'</b><span>'+esc(sub.join(" · "))+(state.done.has(x.id)?' · shot '+esc(agoText(last?last.t:Date.now())):'')+'</span><span class="nowleft'+(o.soon?' nlsoon':'')+(o.late?' nllate':'')+'">'+esc(o.leftTxt)+'</span></span>'+
         '<span class="marks">'+(state.saved.has(x.id)?'<span class="pill">Saved</span>':'')+'</span><span class="go" aria-hidden="true">›</span></button>'; };
+    const tdk=ymdKey(new Date()), TP=picksFor(tdk), star=(o,h)=>{ const on=TP.ids.includes(o.x.id); return '<div class="tmrow">'+h+'<button type="button" class="tmstar" data-tmpick="'+o.x.id+'" data-day="'+tdk+'" aria-pressed="'+on+'" aria-label="'+(on?'On today\u2019s shortlist: tap to remove':'Add to today\u2019s shortlist')+'">'+(on?'★':'☆')+'</button></div>'; };
+    const nrow0=nrow; nrow=(o,sp)=>star(o,nrow0(o,sp));
     const body=g=>{ if(g.flat) return g.L.map(o=>nrow(o,true)).join(""); let out="", cur=null; g.L.forEach(o=>{ if(o.x.p!==cur){ cur=o.x.p; const n=g.L.filter(q=>q.x.p===cur).length; out+='<p class="tmwalk nowplace">'+esc(PLACES[cur].name+(o.reachTxt?' · '+o.reachTxt:'')+' · '+n+' idea'+(n>1?'s':''))+'</p>'; } out+=nrow(o,false); }); return out; };
     box.innerHTML=head.replace(sortSel,'')+nowBest+'<p class="msg tmlead">On now: ending soon first, then '+(G.from?'by how long it takes to get there'+(G.from==="home"?' from home':'')+', place by place':'place by place')+'.</p>'+
       G.groups.map(g=>{ const inner='<section class="group flat nowgroup'+(g.soon?' nowsoon':'')+'"><div class="group-head"><b>'+esc(g.name)+'</b><span class="where">'+g.L.length+' idea'+(g.L.length>1?'s':'')+'</span></div>'+body(g)+'</section>';
@@ -8879,7 +8884,7 @@ function healthHtml(){ const L=healthList().slice().reverse(), wk=Date.now()-7*8
   return '<p class="msg">'+(nS||nE?'In the last 7 days: '+nS+' stall'+(nS===1?'':'s')+', '+nE+' error'+(nE===1?'':'s')+', opened '+nO+' time'+(nO===1?'':'s')+'.':'No stalls or errors recorded in the last 7 days'+(nO?' (opened '+nO+' time'+(nO===1?'':'s')+')':'')+'.')+' Data on this device: '+Math.round(kb)+' KB.</p>'+
     (L.length?'<ul class="healthlog">'+L.slice(0,25).map(x=>'<li class="hl-'+x.k+'"><b>'+when(x.t)+'</b> '+esc(x.k==="open"?x.m:(x.k==="stall"?"Stall: ":"Error: ")+x.m)+(x.n>1?' ×'+x.n:'')+'</li>').join("")+'</ul>':'')+
     '<div class="callinks">'+(typeof window.appUpdate==="function"?'<button type="button" class="chip" id="appUpdate">Check for updates</button>':'')+'<button type="button" class="chip" id="healthCopy">Copy report</button><button type="button" class="chip" id="healthClear">Clear</button></div><p class="msg" id="healthMsg" role="status"></p><p class="msg">Version '+APP_BUILD+'.</p>'; }
-const APP_BUILD = "Nov 8, 12:00 pm";
+const APP_BUILD = "Nov 8, 12:05 pm";
 function healthReport(){ const L=healthList(); return "Shot List health report\n"+navigator.userAgent+"\nStandalone: "+(!!(window.navigator.standalone||matchMedia("(display-mode: standalone)").matches))+"\n"+L.map(x=>new Date(x.t).toISOString()+" "+x.k+" ["+x.v+"] "+x.m+(x.n>1?" x"+x.n:"")).join("\n"); }
 /* If drawing a screen fails, say so with a way out instead of leaving a half-drawn screen that ignores taps. */
 function renderBroken(e){ healthLog("error","Drawing "+state.view+": "+(e&&e.message||e)); let b=$("brokenBar"); if(!b){ b=document.createElement("div"); b.id="brokenBar"; b.className="rowtoast on brokenbar"; b.setAttribute("role","alert"); document.body.appendChild(b); }
@@ -9265,6 +9270,10 @@ $("today").addEventListener("click",e=>{
   const tp=e.target.closest("[data-tpick]"); if(tp){ state.tpOpen=tp.dataset.tpick; renderToday(); const a=$("today").querySelector(".tpick"); if(a&&a.scrollIntoView) a.scrollIntoView({block:"nearest",behavior:"smooth"}); return; }
   if(e.target.closest("[data-trefresh]")){ todayRefresh(); return; }
   const ca=e.target.closest("[data-caladd]"); if(ca){ calAdd(ca); return; }
+  { const te=e.target.closest("[data-tpedit]"); if(te){ state.tpEdit=te.dataset.tpedit||null; renderToday(); return; } }
+  { const td=e.target.closest("[data-tpdel]"); if(td){ const dk=td.dataset.day; if(picksFor(dk).ids.includes(td.dataset.tpdel)) pickToggle(td.dataset.tpdel,dk); if(!picksFor(dk).ids.length) state.tpEdit=null; renderToday(); return; } }
+  { const tc=e.target.closest("[data-tpclear]"); if(tc){ if(!confirm("Clear the whole shortlist?")) return; const P=picksAll(); delete P[tc.dataset.tpclear]; picksSave(); state.tpEdit=null; renderToday(); return; } }
+  { const ta=e.target.closest("[data-tpadd]"); if(ta){ const isT=ta.dataset.tpadd===ymdKey(new Date()); state.tpEdit=null; state.onNow=isT; state.tmrw=!isT; store.set("onNow",isT); store.set("tmrw",!isT); state.view="browse"; syncOnNow(); render(); window.scrollTo({top:0}); return; } }
   { const pc=e.target.closest("[data-tpcheck]"); if(pc){ const id=pc.dataset.tpcheck, l=lastShot(id), d0=+evDay(new Date()); if(l&&l.t>=d0) undoShot(id); else logShot(id); renderToday(); return; } }
   const tm=e.target.closest("[data-tat]"); if(tm){ state.todayAt=tm.dataset.tat==="now"?null:+tm.dataset.tat; renderToday(); return; }
   { const ti=e.target.closest("[data-tint]"); if(ti){ state.tIntent=ti.dataset.tint; state.tpOpen=null; renderToday(); return; } }

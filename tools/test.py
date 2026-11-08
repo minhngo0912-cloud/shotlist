@@ -1540,6 +1540,15 @@ def run(path, name):
           document.querySelector('#today .tpicks [data-tpcheck]').click(); r.push(state.done.has(ids[0]), (document.querySelector('#today .tpcount')||{}).textContent);
           const P2=picksAll(); delete P2[dk]; picksSave(); render(); return r; })()""")
         check("Today's shortlist: a box to tick each idea as shot today, a count, and tick again to undo", sk==[True,"0 of 2 shot",True,"true","1 of 2 shot",True,False,"0 of 2 shot"], sk)
+        ce=pg.evaluate("""(()=>{ const dk=ymdKey(new Date()); const P=picksAll(); delete P[dk]; picksSave(); ['soho-place','chinatown-place','union-place'].forEach(id=>pickToggle(id,dk)); state.view='today'; render(); const r=[];
+          document.querySelector('#today [data-tpedit="'+dk+'"]').click(); r.push(document.querySelectorAll('#today .tpicks [data-tpdel]').length, !document.querySelector('#today .tpicks [data-tpcheck]'));
+          document.querySelector('#today .tpicks [data-tpdel="chinatown-place"]').click(); r.push(picksFor(dk).ids.join(), document.querySelectorAll('#today .tpicks [data-tpdel]').length);
+          document.querySelector('#today [data-tpedit=""]').click(); r.push(!!document.querySelector('#today .tpicks [data-tpcheck]'));
+          document.querySelector('#today [data-tpedit="'+dk+'"]').click(); document.querySelector('#today [data-tpadd]').click(); r.push(state.view, state.onNow, state.tmrw);
+          const st=[...document.querySelectorAll('#list .nowgroup [data-tmpick]')], on=st.filter(b=>b.getAttribute('aria-pressed')==='true').map(b=>b.dataset.tmpick).sort(), off=st.find(b=>b.getAttribute('aria-pressed')==='false');
+          r.push(st.length>0, on.every(id=>picksFor(dk).ids.includes(id))); if(off){ const id=off.dataset.tmpick; off.click(); r.push(picksFor(dk).ids.includes(id)); } else r.push(true);
+          const P2=picksAll(); delete P2[dk]; picksSave(); state.onNow=false; state.tmrw=true; syncOnNow(); state.view='today'; render(); return r; })()""")
+        check("Change the shortlist: edit it in place (✕ removes, Done goes back), Add ideas opens On now with ☆ for today's shortlist", ce==[3,True,"soho-place,union-place",2,True,"browse",True,False,True,True,True], ce)
         # Where to go: trip times, reasons, heads-ups, intent chips, more, Plan from here
         pg.evaluate("pmGet(true)"); pg.wait_for_timeout(600)
         wg=pg.evaluate("""(()=>{ state.plan=null; savePlan(); state.home=null; state.pos={lat:40.7230,lon:-73.9990}; state.todayAt=null; state.tIntent='all'; state.tMore=false; state.view='today'; render();
