@@ -7042,7 +7042,7 @@ function renderToday(){ const box=$("today"); if(!box) return; todayAutoLoc();
     '<div class="tnowb"><button type="button" class="btn primary tshoot" data-shootnow="1">Shoot now</button><button type="button" class="btn tlightf" data-lightf="1">Light here</button></div>@@LIGHT@@</section>';
   // when the data was last refreshed: the page itself, and the forecast
   const wUp=w&&w.updated?new Date(w.updated):null, wHrs=wUp?(now-wUp)/36e5:null;
-  const fcTxt = wUp&&!isNaN(wUp) ? (wHrs<0.25?'forecast just now':'forecast '+(wUp.toDateString()===now.toDateString()?'from '+tf(dayMin(wUp)):'from '+wUp.toLocaleDateString("en-US",{weekday:"short"})+' '+tf(dayMin(wUp)))) : 'no forecast yet';
+  const fcTxt = wUp&&!isNaN(wUp) ? (wHrs<0.25?'forecast just now':'forecast '+(wUp.toDateString()===now.toDateString()?'from '+tf(dayMin(wUp)):'from '+(wHrs<6*24?wUp.toLocaleDateString("en-US",{weekday:"short"})+' '+tf(dayMin(wUp)):wUp.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})))) : 'no forecast yet';
   const asOf='<span class="msg tasof'+(wHrs===null||wHrs>6?' stale':'')+'">Updated '+tf(nm)+' · '+fcTxt+' <button type="button" class="linkbtn" data-trefresh="1">Refresh</button></span>';
   const mo=moonPos(atMin(720),c.lat,c.lon), mt=moonTimes(atMin(720),c.lat,c.lon);
   const pos=m=>(Math.min(1435,Math.max(0,m))/1435*100).toFixed(2)+'%';
