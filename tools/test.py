@@ -1437,6 +1437,9 @@ def run(path, name):
           document.querySelector('#list [data-nowbestplan="0"]').click(); const p=state.plan, ids=p?p.stops.flatMap(s=>s.ideas.map(x=>x.x||x.t)):[];
           const r=[!!card, ok, sw, state.view, !!p&&+p.start>=now-6e4&&p.start.getDate()===new Date().getDate(), !!p&&shown.length===p.stops.reduce((a,s)=>a+s.ideas.length,0)&&p.stops.flatMap(s=>s.ideas).every((x,n)=>shown[n].includes(x.t))];
           state.onNow=false; state.tmrw=true; syncOnNow(); return r; })()""")
+        gs=pg.evaluate("""(()=>{ state.tmrw=false; state.onNow=true; state.view='browse'; syncOnNow(); render(); const b=document.querySelector('#list .nowbest [data-ideaset]'); if(!b) return ['none']; const id=b.dataset.ideaset, txt=b.textContent; b.click();
+          const r=[state.view, state.tab, state.current===id, /⚙/.test(txt)]; state.view='browse'; render(); const o=document.querySelector('#list .nowbest [data-ideago]'); o.click(); r.push(state.tab); state.tab='idea'; state.view='browse'; state.onNow=false; state.tmrw=true; syncOnNow(); render(); return r; })()""")
+        check("Best outing lists: tap an idea to open it, or ⚙ (with the camera settings in short) to open it straight on Settings", gs==["shoot","settings",True,True,"idea"], gs)
         check("Best outing now (On now): places within reach whose ideas are still on when you get there, in walking order with times; switch options; Plan this outing starts today from now", nb==[True,True,True,"map",True,True], nb)
         pg.evaluate("state.plan=null; savePlan(); state.mapD=0; state.mapT=null; state.view='browse'; state.when='am'; render()")
         bm=pg.evaluate("[bestOutings(matches(false)).every(c=>c.o.id==='am'), /Morning/.test((document.querySelector('#list .tmbest')||{}).textContent||'')]")
