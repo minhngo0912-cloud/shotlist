@@ -1728,6 +1728,12 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 .twhy{margin:4px 0 0} .theads{list-style:none;margin:6px 0 2px;padding:0;display:flex;flex-direction:column;gap:3px;font-size:13px}
 .theads li{background:var(--chipbg,rgba(127,127,127,.12));border-radius:8px;padding:4px 8px}
 .tpick.late,.tprow.late{opacity:.6} .tmore{margin:6px 0 0} .twet{margin:4px 0 6px}
+
+/* Today's shortlist: tick off what you have shot */
+.tpkrow{display:flex;align-items:stretch;border-bottom:1px solid var(--line)} .tpkrow:last-of-type{border-bottom:0} .tpkrow .row{border-bottom:0;padding-left:6px}
+.tpcheck{flex:none;align-self:center;width:30px;height:30px;margin-left:10px;border-radius:8px;border:2px solid var(--muted);background:transparent;color:var(--bg);font-size:18px;font-weight:800;line-height:1;cursor:pointer;display:grid;place-items:center}
+.tpcheck[aria-pressed="true"]{background:#1e9e48;border-color:#1e9e48;color:#fff}
+.tpcount{float:right;font-weight:600;letter-spacing:0;text-transform:none;color:var(--muted)}
 </style>
 
 <div class="app">
@@ -3862,7 +3868,9 @@ function picksBarHtml(dk,label){ const E=picksFor(dk); if(!E.ids.length) return 
 /* Today: the shortlist for today (made last night), or tomorrow's after it is made, with its warnings and the ideas */
 function picksTodayHtml(){ const tk=ymdKey(new Date()), mk=ymdKey(tmrwDay()), dk=picksFor(tk).ids.length?tk:picksFor(mk).ids.length?mk:null; if(!dk) return "";
   const lab=dk===tk?"today":"tomorrow", E=picksFor(dk), d=ymdDate(dk), xs=E.ids.map(id=>IDEAS.find(i=>i.id===id)).filter(Boolean);
-  return '<section class="tcard tpicks"><p class="tlabel">Your shortlist for '+lab+'</p>'+picksWarnHtml(dk)+xs.map(x=>{ const sn=E.snap[x.id], so=sn&&daySlots(d).find(s=>s.id===sn.slot), o=so&&x.w.includes(so.k)&&slotOpen(x,so,d)?so:dayFit(x,d), moved=so&&o&&o!==so?' (not open in the '+so.name.toLowerCase().replace(/ and after$/,'')+')':''; return '<button type="button" class="row" data-id="'+x.id+'"><span class="dot" style="background:'+INTENTS[x.i].color+'"></span><span class="t"><b>'+esc(x.t)+'</b><span>'+esc(PLACES[x.p].name+(o?' · '+o.name.toLowerCase()+' '+hmSpan(o.s,o.e)+moved:''))+'</span></span><span class="go" aria-hidden="true">›</span></button>'; }).join("")+
+  const isT=dk===tk, d0=+evDay(new Date()), shotT=id=>{ const l=lastShot(id); return !!l&&l.t>=d0; }, nDone=isT?xs.filter(x=>shotT(x.id)).length:0;
+  return '<section class="tcard tpicks"><p class="tlabel">Your shortlist for '+lab+(isT&&xs.length?'<span class="tpcount">'+nDone+' of '+xs.length+' shot</span>':'')+'</p>'+picksWarnHtml(dk)+xs.map(x=>{ const sn=E.snap[x.id], so=sn&&daySlots(d).find(s=>s.id===sn.slot), o=so&&x.w.includes(so.k)&&slotOpen(x,so,d)?so:dayFit(x,d), moved=so&&o&&o!==so?' (not open in the '+so.name.toLowerCase().replace(/ and after$/,'')+')':''; const ck=isT&&shotT(x.id), row='<button type="button" class="row'+(ck?' done':'')+'" data-id="'+x.id+'"><span class="dot" style="background:'+INTENTS[x.i].color+'"></span><span class="t"><b>'+esc(x.t)+'</b><span>'+esc(PLACES[x.p].name+(o?' · '+o.name.toLowerCase()+' '+hmSpan(o.s,o.e)+moved:''))+'</span></span><span class="go" aria-hidden="true">›</span></button>';
+    return isT?'<div class="tpkrow"><button type="button" class="tpcheck" data-tpcheck="'+x.id+'" aria-pressed="'+ck+'" aria-label="'+esc((ck?'Shot today: tap to undo, ':'Mark as shot: ')+x.t)+'">'+(ck?'✓':'')+'</button>'+row+'</div>':row; }).join("")+
     '<div class="callinks"><button type="button" class="chip primary" data-tmplan="'+dk+'">'+(state.plan&&evDay(state.plan.start)>=evDay(d)&&+evDay(state.plan.start)===+evDay(d)?'Plan it again':'Plan '+lab)+'</button><button type="button" class="chip" data-tmshow="1">Change the shortlist</button></div></section>'; }
 /* Plan the day from the shortlist: its places, in the order and at the start time that puts the most picked ideas in light that suits
    them (every order of up to six places, starts every 20 minutes from before sunrise to after dark; not earlier than now on the day). */
@@ -8871,7 +8879,7 @@ function healthHtml(){ const L=healthList().slice().reverse(), wk=Date.now()-7*8
   return '<p class="msg">'+(nS||nE?'In the last 7 days: '+nS+' stall'+(nS===1?'':'s')+', '+nE+' error'+(nE===1?'':'s')+', opened '+nO+' time'+(nO===1?'':'s')+'.':'No stalls or errors recorded in the last 7 days'+(nO?' (opened '+nO+' time'+(nO===1?'':'s')+')':'')+'.')+' Data on this device: '+Math.round(kb)+' KB.</p>'+
     (L.length?'<ul class="healthlog">'+L.slice(0,25).map(x=>'<li class="hl-'+x.k+'"><b>'+when(x.t)+'</b> '+esc(x.k==="open"?x.m:(x.k==="stall"?"Stall: ":"Error: ")+x.m)+(x.n>1?' ×'+x.n:'')+'</li>').join("")+'</ul>':'')+
     '<div class="callinks">'+(typeof window.appUpdate==="function"?'<button type="button" class="chip" id="appUpdate">Check for updates</button>':'')+'<button type="button" class="chip" id="healthCopy">Copy report</button><button type="button" class="chip" id="healthClear">Clear</button></div><p class="msg" id="healthMsg" role="status"></p><p class="msg">Version '+APP_BUILD+'.</p>'; }
-const APP_BUILD = "Nov 8, 11:51 am";
+const APP_BUILD = "Nov 8, 12:00 pm";
 function healthReport(){ const L=healthList(); return "Shot List health report\n"+navigator.userAgent+"\nStandalone: "+(!!(window.navigator.standalone||matchMedia("(display-mode: standalone)").matches))+"\n"+L.map(x=>new Date(x.t).toISOString()+" "+x.k+" ["+x.v+"] "+x.m+(x.n>1?" x"+x.n:"")).join("\n"); }
 /* If drawing a screen fails, say so with a way out instead of leaving a half-drawn screen that ignores taps. */
 function renderBroken(e){ healthLog("error","Drawing "+state.view+": "+(e&&e.message||e)); let b=$("brokenBar"); if(!b){ b=document.createElement("div"); b.id="brokenBar"; b.className="rowtoast on brokenbar"; b.setAttribute("role","alert"); document.body.appendChild(b); }
@@ -9257,6 +9265,7 @@ $("today").addEventListener("click",e=>{
   const tp=e.target.closest("[data-tpick]"); if(tp){ state.tpOpen=tp.dataset.tpick; renderToday(); const a=$("today").querySelector(".tpick"); if(a&&a.scrollIntoView) a.scrollIntoView({block:"nearest",behavior:"smooth"}); return; }
   if(e.target.closest("[data-trefresh]")){ todayRefresh(); return; }
   const ca=e.target.closest("[data-caladd]"); if(ca){ calAdd(ca); return; }
+  { const pc=e.target.closest("[data-tpcheck]"); if(pc){ const id=pc.dataset.tpcheck, l=lastShot(id), d0=+evDay(new Date()); if(l&&l.t>=d0) undoShot(id); else logShot(id); renderToday(); return; } }
   const tm=e.target.closest("[data-tat]"); if(tm){ state.todayAt=tm.dataset.tat==="now"?null:+tm.dataset.tat; renderToday(); return; }
   { const ti=e.target.closest("[data-tint]"); if(ti){ state.tIntent=ti.dataset.tint; state.tpOpen=null; renderToday(); return; } }
   if(e.target.closest("[data-tmore]")){ state.tMore=!state.tMore; renderToday(); return; }

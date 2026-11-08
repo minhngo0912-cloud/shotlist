@@ -1534,6 +1534,12 @@ def run(path, name):
             check("Find free parking: free blocks first near the first spot (street cleaning off on Indigenous Peoples' Day), Park here sets it, the leave time adds the walk from the car, P on the map, and it is kept with the outing",
                   len(pk[0])>=2 and pk[0][0][0]=="free" and all(c!="no" for c,_ in pk[0]) and not any("Bayard St, Mott St" in w for _,w in pk[0]) and "Meters and street cleaning" not in pk[1] and pc[0] and pc[2] and pc[3] and pc[4] and pc[5] and pc[6], [pk,pc])
             pg.evaluate("state.plan=null; savePlan(); state.parkOpen=false; state.home=null; state.view='today'; render()")
+        sk=pg.evaluate("""(()=>{ const dk=ymdKey(new Date()), ids=['soho-place','chinatown-place'].filter(id=>!state.done.has(id)); const P=picksAll(); delete P[dk]; picksSave(); ids.forEach(id=>pickToggle(id,dk)); state.view='today'; render();
+          const r=[document.querySelectorAll('#today .tpicks [data-tpcheck]').length===ids.length, (document.querySelector('#today .tpcount')||{}).textContent];
+          document.querySelector('#today .tpicks [data-tpcheck]').click(); r.push(state.done.has(ids[0]), document.querySelector('#today .tpicks [data-tpcheck]').getAttribute('aria-pressed'), (document.querySelector('#today .tpcount')||{}).textContent, document.querySelector('#today .tpicks .row').classList.contains('done'));
+          document.querySelector('#today .tpicks [data-tpcheck]').click(); r.push(state.done.has(ids[0]), (document.querySelector('#today .tpcount')||{}).textContent);
+          const P2=picksAll(); delete P2[dk]; picksSave(); render(); return r; })()""")
+        check("Today's shortlist: a box to tick each idea as shot today, a count, and tick again to undo", sk==[True,"0 of 2 shot",True,"true","1 of 2 shot",True,False,"0 of 2 shot"], sk)
         # Where to go: trip times, reasons, heads-ups, intent chips, more, Plan from here
         pg.evaluate("pmGet(true)"); pg.wait_for_timeout(600)
         wg=pg.evaluate("""(()=>{ state.plan=null; savePlan(); state.home=null; state.pos={lat:40.7230,lon:-73.9990}; state.todayAt=null; state.tIntent='all'; state.tMore=false; state.view='today'; render();
