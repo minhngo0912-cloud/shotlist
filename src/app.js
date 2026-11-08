@@ -2062,13 +2062,13 @@ function bestOrder(c,dk){ const X=bestIdeas(c); dk=dk||ymdKey(tmrwDay()); const 
 /* Best outing now (Ideas with On now): the walk you can still make in the light you have. Places that make one walk, reached from
    where you are (or home), with the ideas that will still be on when you get there; quick to reach and many fresh ideas score best.
    The light you are in, and when it ends, says how long the outing can run. */
-function nowLight(t){ const m=t.getHours()*60+t.getMinutes(), {list}=todayWindows(evDay(t)), cur=list.find(x=>x.s<=m&&x.e>m), nx=list.find(x=>x.s>m); return cur?{name:cur.name.replace("Morning ",""),e:cur.e}:nx&&nx.s-m<=150?{next:nx.name.replace("Morning ",""),s:nx.s}:null; }
+function outLight(t){ const m=t.getHours()*60+t.getMinutes(), {list}=todayWindows(evDay(t)), cur=list.find(x=>x.s<=m&&x.e>m), nx=list.find(x=>x.s>m); return cur?{name:cur.name.replace("Morning ",""),e:cur.e}:nx&&nx.s-m<=150?{next:nx.name.replace("Morning ",""),s:nx.s}:null; }
 function nowOutings(m){ const now=new Date(), nm=now.getHours()*60+now.getMinutes(), from=state.pos||state.home||null, car=!state.pos&&state.home&&state.home.mode==="car", out=[];
   if(nm>23*60) return out; const L=m.filter(x=>typeof PLACES[x.p].lat==="number"), pids=[...new Set(L.map(x=>x.p))];
   for(const g of walkGroups(pids)){ const near=from?g.pids.map(p=>({p,km:kmBetween(from,PLACES[p])})).sort((a,b)=>a.km-b.km)[0]:null;
     const mins=near?(near.km<1.6?walkMin(near.km):travelMins(from,PLACES[near.p],car?"car":"transit",now)):0; if(mins>75) continue;
     const at=new Date(+now+mins*6e4), I=L.filter(x=>g.pids.includes(x.p)&&onNowIdea(x,at)); if(!I.length) continue;
-    const fresh=I.filter(x=>!state.done.has(x.id)).length, k=lightAt(at), lt=nowLight(at), left=lt&&lt.e?lt.e-(nm+mins):null;
+    const fresh=I.filter(x=>!state.done.has(x.id)).length, k=lightAt(at), lt=outLight(at), left=lt&&lt.e?lt.e-(nm+mins):null;
     const score=(TM_Q[k==="gold"?"gold":k==="night"?"night":k==="rain"?"rain":"mid"]||1)*1.5+Math.min(fresh,6)+Math.min(I.length-fresh,4)*0.3-mins/8-(g.span>15?(g.span-15)/10:0)-(left!==null&&left<20?2:0);
     out.push({g,I,fresh,mins,from:near?(from===state.home?"home":"you"):null,how:near?(near.km<1.6?"on foot":car?"by car":"by subway"):"",at,lt,o:{s:nm+mins,e:Math.min(1439,nm+mins+(lt&&lt.e&&lt.e-(nm+mins)>=45?Math.max(60,lt.e-(nm+mins)+20):lt&&lt.next?Math.max(90,lt.s-(nm+mins)+60):120)),name:"now"},score}); }
   return out.sort((a,b)=>b.score-a.score).slice(0,3); }
