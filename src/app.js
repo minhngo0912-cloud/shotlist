@@ -2008,7 +2008,7 @@ function picksTodayHtml(){ const tk=ymdKey(new Date()), mk=ymdKey(tmrwDay()), dk
     '<div class="callinks"><button type="button" class="chip primary" data-tmplan="'+dk+'">'+(state.plan&&evDay(state.plan.start)>=evDay(d)&&+evDay(state.plan.start)===+evDay(d)?'Plan it again':'Plan '+lab)+'</button><button type="button" class="chip" data-tmshow="1">Change the shortlist</button></div></section>'; }
 /* Plan the day from the shortlist: its places, in the order and at the start time that puts the most picked ideas in light that suits
    them (every order of up to six places, starts every 20 minutes from before sunrise to after dark; not earlier than now on the day). */
-function picksPlan(dk){ const E=picksFor(dk), d=ymdDate(dk), xs=E.ids.map(id=>IDEAS.find(i=>i.id===id)).filter(x=>x&&typeof PLACES[x.p].lat==="number"); if(!xs.length) return null;
+function picksPlan(dk,only){ const E=only?{ids:only}:picksFor(dk), d=ymdDate(dk), xs=E.ids.map(id=>IDEAS.find(i=>i.id===id)).filter(x=>x&&typeof PLACES[x.p].lat==="number"); if(!xs.length) return null;
   const by=new Map(); xs.forEach(x=>{ if(!by.has(x.p)) by.set(x.p,[]); by.get(x.p).push(x); });
   let places=[...by.keys()].sort((a,b)=>by.get(b).length-by.get(a).length).slice(0,6);
   const L=lightDay(d), legs={}, leg=(a,b)=>legs[a+">"+b]||(legs[a+">"+b]=legBetween(a,b)), now=Date.now();
@@ -2021,7 +2021,33 @@ function picksPlan(dk){ const E=picksFor(dk), d=ymdDate(dk), xs=E.ids.map(id=>ID
   if(!best) return null;
   const p={start:best.st,end:best.st,stops:best.o.map(pid=>({place:pid,at:new Date(best.st),key:"",ideas:by.get(pid).slice()}))};
   let t=+best.st; p.stops.forEach((s,n)=>{ s.at=new Date(t); s.key=lightAt(s.at); t+=Math.max(1,s.ideas.length)*25*6e4; if(n<p.stops.length-1) t+=leg(s.place,p.stops[n+1].place).mins*6e4; });
-  retimePlan(p); state.plan=p; savePlan(); state.planMsg="Planned from your shortlist: "+best.r.fits+" of "+xs.length+" picked ideas in light that suits them"+(places.length<by.size?" (the six places with the most picks)":"")+"."; return p; }
+  retimePlan(p); state.plan=p; savePlan(); state.planMsg=(only?"Planned from the best outing: ":"Planned from your shortlist: ")+best.r.fits+" of "+xs.length+" picked ideas in light that suits them"+(places.length<by.size?" (the six places with the most picks)":"")+"."; return p; }
+/* The best outing tomorrow: every walk group in every slot the filters allow, scored on the light (golden hour first; rain counts,
+   since rain ideas want it), how many ideas fit and how many you have not shot, events that day close by, how far it is from where
+   you will start (home when saved, else where you are) and how spread out the walk is. The top one is shown with two others, one of them at another time of day when there is one. */
+const TM_Q = {gold:3,night:2.2,am:2,rain:1.6,mid:1};
+function bestOutings(m){ const d=tmrwDay(), S=tmrwSlots().filter(o=>slotOk(o,state.when)), from=state.home||state.pos||null, mode=state.home&&state.home.mode==="car"?"car":"transit", out=[];
+  const t0=evDay(new Date()), evs=eventRows(t0).filter(r=>!r.cancelled&&evOnDay(r,d,false)).map(r=>({r,g:r.e.geo||eventGeo(r.e.id)})).filter(x=>x.g);
+  for(const o of S){ const L=m.filter(x=>tmrwFit(x)===o); if(!L.length) continue; const pids=[...new Set(L.map(x=>x.p))];
+    for(const g of walkGroups(pids)){ const I=L.filter(x=>g.pids.includes(x.p)), fresh=I.filter(x=>!state.done.has(x.id)).length;
+      const ev=evs.filter(e=>g.pids.some(p=>typeof PLACES[p].lat==="number"&&kmBetween(PLACES[p],{lat:e.g[0],lon:e.g[1]})<=1.2)).slice(0,2);
+      const near=from?g.pids.filter(p=>typeof PLACES[p].lat==="number").map(p=>({p,km:kmBetween(from,PLACES[p])})).sort((a,b)=>a.km-b.km)[0]:null;
+      const mins=near?(near.km<1.6?walkMin(near.km):travelMins(from,PLACES[near.p],mode,o.t)):null;
+      const score=(TM_Q[o.k]||1)*2+Math.min(fresh,6)+Math.min(I.length-fresh,4)*0.3+ev.length*2-(mins!==null?mins/15:0)-(g.span>15?(g.span-15)/10:0);
+      out.push({o,g,I,fresh,ev,mins,from:from===state.home&&!!state.home?"home":"you",score}); } }
+  out.sort((a,b)=>b.score-a.score); if(!out.length) return [];
+  const pick=[out[0]], other=out.find(c=>c.o.id!==out[0].o.id);   // one of the others at a different time of day, when there is one
+  if(other) pick.push(other); for(const c of out){ if(pick.length>=3) break; if(!pick.includes(c)) pick.push(c); } return pick; }
+/* The ideas to take: up to two per place (not shot first), from at most three places */
+function bestIdeas(c){ const per={}; return c.I.slice().sort((a,b)=>(state.done.has(a.id)-state.done.has(b.id))).filter(x=>{ const n=per[x.p]||0; if(n>=2||(!(x.p in per)&&Object.keys(per).length>=3)) return false; per[x.p]=n+1; return true; }); }
+function bestOutingHtml(m){ const B=bestOutings(m); if(!B.length) return ""; const i=Math.min(state.tmBest||0,B.length-1), c=B[i], X=bestIdeas(c), dk=ymdKey(tmrwDay());
+  const line=c=>esc(c.o.name+' '+hmSpan(c.o.s,c.o.e)+' · '+tmrwSky(c.o));
+  return '<section class="tmbest"><p class="tlabel">Best outing tomorrow</p><p class="tmb-what"><b>'+esc(c.g.name)+'</b><br>'+line(c)+'</p>'+
+    '<p class="msg">'+c.I.length+' idea'+(c.I.length>1?'s':'')+(c.fresh<c.I.length?' ('+c.fresh+' not shot yet)':'')+(c.g.pids.length>1?' · up to '+c.g.span+' min apart on foot':'')+(c.mins!==null?' · about '+c.mins+' min from '+(c.from==="home"?'home':'you'):'')+'</p>'+
+    (c.ev.length?'<p class="msg tmb-ev">Also that day nearby: '+c.ev.map(e=>esc(e.r.e.name)).join(', ')+'</p>':'')+
+    '<ul class="tmb-ideas">'+X.map(x=>'<li><span class="dot" style="background:'+INTENTS[x.i].color+'"></span>'+esc(x.t)+' <span class="msg">· '+esc(PLACES[x.p].name)+'</span></li>').join("")+'</ul>'+
+    '<div class="callinks"><button type="button" class="chip primary" data-tmbestplan="'+i+'">Plan this outing</button><button type="button" class="chip" data-tmbeststar="'+i+'">Add to shortlist</button></div>'+
+    (B.length>1?'<p class="tmb-oth">Other good options</p>'+B.map((b,j)=>j===i?'':'<button type="button" class="tmb-alt" data-tmbest="'+j+'"><b>'+esc(b.g.name)+'</b><span>'+line(b)+' · '+b.I.length+' ideas</span></button>').join(""):'')+'</section>'; }
 /* Within a slot of the Tomorrow list, the places that make one walk, nearest to you first */
 function walkGroups(pids){ const G=[], near=(a,b)=>typeof PLACES[a].lat==="number"&&typeof PLACES[b].lat==="number"&&walkMin(kmBetween(PLACES[a],PLACES[b]))<=20;
   for(const p of pids){ const g=G.find(g=>g.every(q=>near(p,q))); if(g) g.push(p); else G.push([p]); }   // every place in a group is within a 20-minute walk of every other
@@ -2596,7 +2622,7 @@ function renderList(){ qCount();
     const trow=x=>{ const pl=PLACES[x.p], mi=milesTo(pl), last=lastShot(x.id), on=PK.ids.includes(x.id);
       return '<div class="tmrow"><button type="button" class="row'+(state.done.has(x.id)?" done":"")+'" data-id="'+x.id+'"><span class="dot" style="background:'+INTENTS[x.i].color+'"></span><span class="t"><b>'+qMarkTitle(x)+'</b><span>'+esc(pl.name)+(mi!==null?' · '+milesText(mi):'')+' · '+esc(INTENTS[x.i].name)+(state.done.has(x.id)?' · shot '+esc(agoText(last?last.t:Date.now())):'')+'</span></span>'+
         '<span class="marks">'+(state.saved.has(x.id)?'<span class="pill">Saved</span>':'')+'</span></button><button type="button" class="tmstar" data-tmpick="'+x.id+'" data-day="'+dk+'" aria-pressed="'+on+'" aria-label="'+(on?'On tomorrow\u2019s shortlist: tap to remove':'Add to tomorrow\u2019s shortlist')+'">'+(on?'★':'☆')+'</button></div>'; };
-    box.innerHTML=head.replace(sortSel,'')+'<p class="msg tmlead">Tomorrow, '+esc(d.toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"}))+': the ideas that suit its light'+(anyFc?' and forecast':'')+', by when to shoot them (best light first) and by places within a walk of each other. Tap ☆ to put one on tomorrow\u2019s shortlist.'+(anyFc?'':' The hourly forecast is not loaded, so rain is not taken into account.')+'</p>'+picksBarHtml(dk,"tomorrow")+
+    box.innerHTML=head.replace(sortSel,'')+'<p class="msg tmlead">Tomorrow, '+esc(d.toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"}))+': the ideas that suit its light'+(anyFc?' and forecast':'')+', by when to shoot them (best light first) and by places within a walk of each other. Tap ☆ to put one on tomorrow\u2019s shortlist.'+(anyFc?'':' The hourly forecast is not loaded, so rain is not taken into account.')+'</p>'+bestOutingHtml(m)+picksBarHtml(dk,"tomorrow")+
       S.filter(o=>slotOk(o,state.when)).map(o=>{ const L=m.filter(x=>tmrwFit(x)===o); if(!L.length) return "";
         const pids=[...new Set(L.map(x=>x.p))].sort((a,b)=>{ const da=milesTo(PLACES[a]), db=milesTo(PLACES[b]); return (da===null?1e9:da)-(db===null?1e9:db); }), G=walkGroups(pids);
         G.forEach(g=>{ g.L=L.filter(x=>g.pids.includes(x.p)).sort((a,b)=>(state.done.has(a.id)-state.done.has(b.id))||(g.pids.indexOf(a.p)-g.pids.indexOf(b.p))); });
@@ -6892,6 +6918,11 @@ setInterval(()=>{ try{ if(state.view==="today"&&!document.hidden&&performance.no
 document.addEventListener("click",e=>{ if(!e.target.closest) return;
   { const tp=e.target.closest("[data-tmpick]"); if(tp){ pickToggle(tp.dataset.tmpick,tp.dataset.day); render(); return; } }
   { const tw=e.target.closest("[data-tmswap]"); if(tw){ const [a,b,dk]=tw.dataset.tmswap.split("|"); pickToggle(a,dk); pickToggle(b,dk); render(); return; } }
+  { const bs=e.target.closest("[data-tmbest]"); if(bs){ state.tmBest=+bs.dataset.tmbest; render(); return; } }
+  { const bp=e.target.closest("[data-tmbestplan],[data-tmbeststar]"); if(bp){ const B=bestOutings(matches(false)), c=B[+(bp.dataset.tmbestplan||bp.dataset.tmbeststar)]; if(!c) return; const ids=bestIdeas(c).map(x=>x.id), dk=ymdKey(tmrwDay());
+      if(bp.dataset.tmbeststar!==undefined){ const E=picksFor(dk); ids.forEach(id=>{ if(!E.ids.includes(id)) pickToggle(id,dk); }); render(); return; }
+      const p=picksPlan(dk,ids); if(!p){ evToast('<span>That outing cannot be planned for the hours left.</span>'); return; } const off=Math.round((evDay(p.start)-evDay(new Date()))/864e5);
+      state.mapD=off>0&&off<=6?off:0; state.mapT=p.start.getHours()*60+Math.round(p.start.getMinutes()/5)*5; state.view="map"; render(); requestAnimationFrame(()=>{ mapPanel(); mapDraw(); }); return; } }
   { const tc=e.target.closest("[data-tmclear]"); if(tc){ const P=picksAll(); delete P[tc.dataset.tmclear]; picksSave(); render(); return; } }
   if(e.target.closest("[data-tmshow]")){ state.tmrw=true; state.onNow=false; store.set("tmrw",true); store.set("onNow",false); state.view="browse"; syncOnNow(); render(); window.scrollTo({top:0}); return; }
   { const tl=e.target.closest("[data-tmplan]"); if(tl){ const dk=tl.dataset.tmplan, p=picksPlan(dk); if(!p){ evToast('<span>Nothing on the shortlist can be planned for the hours left.</span>'); return; } const off=Math.round((evDay(p.start)-evDay(new Date()))/864e5);

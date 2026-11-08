@@ -1620,3 +1620,10 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 .tmwarn{margin:8px 0 4px;padding:8px 10px;border-radius:8px;background:rgba(31,111,196,.1);font-size:14px} .tmwarn ul{margin:6px 0 0;padding-left:16px;display:flex;flex-direction:column;gap:8px}
 .tmwarn li{display:flex;flex-direction:column;gap:4px} .tmalt{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;color:var(--muted)} .tmalt .chip{min-height:34px;font-size:13px;white-space:normal;text-align:left}
 .tpicks .row{border-top:1px solid var(--line)}
+/* Best outing tomorrow */
+.tmbest{background:var(--sign);color:var(--sign-fg);border-radius:12px;padding:12px 14px;margin:0 0 12px} .tmbest .tlabel{color:var(--sign-muted);margin:0 0 4px}
+.tmbest .msg{color:var(--sign-muted);margin:4px 0 0;max-width:none} .tmb-what{margin:0;font-size:15px;color:var(--sign-muted)} .tmb-what b{color:var(--sign-fg);font-size:18px}
+.tmb-ideas{list-style:none;margin:8px 0 4px;padding:0;display:flex;flex-direction:column;gap:4px;font-size:15px} .tmb-ideas li{display:flex;align-items:center;gap:8px;flex-wrap:wrap} .tmb-ideas .dot{width:10px;height:10px}
+.tmbest .chip:not(.primary){background:transparent;color:var(--sign-fg);border-color:var(--sign-line)}
+.tmb-oth{margin:12px 0 4px;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--sign-muted)}
+.tmb-alt{display:flex;flex-direction:column;gap:2px;width:100%;text-align:left;padding:8px 0;border:0;border-top:1px solid var(--sign-line);background:none;color:var(--sign-fg);font:inherit;cursor:pointer} .tmb-alt span{font-size:13px;color:var(--sign-muted)}

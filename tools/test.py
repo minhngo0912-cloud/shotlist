@@ -94,6 +94,11 @@ def run(path, name):
               _al("lmm:2",["F"],"Elevator Outage",1791727200,1791763200,"Elevator out"),_al("lmm:3",["7"],"Planned - Express to Local",1791986400,1792022400,"7 trains run local")]}
         pg.route("**/api-endpoint.mta.info/**", lambda r: r.fulfill(status=200, content_type="application/json", body=_j.dumps(_mta)))
         pg.route("**/data.cityofnewyork.us/resource/i6b5-j7bu.geojson*", lambda r: r.fulfill(status=200, content_type="application/json", body=_j.dumps(_cl)))
+        # The Claude build has no charset of its own (the artifact page supplies it), so the browser could guess the wrong one
+        # from a file: test a copy that states UTF-8, as the published page does.
+        src=open(path,encoding="utf-8").read()
+        if not src.lstrip().lower().startswith("<!doctype"):
+            tmp=os.path.join(tempfile.gettempdir(),"shotlist-claude-test.html"); open(tmp,"w",encoding="utf-8").write('<!doctype html><meta charset="utf-8">'+src); path=tmp
         pg.goto("file://" + path); pg.wait_for_timeout(700)
 
         d = pg.evaluate(INTEGRITY)
@@ -1355,6 +1360,21 @@ def run(path, name):
         check("When the forecast turns, the shortlist says which picks are hit and offers nearby swaps that suit the new light; it shows on Today", wn[0]==2 and wn[1] and wn[2] and wn[3] and wn[4] and wn[5] in ([False,True],None), wn)
         pg.evaluate("document.querySelector('#tsec-picks') && 0; const P=picksAll(); delete P['2026-10-12']; picksSave(); state.plan=null; savePlan(); state.tmrw=false; store.set('tmrw',false); syncOnNow(); state.mapD=0; state.mapT=null; render()")
         check("Clearing the shortlist removes it from Today", pg.evaluate("!document.querySelector('#tsec-picks')"))
+        # Best outing tomorrow: the top walk and time, two others, plan it or put it on the shortlist
+        pg.evaluate("state.tmPicks=null; store.set('tmPicks',{}); state.view='browse'; state.intent='all'; state.place='all'; state.when='all'; state.q=''; state.onNow=false; state.tmrw=true; state.tmBest=0; syncOnNow(); render()"); pg.wait_for_timeout(100)
+        bo=pg.evaluate("""(()=>{ const card=document.querySelector('#list .tmbest'), B=bestOutings(matches(false)), X=B[0]?bestIdeas(B[0]):[];
+          const r=[!!card, B.length, B[0]&&B[0].o.id, /Golden hour/.test(card?card.textContent:''), card?card.querySelectorAll('.tmb-ideas li').length:0, X.length>0&&X.length<=6, card?card.querySelectorAll('[data-tmbest]').length:0];
+          const alt=card&&card.querySelector('[data-tmbest]'); if(alt){ const want=B[+alt.dataset.tmbest].g.name; alt.click(); r.push((document.querySelector('#list .tmbest .tmb-what b')||{}).textContent===want); state.tmBest=0; render(); }
+          document.querySelector('#list [data-tmbeststar]').click(); r.push(picksFor(ymdKey(tmrwDay())).ids.join()===X.map(x=>x.id).join());
+          const P=picksAll(); delete P[ymdKey(tmrwDay())]; picksSave(); render(); return [r,X.map(x=>x.id)]; })()""")
+        r=bo[0]; check("Best outing tomorrow: golden hour first on a clear day, its ideas (two a place at most), two other options to switch to, and Add to shortlist", r[0] and r[1]>=2 and r[2]=="gold" and r[3] and r[4]==len(bo[1]) and r[5] and r[6]>=1 and r[7] and r[8], bo)
+        pg.click("#list [data-tmbestplan='0']"); pg.wait_for_timeout(300)
+        bp=pg.evaluate("[state.view, state.plan&&state.plan.start.getDate(), /Planned from the best outing/.test(state.planMsg||''), state.plan&&state.plan.stops.flatMap(s=>s.ideas.map(x=>x.id)).sort().join()]")
+        check("Plan this outing: tomorrow's outing on the map with the recommended ideas", bp[0]=="map" and bp[1]==12 and bp[2] and bp[3]==",".join(sorted(bo[1])), [bp,bo[1]])
+        pg.evaluate("state.plan=null; savePlan(); state.mapD=0; state.mapT=null; state.view='browse'; state.when='am'; render()")
+        bm=pg.evaluate("[bestOutings(matches(false)).every(c=>c.o.id==='am'), /Morning/.test((document.querySelector('#list .tmbest')||{}).textContent||'')]")
+        pg.evaluate("state.when='all'; state.tmrw=false; store.set('tmrw',false); syncOnNow(); state.view='today'; render()")
+        check("Best outing follows the Light filter (Morning recommends a morning outing)", bm==[True,True], bm)
         # Dark theme renders too
         pg.evaluate("document.documentElement.dataset.theme='dark'; state.view='shoot'; render()"); pg.wait_for_timeout(80)
         check("no script errors", not errors, errors[:3])
