@@ -1387,6 +1387,16 @@ def run(path, name):
           const left=planWarn(); if(left.length){ document.querySelector('#mapPlan [data-plankeep="'+left[0].n+'"]').click(); } r.push(!planWarn().some(w=>left.length&&w.n===left[0].n));
           WEATHER[state.city]=keep; state.plan=null; savePlan(); state.mapD=0; state.mapT=null; state.view='today'; render(); return r; })()""")
         check("Planned outing when the forecast turns: the bar says which stops, Swap puts in ideas for the new light, Keep accepts it", fw==[True]*6, fw)
+        # Where the outing starts: home for tomorrow, a point you set, or where you are
+        st=pg.evaluate("""(()=>{ const keepH=state.home, keepP=state.pos; state.home={lat:40.9585,lon:-73.9582,mode:'car'}; state.pos={lat:40.7230,lon:-73.9990};
+          picksPlan('2026-10-12',['soho-place','chinatown-place']); state.view='map'; state.mapD=1; render(); mapV=mapClamp({cx:mapXY(40.88,-73.97)[0],cy:mapXY(40.88,-73.97)[1],w:250}); mapDraw(); mapPanel();
+          const r=[planStart().kind, /^Leave home by \\d/.test(planLeaveBy())&&/by car/.test(planLeaveBy()), !!document.querySelector('#mapOver .m-pstart'), !!document.querySelector('#mapDyn .m-startleg'), /Start: home/.test(document.querySelector('#mapPlan').textContent)&&/Directions to stop 1 from home by car/.test(document.querySelector('#mapPlan').textContent)&&/origin=40\\.958/.test(document.querySelector('#mapPlan .planlinks a').href)&&/travelmode=driving/.test(document.querySelector('#mapPlan .planlinks a').href)];
+          document.querySelector('#mapPlan [data-startopen]').click(); document.querySelector('#mapPlan [data-startset="here"]').click(); r.push(planStart().kind==='pick'&&/where you were/.test(planStart().label), /Leave by/.test(planLeaveBy()));
+          document.querySelector('#mapPlan [data-startopen]').click(); document.querySelector('#mapPlan [data-startset="pick"]').click(); const [x,y]=mapXY(40.7527,-73.9772); mapLongPress(x,y); r.push(Math.abs(state.plan.from.lat-40.7527)<0.001&&!LF.open, loadPlan().from&&Math.abs(loadPlan().from.lat-40.7527)<0.001);
+          document.querySelector('#mapPlan [data-startopen]').click(); document.querySelector('#mapPlan [data-startset="auto"]').click(); r.push(planStart().kind);
+          state.plan.stops.forEach(s=>s.at=new Date(+s.at-864e5)); state.plan.start=new Date(+state.plan.start-864e5); r.push(planStart().kind);
+          state.home=keepH; state.pos=keepP; state.plan=null; savePlan(); state.mapD=0; state.mapT=null; state.startPick=null; state.view='today'; render(); return r; })()""")
+        check("Outing start: home for tomorrow with leave-by from home by car, a start marker and leg to spot 1; Start from sets where you are or a point held on the map (kept with the outing); Automatic goes back; on the day it is where you are", st==["home",True,True,True,True,True,True,True,True,"home","you"], st)
         # Dark theme renders too
         pg.evaluate("document.documentElement.dataset.theme='dark'; state.view='shoot'; render()"); pg.wait_for_timeout(80)
         check("no script errors", not errors, errors[:3])

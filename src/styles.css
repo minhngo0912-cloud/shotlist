@@ -1631,3 +1631,6 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 .m-pspot{cursor:pointer} .m-pspotd{fill:#fff;stroke:#14161a} .m-pspotd.back{fill:#f28a28} .m-pspotd.side{fill:#fccc0a} .m-pspotd.front{fill:#fff3c4} .m-pspotd.dark{fill:#8296ff}
 .m-pspotn{fill:#14161a;font-family:var(--sans);font-weight:800;pointer-events:none} .m-pspot.next .m-pspotd{stroke:#1e9e48}
 .planwalk{margin:8px 0 0;max-width:none} .planwarn{margin:8px 0}
+/* The outing's start */
+.m-startleg{fill:none;stroke:#1e9e48;stroke-linecap:round;pointer-events:none} .m-pstartd{fill:#1e9e48;stroke:#fff} .m-pstartn{fill:#fff;font-family:var(--sans);font-weight:800;pointer-events:none}
+.planstart{margin:8px 0 0;max-width:none} .startpick{margin:4px 0 0}

@@ -4314,9 +4314,9 @@ function lightMarks(){ const L=lightDay(), tf=hmText, out=[], pos=m=>'calc(13px 
   const dur=k=>k==="gold"?60:k==="blue"?25:k==="henge"?15:k==="rain"||k==="wet"?60:10, upcoming=x=>!live||x[1]+dur(x[0])>cur;
   return out.filter(upcoming).concat(out.filter(x=>!upcoming(x))).map(([k,m,t])=>'<button type="button" class="chip lmark'+(cur>=m&&cur<m+dur(k)?' on':'')+(m<cur&&live?' past':'')+'" data-jump="'+m+'"><span class="lk '+k+'"></span>'+t+'</button>').join(""); }
 /* Today's outing: kept on the device so it survives closing the app; editable from the map. */
-function savePlan(){ const p=state.plan; store.set("plan", p ? {start:+p.start,end:+p.end,stops:p.stops.map(s=>({place:s.place,at:+s.at,key:s.key,ideas:s.ideas.map(x=>x.id),leg:s.leg||null,ev:s.ev||null,mins:s.mins||null}))} : null); }
+function savePlan(){ const p=state.plan; store.set("plan", p ? {start:+p.start,end:+p.end,from:p.from||null,fromHome:!!p.fromHome,stops:p.stops.map(s=>({place:s.place,at:+s.at,key:s.key,ideas:s.ideas.map(x=>x.id),leg:s.leg||null,ev:s.ev||null,mins:s.mins||null}))} : null); }
 function loadPlan(){ const p=store.get("plan",null); if(!p||!p.stops||!p.stops.length||p.end<Date.now()-12*36e5) return null;
-  return {start:new Date(p.start),end:new Date(p.end),stops:p.stops.filter(s=>PLACES[s.place]).map(s=>({place:s.place,at:new Date(s.at),key:s.key,ideas:s.ideas.map(id=>IDEAS.find(x=>x.id===id)).filter(Boolean),leg:s.leg,ev:s.ev||undefined,mins:s.mins||undefined}))}; }
+  return {start:new Date(p.start),end:new Date(p.end),from:p.from&&typeof p.from.lat==="number"?p.from:null,fromHome:!!p.fromHome,stops:p.stops.filter(s=>PLACES[s.place]).map(s=>({place:s.place,at:new Date(s.at),key:s.key,ideas:s.ideas.map(id=>IDEAS.find(x=>x.id===id)).filter(Boolean),leg:s.leg,ev:s.ev||undefined,mins:s.mins||undefined}))}; }
 function pickIdeas(pid,key,n,at){ const t=at||new Date(), sky=Math.abs(t-Date.now())<40*36e5?skyAt(t):undefined, all=cityIdeas().filter(x=>x.p===pid), here=all.filter(x=>ideaOpen(x,t,sky));
   const pool=(here.length?here:all).slice().sort((a,b)=>(b.w.includes(key)-a.w.includes(key))||(state.done.has(a.id)-state.done.has(b.id)));
   const out=[]; for(const x of pool) if(out.length<n&&!out.some(o=>o.i===x.i)) out.push(x); for(const x of pool) if(out.length<n&&!out.includes(x)) out.push(x); return out; }
@@ -4344,13 +4344,27 @@ function planLinks(){ const p=state.plan; if(!p) return ""; const nx=Math.max(0,
   const prevLeg=nx>0?p.stops[nx-1].leg:null, km=state.pos?kmBetween(state.pos,PLACES[next.place]):null;
   const mode=prevLeg&&prevLeg.mode==="by subway" ? "transit" : km!==null ? (km<=1.8?"walking":"transit") : (prevLeg?"walking":"transit");
   const base="https://www.google.com/maps/dir/?api=1";
-  const one=base+"&destination="+stopGeo(next.place,next.ev)+"&travelmode="+mode;
+  // before the first stop, directions start from the outing's start (home or a point you set), by car when home is by car
+  const T=nx===0&&typeof planStartTrip==="function"?planStartTrip():null, fromStart=T&&T.S.kind!=="you"&&T.mins>0, gm=fromStart?(T.how==="by car"?"driving":T.how==="on foot"?"walking":"transit"):mode;
+  const one=base+(fromStart?"&origin="+T.S.lat.toFixed(5)+","+T.S.lon.toFixed(5):"")+"&destination="+stopGeo(next.place,next.ev)+"&travelmode="+gm;
   let whole="";
   if(rest.length>1){ const pts=rest.map(s=>stopGeo(s.place,s.ev)), allWalk=rest.slice(0,-1).every(s=>!s.leg||s.leg.mode==="walk");
     const origin=pts.length>4?pts.shift():null;   // keep within 3 stops in between, so it also works in a phone browser
     whole=base+(origin?"&origin="+origin:"")+"&destination="+pts.pop()+(pts.length?"&waypoints="+encodeURIComponent(pts.join("|")):"")+"&travelmode=walking";
     whole='<a class="chip" href="'+whole+'" target="_blank" rel="noopener">Whole outing on foot ↗</a>'+(allWalk?'':'<span class="hint maplinkhint">Google Maps cannot do multi-stop routes by subway, so this shows the walk. Use the stop link for the subway legs.</span>'); }
-  return '<div class="callinks planlinks"><a class="chip primary" href="'+one+'" target="_blank" rel="noopener">Directions to stop '+(nx+1)+' '+(mode==="transit"?"by subway":"on foot")+' ↗</a>'+whole+'</div>'; }
+  return '<div class="callinks planlinks"><a class="chip primary" href="'+one+'" target="_blank" rel="noopener">Directions to stop '+(nx+1)+' '+(fromStart?'from '+(T.S.kind==="home"?'home':'your start')+' '+T.how:(mode==="transit"?"by subway":"on foot"))+' ↗</a>'+whole+'</div>'; }
+/* Where the outing starts: a point set for this outing (Start from), else home for a day still to come (when home is saved) or
+   on the day before you are out, else where you are. Home uses its travel mode; elsewhere it is on foot when close, by subway beyond. */
+function planStart(){ const p=state.plan; if(!p) return null; const ahead=evDay(p.start)>evDay(new Date()), H=state.home&&typeof state.home.lat==="number"?state.home:null;
+  if(p.from&&typeof p.from.lat==="number") return {lat:p.from.lat,lon:p.from.lon,kind:"pick",label:p.from.label||"Your start"};
+  if(H&&(ahead||!state.pos||kmBetween(state.pos,H)<0.3||p.fromHome)) return {lat:H.lat,lon:H.lon,kind:"home",label:"Home"};
+  if(state.pos) return {lat:state.pos.lat,lon:state.pos.lon,kind:"you",label:"Where you are"};
+  return H?{lat:H.lat,lon:H.lon,kind:"home",label:"Home"}:null; }
+function planStartTrip(){ const p=state.plan, S=planStart(), W=planWalk(); if(!p||!S||!W.length) return null; const to={lat:W[0].lat,lon:W[0].lon}, km=kmBetween(S,to);
+  if(km<0.15) return {S,mins:0,how:"",km};
+  if(S.kind==="home"&&state.home.mode==="car") return {S,mins:travelMins(S,to,"car",W[0].t),how:"by car",km};
+  if(km<=1.6) return {S,mins:walkMin(km),how:"on foot",km};
+  return {S,mins:travelMins(S,to,"transit",W[0].t),how:S.kind==="home"?"by bus and subway":"by subway",km}; }
 /* The outing as a walk between spots: each planned idea's own spot to stand (or the place's starting point when it has none), in
    order, with the time you would be there (25 minutes an idea) and the light facing the way the spot faces. */
 function planWalk(){ const p=state.plan; if(!p) return []; const out=[];
@@ -4363,13 +4377,24 @@ function planWalk(){ const p=state.plan; if(!p) return []; const out=[];
 /* The next spot: on the day, the first one you have not passed; before the day, the first */
 function planWalkNext(W){ const p=state.plan; if(!p||!W.length) return null; const now=Date.now(); if(evDay(p.start)>evDay(new Date())) return W[0]; return W.find(w=>+w.t+25*6e4>now)||W[W.length-1]; }
 function planWalkSvg(f,u,w,x0,y0,x1,y1){ const W=planWalk(); if(W.length<2&&!W.length) return {route:"",marks:""}; const P=W.map(o=>mapXY(o.lat,o.lon)), nx=planWalkNext(W);
-  const route=W.length>1?'<path d="M'+P.map(([x,y])=>f(x)+' '+f(y)).join("L")+'" class="m-route" stroke-width="'+f(3*u)+'" stroke-dasharray="'+f(7*u)+' '+f(5*u)+'"/>':"";
-  if(w>=130) return {route,marks:""}; let marks="";
+  let route=W.length>1?'<path d="M'+P.map(([x,y])=>f(x)+' '+f(y)).join("L")+'" class="m-route" stroke-width="'+f(3*u)+'" stroke-dasharray="'+f(7*u)+' '+f(5*u)+'"/>':"";
+  let leg="", start=""; const T=planStartTrip(); if(T&&W.length){ const [sx,sy]=mapXY(T.S.lat,T.S.lon), [ax,ay]=P[0], r=(w<60?8:6.5)*u;
+    if(T.km>=0.15) leg='<path d="M'+f(sx)+' '+f(sy)+'L'+f(ax)+' '+f(ay)+'" class="m-startleg" stroke-width="'+f(2.2*u)+'" stroke-dasharray="'+f(2*u)+' '+f(4*u)+'"/>';
+    if(sx>x0-10*u&&sx<x1+10*u&&sy>y0-10*u&&sy<y1+10*u) start='<g class="m-pstart"><circle cx="'+f(sx)+'" cy="'+f(sy)+'" r="'+f(r)+'" stroke-width="'+f(1.6*u)+'" class="m-pstartd"/><text x="'+f(sx)+'" y="'+f(sy+r*0.42)+'" text-anchor="middle" font-size="'+f(r*1.15)+'" class="m-pstartn">'+(T.S.kind==="home"?'⌂':'S')+'</text>'+
+      (w<200?'<text x="'+f(sx+r+3*u)+'" y="'+f(sy+3*u)+'" font-size="'+f(8.5*u)+'" class="m-wett">'+esc('Start · '+T.S.label.toLowerCase()+(T.mins?' · '+T.mins+' min '+T.how:''))+'</text>':'')+'</g>'; }
+  route=leg+route;
+  if(w>=130) return {route,marks:start}; let marks=start;
   W.forEach((o,i)=>{ const [x,y]=P[i]; if(x<x0-10*u||x>x1+10*u||y<y0-10*u||y>y1+10*u) return; const lf=o.face!=null?lightFacing(o.face,o.t):null, r=(w<60?8:6.5)*u, on=nx===o;
     marks+='<g class="m-pspot'+(on?' next':'')+(o.id?' m-spotg':'')+'"'+(o.id?' data-s="'+esc(o.id)+'" role="button" tabindex="0"':'')+' aria-label="'+esc('Walk spot '+o.k+': '+o.name+', '+hmText(o.t.getHours()*60+o.t.getMinutes())+(lf?', '+lf.txt:''))+'">'+
       '<circle cx="'+f(x)+'" cy="'+f(y)+'" r="'+f(r+6*u)+'" class="m-hit"/><circle cx="'+f(x)+'" cy="'+f(y)+'" r="'+f(r)+'" stroke-width="'+f((on?2.6:1.4)*u)+'" class="m-pspotd '+(lf?lf.k:'none')+'"/><text x="'+f(x)+'" y="'+f(y+r*0.4)+'" text-anchor="middle" font-size="'+f(r*1.1)+'" class="m-pspotn">'+o.k+'</text>'+
       (w<60?'<text x="'+f(x+r+3*u)+'" y="'+f(y+3*u)+'" font-size="'+f(8.5*u)+'" class="m-wett">'+esc(hmText(o.t.getHours()*60+o.t.getMinutes())+(lf?' · '+lf.txt.toLowerCase():''))+'</text>':'')+'</g>'; });
   return {route,marks}; }
+function planStartHtml(){ const p=state.plan, T=planStartTrip(); if(!p) return ""; const H=state.home&&typeof state.home.lat==="number", open=!!state.startPick;
+  const now=T?(T.S.kind==="home"?"home":T.S.kind==="pick"?T.S.label:"where you are")+(T.mins?' · '+T.mins+' min '+T.how+' to spot 1':''):"not set (turn on location or save a home on Today)";
+  return '<p class="msg planstart"><b>Start:</b> '+esc(now)+' <button type="button" class="linkbtn" data-startopen="1">'+(open?'Done':'Change')+'</button></p>'+
+    (open?'<div class="intents startpick">'+(H?'<button type="button" class="chip" data-startset="home" aria-pressed="'+(!!T&&T.S.kind==="home")+'">⌂ Home</button>':'')+(state.pos?'<button type="button" class="chip" data-startset="here">◎ Where I am now</button>':'')+
+      '<button type="button" class="chip" data-startset="pick" aria-pressed="'+(state.startPick==="map")+'">Pick on the map</button>'+(p.from||p.fromHome?'<button type="button" class="chip" data-startset="auto">Automatic</button>':'')+'</div>'+
+      (state.startPick==="map"?'<p class="msg">Press and hold on the map where you will start.</p>':''):''); }
 function planWalkHtml(){ const W=planWalk(); if(!W.some(o=>o.id)) return ""; const nx=planWalkNext(W), tf=d=>hmText(d.getHours()*60+d.getMinutes()), lf=nx&&nx.face!=null?lightFacing(nx.face,nx.t):null;
   return '<p class="msg planwalk"><b>The walk: '+W.length+' spots.</b> Next: '+nx.k+'. '+esc(nx.name)+', '+tf(nx.t)+(lf?' · '+esc(lf.txt.toLowerCase())+', facing '+compass(nx.face):'')+'</p>'+
     (nx.id?'<div class="callinks"><button type="button" class="chip'+(state.guide&&state.guide.id===nx.id?'':' primary')+'" data-'+(state.guide&&state.guide.id===nx.id?'guidestop="1">Stop guiding':'guide="'+esc(nx.id)+'">Guide me to spot '+nx.k)+'</button></div>':''); }
@@ -4390,7 +4415,7 @@ function mapPlanBar(){ const p=state.plan, tf=d=>d.toLocaleTimeString("en-US",{h
   const nx=nextStopIndex();
   const pday=Math.round((evDay(p.start)-evDay(new Date()))/864e5);
   return '<div class="planbar"><div class="planbar-head"><b>'+(pday===1?'Tomorrow\u2019s outing':pday>1?esc(DAY_NAMES[p.start.getDay()])+'\u2019s outing':'Today\u2019s outing')+'</b><span>'+tf(p.start)+' to about '+tf(p.end)+'</span><button type="button" class="chip primary" data-nextstop="1">Next stop ›</button><button type="button" class="chip" data-openplan="1">Details</button><button type="button" class="chip" data-clearplan="1">Clear</button></div>'+
-    (()=>{ const lb=planLeaveBy(), ok=planBestOK(), m=state.planMsg; return planWarnHtml()+(lb?'<p class="msg planleave">'+esc(lb)+'</p>':'')+(ok?'<div class="intents planbest"><button type="button" class="chip" data-planbest="1">Best order for the light</button></div>':'')+(m?'<p class="msg planmsg">'+esc(m)+'</p>':'')+planWalkHtml(); })()+
+    (()=>{ const lb=planLeaveBy(), ok=planBestOK(), m=state.planMsg; return planWarnHtml()+(lb?'<p class="msg planleave">'+esc(lb)+'</p>':'')+(ok?'<div class="intents planbest"><button type="button" class="chip" data-planbest="1">Best order for the light</button></div>':'')+(m?'<p class="msg planmsg">'+esc(m)+'</p>':'')+planStartHtml()+planWalkHtml(); })()+
     '<div class="intents planstops">'+p.stops.map((s,n)=>'<button type="button" class="chip stopchip'+(n===nx?" next":"")+'" data-stop="'+n+'"><span class="stopn">'+(n+1)+'</span>'+esc(s.ev?(EVENTS.find(x=>x.id===s.ev)||{name:s.ev}).name:PLACES[s.place].name)+' · '+tf(s.at)+'</button>').join("")+'</div>'+planLinks()+'</div>'; }
 function mapPts(){ const key=lightAt(mapNow()), ideas=cityIdeas().filter(i=>(state.mapIntent==="all"||i.i===state.mapIntent)&&(!state.mapDark||i.w.includes("night"))), t=mapNow(), cc=CITIES[state.city], night=sunPos(t,cc.lat,cc.lon).alt<-6, sky=night?skyAt(t):null;
   return Object.keys(CITIES[state.city].places).filter(id=>typeof PLACES[id].lat==="number").map(id=>{ const [x,y]=mapXY(PLACES[id].lat,PLACES[id].lon), mine=ideas.filter(i=>i.p===id);
@@ -4649,11 +4674,10 @@ function planBestOrder(apply){ const p=state.plan; if(!planBestOK()) return null
 function planBestMsg(r){ if(!r) return ""; const tr=(a,b)=>b<a?", "+(a-b)+" min less travel":b>a?", "+(b-a)+" min more travel":"";
   return r.same ? "Already the best order: "+r.before+" of "+r.n+" stops are in light that suits their ideas."
     : "Reordered: "+r.after+" of "+r.n+" stops now in light that suits their ideas (was "+r.before+")"+tr(r.travelBefore,r.travelAfter)+"."; }
-/* When to leave for the first stop, from where you are. */
-function planLeaveBy(){ const p=state.plan; if(!p||!state.pos) return ""; const s=p.stops[0], P=s&&PLACES[s.place]; if(!P||typeof P.lat!=="number") return "";
-  const now=new Date(); if(s.at<=now) return ""; const r=tripTo(s.place); if(!r||kmBetween(state.pos,P)<0.15) return "";
-  const leave=new Date(+s.at-r.min*6e4), how=r.by==="train"?"by train":"on foot";
-  return leave<=now ? "Leave now: the first stop is "+r.min+" min away "+how : "Leave by "+hmText(leave.getHours()*60+leave.getMinutes())+" · "+r.min+" min "+how; }
+/* When to leave for the first spot, from the outing's start (home, a point you set, or where you are). */
+function planLeaveBy(){ const p=state.plan; if(!p) return ""; const T=planStartTrip(); if(!T||!T.mins) return ""; const first=planWalk()[0], now=new Date(); if(!first||first.t<=now) return "";
+  const leave=new Date(+first.t-T.mins*6e4), from=T.S.kind==="home"?"home ":"";
+  return leave<=now ? "Leave "+from+"now: the first spot is "+T.mins+" min away "+T.how : "Leave "+from+"by "+hmText(leave.getHours()*60+leave.getMinutes())+" · "+T.mins+" min "+T.how; }
 
 /* How busy: NYC DOT's pedestrian counts at 114 sites (mostly shopping streets and the East River bridges), counted every spring and autumn
    on a weekday morning, a weekday evening and at midday. The installed app fetches them once a month. Each site is ranked against the
@@ -5200,6 +5224,7 @@ function followStop(){ if(!state.mapFollow) return; state.mapFollow=false; walkS
   const b=document.querySelector("#map [data-locate]"); if(b){ b.setAttribute("aria-pressed","false"); b.title="Find me"; } mapDraw(); }
 /* Press and hold on the map: the light at that corner, in Light here. */
 function mapLongPress(x,y){ const lat=40.95-y/2000, lon=x/(0.758*2000)-74.30; try{ navigator.vibrate&&navigator.vibrate(12); }catch(e){}
+  if(state.startPick==="map"&&state.plan){ state.plan.from={lat:+lat.toFixed(5),lon:+lon.toFixed(5),label:nearestHood(lat,lon)||"the point you picked"}; state.plan.fromHome=false; state.startPick=null; savePlan(); mapPanel(); mapDraw(); return; }
   lfOpen({id:"pick",name:"The corner you picked · "+nearestHood(lat,lon),lat:+lat.toFixed(5),lon:+lon.toFixed(5),picked:true}); }
 /* While the time slider moves: the time and the light, over the thumb. */
 let TBT=0;
@@ -6784,6 +6809,11 @@ $("map").addEventListener("click",e=>{
   const rp=e.target.closest("[data-rmplan]"); if(rp){ planRemove(rp.dataset.rmplan); mapPanel(); mapDraw(); return; }
   const sc=e.target.closest("[data-stop]"); if(sc){ mapGoStop(+sc.dataset.stop); return; }
   if(e.target.closest("[data-nextstop]")){ mapGoStop(nextStopIndex()); return; }
+  if(e.target.closest("[data-startopen]")){ state.startPick=state.startPick?null:"open"; mapPanel(); return; }
+  { const ss=e.target.closest("[data-startset]"); if(ss&&state.plan){ const k=ss.dataset.startset, p=state.plan;
+      if(k==="pick"){ state.startPick="map"; mapPanel(); return; }
+      if(k==="home"){ p.from=null; p.fromHome=true; } else if(k==="here"&&state.pos){ p.from={lat:+state.pos.lat.toFixed(5),lon:+state.pos.lon.toFixed(5),label:"where you were at "+hmText(new Date().getHours()*60+new Date().getMinutes())}; p.fromHome=false; } else if(k==="auto"){ p.from=null; p.fromHome=false; }
+      state.startPick=null; savePlan(); mapPanel(); mapDraw(); return; } }
   { const ps=e.target.closest("[data-planswap]"); if(ps&&state.plan){ const s=state.plan.stops[+ps.dataset.planswap]; if(s){ const k=lightAt(s.at); s.ideas=pickIdeas(s.place,k,Math.max(1,s.ideas.length),s.at); s.key=k; savePlan(); } mapPanel(); mapDraw(); return; } }
   { const pk=e.target.closest("[data-plankeep]"); if(pk&&state.plan){ const s=state.plan.stops[+pk.dataset.plankeep]; if(s){ s.key=lightAt(s.at); savePlan(); } mapPanel(); return; } }
   if(e.target.closest("[data-planfix]")&&state.plan){ const p=state.plan, ids=p.stops.flatMap(s=>s.ev?[]:s.ideas.map(x=>x.id)), r=picksPlan(ymdKey(p.start),ids);
