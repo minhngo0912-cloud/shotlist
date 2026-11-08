@@ -1687,6 +1687,22 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 .tmb-t{font-variant-numeric:tabular-nums;color:var(--muted);font-size:14px;min-width:62px}
 .tmbest ol.tmb-ideas{gap:8px} .tmbest ol.tmb-ideas li{display:grid;grid-template-columns:auto auto 1fr;align-items:start;gap:8px;flex-wrap:nowrap}
 .tmbest ol.tmb-ideas .tmb-t{padding-top:1px} .tmb-x{display:flex;flex-direction:column;min-width:0} .tmb-x b{font-weight:500;display:flex;align-items:center;gap:8px} .tmb-x .msg{font-size:13px;margin-left:18px}
+
+/* Parking for the outing */
+.planpark{margin-top:6px}
+.pkbox{margin:6px 0 4px;padding:10px 12px;border:1px solid var(--line);border-radius:12px}
+.pkday{margin:0 0 8px}
+.pklist{list-style:none;margin:0 0 8px;padding:0;display:flex;flex-direction:column;gap:10px}
+.pk{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:start}
+.pk .pkdot{width:12px;height:12px;border-radius:3px;margin-top:5px;background:#9aa0a6}
+.pk.free .pkdot{background:#2fa84f} .pk.paid .pkdot{background:#e0a100} .pk.part .pkdot{background:#d9534f}
+.pk .pkt{display:flex;flex-direction:column;gap:2px;min-width:0;font-size:14px} .pk .pkt span{color:var(--muted);font-size:13px}
+.pk .pkb{grid-column:2;display:flex;gap:8px;flex-wrap:wrap} .pk .pkb .chip{min-height:36px}
+.pk.on .pkt b::after{content:" ✓"}
+.m-pkc{stroke:#fff} .m-pkc.free{fill:#2fa84f} .m-pkc.paid{fill:#e0a100} .m-pkc.part{fill:#d9534f}
+.m-pkd{fill:#2563eb;stroke:#fff} .m-pkn{fill:#fff;font-weight:800;pointer-events:none}
+.m-pkleg{fill:none;stroke:#2563eb;stroke-linecap:round} .m-pkleg.back{opacity:.55}
+.m-pk,.m-pkc{pointer-events:none}
 </style>
 
 <div class="app">
@@ -3663,7 +3679,7 @@ function renderNow(){
 /* Saved on the device. When the browser's storage is full, a save of your own data (shots, plans, walks, notes) first drops the
    copies that can be fetched again, largest first in practice (closures and shoots, pedestrian counts, the forecast, prices, events),
    then tries again; App health records it. A copy that cannot be stored is simply not kept. set() says whether the save stuck. */
-const STORE_CACHES = ["works","permits","ped","mta","weather","prices","events","photosWarm"];
+const STORE_CACHES = ["works","permits","ped","mta","weather","prices","events","photosWarm","parking"];
 const store = {
   get(k,d){ try{ const v=localStorage.getItem("shotlist."+k); return v===null?d:JSON.parse(v);}catch(e){return d;} },
   set(k,v){ let txt; try{ txt=JSON.stringify(v); }catch(e){ return false; }
@@ -6228,9 +6244,9 @@ const ideasMins = I => I&&I.length ? I.reduce((a,x)=>a+ideaMins(x),0) : 20;
 /* A stop's length: its ideas' minutes plus what you added or took off on the map; an event keeps its own */
 const stopMins = s => s.ev ? (s.mins||120) : Math.max(10, ideasMins(s.ideas)+(s.adj||0));
 /* Today's outing: kept on the device so it survives closing the app; editable from the map. */
-function savePlan(){ const p=state.plan; store.set("plan", p ? {start:+p.start,end:+p.end,from:p.from||null,fromHome:!!p.fromHome,stops:p.stops.map(s=>({place:s.place,at:+s.at,key:s.key,ideas:s.ideas.map(x=>x.id),leg:s.leg||null,ev:s.ev||null,mins:s.mins||null,adj:s.adj||0,mine:!!s.mine}))} : null); }
+function savePlan(){ const p=state.plan; store.set("plan", p ? {start:+p.start,end:+p.end,from:p.from||null,fromHome:!!p.fromHome,park:p.park||null,stops:p.stops.map(s=>({place:s.place,at:+s.at,key:s.key,ideas:s.ideas.map(x=>x.id),leg:s.leg||null,ev:s.ev||null,mins:s.mins||null,adj:s.adj||0,mine:!!s.mine}))} : null); }
 function loadPlan(){ const p=store.get("plan",null); if(!p||!p.stops||!p.stops.length||p.end<Date.now()-12*36e5) return null;
-  return {start:new Date(p.start),end:new Date(p.end),from:p.from&&typeof p.from.lat==="number"?p.from:null,fromHome:!!p.fromHome,stops:p.stops.filter(s=>PLACES[s.place]).map(s=>({place:s.place,at:new Date(s.at),key:s.key,ideas:s.ideas.map(id=>IDEAS.find(x=>x.id===id)).filter(Boolean),leg:s.leg,ev:s.ev||undefined,mins:s.mins||undefined,adj:s.adj||0,mine:!!s.mine}))}; }
+  return {start:new Date(p.start),end:new Date(p.end),from:p.from&&typeof p.from.lat==="number"?p.from:null,fromHome:!!p.fromHome,park:p.park&&typeof p.park.lat==="number"?p.park:null,stops:p.stops.filter(s=>PLACES[s.place]).map(s=>({place:s.place,at:new Date(s.at),key:s.key,ideas:s.ideas.map(id=>IDEAS.find(x=>x.id===id)).filter(Boolean),leg:s.leg,ev:s.ev||undefined,mins:s.mins||undefined,adj:s.adj||0,mine:!!s.mine}))}; }
 function pickIdeas(pid,key,n,at){ const t=at||new Date(), sky=Math.abs(t-Date.now())<40*36e5?skyAt(t):undefined, all=cityIdeas().filter(x=>x.p===pid), here=all.filter(x=>ideaOpen(x,t,sky));
   const pool=(here.length?here:all).slice().sort((a,b)=>(b.w.includes(key)-a.w.includes(key))||(state.done.has(a.id)-state.done.has(b.id)));
   const out=[]; for(const x of pool) if(out.length<n&&!out.some(o=>o.i===x.i)) out.push(x); for(const x of pool) if(out.length<n&&!out.includes(x)) out.push(x); return out; }
@@ -6277,7 +6293,7 @@ function planStart(){ const p=state.plan; if(!p) return null; const ahead=evDay(
   return H?{lat:H.lat,lon:H.lon,kind:"home",label:"Home"}:null; }
 function planStartTrip(){ const p=state.plan, S=planStart(), W=planWalk(); if(!p||!S||!W.length) return null; const to={lat:W[0].lat,lon:W[0].lon}, km=kmBetween(S,to);
   if(km<0.15) return {S,mins:0,how:"",km};
-  if(S.kind==="home"&&state.home.mode==="car") return {S,mins:travelMins(S,to,"car",W[0].t),how:"by car",km};
+  if(S.kind==="home"&&state.home.mode==="car"){ const pk=p.park; if(pk&&typeof pk.lat==="number"){ const wk=walkMin(kmBetween(pk,to)); return {S,mins:travelMins(S,pk,"car",W[0].t)+wk,how:"by car, then "+wk+" min on foot from the car",km}; } return {S,mins:travelMins(S,to,"car",W[0].t),how:"by car",km}; }
   if(km<=1.6) return {S,mins:walkMin(km),how:"on foot",km};
   return {S,mins:travelMins(S,to,"transit",W[0].t),how:S.kind==="home"?"by bus and subway":"by subway",km}; }
 /* The outing as a walk between spots: each planned idea's own spot to stand (or the place's starting point when it has none), in
@@ -6294,11 +6310,16 @@ function planWalk(){ const p=state.plan; if(!p) return []; const out=[];
 function planWalkNext(W){ const p=state.plan; if(!p||!W.length) return null; const now=Date.now(); if(evDay(p.start)>evDay(new Date())) return W[0]; return W.find(w=>+w.t+(w.mins||20)*6e4>now)||W[W.length-1]; }
 function planWalkSvg(f,u,w,x0,y0,x1,y1){ const W=planWalk(); if(W.length<2&&!W.length) return {route:"",marks:""}; const P=W.map(o=>mapXY(o.lat,o.lon)), nx=planWalkNext(W);
   let route=W.length>1?'<path d="M'+P.map(([x,y])=>f(x)+' '+f(y)).join("L")+'" class="m-route" stroke-width="'+f(3*u)+'" stroke-dasharray="'+f(7*u)+' '+f(5*u)+'"/>':"";
-  let leg="", start=""; const T=planStartTrip(); if(T&&W.length){ const [sx,sy]=mapXY(T.S.lat,T.S.lon), [ax,ay]=P[0], r=(w<60?8:6.5)*u;
+  let leg="", start=""; const T=planStartTrip(), pk=state.plan&&state.plan.park&&typeof state.plan.park.lat==="number"?state.plan.park:null, car=pk&&T&&T.S.kind==="home"&&state.home&&state.home.mode==="car"; if(T&&W.length){ const [sx,sy]=mapXY(T.S.lat,T.S.lon), [ax,ay]=car?mapXY(pk.lat,pk.lon):P[0], r=(w<60?8:6.5)*u;
     if(T.km>=0.15) leg='<path d="M'+f(sx)+' '+f(sy)+'L'+f(ax)+' '+f(ay)+'" class="m-startleg" stroke-width="'+f(2.2*u)+'" stroke-dasharray="'+f(2*u)+' '+f(4*u)+'"/>';
     if(sx>x0-10*u&&sx<x1+10*u&&sy>y0-10*u&&sy<y1+10*u) start='<g class="m-pstart"><circle cx="'+f(sx)+'" cy="'+f(sy)+'" r="'+f(r)+'" stroke-width="'+f(1.6*u)+'" class="m-pstartd"/><text x="'+f(sx)+'" y="'+f(sy+r*0.42)+'" text-anchor="middle" font-size="'+f(r*1.15)+'" class="m-pstartn">'+(T.S.kind==="home"?'⌂':'S')+'</text>'+
       (w<200?'<text x="'+f(sx+r+3*u)+'" y="'+f(sy+3*u)+'" font-size="'+f(8.5*u)+'" class="m-wett">'+esc('Start · '+T.S.label.toLowerCase()+(T.mins?' · '+T.mins+' min '+T.how:''))+'</text>':'')+'</g>'; }
-  route=leg+route;
+  route=leg+route; let pkm="";
+  if(state.parkOpen&&PARK.faces&&w<90){ const L=(pkPick()||[]).slice(0,10); L.forEach(o=>{ const [x,y]=mapXY(o.f.lat,o.f.lon); if(x<x0||x>x1||y<y0||y>y1) return; pkm+='<circle cx="'+f(x)+'" cy="'+f(y)+'" r="'+f(3.6*u)+'" class="m-pkc '+o.r.st+'" stroke-width="'+f(1.2*u)+'"/>'; }); }
+  if(pk&&W.length){ const [px,py]=mapXY(pk.lat,pk.lon), [ax,ay]=P[0], [zx,zy]=P[P.length-1], r=(w<60?8:6.5)*u;
+    route+='<path d="M'+f(px)+' '+f(py)+'L'+f(ax)+' '+f(ay)+'" class="m-pkleg" stroke-width="'+f(2.2*u)+'" stroke-dasharray="'+f(2*u)+' '+f(4*u)+'"/>'+(W.length>1?'<path d="M'+f(zx)+' '+f(zy)+'L'+f(px)+' '+f(py)+'" class="m-pkleg back" stroke-width="'+f(1.6*u)+'" stroke-dasharray="'+f(2*u)+' '+f(5*u)+'"/>':'');
+    pkm+='<g class="m-pk" aria-label="'+esc('Parking: '+pk.label)+'"><rect x="'+f(px-r)+'" y="'+f(py-r)+'" width="'+f(2*r)+'" height="'+f(2*r)+'" rx="'+f(r*0.3)+'" class="m-pkd" stroke-width="'+f(1.4*u)+'"/><text x="'+f(px)+'" y="'+f(py+r*0.42)+'" text-anchor="middle" font-size="'+f(r*1.2)+'" class="m-pkn">P</text>'+(w<60?'<text x="'+f(px+r+3*u)+'" y="'+f(py+3*u)+'" font-size="'+f(8.5*u)+'" class="m-wett">'+esc('Park · '+pk.label.split(',')[0])+'</text>':'')+'</g>'; }
+  start=pkm+start;
   if(w>=130) return {route,marks:start}; let marks=start;
   W.forEach((o,i)=>{ const [x,y]=P[i]; if(x<x0-10*u||x>x1+10*u||y<y0-10*u||y>y1+10*u) return; const lf=o.face!=null?lightFacing(o.face,o.t):null, r=(w<60?8:6.5)*u, on=nx===o;
     marks+='<g class="m-pspot'+(on?' next':'')+(o.id?' m-spotg':'')+'"'+(o.id?' data-s="'+esc(o.id)+'" role="button" tabindex="0"':'')+' aria-label="'+esc('Walk spot '+o.k+': '+o.name+', '+hmText(o.t.getHours()*60+o.t.getMinutes())+(lf?', '+lf.txt:''))+'">'+
@@ -6311,6 +6332,134 @@ function planStartHtml(){ const p=state.plan, T=planStartTrip(); if(!p) return "
     (open?'<div class="intents startpick">'+(H?'<button type="button" class="chip" data-startset="home" aria-pressed="'+(!!T&&T.S.kind==="home")+'">⌂ Home</button>':'')+(state.pos?'<button type="button" class="chip" data-startset="here">◎ Where I am now</button>':'')+
       '<button type="button" class="chip" data-startset="pick" aria-pressed="'+(state.startPick==="map")+'">Pick on the map</button>'+(p.from||p.fromHome?'<button type="button" class="chip" data-startset="auto">Automatic</button>':'')+'</div>'+
       (state.startPick==="map"?'<p class="msg">Press and hold on the map where you will start.</p>':''):''); }
+/* Parking for an outing by car: free street parking first.
+   NYC DOT's parking meters (meter hours by block) and parking-regulation signs (street cleaning, No Parking / Standing / Stopping),
+   read for the hours the car will sit there: from walking to the first spot until walking back from the last.
+   Meters are not in effect on Sundays (Administrative Code 19-167) or on major legal holidays, when street cleaning is also
+   suspended; street cleaning is suspended on the other holidays in DOT's calendar (2026 here). The installed app fetches the
+   blocks around the outing once a week; the curb signs always have the last word. */
+const PK_METER="https://data.cityofnewyork.us/resource/693u-uax6.json", PK_SIGN="https://data.cityofnewyork.us/resource/nfid-uabd.json";
+const PARK={key:"",faces:null,busy:false,err:false,at:0};
+/* DOT's 2026 suspensions of street cleaning (month-day), besides the major legal holidays worked out below */
+const ASP_2026=["01-06","01-19","02-12","02-16","02-17","02-18","03-03","03-20","03-21","04-02","04-03","04-08","04-09","04-10","05-14","05-22","05-23","05-27","05-28","06-19","07-23","08-15","09-12","09-13","09-21","09-26","09-27","10-03","10-04","10-12","11-01","11-03","11-08","11-11","12-08"];
+const nthDow=(y,m,dow,n)=>{ const d=new Date(y,m,1); d.setDate(1+((dow-d.getDay()+7)%7)+(n-1)*7); return d; };
+const lastDow=(y,m,dow)=>{ const d=new Date(y,m+1,0); d.setDate(d.getDate()-((d.getDay()-dow+7)%7)); return d; };
+/* Major legal holidays: meters and street cleaning off, and No Parking / Standing / Stopping rules that are not seven-day rules */
+function pkMajor(d){ const y=d.getFullYear(), m=d.getMonth(), dd=d.getDate(), same=x=>x.getMonth()===m&&x.getDate()===dd, j4=new Date(y,6,4).getDay();
+  if((m===0&&dd===1)||(m===11&&dd===25)||(m===6&&dd===4)) return true;
+  if(m===6&&((dd===3&&j4===6)||(dd===5&&j4===0))) return true;
+  return same(lastDow(y,4,1))||same(nthDow(y,8,1,1))||same(nthDow(y,10,4,4)); }
+function pkAspOff(d){ if(pkMajor(d)) return true; const k=String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); return d.getFullYear()===2026&&ASP_2026.includes(k); }
+const pkCalKnown = d => d.getFullYear()===2026;
+const PK_DAY={SUN:0,MON:1,TUE:2,WED:3,THU:4,FRI:5,SAT:6};
+/* Days a sign or meter applies: ranges (MON THRU FRI, Mon-Sat), lists (MON & THURS), EXCEPT SUNDAY; every day when none is named */
+function pkDays(t){ const all=[1,1,1,1,1,1,1].map(Boolean), tok=/\b(SUN|MON|TUE|WED|THU|FRI|SAT)[A-Z]*\.?/g;
+  if(/SCHOOL DAYS/.test(t)) return [false,true,true,true,true,true,false];
+  const ex=t.match(/EXCEPT\s+((?:(?:SUN|MON|TUE|WED|THU|FRI|SAT)[A-Z]*\.?\s*(?:&|AND|,)?\s*)+)/);
+  if(ex){ const out=all.slice(); (ex[1].match(tok)||[]).forEach(w=>{ out[PK_DAY[w.slice(0,3)]]=false; }); return out; }
+  const r=t.match(/\b(SUN|MON|TUE|WED|THU|FRI|SAT)[A-Z]*\.?\s*(?:THRU|THROUGH|-|TO)\s*(SUN|MON|TUE|WED|THU|FRI|SAT)[A-Z]*/);
+  if(r){ const out=all.map(()=>false); let a=PK_DAY[r[1]], b=PK_DAY[r[2]]; for(let i=0;i<7;i++){ out[(a+i)%7]=true; if((a+i)%7===b) break; } return out; }
+  const w=t.match(tok); if(!w) return all; const out=all.map(()=>false); w.forEach(x=>{ out[PK_DAY[x.slice(0,3)]]=true; }); return out; }
+/* Times of day in minutes: 8AM-6PM, 11:30AM-1PM, 8-9:30AM, 7PM-7AM, MIDNIGHT, NOON; and DOT meter hours like 0900-1900 */
+function pkTimes(t){ if(/ANYTIME|24 HOURS|ALL TIMES/.test(t)) return [[0,1440]]; const out=[];
+  const hm=(h,mi,ap)=>{ h=+h; mi=+(mi||0); if(ap==="PM"&&h<12) h+=12; if(ap==="AM"&&h===12) h=0; return h*60+mi; };
+  const re=/(\d{1,2})(?::(\d{2}))?\s*(AM|PM|A\.M\.|P\.M\.)?\s*(?:-|TO)\s*(?:(MIDNIGHT|NOON)|(\d{1,2})(?::(\d{2}))?\s*(AM|PM|A\.M\.|P\.M\.|MIDNIGHT|NOON)?)/g; let m;
+  while((m=re.exec(t))){ const a1=m[3]&&m[3][0]+"M", word=m[4]||(m[7]&&/MIDNIGHT|NOON/.test(m[7])?m[7]:null);
+    let e, e2=m[7]&&!word?m[7][0]+"M":null;
+    if(word==="MIDNIGHT") e=1440; else if(word==="NOON") e=720; else if(!e2&&!a1) continue; else e=hm(m[5],m[6],e2||a1);
+    let s=hm(m[1],m[2],a1||e2||"AM"); if(!a1&&e2==="PM"&&s>e) s=hm(m[1],m[2],"AM");
+    if(e===0) e=1440; if(s===e) continue; if(s<e) out.push([s,e]); else { out.push([s,1440]); out.push([0,e]); } }
+  const mt=t.match(/\b(\d{4})\s*-\s*(\d{4})\b/g); if(mt) mt.forEach(x=>{ const [a,b]=x.split("-").map(v=>v.trim()); const s=+a.slice(0,2)*60+ +a.slice(2), e=+b.slice(0,2)*60+ +b.slice(2); if(e>s) out.push([s,e===0?1440:e]); });
+  return out; }
+/* One sign's rule for a passenger car: blk (no parking/standing/stopping, commercial or authorised only), asp (street cleaning),
+   meter (pay, with a time limit), lim (time limit, free); null for signs that do not limit a car (arrows, METERS NOT IN EFFECT ...) */
+function pkSign(desc){ const t=String(desc||"").toUpperCase().replace(/\s+/g," "); if(!t||t==="SEE NOTE"||/NOT IN EFFECT/.test(t)) return null;
+  const lim=(t.match(/(\d+)\s*(?:HOUR|HR)/)||[])[1], base={days:pkDays(t),times:pkTimes(t),lim:lim?+lim:null,seven:false};
+  let k=null;
+  if(/NO STOPPING|NO STANDING/.test(t)) k="blk";
+  else if(/NO PARKING/.test(t)) k=/BROOM|SANITATION|STREET CLEANING/.test(t)?"asp":"blk";
+  else if(/COMMERCIAL/.test(t)&&/METER|PARKING/.test(t)) k="blk";
+  else if(/METER|MUNI|PAY[- ]?BY|PAY AT|PAY HERE/.test(t)) k="meter";
+  else if(/AUTHORIZED VEHICLES|BUS STOP|TAXI|HOTEL LOADING|AMBULANCE|FIRE ZONE|CARSHARE|CAR SHARE/.test(t)) k="blk";
+  else if(/HOUR PARKING|HR PARKING/.test(t)) k="lim";
+  if(!k) return null; if(!base.times.length) base.times=[[0,1440]];
+  base.seven=base.days.every(Boolean); return Object.assign(base,{k}); }
+/* DOT meter hours: "2HR Pas Mon-Sat 0900-1900", "2HR Com Mon-Sat 0700-1300 / 2HR Pas Mon-Sat 1300-1900" */
+function pkMeter(h){ return String(h||"").split("/").map(seg=>{ const t=seg.toUpperCase().trim(); if(!t) return null; const times=pkTimes(t); if(!times.length) return null;
+  const lim=(t.match(/(\d+)\s*HR/)||[])[1]; return {k:/\bCOM/.test(t)?"blk":"meter",days:pkDays(t),times,lim:lim?+lim:null,seven:false}; }).filter(Boolean); }
+/* State Plane (NY Long Island, US feet) to latitude and longitude: the sign coordinates DOT publishes */
+const PK_LCC=(()=>{ const a=6378137, f=1/298.257222101, e=Math.sqrt(2*f-f*f), r=Math.PI/180, p1=(41+2/60)*r, p2=(40+40/60)*r, p0=(40+10/60)*r, US=1200/3937;
+  const m=p=>Math.cos(p)/Math.sqrt(1-e*e*Math.sin(p)**2), t=p=>Math.tan(Math.PI/4-p/2)/((1-e*Math.sin(p))/(1+e*Math.sin(p)))**(e/2);
+  const n=(Math.log(m(p1))-Math.log(m(p2)))/(Math.log(t(p1))-Math.log(t(p2))), F=m(p1)/(n*t(p1)**n), r0=a*F*t(p0)**n;
+  return {inv(x,y){ x=x*US-300000; y=r0-y*US; const rr=Math.sign(n)*Math.hypot(x,y), th=Math.atan2(x,y), tt=(rr/(a*F))**(1/n); let p=Math.PI/2-2*Math.atan(tt);
+      for(let i=0;i<6;i++) p=Math.PI/2-2*Math.atan(tt*((1-e*Math.sin(p))/(1+e*Math.sin(p)))**(e/2)); return {lat:p/r,lon:th/n/r-74}; },
+    fwd(lat,lon){ const p=lat*r, rr=a*F*t(p)**n, th=n*(lon+74)*r; return {x:(300000+rr*Math.sin(th))/US,y:(r0-rr*Math.cos(th))/US}; }}; })();
+const pkStreet = s => String(s||"").toLowerCase().replace(/\b\w/g,c=>c.toUpperCase()).replace(/\bStreet\b/g,"St").replace(/\bAvenue\b/g,"Av").replace(/\bPlace\b/g,"Pl").replace(/\bBoulevard\b/g,"Blvd").replace(/\bWest\b/g,"W").replace(/\bEast\b/g,"E").replace(/\bRoad\b/g,"Rd").replace(/\bDrive\b/g,"Dr").replace(/\s+/g," ").trim();
+const PK_SIDE={N:"north",S:"south",E:"east",W:"west"};
+/* Block faces: one side of one block, with its rules and where it is */
+function pkFaces(meters,signs){ const F=new Map(), face=(on,fr,to,side)=>{ const k=[on,fr,to,side].map(v=>String(v||"").toUpperCase().trim()).join("|"); let f=F.get(k); if(!f){ f={k,on:pkStreet(on),fr:pkStreet(fr),to:pkStreet(to),side:String(side||"").toUpperCase().trim(),rules:[],pts:[],meters:0}; F.set(k,f); } return f; };
+  (meters||[]).forEach(m=>{ const lat=+m.lat, lon=+m.long; if(!m.on_street||!isFinite(lat)||!isFinite(lon)||(m.status&&!/active/i.test(m.status))) return; const f=face(m.on_street,m.from_street,m.to_street,m.side_of_street); f.pts.push([lat,lon]); f.meters++; if(!f.mh){ f.mh=m.meter_hours; f.rules.push(...pkMeter(m.meter_hours)); } });
+  (signs||[]).forEach(s=>{ const x=+s.sign_x_coord, y=+s.sign_y_coord; if(!s.on_street||!isFinite(x)||!isFinite(y)||!x) return; const r=pkSign(s.sign_description); const f=face(s.on_street,s.from_street,s.to_street,s.side_of_street); const g=PK_LCC.inv(x,y); f.pts.push([g.lat,g.lon]); if(r&&!f.rules.some(o=>o.k===r.k&&JSON.stringify(o.times)===JSON.stringify(r.times)&&o.days.join()===r.days.join())) f.rules.push(r); });
+  return [...F.values()].filter(f=>f.pts.length&&f.rules.length).map(f=>{ const n=f.pts.length; f.lat=f.pts.reduce((a,p)=>a+p[0],0)/n; f.lon=f.pts.reduce((a,p)=>a+p[1],0)/n; delete f.pts; return f; }); }
+/* A block face over the hours the car sits there (minutes m0..m1 on day d): free, free but metered later, paid, or not for parking */
+function pkEval(f,d,m0,m1){ const dow=d.getDay(), major=pkMajor(d), asOff=pkAspOff(d), on=r=>r.days[dow]&&!(major&&(r.k==="meter"||(r.k==="blk"&&!r.seven)))&&!(asOff&&r.k==="asp")&&!(dow===0&&r.k==="meter");
+  let blockAt=Infinity, paidAt=Infinity, lim=null, why="", allowed=false;
+  for(const r of f.rules){ if(!(r.k==="blk"&&r.seven&&r.times.some(([s,e])=>s===0&&e===1440))) allowed=true; if(!on(r)) continue;
+    for(const [s,e] of r.times){ if(e<=m0||s>=m1) continue; const at=Math.max(s,m0);
+      if(r.k==="blk"||r.k==="asp"){ if(at<blockAt){ blockAt=at; why=r.k==="asp"?"street cleaning":"no parking"; } }
+      else if(r.k==="meter"){ if(at<paidAt) paidAt=at; if(r.lim) lim=lim===null?r.lim:Math.min(lim,r.lim); }
+      else if(r.k==="lim"&&r.lim&&m1-m0>r.lim*60){ lim=lim===null?r.lim:Math.min(lim,r.lim); } } }
+  if(!allowed||blockAt<=m0) return {st:"no"};
+  if(blockAt<m1) return {st:"part",until:blockAt,why,paidAt:paidAt<blockAt?paidAt:null};
+  if(paidAt<m1) return {st:"paid",from:paidAt,lim};
+  return {st:"free",lim}; }
+/* The hours the car is parked, and the area to look in: around the first spot and the last */
+function pkWindow(){ const W=planWalk(); if(!W.length) return null; const a=W[0], z=W[W.length-1], end=new Date(+z.t+(z.mins||20)*6e4);
+  return {a,z,d:evDay(a.t),m0:Math.max(0,a.t.getHours()*60+a.t.getMinutes()-15),m1:Math.min(1440,end.getHours()*60+end.getMinutes()+20+(evDay(end)>evDay(a.t)?1440:0))}; }
+function pkBox(){ const W=planWalk(); if(!W.length) return null; const a=W[0], z=W[W.length-1], far=kmBetween(a,z)>2.2, P=far?[a]:[a,z];
+  let n=-90,s=90,e=-180,w=180; P.forEach(p=>{ n=Math.max(n,p.lat); s=Math.min(s,p.lat); e=Math.max(e,p.lon); w=Math.min(w,p.lon); });
+  const dl=0.0045, dn=0.006; n+=dl; s-=dl; e+=dn; w-=dn; const r=v=>Math.round(v*500)/500; return {n:r(n+0.001),s:r(s-0.001),e:r(e+0.001),w:r(w-0.001)}; }
+function pkGet(force){ if(!PHOTOS_INLINE) return; const B=pkBox(); if(!B) return; const key=[B.n,B.s,B.e,B.w].join(",");
+  if(PARK.key!==key){ PARK.key=key; PARK.faces=null; PARK.err=false; const c=store.get("parking",null); if(c&&c.key===key&&Array.isArray(c.faces)&&Date.now()-c.at<7*864e5){ PARK.faces=c.faces; PARK.at=c.at; return; } }
+  else if(PARK.faces&&!force) return;
+  if(PARK.busy) return; PARK.busy=true;
+  const ne=PK_LCC.fwd(B.n,B.e), sw=PK_LCC.fwd(B.s,B.w);
+  const mu=PK_METER+"?$select=meter_hours,on_street,side_of_street,from_street,to_street,lat,long,status&$where="+encodeURIComponent("within_box(location,"+B.n+","+B.w+","+B.s+","+B.e+")")+"&$limit=5000";
+  const su=PK_SIGN+"?$select=on_street,from_street,to_street,side_of_street,sign_description,sign_x_coord,sign_y_coord&$where="+encodeURIComponent("record_type='Current' AND sign_x_coord between "+Math.round(sw.x)+" and "+Math.round(ne.x)+" AND sign_y_coord between "+Math.round(sw.y)+" and "+Math.round(ne.y)+" AND (sign_description like '%PARKING%' OR sign_description like '%STANDING%' OR sign_description like '%STOPPING%' OR sign_description like '%METER%')")+"&$limit=8000";
+  const j=u=>fetch(u).then(r=>r.ok?r.json():Promise.reject(r.status));
+  Promise.all([j(mu).catch(()=>[]),j(su)]).then(([m,s])=>{ if(PARK.key!==key) return; const faces=pkFaces(Array.isArray(m)?m:[],Array.isArray(s)?s:[]); PARK.faces=faces; PARK.at=Date.now(); PARK.err=false; try{ store.set("parking",{key,at:PARK.at,faces}); }catch(e){} })
+    .catch(()=>{ PARK.err=true; }).finally(()=>{ PARK.busy=false; if(state.view==="map"){ mapPanel(); mapDraw(); } }); }
+/* The best places to leave the car: free for the whole outing first, then free until a meter starts, then paid; nearest to the
+   first spot and to the last (you walk back to the car) first. One per block. */
+function pkPick(){ const W=pkWindow(); if(!W||!PARK.faces) return null; const out=[], seen=new Map();
+  PARK.faces.forEach(f=>{ const r=pkEval(f,W.d,W.m0,W.m1); if(r.st==="no") return; const to=walkMin(kmBetween(f,W.a)), back=walkMin(kmBetween(W.z,f)); if(to>12) return;
+    const rank=r.st==="free"?0:r.st==="paid"?(r.from-W.m0>=60?1:2):3, o={f,r,to,back,score:rank*100+to*2+back};
+    const b=[f.on,f.fr,f.to].join("|"), had=seen.get(b); if(had&&had.score<=o.score) return; if(had) out.splice(out.indexOf(had),1); seen.set(b,o); out.push(o); });
+  return out.sort((a,b)=>a.score-b.score); }
+function pkDayRule(d){ const dow=d.getDay(), major=pkMajor(d), asp=pkAspOff(d);
+  if(major) return "A major legal holiday: meters and street cleaning are off, and so are No Parking / Standing / Stopping rules that are not seven-day rules.";
+  if(dow===0) return "Sunday: parking meters are not in effect, and street cleaning rarely runs, so most legal curb space is free.";
+  if(asp) return "Street cleaning is suspended for a holiday; meters still run.";
+  return pkCalKnown(d)?"Meters and street cleaning run as posted.":"Meters and street cleaning run as posted (DOT has not published this year's holiday suspensions here yet).";
+}
+function pkLine(o,W){ const r=o.r, f=o.f, side=PK_SIDE[f.side]?' ('+PK_SIDE[f.side]+' side)':'', where=f.on+(f.fr&&f.to?', '+f.fr+' to '+f.to:'')+side;
+  const st=r.st==="free"?'Free for the whole outing'+(r.lim?' · '+r.lim+'-hour limit':''):r.st==="paid"?(r.from>W.m0?'Free until '+hmText(r.from)+', then metered':'Metered')+(r.lim?' · '+r.lim+'-hour limit':''):'Free until '+hmText(r.until)+' ('+r.why+'), then move the car';
+  return {where,st}; }
+function planParkHtml(){ const p=state.plan; if(!p) return ""; const T=planStartTrip(), car=state.home&&state.home.mode==="car"; const W=pkWindow(); if(!W) return "";
+  const open=!!state.parkOpen, pk=p.park;
+  const head='<p class="msg planpark"><b>Parking:</b> '+(pk?esc(pk.label)+' · '+esc(pk.st):car?'not chosen yet':'only if you drive')+' <button type="button" class="linkbtn" data-parkopen="1" aria-expanded="'+open+'">'+(open?'Done':pk?'Change':'Find free parking')+'</button></p>';
+  if(!open) return head;
+  const q=encodeURIComponent("parking near "+W.a.lat.toFixed(5)+","+W.a.lon.toFixed(5)), gm='<a class="chip" href="https://www.google.com/maps/search/?api=1&query='+q+'" target="_blank" rel="noopener">Garages nearby ↗</a>';
+  let body='<p class="msg pkday">'+esc(pkDayRule(W.d))+' The car is parked about '+hmText(W.m0)+' to '+hmText(W.m1)+'.</p>';
+  if(!PHOTOS_INLINE) body+='<p class="msg">Block-by-block parking rules load in the installed app.</p>';
+  else if(!PARK.faces) body+='<p class="msg">'+(PARK.err?'Could not load the parking rules. <button type="button" class="linkbtn" data-parkretry="1">Try again</button>':'Loading the parking rules for these blocks…')+'</p>';
+  else { const L=pkPick()||[]; const free=L.filter(o=>o.r.st==="free"), rest=L.filter(o=>o.r.st!=="free"), show=free.slice(0,4).concat(rest.slice(0,Math.max(1,5-Math.min(4,free.length)))).slice(0,5);
+    body+=show.length?'<ol class="pklist">'+show.map(o=>{ const t=pkLine(o,W), on=pk&&pk.k===o.f.k; return '<li class="pk '+o.r.st+(on?' on':'')+'"><span class="pkdot"></span><span class="pkt"><b>'+esc(t.where)+'</b><span>'+esc(t.st)+'</span><span>'+o.to+' min walk to spot 1 · '+o.back+' min back from the last spot</span></span>'+
+        '<span class="pkb"><button type="button" class="chip'+(on?'':' primary')+'" data-parkset="'+esc(o.f.k)+'">'+(on?'Chosen':'Park here')+'</button><a class="chip" href="https://www.google.com/maps/dir/?api=1&destination='+o.f.lat.toFixed(5)+','+o.f.lon.toFixed(5)+'&travelmode=driving" target="_blank" rel="noopener">Drive ↗</a></span></li>'; }).join("")+'</ol>'
+      :'<p class="msg">No curb parking found near the first spot for these hours.</p>'; }
+  return head+'<div class="pkbox">'+body+'<div class="callinks">'+gm+(pk?'<button type="button" class="chip" data-parkset="">Clear parking</button>':'')+'</div><p class="hint">From NYC DOT meter and sign records. Always read the signs at the curb: hydrants (15 ft), bus stops, driveways and temporary signs are not in the records.</p></div>'; }
+/* Walk legs from the parked car */
+function pkLegs(){ const p=state.plan, pk=p&&p.park, W=planWalk(); if(!pk||!W.length) return null; return {to:walkMin(kmBetween(pk,W[0])),back:walkMin(kmBetween(W[W.length-1],pk))}; }
 /* Time at each stop: each idea's minutes, and − / + 5 minutes for the stop; the rest of the outing moves with it */
 function planTimesHtml(){ const p=state.plan; if(!p) return ""; const open=!!state.planTimesOpen, tf=d=>hmText(d.getHours()*60+d.getMinutes());
   return '<p class="msg plantimes-h"><button type="button" class="linkbtn" data-plantimes="1" aria-expanded="'+open+'">Time at each stop '+(open?'▴':'▾')+'</button></p>'+(open?'<div class="plantimes">'+p.stops.map((s,n)=>{ const mins=stopMins(s), end=new Date(+s.at+mins*6e4);
@@ -6368,7 +6517,7 @@ function mapPlanBar(){ const p=state.plan, tf=d=>d.toLocaleTimeString("en-US",{h
   const nx=nextStopIndex();
   const pday=Math.round((evDay(p.start)-evDay(new Date()))/864e5);
   return '<div class="planbar"><div class="planbar-head"><b>'+(pday===1?'Tomorrow\u2019s outing':pday>1?esc(DAY_NAMES[p.start.getDay()])+'\u2019s outing':'Today\u2019s outing')+'</b><span>'+tf(p.start)+' to about '+tf(p.end)+'</span><button type="button" class="chip" data-openplan="1">Details</button><button type="button" class="chip" data-clearplan="1">Clear</button></div>'+planStepRow()+
-    (()=>{ const lb=planLeaveBy(), ok=planBestOK(), m=state.planMsg; return planWarnHtml()+(lb?'<p class="msg planleave">'+esc(lb)+'</p>':'')+(ok?'<div class="intents planbest"><button type="button" class="chip" data-planbest="1">Best order for the light</button></div>':'')+(m?'<p class="msg planmsg">'+esc(m)+'</p>':'')+planStartHtml()+planWalkHtml()+planTimesHtml(); })()+
+    (()=>{ const lb=planLeaveBy(), ok=planBestOK(), m=state.planMsg; return planWarnHtml()+(lb?'<p class="msg planleave">'+esc(lb)+'</p>':'')+(ok?'<div class="intents planbest"><button type="button" class="chip" data-planbest="1">Best order for the light</button></div>':'')+(m?'<p class="msg planmsg">'+esc(m)+'</p>':'')+planStartHtml()+planParkHtml()+planWalkHtml()+planTimesHtml(); })()+
     (planWalk().length?'':'<div class="intents planstops">'+p.stops.map((s,n)=>'<button type="button" class="chip stopchip'+(n===nx?" next":"")+'" data-stop="'+n+'"><span class="stopn">'+(n+1)+'</span>'+esc(s.ev?(EVENTS.find(x=>x.id===s.ev)||{name:s.ev}).name:PLACES[s.place].name)+' · '+tf(s.at)+'</button>').join("")+'</div>')+planLinks()+'</div>'; }
 function mapPts(){ const key=lightAt(mapNow()), ideas=cityIdeas().filter(i=>(state.mapIntent==="all"||i.i===state.mapIntent)&&(!state.mapDark||i.w.includes("night"))), t=mapNow(), cc=CITIES[state.city], night=sunPos(t,cc.lat,cc.lon).alt<-6, sky=night?skyAt(t):null;
   return Object.keys(CITIES[state.city].places).filter(id=>typeof PLACES[id].lat==="number").map(id=>{ const [x,y]=mapXY(PLACES[id].lat,PLACES[id].lon), mine=ideas.filter(i=>i.p===id);
@@ -8562,7 +8711,7 @@ function healthHtml(){ const L=healthList().slice().reverse(), wk=Date.now()-7*8
   return '<p class="msg">'+(nS||nE?'In the last 7 days: '+nS+' stall'+(nS===1?'':'s')+', '+nE+' error'+(nE===1?'':'s')+', opened '+nO+' time'+(nO===1?'':'s')+'.':'No stalls or errors recorded in the last 7 days'+(nO?' (opened '+nO+' time'+(nO===1?'':'s')+')':'')+'.')+' Data on this device: '+Math.round(kb)+' KB.</p>'+
     (L.length?'<ul class="healthlog">'+L.slice(0,25).map(x=>'<li class="hl-'+x.k+'"><b>'+when(x.t)+'</b> '+esc(x.k==="open"?x.m:(x.k==="stall"?"Stall: ":"Error: ")+x.m)+(x.n>1?' ×'+x.n:'')+'</li>').join("")+'</ul>':'')+
     '<div class="callinks">'+(typeof window.appUpdate==="function"?'<button type="button" class="chip" id="appUpdate">Check for updates</button>':'')+'<button type="button" class="chip" id="healthCopy">Copy report</button><button type="button" class="chip" id="healthClear">Clear</button></div><p class="msg" id="healthMsg" role="status"></p><p class="msg">Version '+APP_BUILD+'.</p>'; }
-const APP_BUILD = "Nov 7, 10:14 pm";
+const APP_BUILD = "Nov 7, 10:34 pm";
 function healthReport(){ const L=healthList(); return "Shot List health report\n"+navigator.userAgent+"\nStandalone: "+(!!(window.navigator.standalone||matchMedia("(display-mode: standalone)").matches))+"\n"+L.map(x=>new Date(x.t).toISOString()+" "+x.k+" ["+x.v+"] "+x.m+(x.n>1?" x"+x.n:"")).join("\n"); }
 /* If drawing a screen fails, say so with a way out instead of leaving a half-drawn screen that ignores taps. */
 function renderBroken(e){ healthLog("error","Drawing "+state.view+": "+(e&&e.message||e)); let b=$("brokenBar"); if(!b){ b=document.createElement("div"); b.id="brokenBar"; b.className="rowtoast on brokenbar"; b.setAttribute("role","alert"); document.body.appendChild(b); }
@@ -8784,6 +8933,11 @@ $("map").addEventListener("click",e=>{
   if(e.target.closest("[data-planprev]")){ planStep(-1); return; }
   { const pc=e.target.closest("[data-planstop]"); if(pc){ planGo(+pc.dataset.planstop); return; } }
   if(e.target.closest("[data-planall]")){ planWhole(); return; }
+  if(e.target.closest("[data-parkopen]")){ state.parkOpen=!state.parkOpen; if(state.parkOpen) pkGet(); mapPanel(); mapDraw(); return; }
+  if(e.target.closest("[data-parkretry]")){ pkGet(true); mapPanel(); return; }
+  { const ps=e.target.closest("[data-parkset]"); if(ps&&state.plan){ const k=ps.dataset.parkset, W=pkWindow(), o=k&&(pkPick()||[]).find(x=>x.f.k===k);
+      if(!k) state.plan.park=null; else if(o&&W){ const t=pkLine(o,W); state.plan.park={k,lat:+o.f.lat.toFixed(6),lon:+o.f.lon.toFixed(6),label:t.where,st:t.st}; }
+      savePlan(); mapPanel(); mapDraw(); return; } }
   if(e.target.closest("[data-plantimes]")){ state.planTimesOpen=!state.planTimesOpen; mapPanel(); return; }
   { const sa=e.target.closest("[data-stopadj]"); if(sa&&state.plan){ const [n,d]=sa.dataset.stopadj.split(":").map(Number), st=state.plan.stops[n]; if(st&&!st.ev){ st.adj=(st.adj||0)+d; if(stopMins(st)<10) st.adj-=d; retimePlan(state.plan); savePlan(); } mapPanel(); mapDraw(); return; } }
   if(e.target.closest("[data-startopen]")){ state.startPick=state.startPick?null:"open"; mapPanel(); return; }

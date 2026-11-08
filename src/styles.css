@@ -1669,3 +1669,19 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 .tmb-t{font-variant-numeric:tabular-nums;color:var(--muted);font-size:14px;min-width:62px}
 .tmbest ol.tmb-ideas{gap:8px} .tmbest ol.tmb-ideas li{display:grid;grid-template-columns:auto auto 1fr;align-items:start;gap:8px;flex-wrap:nowrap}
 .tmbest ol.tmb-ideas .tmb-t{padding-top:1px} .tmb-x{display:flex;flex-direction:column;min-width:0} .tmb-x b{font-weight:500;display:flex;align-items:center;gap:8px} .tmb-x .msg{font-size:13px;margin-left:18px}
+
+/* Parking for the outing */
+.planpark{margin-top:6px}
+.pkbox{margin:6px 0 4px;padding:10px 12px;border:1px solid var(--line);border-radius:12px}
+.pkday{margin:0 0 8px}
+.pklist{list-style:none;margin:0 0 8px;padding:0;display:flex;flex-direction:column;gap:10px}
+.pk{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:start}
+.pk .pkdot{width:12px;height:12px;border-radius:3px;margin-top:5px;background:#9aa0a6}
+.pk.free .pkdot{background:#2fa84f} .pk.paid .pkdot{background:#e0a100} .pk.part .pkdot{background:#d9534f}
+.pk .pkt{display:flex;flex-direction:column;gap:2px;min-width:0;font-size:14px} .pk .pkt span{color:var(--muted);font-size:13px}
+.pk .pkb{grid-column:2;display:flex;gap:8px;flex-wrap:wrap} .pk .pkb .chip{min-height:36px}
+.pk.on .pkt b::after{content:" ✓"}
+.m-pkc{stroke:#fff} .m-pkc.free{fill:#2fa84f} .m-pkc.paid{fill:#e0a100} .m-pkc.part{fill:#d9534f}
+.m-pkd{fill:#2563eb;stroke:#fff} .m-pkn{fill:#fff;font-weight:800;pointer-events:none}
+.m-pkleg{fill:none;stroke:#2563eb;stroke-linecap:round} .m-pkleg.back{opacity:.55}
+.m-pk,.m-pkc{pointer-events:none}

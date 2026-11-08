@@ -92,6 +92,15 @@ def run(path, name):
         _al=lambda i,routes,typ,a,b,head:{"id":i,"alert":{"active_period":[{"start":a,"end":b}],"informed_entity":[{"agency_id":"MTASBWY","route_id":r} for r in routes],"header_text":_tr(head),"transit_realtime.mercury_alert":{"alert_type":typ,"human_readable_active_period":_tr("Sun 10 AM to 8 PM")}}}
         _mta={"header":{},"entity":[_al("lmm:1",["B","D","F","M"],"Planned - Part Suspended",1791727200,1791763200,"No B D F M trains between 47-50 Sts and W 4 St"),
               _al("lmm:2",["F"],"Elevator Outage",1791727200,1791763200,"Elevator out"),_al("lmm:3",["7"],"Planned - Express to Local",1791986400,1792022400,"7 trains run local")]}
+        _pkm=[{"meter_hours":"2HR Pas Mon-Sat 0900-1900","on_street":"PELL STREET","side_of_street":"N","from_street":"DOYERS STREET","to_street":"MOTT STREET","lat":"40.7149","long":"-73.9978","status":"Active"},
+              {"meter_hours":"2HR Pas Mon-Sat 0900-1900","on_street":"PELL STREET","side_of_street":"N","from_street":"DOYERS STREET","to_street":"MOTT STREET","lat":"40.7150","long":"-73.9976","status":"Active"},
+              {"meter_hours":"1HR Com Mon-Sat 0700-1900 / 2HR Pas Mon-Sat 1900-2200","on_street":"ELIZABETH STREET","side_of_street":"E","from_street":"BAYARD STREET","to_street":"CANAL STREET","lat":"40.7160","long":"-73.9965","status":"Active"}]
+        _pks=[{"on_street":"MOTT STREET","from_street":"PELL STREET","to_street":"BAYARD STREET","side_of_street":"E","sign_description":"NO PARKING (SANITATION BROOM SYMBOL) 8-9:30AM MON & THURS <----> (SUPERSEDES SP-841C)","sign_x_coord":"984860","sign_y_coord":"200062"},
+              {"on_street":"MOTT STREET","from_street":"PELL STREET","to_street":"BAYARD STREET","side_of_street":"E","sign_description":"METERS ARE NOT IN EFFECT ABOVE TIMES","sign_x_coord":"984870","sign_y_coord":"200070"},
+              {"on_street":"BAYARD STREET","from_street":"MOTT STREET","to_street":"MULBERRY STREET","side_of_street":"N","sign_description":"NO STANDING ANYTIME","sign_x_coord":"984666","sign_y_coord":"199916"},
+              {"on_street":"MOTT STREET","from_street":"BAYARD STREET","to_street":"CANAL STREET","side_of_street":"W","sign_description":"NO PARKING (SANITATION BROOM SYMBOL) 11:30AM-1PM TUES & FRI","sign_x_coord":"984943","sign_y_coord":"200207"}]
+        pg.route("**/data.cityofnewyork.us/resource/693u-uax6.json*", lambda r: r.fulfill(status=200, content_type="application/json", body=_j.dumps(_pkm)))
+        pg.route("**/data.cityofnewyork.us/resource/nfid-uabd.json*", lambda r: r.fulfill(status=200, content_type="application/json", body=_j.dumps(_pks)))
         pg.route("**/api-endpoint.mta.info/**", lambda r: r.fulfill(status=200, content_type="application/json", body=_j.dumps(_mta)))
         _geo={"results":[{"name":"Ridgewood","latitude":40.97926,"longitude":-74.11653,"country_code":"US","country":"United States","admin1":"New Jersey","admin2":"Bergen"},{"name":"Ridgewood","latitude":40.70010,"longitude":-73.90569,"country_code":"US","country":"United States","admin1":"New York","admin2":"Queens"}]}
         pg.route("**/geocoding-api.open-meteo.com/**", lambda r: r.fulfill(status=200, content_type="application/json", body=_j.dumps(_geo)))
@@ -1468,6 +1477,33 @@ def run(path, name):
           const shown=[...document.querySelectorAll('#mapDyn .m-lm')].some(g=>+g.dataset.l===i); mapSelectLm(i); const t=document.querySelector('#mapPanel').textContent; state.view='today'; render(); return [shown, /Bow Bridge/.test(t)&&/Bethesda Terrace/.test(t), mqItems('bow').some(o=>/Bow Bridge/.test(o.t||o.name||o.label||JSON.stringify(o)))]; })()""")
         bw.append(pg.evaluate("(()=>{ state.view='map'; render(); const [x,y]=mapXY(40.7758,-73.9718); mapV=mapClamp({cx:x,cy:y,w:8}); mapDraw(); const n=document.querySelectorAll('#mapDyn .m-fbg').length; mapV=mapClamp({cx:x,cy:y,w:200}); mapDraw(); const m=document.querySelectorAll('#mapDyn .m-fbg').length; state.view='today'; render(); return [n,m]; })()"))
         check("Bow Bridge is a landmark on the map, with its panel and in search, and its deck is drawn across the Lake when zoomed in", bw==[True,True,True,[1,0]], bw)
+        # Parking for an outing by car: DOT meter hours and signs read for the hours the car is parked
+        pu=pg.evaluate("""(()=>{ const T=pkTimes, D=pkDays, S=pkSign, j=JSON.stringify;
+          return [j(T("8-9:30AM")), j(T("11:30AM-1PM")), j(T("7PM-7AM")), j(T("7AM-MIDNIGHT")), j(T("ANYTIME")), j(T("4-7PM")), j(T("2HR Pas Mon-Sat 0900-1900")),
+            D("MON THRU FRI").map(Number).join(""), D("NO STANDING 7AM-7PM EXCEPT SUNDAY").map(Number).join(""), D("NO PARKING 8-9:30AM MON & THURS").map(Number).join(""), D("SAT & SUN").map(Number).join(""), D("MON-SAT").map(Number).join(""),
+            S("METERS ARE NOT IN EFFECT ABOVE TIMES"), S("NO STANDING ANYTIME").k+S("NO STANDING ANYTIME").seven, (o=>o.k+o.lim+j(o.times))(S("2 HOUR METERED PARKING 9AM-7PM EXCEPT SUNDAY")), S("NO PARKING (SANITATION BROOM SYMBOL) 8-9:30AM MON & THURS").k,
+            [new Date(2026,10,26),new Date(2026,4,25),new Date(2026,8,7),new Date(2026,6,3),new Date(2027,6,5),new Date(2026,10,25)].map(pkMajor).map(Number).join(""),
+            (g=>[g.lat.toFixed(4),g.lon.toFixed(4)].join())(PK_LCC.inv(1007272,217733))]; })()""")
+        check("Parking rules read from DOT's wording: times, days, sign kinds, major holidays and State Plane coordinates",
+              pu==["[[480,570]]","[[690,780]]","[[1140,1440],[0,420]]","[[420,1440]]","[[0,1440]]","[[960,1140]]","[[540,1140]]","0111110","0111111","0100100","1000001","0111111",None,"blktrue","meter2[[540,1140]]","asp","111110","40.7643,-73.9169"], pu)
+        pe=pg.evaluate("""(()=>{ const F=pkFaces(%s,%s), by=n=>F.find(f=>f.k===n), ev=(n,d,a,b)=>{ const f=by(n); return f?pkEval(f,d,a,b).st:'missing'; };
+          const PE='PELL STREET|DOYERS STREET|MOTT STREET|N', ME='MOTT STREET|PELL STREET|BAYARD STREET|E', MW='MOTT STREET|BAYARD STREET|CANAL STREET|W', BA='BAYARD STREET|MOTT STREET|MULBERRY STREET|N', EL='ELIZABETH STREET|BAYARD STREET|CANAL STREET|E';
+          const mon=new Date(2026,9,19), hol=new Date(2026,9,12), sun=new Date(2026,9,18), sat=new Date(2026,9,17), tg=new Date(2026,10,26);
+          const f=by(ME), g=f&&Math.abs(f.lat-40.7158)<0.0003&&Math.abs(f.lon+73.9978)<0.0003;
+          return [F.length, g, ev(PE,mon,360,540), ev(ME,mon,360,540), ev(MW,mon,360,540), ev(BA,mon,360,540), ev(EL,mon,360,540), ev(ME,hol,360,540), ev(PE,sun,540,720), ev(EL,sun,540,720), ev(PE,sat,540,720), ev(PE,tg,540,720), ev(BA,tg,540,720), pkEval(by(PE),sat,540,720).lim]; })()""" % (_j.dumps(_pkm), _j.dumps(_pks)))
+        check("Parking by block: free before the meters start, street cleaning ends the free time, suspended on holidays, meters off on Sundays and major holidays, No Standing Anytime never",
+              pe==[5,True,"free","part","free","no","part","free","free","free","paid","free","no",2], pe)
+        if name.startswith("Installed"):
+            pg.evaluate("""(()=>{ state.home={lat:40.9585,lon:-73.9582,mode:'car'}; state.pos=null; state.parkOpen=false; PARK.key=''; store.set('parking',null);
+              picksPlan('2026-10-12',['chinatown-place','chinatown-moment']); planShow(state.plan); })()"""); pg.wait_for_timeout(900)
+            pg.click("[data-parkopen]"); pg.wait_for_timeout(700)
+            pk=pg.evaluate("""(()=>{ const L=[...document.querySelectorAll('.pklist .pk')].map(li=>[li.className.replace('pk ','').trim(), li.querySelector('b').textContent]);
+              const day=(document.querySelector('.pkday')||{}).textContent||''; return [L, day]; })()""")
+            pg.click(".pklist .pk:first-child [data-parkset]"); pg.wait_for_timeout(400)
+            pc=pg.evaluate("[!!state.plan.park, state.plan.park&&state.plan.park.label, /on foot from the car/.test(planLeaveBy()), document.querySelectorAll('#mapDyn .m-pk, #map .m-pk').length>0, /Parking:/.test(document.querySelector('.planpark').textContent), (loadPlan()||{}).park&&loadPlan().park.k===state.plan.park.k]")
+            check("Find free parking: free blocks first near the first spot (street cleaning off on Indigenous Peoples' Day), Park here sets it, the leave time adds the walk from the car, P on the map, and it is kept with the outing",
+                  len(pk[0])>=2 and pk[0][0][0]=="free" and all(c!="no" for c,_ in pk[0]) and not any("Bayard St, Mott St" in w for _,w in pk[0]) and "Meters and street cleaning" not in pk[1] and pc[0] and pc[2] and pc[3] and pc[4] and pc[5], [pk,pc])
+            pg.evaluate("state.plan=null; savePlan(); state.parkOpen=false; state.home=null; state.view='today'; render()")
         # Dark theme renders too
         pg.evaluate("document.documentElement.dataset.theme='dark'; state.view='shoot'; render()"); pg.wait_for_timeout(80)
         check("no script errors", not errors, errors[:3])
