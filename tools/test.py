@@ -1370,7 +1370,10 @@ def run(path, name):
           document.querySelector('#list [data-tmbeststar]').click(); r.push(picksFor(ymdKey(tmrwDay())).ids.join()===X.map(x=>x.id).join());
           const P=picksAll(); delete P[ymdKey(tmrwDay())]; picksSave(); render(); return [r,X.map(x=>x.id)]; })()""")
         r=bo[0]; check("Best outing tomorrow: golden hour first on a clear day, its ideas (two a place at most), two other options to switch to, and Add to shortlist", r[0] and r[1]>=2 and r[2]=="gold" and r[3] and r[4]==len(bo[1]) and r[5] and r[6]>=1 and r[7] and r[8], bo)
+        shown=pg.evaluate("[...document.querySelectorAll('#list .tmbest .tmb-ideas li')].map(li=>li.textContent)")
         pg.click("#list [data-tmbestplan='0']"); pg.wait_for_timeout(300)
+        po=pg.evaluate("state.plan.stops.flatMap(s=>s.ideas.map(x=>[x.t, hmText(s.at.getHours()*60+s.at.getMinutes())]))")
+        check("Best outing lists its ideas in the order Plan this outing walks them, with times", len(shown)==len(po) and all(sh.startswith(str(n+1)) and o[0] in sh for n,(sh,o) in enumerate(zip(shown,po))) and po[0][1] in shown[0], [shown,po])
         bp=pg.evaluate("[state.view, state.plan&&state.plan.start.getDate(), /Planned from the best outing/.test(state.planMsg||''), state.plan&&state.plan.stops.flatMap(s=>s.ideas.map(x=>x.id)).sort().join()]")
         check("Plan this outing: tomorrow's outing on the map with the recommended ideas", bp[0]=="map" and bp[1]==12 and bp[2] and bp[3]==",".join(sorted(bo[1])), [bp,bo[1]])
         em=pg.evaluate("""(()=>{ const x=IDEAS.find(i=>i.id==='les-moment'), sun=new Date(2026,9,18), mon=new Date(2026,9,19), am=d=>daySlots(d).find(o=>o.id==='am');

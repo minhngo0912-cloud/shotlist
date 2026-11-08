@@ -1663,3 +1663,9 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 @keyframes swr{from{transform:translateX(-24px);opacity:.4}to{transform:none;opacity:1}}
 .mapsel.swl{animation:swl .22s ease-out} .mapsel.swr{animation:swr .22s ease-out}
 @media (prefers-reduced-motion:reduce){.mapsel.swl,.mapsel.swr{animation:none}}
+
+.tmb-ord{margin:10px 0 0;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.tmb-n{display:inline-grid;place-items:center;min-width:20px;height:20px;border-radius:5px;background:var(--yellow);color:var(--on-yellow);font-size:12px;font-weight:800}
+.tmb-t{font-variant-numeric:tabular-nums;color:var(--muted);font-size:14px;min-width:62px}
+.tmbest ol.tmb-ideas{gap:8px} .tmbest ol.tmb-ideas li{display:grid;grid-template-columns:auto auto 1fr;align-items:start;gap:8px;flex-wrap:nowrap}
+.tmbest ol.tmb-ideas .tmb-t{padding-top:1px} .tmb-x{display:flex;flex-direction:column;min-width:0} .tmb-x b{font-weight:500;display:flex;align-items:center;gap:8px} .tmb-x .msg{font-size:13px;margin-left:18px}

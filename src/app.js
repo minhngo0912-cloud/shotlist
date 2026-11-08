@@ -2015,7 +2015,7 @@ function picksTodayHtml(){ const tk=ymdKey(new Date()), mk=ymdKey(tmrwDay()), dk
    them (every order of up to six places, starts every 20 minutes from before sunrise to after dark; not earlier than now on the day). */
 /* win: the slot the outing is for ({s,e} in minutes): the start stays inside it, so a morning outing starts in the morning even when its
    ideas would also suit the afternoon. A shortlist uses the slot most of its picks were made for. */
-function picksPlan(dk,only,win){ const E=only?{ids:only}:picksFor(dk), d=ymdDate(dk), xs=E.ids.map(id=>IDEAS.find(i=>i.id===id)).filter(x=>x&&typeof PLACES[x.p].lat==="number"); if(!xs.length) return null;
+function picksPlan(dk,only,win,dry){ const E=only?{ids:only}:picksFor(dk), d=ymdDate(dk), xs=E.ids.map(id=>IDEAS.find(i=>i.id===id)).filter(x=>x&&typeof PLACES[x.p].lat==="number"); if(!xs.length) return null;
   const by=new Map(); xs.forEach(x=>{ if(!by.has(x.p)) by.set(x.p,[]); by.get(x.p).push(x); });
   let places=[...by.keys()].sort((a,b)=>by.get(b).length-by.get(a).length).slice(0,6);
   const L=lightDay(d), legs={}, leg=(a,b)=>legs[a+">"+b]||(legs[a+">"+b]=legBetween(a,b)), now=Date.now();
@@ -2031,7 +2031,7 @@ function picksPlan(dk,only,win){ const E=only?{ids:only}:picksFor(dk), d=ymdDate
   if(!best) return null;
   const p={start:best.st,end:best.st,stops:best.o.map(pid=>({place:pid,at:new Date(best.st),key:"",ideas:by.get(pid).slice()}))};
   let t=+best.st; p.stops.forEach((s,n)=>{ s.mine=true; s.at=new Date(t); s.key=lightAt(s.at); t+=stopMins(s)*6e4; if(n<p.stops.length-1) t+=leg(s.place,p.stops[n+1].place).mins*6e4; });
-  retimePlan(p); state.plan=p; savePlan(); state.planMsg=(only?"Planned from the best outing: ":"Planned from your shortlist: ")+best.r.fits+" of "+xs.length+" picked ideas in light that suits them"+(places.length<by.size?" (the six places with the most picks)":"")+"."; return p; }
+  retimePlan(p); if(dry) return p; state.plan=p; savePlan(); state.planMsg=(only?"Planned from the best outing: ":"Planned from your shortlist: ")+best.r.fits+" of "+xs.length+" picked ideas in light that suits them"+(places.length<by.size?" (the six places with the most picks)":"")+"."; return p; }
 /* The best outing tomorrow: every walk group in every slot the filters allow, scored on the light (golden hour first; rain counts,
    since rain ideas want it), how many ideas fit and how many you have not shot, events that day close by, how far it is from where
    you will start (home when saved, else where you are) and how spread out the walk is. The top one is shown with two others, one of them at another time of day when there is one. */
@@ -2050,12 +2050,21 @@ function bestOutings(m,w){ if(w===undefined) w=state.when; const d=tmrwDay(), S=
   if(other) pick.push(other); for(const c of out){ if(pick.length>=3) break; if(!pick.includes(c)) pick.push(c); } return pick; }
 /* The ideas to take: up to two per place (not shot first), from at most three places */
 function bestIdeas(c){ const per={}; return c.I.slice().sort((a,b)=>(state.done.has(a.id)-state.done.has(b.id))).filter(x=>{ const n=per[x.p]||0; if(n>=2||(!(x.p in per)&&Object.keys(per).length>=3)) return false; per[x.p]=n+1; return true; }); }
-function bestOutingHtml(m){ const B=bestOutings(m); if(!B.length) return ""; const i=Math.min(state.tmBest||0,B.length-1), c=B[i], X=bestIdeas(c), dk=ymdKey(tmrwDay());
+/* The best outing's ideas in the order Plan this outing would walk them, each with the time you would get there
+   (the same plan, worked out without saving it). Ideas the plan leaves out keep their place at the end. */
+const BEST_ORDER=new Map();
+function bestOrder(c){ const X=bestIdeas(c), dk=ymdKey(tmrwDay()), w=WEATHER[state.city], key=dk+"|"+X.map(x=>x.id).join()+"|"+c.o.s+"-"+c.o.e+"|"+(w&&w.updated||"")+"|"+state.cond;
+  if(BEST_ORDER.has(key)) return BEST_ORDER.get(key);
+  const p=picksPlan(dk,X.map(x=>x.id),{s:c.o.s,e:c.o.e},true), out=[];
+  if(p) p.stops.forEach(s=>{ let t=+s.at; s.ideas.forEach(x=>{ out.push({x,t:new Date(t)}); t+=ideaMins(x)*6e4; }); });
+  X.forEach(x=>{ if(!out.some(o=>o.x.id===x.id)) out.push({x,t:null}); });
+  if(BEST_ORDER.size>8) BEST_ORDER.clear(); BEST_ORDER.set(key,out); return out; }
+function bestOutingHtml(m){ const B=bestOutings(m); if(!B.length) return ""; const i=Math.min(state.tmBest||0,B.length-1), c=B[i], O=bestOrder(c), dk=ymdKey(tmrwDay());
   const line=c=>esc(c.o.name+' '+hmSpan(c.o.s,c.o.e)+' · '+tmrwSky(c.o));
   return '<section class="tmbest"><p class="tlabel">Best outing tomorrow</p><p class="tmb-what"><b>'+esc(c.g.name)+'</b><br>'+line(c)+'</p>'+
-    '<p class="msg">'+c.I.length+' idea'+(c.I.length>1?'s':'')+(c.fresh<c.I.length?' ('+c.fresh+' not shot yet)':'')+(c.g.pids.length>1?' · up to '+c.g.span+' min apart on foot':'')+(c.mins!==null?' · about '+c.mins+' min from '+(c.from==="home"?'home':'you'):'')+'</p>'+
+    '<p class="msg">'+c.I.length+' idea'+(c.I.length>1?'s':'')+(c.fresh<c.I.length?' ('+c.fresh+' not shot yet)':'')+(O.length<c.I.length?', the best '+O.length+' below':'')+(c.g.pids.length>1?' · up to '+c.g.span+' min apart on foot':'')+(c.mins!==null?' · about '+c.mins+' min from '+(c.from==="home"?'home':'you'):'')+'</p>'+
     (c.ev.length?'<p class="msg tmb-ev">Also that day nearby: '+c.ev.map(e=>esc(e.r.e.name)).join(', ')+'</p>':'')+
-    '<ul class="tmb-ideas">'+X.map(x=>'<li><span class="dot" style="background:'+INTENTS[x.i].color+'"></span>'+esc(x.t)+' <span class="msg">· '+esc(PLACES[x.p].name)+'</span></li>').join("")+'</ul>'+
+    '<p class="tmb-ord">In the recommended order</p><ol class="tmb-ideas">'+O.map(({x,t},n)=>'<li><span class="tmb-n">'+(n+1)+'</span>'+'<span class="tmb-t">'+(t?hmText(t.getHours()*60+t.getMinutes()):'')+'</span>'+'<span class="tmb-x"><b><span class="dot" style="background:'+INTENTS[x.i].color+'"></span>'+esc(x.t)+'</b><span class="msg">'+esc(PLACES[x.p].name)+'</span></span></li>').join("")+'</ol>'+
     '<div class="callinks"><button type="button" class="chip primary" data-tmbestplan="'+i+'">Plan this outing</button><button type="button" class="chip" data-tmbeststar="'+i+'">Add to shortlist</button></div>'+
     (B.length>1?'<p class="tmb-oth">Other good options</p>'+B.map((b,j)=>j===i?'':'<button type="button" class="tmb-alt" data-tmbest="'+j+'"><b>'+esc(b.g.name)+'</b><span>'+line(b)+' · '+b.I.length+' ideas</span></button>').join(""):'')+'</section>'; }
 /* Within a slot of the Tomorrow list, the places that make one walk, nearest to you first */
