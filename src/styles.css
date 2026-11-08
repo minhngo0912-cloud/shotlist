@@ -1696,3 +1696,4 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 .planon .m-spotg:not(.inplan):not(.on):not(.m-pspot){opacity:.28}
 .planonly .m-pin:not(.inplan):not(.on), .planonly .m-spotg:not(.inplan):not(.on):not(.m-pspot), .planonly .m-clu{display:none}
 .psfoot .chip[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.pklean{margin:0 0 6px} .pklean b{font-weight:600} .pkmove{margin:0 0 8px}

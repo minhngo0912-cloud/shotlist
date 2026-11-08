@@ -4525,7 +4525,7 @@ function pkEval(f,d,m0,m1){ const dow=d.getDay(), major=pkMajor(d), asOff=pkAspO
 /* The hours the car is parked, and the area to look in: around the first spot and the last */
 function pkWindow(){ const W=planWalk(); if(!W.length) return null; const a=W[0], z=W[W.length-1], end=new Date(+z.t+(z.mins||20)*6e4);
   return {a,z,d:evDay(a.t),m0:Math.max(0,a.t.getHours()*60+a.t.getMinutes()-15),m1:Math.min(1440,end.getHours()*60+end.getMinutes()+20+(evDay(end)>evDay(a.t)?1440:0))}; }
-function pkBox(){ const W=planWalk(); if(!W.length) return null; const a=W[0], z=W[W.length-1], far=kmBetween(a,z)>2.2, P=far?[a]:[a,z];
+function pkBox(){ const W=planWalk(); if(!W.length) return null; const a=W[0], z=W[W.length-1], far=kmBetween(a,z)>2.2, L=pkLean(), P=far?[L&&L.end==="last"?z:a]:[a,z];
   let n=-90,s=90,e=-180,w=180; P.forEach(p=>{ n=Math.max(n,p.lat); s=Math.min(s,p.lat); e=Math.max(e,p.lon); w=Math.min(w,p.lon); });
   const dl=0.0045, dn=0.006; n+=dl; s-=dl; e+=dn; w-=dn; const r=v=>Math.round(v*500)/500; return {n:r(n+0.001),s:r(s-0.001),e:r(e+0.001),w:r(w-0.001)}; }
 function pkGet(force){ if(!PHOTOS_INLINE) return; const B=pkBox(); if(!B) return; const key=[B.n,B.s,B.e,B.w].join(",");
@@ -4540,9 +4540,24 @@ function pkGet(force){ if(!PHOTOS_INLINE) return; const B=pkBox(); if(!B) return
     .catch(()=>{ PARK.err=true; }).finally(()=>{ PARK.busy=false; if(state.view==="map"){ mapPanel(); mapDraw(); } }); }
 /* The best places to leave the car: free for the whole outing first, then free until a meter starts, then paid; nearest to the
    first spot and to the last (you walk back to the car) first. One per block. */
-function pkPick(){ const W=pkWindow(); if(!W||!PARK.faces) return null; const out=[], seen=new Map();
-  PARK.faces.forEach(f=>{ const r=pkEval(f,W.d,W.m0,W.m1); if(r.st==="no") return; const to=walkMin(kmBetween(f,W.a)), back=walkMin(kmBetween(W.z,f)); if(to>12) return;
-    const rank=r.st==="free"?0:r.st==="paid"?(r.from-W.m0>=60?1:2):3, o={f,r,to,back,score:rank*100+to*2+back};
+/* Which end of the outing to park at. Walking is never time-critical after the last spot, but it is before the first one when
+   that spot is in golden or blue hour; so the walk to the first spot counts more then, and the walk back counts more when the
+   light that matters is at the end (you walk to the start in plain daylight and finish beside the car). */
+function pkCrit(t){ const c=CITIES[state.city], alt=sunPos(t,c.lat,c.lon).alt; return alt>-6&&alt<8?(alt>-4?"golden hour":"blue hour"):null; }
+function pkLean(){ const W=planWalk(); if(!W.length) return null; const a=W[0], z=W[W.length-1], ca=pkCrit(a.t), cz=pkCrit(z.t), tf=d=>hmText(d.getHours()*60+d.getMinutes());
+  if(W.length===1||kmBetween(a,z)<0.25) return {wA:2,wZ:1,end:"first",why:"The outing starts and ends close together, so park by the first spot."};
+  if(ca&&!cz) return {wA:3,wZ:1,end:"first",why:"Park near the first spot: it is "+ca+" there at "+tf(a.t)+", so walk back at the end, when the light no longer matters."};
+  if(!ca&&cz) return {wA:1,wZ:2.5,end:"last",why:"Park near the last spot: the light that matters is at the end ("+cz+" at "+tf(z.t)+"), so walk to the first spot in daylight and finish beside the car."};
+  if(ca&&cz) return {wA:2,wZ:1,end:"first",why:"Park near the first spot: it is "+ca+" at "+tf(a.t)+", and a walk before it would cut into the light."};
+  return {wA:1.2,wZ:1,end:"either",why:"Neither end is in golden or blue hour, so the best place is the one with the least walking in all."}; }
+/* Moving the car between stops: only when a walk between them is long and driving (with time to park) saves at least 5 minutes */
+function pkMoves(){ const W=planWalk(), out=[]; for(let i=0;i+1<W.length;i++){ const a=W[i], b=W[i+1]; if(a.n===b.n) continue; const km=kmBetween(a,b), walk=walkMin(km); if(walk<20) continue;
+    const drive=travelMins(a,b,"car",new Date(+a.t+(a.mins||20)*6e4))+8; if(walk-drive>=5) out.push({i,a,b,walk,drive}); } return out; }
+/* The best places to leave the car: free for the whole outing first, then free until a meter starts, then paid; then the walk to
+   the first spot and back from the last, weighted by which end matters (pkLean). One per block. */
+function pkPick(){ const W=pkWindow(), L=pkLean(); if(!W||!L||!PARK.faces) return null; const out=[], seen=new Map();
+  PARK.faces.forEach(f=>{ const r=pkEval(f,W.d,W.m0,W.m1); if(r.st==="no") return; const to=walkMin(kmBetween(f,W.a)), back=walkMin(kmBetween(W.z,f)); if(Math.min(to,back)>12) return;
+    const rank=r.st==="free"?0:r.st==="paid"?(r.from-W.m0>=60?1:2):3, o={f,r,to,back,score:rank*100+to*L.wA*2+back*L.wZ*2};
     const b=[f.on,f.fr,f.to].join("|"), had=seen.get(b); if(had&&had.score<=o.score) return; if(had) out.splice(out.indexOf(had),1); seen.set(b,o); out.push(o); });
   return out.sort((a,b)=>a.score-b.score); }
 function pkDayRule(d){ const dow=d.getDay(), major=pkMajor(d), asp=pkAspOff(d);
@@ -4559,11 +4574,13 @@ function planParkHtml(){ const p=state.plan; if(!p) return ""; const T=planStart
   const head='<p class="msg planpark"><b>Parking:</b> '+(pk?esc(pk.label)+' · '+esc(pk.st):car?'not chosen yet':'only if you drive')+' <button type="button" class="linkbtn" data-parkopen="1" aria-expanded="'+open+'">'+(open?'Done':pk?'Change':'Find free parking')+'</button></p>';
   if(!open) return head;
   const q=encodeURIComponent("parking near "+W.a.lat.toFixed(5)+","+W.a.lon.toFixed(5)), gm='<a class="chip" href="https://www.google.com/maps/search/?api=1&query='+q+'" target="_blank" rel="noopener">Garages nearby ↗</a>';
-  let body='<p class="msg pkday">'+esc(pkDayRule(W.d))+' The car is parked about '+hmText(W.m0)+' to '+hmText(W.m1)+'.</p>';
+  const LN=pkLean(), MV=pkMoves(), wq=o=>o.lat.toFixed(5)+','+o.lon.toFixed(5);
+  let body='<p class="msg pkday">'+esc(pkDayRule(W.d))+' The car is parked about '+hmText(W.m0)+' to '+hmText(W.m1)+'.</p>'+(LN?'<p class="msg pklean"><b>'+esc(LN.why)+'</b></p>':'')+
+    (MV.length?MV.map(m=>'<p class="msg pkmove">Stop '+(m.i+1)+' to '+(m.i+2)+' is '+m.walk+' min on foot; driving takes about '+m.drive+' min with parking, so moving the car saves about '+(m.walk-m.drive)+' min. <a class="linkbtn" href="https://www.google.com/maps/dir/?api=1&origin='+wq(m.a)+'&destination='+wq(m.b)+'&travelmode=driving" target="_blank" rel="noopener">Drive it ↗</a></p>').join(""):(planWalk().length>1?'<p class="msg pkmove">No need to move the car between stops: every walk is short enough.</p>':''));
   if(!PHOTOS_INLINE) body+='<p class="msg">Block-by-block parking rules load in the installed app.</p>';
   else if(!PARK.faces) body+='<p class="msg">'+(PARK.err?'Could not load the parking rules. <button type="button" class="linkbtn" data-parkretry="1">Try again</button>':'Loading the parking rules for these blocks…')+'</p>';
   else { const L=pkPick()||[]; const free=L.filter(o=>o.r.st==="free"), rest=L.filter(o=>o.r.st!=="free"), show=free.slice(0,4).concat(rest.slice(0,Math.max(1,5-Math.min(4,free.length)))).slice(0,5);
-    body+=show.length?'<ol class="pklist">'+show.map(o=>{ const t=pkLine(o,W), on=pk&&pk.k===o.f.k; return '<li class="pk '+o.r.st+(on?' on':'')+'"><span class="pkdot"></span><span class="pkt"><b>'+esc(t.where)+'</b><span>'+esc(t.st)+'</span><span>'+o.to+' min walk to spot 1 · '+o.back+' min back from the last spot</span></span>'+
+    body+=show.length?'<ol class="pklist">'+show.map(o=>{ const t=pkLine(o,W), on=pk&&pk.k===o.f.k; return '<li class="pk '+o.r.st+(on?' on':'')+'"><span class="pkdot"></span><span class="pkt"><b>'+esc(t.where)+'</b><span>'+esc(t.st)+'</span><span>'+(LN&&LN.end==="last"?o.back+' min from the last spot · '+o.to+' min walk to spot 1 at the start':o.to+' min walk to spot 1 · '+o.back+' min back from the last spot')+'</span></span>'+
         '<span class="pkb"><button type="button" class="chip'+(on?'':' primary')+'" data-parkset="'+esc(o.f.k)+'">'+(on?'Chosen':'Park here')+'</button><a class="chip" href="https://www.google.com/maps/dir/?api=1&destination='+o.f.lat.toFixed(5)+','+o.f.lon.toFixed(5)+'&travelmode=driving" target="_blank" rel="noopener">Drive ↗</a></span></li>'; }).join("")+'</ol>'
       :'<p class="msg">No curb parking found near the first spot for these hours.</p>'; }
   return head+'<div class="pkbox">'+body+'<div class="callinks">'+gm+(pk?'<button type="button" class="chip" data-parkset="">Clear parking</button>':'')+'</div><p class="hint">From NYC DOT meter and sign records. Always read the signs at the curb: hydrants (15 ft), bus stops, driveways and temporary signs are not in the records.</p></div>'; }

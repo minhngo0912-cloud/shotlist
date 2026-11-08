@@ -1500,6 +1500,13 @@ def run(path, name):
           return [F.length, g, ev(PE,mon,360,540), ev(ME,mon,360,540), ev(MW,mon,360,540), ev(BA,mon,360,540), ev(EL,mon,360,540), ev(ME,hol,360,540), ev(PE,sun,540,720), ev(EL,sun,540,720), ev(PE,sat,540,720), ev(PE,tg,540,720), ev(BA,tg,540,720), pkEval(by(PE),sat,540,720).lim]; })()""" % (_j.dumps(_pkm), _j.dumps(_pks)))
         check("Parking by block: free before the meters start, street cleaning ends the free time, suspended on holidays, meters off on Sundays and major holidays, No Standing Anytime never",
               pe==[5,True,"free","part","free","no","part","free","free","free","paid","free","no",2], pe)
+        ln=pg.evaluate("""(()=>{ const keep=state.plan, X=id=>IDEAS.find(x=>x.id===id), mk=(h,m,pl)=>{ state.plan={start:new Date(2026,9,12,h,m),end:new Date(2026,9,12,h,m),stops:pl.map(([p,id])=>({place:p,at:new Date(2026,9,12,h,m),key:'',ideas:[X(id)],mine:true}))}; retimePlan(state.plan); };
+          const r=[]; mk(7,0,[['chinatown','chinatown-place'],['soho','soho-place']]); r.push(pkLean().end, pkMoves().length);
+          mk(17,0,[['chinatown','chinatown-place'],['soho','soho-place']]); r.push(pkLean().end);
+          mk(12,0,[['chinatown','chinatown-place'],['soho','soho-place']]); r.push(pkLean().end);
+          mk(10,0,[['chinatown','chinatown-place'],['midtown','midtown-place']]); const mv=pkMoves(); r.push(mv.length, mv[0]&&mv[0].walk>mv[0].drive+4);
+          state.plan=keep; return r; })()""")
+        check("Where to park: by the first spot when it is in golden or blue hour, by the last when the light that matters is at the end, least walking otherwise; move the car only for a long walk between stops", ln==["first",0,"last","either",1,True], ln)
         if name.startswith("Installed"):
             pg.evaluate("""(()=>{ state.home={lat:40.9585,lon:-73.9582,mode:'car'}; state.pos=null; state.parkOpen=false; PARK.key=''; store.set('parking',null);
               picksPlan('2026-10-12',['chinatown-place','chinatown-moment']); planShow(state.plan); })()"""); pg.wait_for_timeout(900)
@@ -1507,9 +1514,9 @@ def run(path, name):
             pk=pg.evaluate("""(()=>{ const L=[...document.querySelectorAll('.pklist .pk')].map(li=>[li.className.replace('pk ','').trim(), li.querySelector('b').textContent]);
               const day=(document.querySelector('.pkday')||{}).textContent||''; return [L, day]; })()""")
             pg.click(".pklist .pk:first-child [data-parkset]"); pg.wait_for_timeout(400)
-            pc=pg.evaluate("[!!state.plan.park, state.plan.park&&state.plan.park.label, /on foot from the car/.test(planLeaveBy()), document.querySelectorAll('#mapDyn .m-pk, #map .m-pk').length>0, /Parking:/.test(document.querySelector('.planpark').textContent), (loadPlan()||{}).park&&loadPlan().park.k===state.plan.park.k]")
+            pc=pg.evaluate("[!!state.plan.park, state.plan.park&&state.plan.park.label, /on foot from the car/.test(planLeaveBy()), document.querySelectorAll('#mapDyn .m-pk, #map .m-pk').length>0, /Parking:/.test(document.querySelector('.planpark').textContent), (loadPlan()||{}).park&&loadPlan().park.k===state.plan.park.k, /Park near the first spot/.test((document.querySelector('.pklean')||{}).textContent||'')]")
             check("Find free parking: free blocks first near the first spot (street cleaning off on Indigenous Peoples' Day), Park here sets it, the leave time adds the walk from the car, P on the map, and it is kept with the outing",
-                  len(pk[0])>=2 and pk[0][0][0]=="free" and all(c!="no" for c,_ in pk[0]) and not any("Bayard St, Mott St" in w for _,w in pk[0]) and "Meters and street cleaning" not in pk[1] and pc[0] and pc[2] and pc[3] and pc[4] and pc[5], [pk,pc])
+                  len(pk[0])>=2 and pk[0][0][0]=="free" and all(c!="no" for c,_ in pk[0]) and not any("Bayard St, Mott St" in w for _,w in pk[0]) and "Meters and street cleaning" not in pk[1] and pc[0] and pc[2] and pc[3] and pc[4] and pc[5] and pc[6], [pk,pc])
             pg.evaluate("state.plan=null; savePlan(); state.parkOpen=false; state.home=null; state.view='today'; render()")
         # Dark theme renders too
         pg.evaluate("document.documentElement.dataset.theme='dark'; state.view='shoot'; render()"); pg.wait_for_timeout(80)
