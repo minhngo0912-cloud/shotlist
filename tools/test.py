@@ -1574,6 +1574,12 @@ def run(path, name):
           const first=document.querySelector('#today .tpick [data-tplan]'), pid=first&&first.dataset.tplan; if(first) first.click(); r.push(state.view, !!state.plan&&state.plan.stops[0].place===pid);
           state.tMore=false; state.plan=null; savePlan(); state.view='today'; render(); return r; })()""")
         check("Where to go: ranked by new ideas and the real trip (too-late places last), a reason, heads-ups (a block party near Midtown), Show more, intent chips, Directions by the right mode, Plan from here starts at that place", wg==[True,True,True,True,True,name.startswith("Installed"),True,True,True,"map",True], wg)
+        cp=pg.evaluate("""(()=>{ const r=[PARK_FEAT.length>=40, PARK_FEAT.every(p=>p[2]>40.76&&p[2]<40.80&&p[3]>-73.983&&p[3]<-73.958)];
+          state.view='map'; render(); const [x,y]=mapXY(40.7735,-73.9715); cancelAnimationFrame(mapAnim); mapV=mapClamp({cx:x,cy:y,w:30}); mapDraw(); r.push(document.querySelectorAll('#mapOver .m-cpf').length>=10, [...document.querySelectorAll('#mapOver .m-cpft')].some(t=>/Entrance/.test(t.textContent)));
+          mapV=mapClamp({cx:x,cy:y,w:120}); mapDraw(); r.push(document.querySelectorAll('#mapOver .m-cpf').length===0);
+          mapSelectSpot('cpark:1'); r.push(/Finding it: about \d+ m [a-z-]+ of Bethesda Fountain\. Nearest entrance: Inventors' Gate/.test(document.querySelector('#mapPanel .spotfind').textContent));
+          const mall=SPOTS.cpark.find(S=>S[3]==='The Mall'); r.push(Math.abs(mall[1]-(-73.97197))<0.0002); mapSelect(null); return r; })()""")
+        check("Central Park in detail: named features and gates drawn when zoomed in (not when far out), and a spot says how to find it from the nearest feature and gate; the Mall spots sit on the Mall", cp==[True,True,True,True,True,True,True], cp)
         # Right now: sun times match the published ones, and an old forecast is not passed off as today's
         sw=pg.evaluate("""(()=>{ const c=CITIES.nyc, d=new Date(2026,10,8), r=sunTimes(d,c.lat,c.lon), sec=x=>x.getHours()*3600+x.getMinutes()*60+x.getSeconds();
           let civ=[], prev=null; for(let m=300;m<1200;m+=0.25){ const x=new Date(+d+m*6e4), a=sunPos(x,c.lat,c.lon).alt; if(prev!==null&&((prev< -6)!==(a< -6))) civ.push(sec(x)); prev=a; }
