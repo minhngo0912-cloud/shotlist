@@ -1779,3 +1779,4 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 .tnow .twxtmr{color:#c9d4ff} .tnow .twx.stale .msg{color:#ffcf9e}
 .tnow{flex-direction:column;align-items:stretch;gap:10px} .tnow .tnowb{flex-direction:row;gap:8px} .tnow .tnowb .btn{flex:1;text-align:center}
 .m-cpf{pointer-events:none} .m-cpft{font-weight:600} .spotfind{margin:6px 0 2px}
+.cfkinds{margin:0 0 10px}

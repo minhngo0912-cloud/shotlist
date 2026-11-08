@@ -1532,6 +1532,12 @@ def run(path, name):
           cancelAnimationFrame(mapAnim); const [cx,cy]=mapXY(s1.coffee.lat,s1.coffee.lon); mapV=mapClamp({cx,cy,w:40}); mapDraw(); r.push(!!s1, (+state.plan.end-e0)/6e4, !!(loadPlan().stops.find(s=>s.coffee)), !!document.querySelector('#map .m-cf.on'));
           document.querySelector('.cflist [data-cfdel]').click(); r.push(!state.plan.stops.some(s=>s.coffee), +state.plan.end===e0);
           state.cfOpen=false; state.plan=keep; savePlan(); return r; })()""")
+        ck=pg.evaluate("""(()=>{ const keep=state.plan, X=id=>IDEAS.find(x=>x.id===id); state.plan={start:new Date(2026,9,12,14,0),end:new Date(2026,9,12,14,0),stops:[['chinatown','chinatown-place'],['soho','soho-place']].map(([p,id])=>({place:p,at:new Date(2026,9,12,14,0),key:'',ideas:[X(id)],mine:true}))}; retimePlan(state.plan);
+          const n=k=>{ state.cfKind=k; return cfForPlan(); }, A=n('all'), M=n('matcha'), B=n('boba'), C=n('coffee');
+          const r=[COFFEE.filter(c=>c[9]==='matcha').length>=15, COFFEE.filter(c=>c[9]==='boba').length>=10, M.length>0&&M.every(o=>cfMatch(o.c,'matcha')), B.length>0&&B.every(o=>/boba|bubble|tea/i.test(o.c[3])||o.c[9]==='boba'), C.every(o=>cfKind(o.c)==='coffee'), M.some(o=>o.c[9]==='coffee')];
+          state.view='map'; state.cfOpen=true; state.cfKind='boba'; render(); r.push(!!document.querySelector('.cfkinds [data-cfk="boba"][aria-pressed="true"]'), [...document.querySelectorAll('.cflist .cfi')].every(i=>i.textContent==='🧋'));
+          state.cfKind='all'; state.cfOpen=false; state.plan=keep; return r; })()""")
+        check("Drinks: matcha bars and bubble tea added; All / Coffee / Matcha / Bubble tea picks the stop for that drink (Matcha also finds coffee shops with a matcha signature), with its own icon", ck==[True]*8, ck)
         check("Coffee on the way: a researched list near each place, hours read (late nights, closed days, not confirmed), shops ranked by open-then and detour, a 15-min break added and removed, ☕ on the map", cf==[True,True,True,False,True,None,False,480,True,True,True,True,15,True,True,True,True], cf)
         if name.startswith("Installed"):
             pg.evaluate("""(()=>{ state.home={lat:40.9585,lon:-73.9582,mode:'car'}; state.pos=null; state.parkOpen=false; PARK.key=''; store.set('parking',null);
@@ -1606,7 +1612,7 @@ def run(path, name):
           q('.ptab[data-cfopen]').click(); r.push(state.cfOpen&&!state.parkOpen&&!!q('.cfbox'));
           q('[data-ptab="stops"]').click(); r.push(!state.cfOpen&&!state.parkOpen&&!q('.cfbox'));
           return r; })()""")
-        check("Outing tabs: Stops, Getting there, Parking and Coffee, one open at a time", mu==["Stops|Getting there|Parking|Coffee",True,True,True,True,True,True,True,True], mu)
+        check("Outing tabs: Stops, Getting there, Parking and Coffee, one open at a time", mu==["Stops|Getting there|Parking|Drinks",True,True,True,True,True,True,True,True], mu)
         pg.click("#mapPlan [data-walkmode]"); pg.wait_for_timeout(1200)
         wm=pg.evaluate("""(()=>{ const c=document.getElementById('walkCard'), W=planWalk(), k0=planCur(), r=[!!c&&!c.hidden, getComputedStyle(document.getElementById('mapSheet')).display, /Due /.test(c.textContent), /(m|mi) · \d+ min walk · head /.test(c.textContent)||/You are here/.test(c.textContent), state.mapSpot===W[k0].id];
           c.querySelector('[data-walkstep="1"]').click(); r.push(planCur()===(k0+1)%W.length, state.mapSpot===W[(k0+1)%W.length].id);
