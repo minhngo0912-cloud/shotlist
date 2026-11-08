@@ -6281,6 +6281,11 @@ function planTimesHtml(){ const p=state.plan; if(!p) return ""; const open=!!sta
         (s.ev?'':'<span class="ptbtns"><button type="button" class="chip" data-stopadj="'+n+':-5" aria-label="5 minutes less at stop '+(n+1)+'"'+(mins<=10?' disabled':'')+'>−5</button><button type="button" class="chip" data-stopadj="'+n+':5" aria-label="5 minutes more at stop '+(n+1)+'">+5</button></span>')+'</div>'+
         (s.ev?'':'<ul class="ptideas">'+s.ideas.map(x=>'<li>'+esc(x.t)+' · '+ideaMins(x)+' min</li>').join("")+(s.adj?'<li>'+(s.adj>0?'+':'−')+Math.abs(s.adj)+' min you set</li>':'')+'</ul>')+'</div>'; }).join("")+
     '<p class="hint">Each idea gets the time it usually takes: a slow shutter or waiting for a moment takes longer, a detail is quick. Walking time between stops is added.</p></div>':''); }
+/* Show the whole outing: the map moves to its spots (not the start at home), leaving room for the sheet */
+function planFit(){ const W=planWalk(); if(!W.length||!mapV) return; let a=1e9,b=-1e9,c=1e9,d=-1e9; W.forEach(o=>{ const [x,y]=mapXY(o.lat,o.lon); a=Math.min(a,x); b=Math.max(b,x); c=Math.min(c,y); d=Math.max(d,y); });
+  const w=Math.max(10,(b-a)*1.5,(d-c)*1.6/Math.max(0.8,MAP_ASPECT*0.55)); mapFly(mapClamp(mapAim({cx:(a+b)/2,cy:(c+d)/2,w}))); }
+function planShow(p){ const off=Math.round((evDay(p.start)-evDay(new Date()))/864e5); state.mapD=off>0&&off<=6?off:0; state.mapT=p.start.getHours()*60+Math.round(p.start.getMinutes()/5)*5;
+  state.mapSel=null; state.mapEv=null; state.mapLm=null; state.mapWork=null; state.mapSpot=null; state.view="map"; render(); setSheet("peek"); requestAnimationFrame(()=>{ mapPanel(); mapDraw(); planFit(); }); }
 function planWalkHtml(){ const W=planWalk(); if(!W.some(o=>o.id)) return ""; const nx=planWalkNext(W), tf=d=>hmText(d.getHours()*60+d.getMinutes()), lf=nx&&nx.face!=null?lightFacing(nx.face,nx.t):null;
   return '<p class="msg planwalk"><b>The walk: '+W.length+' spots.</b> Next: '+nx.k+'. '+esc(nx.name)+', '+tf(nx.t)+(lf?' · '+esc(lf.txt.toLowerCase())+', facing '+compass(nx.face):'')+'</p>'+
     (nx.id?'<div class="callinks"><button type="button" class="chip'+(state.guide&&state.guide.id===nx.id?'':' primary')+'" data-'+(state.guide&&state.guide.id===nx.id?'guidestop="1">Stop guiding':'guide="'+esc(nx.id)+'">Guide me to spot '+nx.k)+'</button></div>':''); }
@@ -8476,7 +8481,7 @@ function planEvent(id){ const now=new Date(), today=new Date(now.getFullYear(),n
   savePlan(); state.view="plan"; render(); window.scrollTo({top:0}); }
 function planToday(h,off){ off=off||0; renderPlan(); const t=new Date(), best=todayPicks(new Date(+atMin(Math.min(1435,(+h+1)*60))+off*864e5))[0];
   if(best&&[...$("pStart").options].some(o=>o.value===best.id)) $("pStart").value=best.id;
-  $("pDay").value=String(off); renderPlan(); $("pTime").value=(!off&&+h*60<=dayMin(new Date()))?"now":String(h); if(!$("pTime").value) $("pTime").selectedIndex=0; $("pLen").value="150"; state.plan=makePlan(); savePlan(); state.view="map"; render(); }
+  $("pDay").value=String(off); renderPlan(); $("pTime").value=(!off&&+h*60<=dayMin(new Date()))?"now":String(h); if(!$("pTime").value) $("pTime").selectedIndex=0; $("pLen").value="150"; state.plan=makePlan(); savePlan(); if(state.plan) planShow(state.plan); else { state.view="map"; render(); } }
 /* App health: errors and stalls are written to a short log on the device (Settings › App health), so a freeze on the
    street can be traced afterwards. A one-second tick that comes back more than 2 s late means the app was stuck. */
 const HEALTH={vis:performance.now(), hb:performance.now(), t0:Date.now(), touch:0};
@@ -8495,7 +8500,7 @@ function healthHtml(){ const L=healthList().slice().reverse(), wk=Date.now()-7*8
   return '<p class="msg">'+(nS||nE?'In the last 7 days: '+nS+' stall'+(nS===1?'':'s')+', '+nE+' error'+(nE===1?'':'s')+', opened '+nO+' time'+(nO===1?'':'s')+'.':'No stalls or errors recorded in the last 7 days'+(nO?' (opened '+nO+' time'+(nO===1?'':'s')+')':'')+'.')+' Data on this device: '+Math.round(kb)+' KB.</p>'+
     (L.length?'<ul class="healthlog">'+L.slice(0,25).map(x=>'<li class="hl-'+x.k+'"><b>'+when(x.t)+'</b> '+esc(x.k==="open"?x.m:(x.k==="stall"?"Stall: ":"Error: ")+x.m)+(x.n>1?' ×'+x.n:'')+'</li>').join("")+'</ul>':'')+
     '<div class="callinks">'+(typeof window.appUpdate==="function"?'<button type="button" class="chip" id="appUpdate">Check for updates</button>':'')+'<button type="button" class="chip" id="healthCopy">Copy report</button><button type="button" class="chip" id="healthClear">Clear</button></div><p class="msg" id="healthMsg" role="status"></p><p class="msg">Version '+APP_BUILD+'.</p>'; }
-const APP_BUILD = "Nov 7, 9:14 pm";
+const APP_BUILD = "Nov 7, 9:26 pm";
 function healthReport(){ const L=healthList(); return "Shot List health report\n"+navigator.userAgent+"\nStandalone: "+(!!(window.navigator.standalone||matchMedia("(display-mode: standalone)").matches))+"\n"+L.map(x=>new Date(x.t).toISOString()+" "+x.k+" ["+x.v+"] "+x.m+(x.n>1?" x"+x.n:"")).join("\n"); }
 /* If drawing a screen fails, say so with a way out instead of leaving a half-drawn screen that ignores taps. */
 function renderBroken(e){ healthLog("error","Drawing "+state.view+": "+(e&&e.message||e)); let b=$("brokenBar"); if(!b){ b=document.createElement("div"); b.id="brokenBar"; b.className="rowtoast on brokenbar"; b.setAttribute("role","alert"); document.body.appendChild(b); }
@@ -8876,7 +8881,7 @@ $("today").addEventListener("click",e=>{
   const mg=e.target.closest("[data-mapgo]"); if(mg){ const id=mg.dataset.mapgo; state.mapT=state.todayAt; state.view="map"; render(); requestAnimationFrame(()=>requestAnimationFrame(()=>{ mapSelect(id); })); return; }
   const pd=e.target.closest("[data-planday]"); if(pd){
     // tomorrow morning: the same best outing as Ideas › Tomorrow, planned inside the morning
-    if(pd.dataset.planbestam){ const c=bestOutings(cityIdeas(),"am")[0]; if(c){ const p=picksPlan(ymdKey(tmrwDay()),bestIdeas(c).map(x=>x.id),{s:c.o.s,e:c.o.e}); if(p){ state.mapD=1; state.mapT=p.start.getHours()*60+Math.round(p.start.getMinutes()/5)*5; state.view="map"; render(); return; } } }
+    if(pd.dataset.planbestam){ const c=bestOutings(cityIdeas(),"am")[0]; if(c){ const p=picksPlan(ymdKey(tmrwDay()),bestIdeas(c).map(x=>x.id),{s:c.o.s,e:c.o.e}); if(p){ planShow(p); return; } } }
     planToday(pd.dataset.planday,+pd.dataset.planoff||0); return; }
   const gv=e.target.closest("[data-goview]"); if(gv){ state.view=gv.dataset.goview; render(); window.scrollTo({top:0}); return; }
   const ev=e.target.closest("[data-event]"); if(ev){ showEvent(ev.dataset.event); return; }
@@ -8908,11 +8913,11 @@ document.addEventListener("click",e=>{ if(!e.target.closest) return;
   { const bp=e.target.closest("[data-tmbestplan],[data-tmbeststar]"); if(bp){ const B=bestOutings(matches(false)), c=B[+(bp.dataset.tmbestplan||bp.dataset.tmbeststar)]; if(!c) return; const ids=bestIdeas(c).map(x=>x.id), dk=ymdKey(tmrwDay());
       if(bp.dataset.tmbeststar!==undefined){ const E=picksFor(dk); ids.forEach(id=>{ if(!E.ids.includes(id)) pickToggle(id,dk); }); render(); return; }
       const p=picksPlan(dk,ids,{s:c.o.s,e:c.o.e}); if(!p){ evToast('<span>That outing cannot be planned for the hours left.</span>'); return; } const off=Math.round((evDay(p.start)-evDay(new Date()))/864e5);
-      state.mapD=off>0&&off<=6?off:0; state.mapT=p.start.getHours()*60+Math.round(p.start.getMinutes()/5)*5; state.view="map"; render(); requestAnimationFrame(()=>{ mapPanel(); mapDraw(); }); return; } }
+      planShow(p); return; } }
   { const tc=e.target.closest("[data-tmclear]"); if(tc){ const P=picksAll(); delete P[tc.dataset.tmclear]; picksSave(); render(); return; } }
   if(e.target.closest("[data-tmshow]")){ state.tmrw=true; state.onNow=false; store.set("tmrw",true); store.set("onNow",false); state.view="browse"; syncOnNow(); render(); window.scrollTo({top:0}); return; }
   { const tl=e.target.closest("[data-tmplan]"); if(tl){ const dk=tl.dataset.tmplan, p=picksPlan(dk); if(!p){ evToast('<span>Nothing on the shortlist can be planned for the hours left.</span>'); return; } const off=Math.round((evDay(p.start)-evDay(new Date()))/864e5);
-      state.mapD=off>0&&off<=6?off:0; state.mapT=p.start.getHours()*60+Math.round(p.start.getMinutes()/5)*5; state.view="map"; render(); requestAnimationFrame(()=>{ mapPanel(); mapDraw(); }); return; } }
+      planShow(p); return; } }
 });
 document.addEventListener("click",e=>{ const ca=e.target.closest("[data-caladd]"); if(ca&&!ca.closest("#today")) calAdd(ca); });
 /* Refresh Today: fetch the weather (and the events and prices files) again, then redraw. Pull down at the top of Today does the same. */
