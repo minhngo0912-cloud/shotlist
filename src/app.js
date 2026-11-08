@@ -1903,7 +1903,7 @@ const hourText = h => h===0||h===24 ? "midnight" : h===12 ? "noon" : (h%12)+(h<1
 /* The eight nights of Hanukkah: the first candle's evening each year. */
 const HANUKKAH = {2026:[12,4],2027:[12,24],2028:[12,12],2029:[12,1],2030:[12,20]};
 function hanukkahOn(t){ for(const y of [t.getFullYear(),t.getFullYear()-1]){ const h=HANUKKAH[y]; if(!h) continue; const s0=new Date(y,h[0]-1,h[1]), d=new Date(t.getFullYear(),t.getMonth(),t.getDate()), n=(d-s0)/864e5; if(n>=0&&n<8) return true; } return false; }
-function ideaOpen(x,t,sky){ const a=AVAIL[x.id]; if(!a) return true;
+function ideaOpen(x,t,sky){ if(!parkOK(x,t)) return false; const a=AVAIL[x.id]; if(!a) return true;
   if(a.hk&&!hanukkahOn(t)) return false;
   if(a.ev){ const E=EVENTS.find(e=>e.id===a.ev); if(E&&E.when){ const day=new Date(t.getFullYear(),t.getMonth(),t.getDate()); if(!E.when(t.getFullYear()).some(([s0,e0])=>day>=new Date(s0.getFullYear(),s0.getMonth(),s0.getDate())&&day<=new Date((e0||s0).getFullYear(),(e0||s0).getMonth(),(e0||s0).getDate()))) return false; } }
   if(a.span){ const md=(t.getMonth()+1)*100+t.getDate(), s0=a.span[0][0]*100+a.span[0][1], e0=a.span[1][0]*100+a.span[1][1]; if(s0<=e0?(md<s0||md>e0):(md<s0&&md>e0)) return false; }
@@ -4902,7 +4902,7 @@ function mapPlanBar(){ const p=state.plan, tf=d=>d.toLocaleTimeString("en-US",{h
     : (ok?'<div class="intents planbest"><button type="button" class="chip" data-planbest="1">Best order for the light</button></div>':'')+planWalkHtml()+planTimesHtml()+
       (W.length?'':'<div class="intents planstops">'+p.stops.map((s,n)=>'<button type="button" class="chip stopchip'+(n===nx?" next":"")+'" data-stop="'+n+'"><span class="stopn">'+(n+1)+'</span>'+esc(s.ev?(EVENTS.find(x=>x.id===s.ev)||{name:s.ev}).name:PLACES[s.place].name)+' · '+tf(s.at)+'</button>').join("")+'</div>');
   return '<div class="planbar"><div class="planbar-head pbh2"><div class="pbh-t"><b>'+(pday===1?'Tomorrow\u2019s outing':pday>1?esc(DAY_NAMES[p.start.getDay()])+'\u2019s outing':'Today\u2019s outing')+'</b><span>'+tf(p.start)+' to about '+tf(p.end)+' · <button type="button" class="linkbtn" data-openplan="1">Details</button> · <button type="button" class="linkbtn" data-clearplan="1">Clear</button></span></div>'+(W.length?'<button type="button" class="chip primary" data-walkmode="1">Walk mode</button>':'')+'</div>'+planStepRow()+
-    planWarnHtml()+hlHtml(p.start,p.end,'planhealth')+(m?'<p class="msg planmsg">'+esc(m)+'</p>':'')+
+    planWarnHtml()+hlHtml(p.start,p.end,'planhealth')+safetyHtml(p)+(m?'<p class="msg planmsg">'+esc(m)+'</p>':'')+
     '<div class="ptabs" role="tablist">'+tabs.map(tabBtn).join("")+'</div><div class="ptabbody ptab-'+tab+'" role="tabpanel">'+body+'</div></div>'; }
 function mapPts(){ const key=lightAt(mapNow()), ideas=cityIdeas().filter(i=>(state.mapIntent==="all"||i.i===state.mapIntent)&&(!state.mapDark||i.w.includes("night"))), t=mapNow(), cc=CITIES[state.city], night=sunPos(t,cc.lat,cc.lon).alt<-6, sky=night?skyAt(t):null;
   return Object.keys(CITIES[state.city].places).filter(id=>typeof PLACES[id].lat==="number").map(id=>{ const [x,y]=mapXY(PLACES[id].lat,PLACES[id].lon), mine=ideas.filter(i=>i.p===id);
@@ -6019,6 +6019,51 @@ function parkFeatSvg(x0,y0,x1,y1,u,w,f){ if(w>=45) return ""; let s=""; const ta
 function spotFind(S){ const g={lat:S[0],lon:S[1]}, F=PARK_FEAT.map(p=>({p,km:kmBetween(g,{lat:p[2],lon:p[3]})})).sort((a,b)=>a.km-b.km), near=F.find(o=>o.p[1]!=="gate"), gate=F.find(o=>o.p[1]==="gate");
   if(!near||near.km>0.3) return ""; const m=Math.round(near.km*1000/10)*10, dir=compass8(bearingTo({lat:near.p[2],lon:near.p[3]},g));
   return '<p class="msg spotfind"><b>Finding it:</b> '+(m<15?'right by '+esc(near.p[0]):'about '+m+' m '+dir+' of '+esc(near.p[0]))+'.'+(gate&&gate.km<1.6?' Nearest entrance: '+esc(gate.p[0])+', about '+walkMin(gate.km)+' min on foot.':'')+'</p>'; }
+/* Park hours: a stop in a park that is closed then is never planned, and a stop near closing time is flagged. From the parks'
+   official pages (checked November 2026); places with no posted hours follow the city rule, open 6 am to 1 am (NYC Parks rules,
+   and 311). Closing times past midnight are written as minutes past 1440. [name, spot ids, hours(date) -> [open, close], posted?] */
+const PK_DEF = () => [360,1500];
+const PARK_HRS = [
+ ["Central Park",["cpark:0","cpark:1","cpark:2","cpark:3","cpark:4","cpark:5","cpark:6","cpark:7","cpark:8","cpark:10"],()=>[360,1500],true],
+ ["Washington Square Park",["wsp:0","wsp:1","wsp:2","wsp:3","wsp:4","wsp:5","wsp:6","wsp:7","wsp:8","wsp:9","wsp:10"],()=>[360,1440],false,"reported to close at midnight"],
+ ["Union Square Park",["union:1","union:2","union:3","union:4","union:5","union:6","union:7"],PK_DEF,false],
+ ["Columbus Park",["chinatown:2"],PK_DEF,false],
+ ["Brooklyn Bridge Park",["dumbo:1","bkheights:2"],()=>[360,1500],true],
+ ["Fort Greene Park",["dumbo:5"],PK_DEF,false],
+ ["Brooklyn Heights Promenade",["bkheights:0","bkheights:1"],PK_DEF,false],
+ ["Squibb Park",["bkheights:4"],PK_DEF,false],
+ ["Domino Park",["wburg:0","wburg:5"],()=>[360,1380],true],
+ ["McCarren Park",["wburg:3"],PK_DEF,false],
+ ["Gantry Plaza State Park",["lic:0","lic:1","lic:3","lic:4"],d=>{ const L=lightDay(d); return [L.rise-30,L.set+30]; },true,"open dawn to dusk"],
+ ["The High Line",["chelsea:0"],d=>{ const m=d.getMonth(); return m>=3&&m<=10?[420,1320]:[420,1200]; },true],
+ ["Little Island",["chelsea:2"],()=>[360,1260],true,"closing time varies by season"],
+ ["the Coney Island boardwalk",["coney:0","coney:2","coney:5"],()=>[300,1500],true],
+ ["the Rockaway boardwalk",["rockaway:0","rockaway:3"],()=>[360,1320],true],
+ ["the Brighton Beach boardwalk",["brighton:1","brighton:2","brighton:3","brighton:5"],()=>[300,1500],true],
+ ["Bryant Park",["midtown:11"],d=>{ const m=d.getMonth(), dd=d.getDate(), dw=d.getDay(); if(m>=4&&m<=8) return [420,1380]; if((m===10&&dd>=19)||m===11||(m===0&&dd<=3)) return [420,1440]; if(m===10) return [420,dw===5||dw===6?1380:1320]; return [420,1320]; },true],
+ ["Riverside Park",["uws:3"],PK_DEF,false]];
+let PARK_OF=null; const IDEA_SPOT=new Map();
+function parkOK(x,t){ let id=IDEA_SPOT.get(x.id); if(id===undefined){ const sp=typeof spotFor==="function"?spotFor(x):null; id=sp?sp.id:null; IDEA_SPOT.set(x.id,id); } if(!id) return true; const A=parkAt(id,t); return !A||A.open; }
+function parkOf(spotId){ if(!PARK_OF){ PARK_OF=new Map(); PARK_HRS.forEach(P=>P[1].forEach(id=>PARK_OF.set(id,P))); } return PARK_OF.get(spotId)||null; }
+/* Is the park open at t: {P, open, o, c} (o, c in minutes; c may run past midnight) */
+function parkAt(spotId,t){ const P=parkOf(spotId); if(!P) return null; const d=new Date(t.getFullYear(),t.getMonth(),t.getDate()), m=t.getHours()*60+t.getMinutes(), [o,c]=P[2](d);
+  const y=new Date(+d-864e5), [,cy]=P[2](y), spill=cy>1440&&m<cy-1440; return {P,o,c,open:spill||(m>=o&&m<Math.min(c,1440))||(c>1440&&m>=o),spill}; }
+const pkHm = m => hmText(((m%1440)+1440)%1440);
+/* After dark, these stops get quiet: park interiors, waterfronts, under bridges, boardwalks, empty warehouse blocks */
+const QUIET_DARK = new Set(["cpark:0","cpark:1","cpark:2","cpark:3","cpark:4","cpark:5","cpark:6","cpark:7","cpark:8","cpark:10","dumbo:1","dumbo:2","dumbo:4","dumbo:5","wburg:0","wburg:2","wburg:3","wburg:5","bkheights:2","bkheights:4","lic:0","lic:1","lic:3","lic:4","coney:0","coney:2","coney:5","brighton:1","brighton:2","brighton:3","brighton:5","rockaway:0","rockaway:1","rockaway:2","rockaway:3","uws:3","bushwick:0","bushwick:1","bushwick:2","bushwick:4","chinatown:2"]);
+/* Safety on an outing: closed or closing parks at a stop's time, quiet stops after dark, and recent official notices */
+function safetyFor(p){ const W=planWalk(), out=[], seenQ=new Set(); if(!W.length) return out; const tf=d=>hmText(d.getHours()*60+d.getMinutes());
+  W.forEach(w=>{ if(!w.id) return; const end=new Date(+w.t+(w.mins||20)*6e4), A=parkAt(w.id,w.t), B=parkAt(w.id,end);
+    if(A&&!A.open){ out.push({k:"park",lvl:2,txt:"Stop "+w.k+" ("+w.name+") is at "+tf(w.t)+", but "+A.P[0]+" is closed then: it opens at "+pkHm(A.o)+" and closes at "+pkHm(A.c)+(A.P[4]?" ("+A.P[4]+")":A.P[3]?"":" (the city's usual park hours)")+". Move the stop or start later."}); return; }
+    if(A&&B&&!B.open) out.push({k:"park",lvl:1,txt:A.P[0]+" closes at "+pkHm(A.c)+", during stop "+w.k+" ("+tf(w.t)+"). Keep it short or go earlier."});
+    const L=lightDay(w.t), m=w.t.getHours()*60+w.t.getMinutes(), dark=m>L.set+30||m<L.rise-30;
+    if(dark&&QUIET_DARK.has(w.id)){ seenQ.add(w.k); } });
+  if(seenQ.size){ const ks=[...seenQ]; out.push({k:"dark",lvl:1,txt:"After dark, stop"+(ks.length>1?"s ":" ")+ks.join(", ")+(ks.length>1?" get":" gets")+" quiet: stay on lit paths and near other people, think about going with someone, keep the camera strap on, and leave if it feels wrong."}); }
+  const N=typeof NOTIFY!=="undefined"&&NOTIFY.list||[], names=[...new Set(p.stops.map(s=>s.place).filter(Boolean).map(id=>PLACES[id].name.toLowerCase()))], now=Date.now();
+  N.filter(n=>now-n.t<8*36e5&&names.some(nm=>n.txt.toLowerCase().includes(nm.split(" and ")[0]))).slice(0,2).forEach(n=>out.push({k:"notify",lvl:1,txt:"Notify NYC, "+tf(new Date(n.t))+": "+n.title}));
+  return out; }
+function safetyHtml(p){ const S=safetyFor(p), day=Math.round((evDay(p.start)-evDay(new Date()))/864e5), link=day>=0&&day<=1?'<p class="msg hlnote">Before you go, check <a href="https://a858-nycnotify.nyc.gov/notifynyc#Recent_Notifications" target="_blank" rel="noopener">Notify NYC ↗</a> for police activity, fires or street closures near your stops.</p>':'';
+  return (S.length?'<div class="health safety">'+S.map(h=>'<p class="hl lv'+h.lvl+' '+h.k+'"><span class="hli" aria-hidden="true">'+({park:"⛔",dark:"🌙",notify:"📢"}[h.k])+'</span><span>'+esc(h.txt)+'</span></p>').join("")+'</div>':'')+(S.length||day===0?link:''); }
 /* The legend: what the symbols and colours on the map mean, only for what is drawn right now */
 const MAP_LEGEND=[
  [".m-pin",'<span class="lg-pin">5</span>',"A place: the number is how many ideas it has. A bright ring means some suit the light at the time on the slider."],

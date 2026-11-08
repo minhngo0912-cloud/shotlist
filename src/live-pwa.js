@@ -22,7 +22,7 @@ async function loadWeather(){
     if(!r.ok) throw new Error("weather "+r.status);
     const v=wxParse(await r.json()); if(v){ const old=WEATHER[id]; if(old&&old.aq) v.aq=old.aq; if(old&&old.nws) v.nws=old.nws; WEATHER[id]=v; store.set("weather",WEATHER); }
   }catch(e){} finally{ weatherBusy=false; }
-  await loadHealth(id);
+  await loadHealth(id); loadNotify();
   renderNow(); if(state.view==="today") renderToday(); if(state.view==="map"&&$("mapSvg")){ mapDraw(); mapPanel(); } if(state.view==="shoot"&&state.tab==="settings"&&openTip===null&&document.activeElement.id!=="camera") renderCard();
 }
 /* Health on an outing: the hourly air quality (US AQI, from Open-Meteo's air-quality forecast) and the National Weather Service's
@@ -34,6 +34,13 @@ async function loadHealth(id){ const c=CITIES[id]; if(!c||typeof c.lat!=="number
   try{ const r=await fetch("https://api.weather.gov/alerts/active?point="+c.lat.toFixed(4)+","+c.lon.toFixed(4),{headers:{Accept:"application/geo+json"}});
     if(r.ok){ const j=await r.json(); W.nws={at:new Date().toISOString(),list:(j.features||[]).map(f=>f.properties||{}).filter(p=>p.event&&p.status!=="Test").map(p=>({ev:p.event,sev:p.severity||"",s:p.onset||p.effective||p.sent,e:p.ends||p.expires,head:p.headline||"",inst:String(p.instruction||"").replace(/\s+/g," ").trim().slice(0,400)}))}; } }catch(e){}
   try{ store.set("weather",WEATHER); }catch(e){} if(state.view==="today") renderToday(); if(state.view==="map"&&$("mapSvg")) mapPanel(); }
+/* Notify NYC: the city's emergency notices (police activity, fires, street closures), from its public RSS feed. Read with the
+   weather; if the feed cannot be read (it may not allow other sites to read it), the outing links to the Notify NYC page instead. */
+var NOTIFY={list:[],at:0};
+async function loadNotify(){ if(Date.now()-NOTIFY.at<20*60*1000) return; NOTIFY.at=Date.now();
+  try{ const r=await fetch("https://feeds.everbridge.net/feeds/453003085617722/rss/rss.xml"); if(!r.ok) return; const x=new DOMParser().parseFromString(await r.text(),"text/xml");
+    NOTIFY.list=[...x.querySelectorAll("item")].map(it=>{ const g=n=>(it.querySelector(n)||{}).textContent||""; const t=Date.parse(g("pubDate")); return {title:g("title").trim(),txt:(g("title")+" "+g("description")).replace(/<[^>]+>/g," ").replace(/\s+/g," "),t:isNaN(t)?0:t}; }).filter(n=>n.title&&n.t);
+    if(state.view==="map"&&$("mapSvg")) mapPanel(); }catch(e){} }
 /* The forecast for where you are, for Light here away from the city. Kept as WEATHER.here with its position; fetched at most every 10 minutes. */
 let wxHereAt=0;
 async function loadWeatherAt(pos){ if(Date.now()-wxHereAt<10*60*1000) return; wxHereAt=Date.now();

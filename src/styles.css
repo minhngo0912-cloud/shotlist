@@ -1790,3 +1790,4 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 .hl{display:flex;gap:8px;align-items:flex-start;margin:0;padding:8px 10px;border-radius:10px;font-size:13.5px;line-height:1.35;background:rgba(224,161,0,.14);border-left:3px solid #e0a100}
 .hl.lv2{background:rgba(217,83,79,.14);border-left-color:#d9534f} .hli{flex:none}
 .tnow .hl{color:#fff;background:rgba(255,200,80,.16)} .tnow .hl.lv2{background:rgba(255,110,100,.2)}
+.hlnote{margin:4px 0 8px} .hl.park.lv2{background:rgba(217,83,79,.16)}

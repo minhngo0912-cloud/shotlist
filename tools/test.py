@@ -1601,6 +1601,15 @@ def run(path, name):
               state.view='today'; render(); const t=document.querySelector('.tnow').innerText;
               w.hourly.at=keepAt; w.hourly.uv=keepUv; render(); return [ks, /Unhealthy air \(AQI up to 160/.test(t), /Air Quality Alert/.test(t), late]; })()""")
             check("Health on an outing: the National Weather Service alert first, unhealthy air (AQI over 150) with its hours, heat as it feels, strong UV; none when the day is clear", hl[0][0]=="nws1" and "air2" in hl[0] and "heat1" in hl[0] and "uv1" in hl[0] and hl[1] and hl[2] and hl[3]==[], hl)
+        sf=pg.evaluate("""(()=>{ const r=[], X=id=>IDEAS.find(x=>x.id===id);
+          r.push(parkAt('cpark:0',new Date(2026,5,21,5,10)).open, parkAt('cpark:0',new Date(2026,5,21,6,10)).open, parkAt('cpark:0',new Date(2026,5,21,0,30)).open, parkAt('cpark:0',new Date(2026,5,21,1,30)).open, parkAt('chelsea:0',new Date(2026,11,5,20,30)).open, parkAt('chelsea:0',new Date(2026,6,5,21,30)).open, parkAt('lic:0',new Date(2026,10,8,19,0)).open, parkAt('chinatown:0',new Date(2026,10,8,3,0)));
+          r.push(ideaOpen(X('cpark-place'),new Date(2026,5,21,5,10)), ideaOpen(X('cpark-place'),new Date(2026,5,21,7,0)));
+          const keep=state.plan; state.plan={start:new Date(2026,5,21,5,10),end:new Date(2026,5,21,5,10),stops:[{place:'cpark',at:new Date(2026,5,21,5,10),key:'am',ideas:[X('cpark-place')],mine:true},{place:'dumbo',at:new Date(2026,5,21,21,30),key:'night',ideas:[X('dumbo-mood')],mine:true}]}; retimePlan(state.plan);
+          state.plan.stops[1].at=new Date(2026,5,21,21,30); const S=safetyFor(state.plan).map(h=>h.k+h.lvl);
+          NOTIFY={list:[{title:'Police activity in DUMBO',txt:'Police activity in DUMBO near Water Street, expect delays',t:Date.now()-36e5}],at:Date.now()}; state.plan={start:new Date(),end:new Date(),stops:[{place:'dumbo',at:new Date(Date.now()+36e5),key:'mid',ideas:[X('dumbo-place')],mine:true}]}; retimePlan(state.plan); const S2=safetyFor(state.plan).map(h=>h.k);
+          const html=safetyHtml(state.plan); NOTIFY={list:[],at:0};
+          const dk='2026-06-21'; state.plan=keep; return [r, S, S2, /notifynyc/.test(html)]; })()""")
+        check("Safety: park hours (Central Park 6 am to 1 am, the High Line's winter and summer closing, Gantry Plaza dawn to dusk, streets have none); a park stop is never planned while closed; an outing flags a closed park, quiet stops after dark, and Notify NYC notices near its places", sf[0]==[False,True,True,False,False,True,False,None,False,True] and "park2" in sf[1] and "dark1" in sf[1] and "notify" in sf[2] and sf[3], sf)
         # Right now: sun times match the published ones, and an old forecast is not passed off as today's
         sw=pg.evaluate("""(()=>{ const c=CITIES.nyc, d=new Date(2026,10,8), r=sunTimes(d,c.lat,c.lon), sec=x=>x.getHours()*3600+x.getMinutes()*60+x.getSeconds();
           let civ=[], prev=null; for(let m=300;m<1200;m+=0.25){ const x=new Date(+d+m*6e4), a=sunPos(x,c.lat,c.lon).alt; if(prev!==null&&((prev< -6)!==(a< -6))) civ.push(sec(x)); prev=a; }
