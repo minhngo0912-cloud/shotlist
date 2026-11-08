@@ -3788,7 +3788,9 @@ function picksTodayHtml(){ const tk=ymdKey(new Date()), mk=ymdKey(tmrwDay()), dk
     '<div class="callinks"><button type="button" class="chip primary" data-tmplan="'+dk+'">'+(state.plan&&evDay(state.plan.start)>=evDay(d)&&+evDay(state.plan.start)===+evDay(d)?'Plan it again':'Plan '+lab)+'</button><button type="button" class="chip" data-tmshow="1">Change the shortlist</button></div></section>'; }
 /* Plan the day from the shortlist: its places, in the order and at the start time that puts the most picked ideas in light that suits
    them (every order of up to six places, starts every 20 minutes from before sunrise to after dark; not earlier than now on the day). */
-function picksPlan(dk,only){ const E=only?{ids:only}:picksFor(dk), d=ymdDate(dk), xs=E.ids.map(id=>IDEAS.find(i=>i.id===id)).filter(x=>x&&typeof PLACES[x.p].lat==="number"); if(!xs.length) return null;
+/* win: the slot the outing is for ({s,e} in minutes): the start stays inside it, so a morning outing starts in the morning even when its
+   ideas would also suit the afternoon. A shortlist uses the slot most of its picks were made for. */
+function picksPlan(dk,only,win){ const E=only?{ids:only}:picksFor(dk), d=ymdDate(dk), xs=E.ids.map(id=>IDEAS.find(i=>i.id===id)).filter(x=>x&&typeof PLACES[x.p].lat==="number"); if(!xs.length) return null;
   const by=new Map(); xs.forEach(x=>{ if(!by.has(x.p)) by.set(x.p,[]); by.get(x.p).push(x); });
   let places=[...by.keys()].sort((a,b)=>by.get(b).length-by.get(a).length).slice(0,6);
   const L=lightDay(d), legs={}, leg=(a,b)=>legs[a+">"+b]||(legs[a+">"+b]=legBetween(a,b)), now=Date.now();
@@ -3797,7 +3799,10 @@ function picksPlan(dk,only){ const E=only?{ids:only}:picksFor(dk), d=ymdDate(dk)
   const sim=(order,start)=>{ let t=+start, fits=0, score=0, travel=0; order.forEach((pid,n)=>{ const I=by.get(pid), [f,k]=fitAt(pid,t);
       fits+=f; score+=f*10+(f&&k==="gold"?3:0); t+=Math.max(1,I.length)*25*6e4; if(n<order.length-1){ const g=leg(pid,order[n+1]); travel+=g.mins; t+=g.mins*6e4; } }); return {fits,score:score-travel/6}; };
   const orders=[]; const perm=(a,k)=>{ if(k===a.length){ orders.push(a.slice()); return; } for(let i=k;i<a.length;i++){ [a[k],a[i]]=[a[i],a[k]]; perm(a,k+1); [a[k],a[i]]=[a[i],a[k]]; } }; perm(places.slice(),0);
-  let best=null; for(let m=Math.max(0,L.rise-40);m<=Math.min(1380,L.set+150);m+=20){ const st=clk(d,m); if(+st<now) continue; for(const o of orders){ const r=sim(o,st); if(!best||r.score>best.r.score+0.01) best={o,st,r}; } }
+  if(!win&&!only){ const n={}; for(const id of E.ids){ const sn=E.snap&&E.snap[id]; if(sn&&sn.slot) n[sn.slot]=(n[sn.slot]||0)+1; } const top=Object.keys(n).sort((a,b)=>n[b]-n[a])[0];
+    if(top&&n[top]*2>E.ids.length){ const o=daySlots(d).find(x=>x.id===top); if(o) win={s:o.s,e:o.e}; } }
+  const m0=win?Math.max(0,win.s-15):Math.max(0,L.rise-40), m1=win?Math.max(m0,win.e-25):Math.min(1380,L.set+150);
+  let best=null; for(let m=m0;m<=m1;m+=win?10:20){ const st=clk(d,m); if(+st<now) continue; for(const o of orders){ const r=sim(o,st); if(!best||r.score>best.r.score+0.01) best={o,st,r}; } }
   if(!best) return null;
   const p={start:best.st,end:best.st,stops:best.o.map(pid=>({place:pid,at:new Date(best.st),key:"",ideas:by.get(pid).slice()}))};
   let t=+best.st; p.stops.forEach((s,n)=>{ s.at=new Date(t); s.key=lightAt(s.at); t+=Math.max(1,s.ideas.length)*25*6e4; if(n<p.stops.length-1) t+=leg(s.place,p.stops[n+1].place).mins*6e4; });
@@ -6224,7 +6229,7 @@ function planWalkSvg(f,u,w,x0,y0,x1,y1){ const W=planWalk(); if(W.length<2&&!W.l
       (w<60?'<text x="'+f(x+r+3*u)+'" y="'+f(y+3*u)+'" font-size="'+f(8.5*u)+'" class="m-wett">'+esc(hmText(o.t.getHours()*60+o.t.getMinutes())+(lf?' · '+lf.txt.toLowerCase():''))+'</text>':'')+'</g>'; });
   return {route,marks}; }
 function planStartHtml(){ const p=state.plan, T=planStartTrip(); if(!p) return ""; const H=state.home&&typeof state.home.lat==="number", open=!!state.startPick;
-  const now=T?(T.S.kind==="home"?"home":T.S.kind==="pick"?T.S.label:"where you are")+(T.mins?' · '+T.mins+' min '+T.how+' to spot 1':''):"not set (turn on location or save a home on Today)";
+  const now=T?(T.S.kind==="home"?"home":T.S.kind==="pick"?T.S.label:"where you are")+(T.mins?' · '+T.mins+' min '+T.how+' to spot 1':''):"not set (set home in Settings, or turn on location)";
   return '<p class="msg planstart"><b>Start:</b> '+esc(now)+' <button type="button" class="linkbtn" data-startopen="1">'+(open?'Done':'Change')+'</button></p>'+
     (open?'<div class="intents startpick">'+(H?'<button type="button" class="chip" data-startset="home" aria-pressed="'+(!!T&&T.S.kind==="home")+'">⌂ Home</button>':'')+(state.pos?'<button type="button" class="chip" data-startset="here">◎ Where I am now</button>':'')+
       '<button type="button" class="chip" data-startset="pick" aria-pressed="'+(state.startPick==="map")+'">Pick on the map</button>'+(p.from||p.fromHome?'<button type="button" class="chip" data-startset="auto">Automatic</button>':'')+'</div>'+
@@ -8847,7 +8852,7 @@ document.addEventListener("click",e=>{ if(!e.target.closest) return;
   { const bs=e.target.closest("[data-tmbest]"); if(bs){ state.tmBest=+bs.dataset.tmbest; render(); return; } }
   { const bp=e.target.closest("[data-tmbestplan],[data-tmbeststar]"); if(bp){ const B=bestOutings(matches(false)), c=B[+(bp.dataset.tmbestplan||bp.dataset.tmbeststar)]; if(!c) return; const ids=bestIdeas(c).map(x=>x.id), dk=ymdKey(tmrwDay());
       if(bp.dataset.tmbeststar!==undefined){ const E=picksFor(dk); ids.forEach(id=>{ if(!E.ids.includes(id)) pickToggle(id,dk); }); render(); return; }
-      const p=picksPlan(dk,ids); if(!p){ evToast('<span>That outing cannot be planned for the hours left.</span>'); return; } const off=Math.round((evDay(p.start)-evDay(new Date()))/864e5);
+      const p=picksPlan(dk,ids,{s:c.o.s,e:c.o.e}); if(!p){ evToast('<span>That outing cannot be planned for the hours left.</span>'); return; } const off=Math.round((evDay(p.start)-evDay(new Date()))/864e5);
       state.mapD=off>0&&off<=6?off:0; state.mapT=p.start.getHours()*60+Math.round(p.start.getMinutes()/5)*5; state.view="map"; render(); requestAnimationFrame(()=>{ mapPanel(); mapDraw(); }); return; } }
   { const tc=e.target.closest("[data-tmclear]"); if(tc){ const P=picksAll(); delete P[tc.dataset.tmclear]; picksSave(); render(); return; } }
   if(e.target.closest("[data-tmshow]")){ state.tmrw=true; state.onNow=false; store.set("tmrw",true); store.set("onNow",false); state.view="browse"; syncOnNow(); render(); window.scrollTo({top:0}); return; }

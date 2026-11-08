@@ -1373,6 +1373,9 @@ def run(path, name):
         pg.click("#list [data-tmbestplan='0']"); pg.wait_for_timeout(300)
         bp=pg.evaluate("[state.view, state.plan&&state.plan.start.getDate(), /Planned from the best outing/.test(state.planMsg||''), state.plan&&state.plan.stops.flatMap(s=>s.ideas.map(x=>x.id)).sort().join()]")
         check("Plan this outing: tomorrow's outing on the map with the recommended ideas", bp[0]=="map" and bp[1]==12 and bp[2] and bp[3]==",".join(sorted(bo[1])), [bp,bo[1]])
+        mo=pg.evaluate("""(()=>{ state.plan=null; state.view='browse'; state.when='am'; render(); const c=bestOutings(matches(false))[0]; document.querySelector('#list [data-tmbestplan="0"]').click();
+          const st=state.plan&&state.plan.start, m=st?st.getHours()*60+st.getMinutes():-1; return [c&&c.o.id, m>=c.o.s-15&&m<=c.o.e-25, state.view]; })()""")
+        check("Plan this outing keeps a morning outing in the morning", mo[0]=="am" and mo[1] and mo[2]=="map", mo)
         pg.evaluate("state.plan=null; savePlan(); state.mapD=0; state.mapT=null; state.view='browse'; state.when='am'; render()")
         bm=pg.evaluate("[bestOutings(matches(false)).every(c=>c.o.id==='am'), /Morning/.test((document.querySelector('#list .tmbest')||{}).textContent||'')]")
         pg.evaluate("state.when='all'; state.tmrw=false; store.set('tmrw',false); syncOnNow(); state.view='today'; render()")
