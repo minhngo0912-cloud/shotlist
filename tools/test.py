@@ -1379,6 +1379,10 @@ def run(path, name):
         pg.wait_for_timeout(900)
         fr=pg.evaluate("""(()=>{ const W=planWalk(); if(!W.length||!mapV) return [false]; const h=mapV.w*MAP_ASPECT; return [W.every(o=>{ const [x,y]=mapXY(o.lat,o.lon); return Math.abs(x-mapV.cx)<=mapV.w/2 && Math.abs(y-mapV.cy)<=h/2; }), mapV.w<200, W.length]; })()""")
         check("Plan this outing moves the map to the outing's spots", fr[0] and fr[1], fr)
+        ns=pg.evaluate("""(()=>{ const W=planWalk(), out=[]; for(let i=0;i<=W.length;i++){ const lab=document.querySelector('[data-nextstop]').textContent; document.querySelector('[data-nextstop]').click(); out.push([lab,state.mapSpot||state.mapSel,state.mapT]); }
+          return [W.map(o=>o.id||W.indexOf(o)), W.map(o=>o.t.getHours()*60+Math.round(o.t.getMinutes()/5)*5), out, /Stop 1 of /.test((document.querySelector('.planstopline')||{}).textContent||'')]; })()""")
+        ids,ts,out,line=ns
+        check("Next stop steps through the outing's spots in order at their times, then back to the first", len(ids)>=2 and [o[1] for o in out[:len(ids)]]==[i for i in ids] and out[len(ids)][1]==ids[0] and [o[2] for o in out[:len(ids)]]==ts and out[0][0].startswith("Next stop") and out[1][0].startswith("Stop 2 of") and line, ns)
         mo=pg.evaluate("""(()=>{ state.plan=null; state.view='browse'; state.when='am'; render(); const c=bestOutings(matches(false))[0]; document.querySelector('#list [data-tmbestplan="0"]').click();
           const st=state.plan&&state.plan.start, m=st?st.getHours()*60+st.getMinutes():-1; return [c&&c.o.id, m>=c.o.s-15&&m<=c.o.e-25, state.view]; })()""")
         check("Plan this outing keeps a morning outing in the morning", mo[0]=="am" and mo[1] and mo[2]=="map", mo)

@@ -3641,7 +3641,7 @@ const camFov = () => 2*Math.atan(18/(CAM_FOCAL[state.camera]||43))*180/Math.PI; 
 const angDiff = (a,b) => Math.abs(((a-b)%360+540)%360-180);
 /* What light you get facing a direction at time t: into the sun (backlit), across it, or with it behind you. */
 function lightFacing(bearing,t){ const c=CITIES[state.city], sp=sunPos(t,c.lat,c.lon), ph=sunPhase(sp.alt);
-  if(sp.alt<-0.8) return {k:"dark",txt:ph==="blue"?"Blue hour":"After dark"};
+  if(sp.alt<-0.8) return ph==="gold"?{k:"dark",txt:t.getHours()<12?"Glow before sunrise":"Glow after sunset",tip:"The sun is just below the horizon: soft colour in the sky, no direct sun on the street."}:{k:"dark",txt:ph==="blue"?"Blue hour":"After dark"};
   const d=angDiff(bearing,sp.az); return d<=50?{k:"back",txt:"Backlit"}:d>=130?{k:"front",txt:"Front-lit"}:{k:"side",txt:"Side light"}; }
 /* The sun relative to a spot: where it sits against the way you face, how high, and where shadows fall. */
 function sunRel(face,t){ const c=CITIES[state.city], sp=sunPos(t,c.lat,c.lon); if(sp.alt<=0) return null;
@@ -3650,8 +3650,8 @@ function sunRel(face,t){ const c=CITIES[state.city], sp=sunPos(t,c.lat,c.lon); i
   return {sp, d, txt:"Sun "+where+", "+Math.round(sp.alt)+"° up. Shadows fall "+compass(sp.az+180)+", "+len+"."}; }
 /* The light facing one way through the map's day: a bar of backlit, side-lit, front-lit and dark, with the hours each one runs. */
 function lightStrip(face){ const d=mapDay(), runs=[]; let cur=null;
-  for(let m=0;m<1440;m+=5){ const lf=lightFacing(face,clk(d,m)), k=lf.k==="dark"&&lf.txt==="Blue hour"?"blue":lf.k; if(cur&&cur.k===k) cur.e=m+5; else { cur={k,s:m,e:m+5}; runs.push(cur); } }
-  const col={back:"#f28a28",side:"#fccc0a",front:"#fff3c4",blue:"#3e63d8",dark:"#1c2340"}, name={back:"Backlit",side:"Side light",front:"Front-lit",blue:"Blue hour",dark:"Dark"};
+  for(let m=0;m<1440;m+=5){ const lf=lightFacing(face,clk(d,m)), k=lf.k==="dark"&&lf.txt==="Blue hour"?"blue":lf.k==="dark"&&lf.tip?"glow":lf.k; if(cur&&cur.k===k) cur.e=m+5; else { cur={k,s:m,e:m+5}; runs.push(cur); } }
+  const col={back:"#f28a28",side:"#fccc0a",front:"#fff3c4",blue:"#3e63d8",glow:"#a8607a",dark:"#1c2340"}, name={back:"Backlit",side:"Side light",front:"Front-lit",blue:"Blue hour",glow:"Glow",dark:"Dark"};
   const bar='linear-gradient(to right,'+runs.map(r=>col[r.k]+' '+(r.s/1440*100).toFixed(2)+'%,'+col[r.k]+' '+(r.e/1440*100).toFixed(2)+'%').join(",")+')';
   const t=mapNow(), cur_m=t.getHours()*60+t.getMinutes();
   const chips=runs.filter(r=>r.k!=="dark"&&r.e-r.s>=30).map(r=>'<button type="button" class="chip lmark'+(cur_m>=r.s&&cur_m<r.e?' on':'')+'" data-jump="'+r.s+'"><span class="sdot '+(r.k==="blue"?"dark":r.k)+'"></span>'+name[r.k]+' '+hmText(r.s)+' to '+hmText(Math.min(1439,r.e))+'</button>').join("");
@@ -4437,6 +4437,17 @@ function planTimesHtml(){ const p=state.plan; if(!p) return ""; const open=!!sta
 /* Show the whole outing: the map moves to its spots (not the start at home), leaving room for the sheet */
 function planFit(){ const W=planWalk(); if(!W.length||!mapV) return; let a=1e9,b=-1e9,c=1e9,d=-1e9; W.forEach(o=>{ const [x,y]=mapXY(o.lat,o.lon); a=Math.min(a,x); b=Math.max(b,x); c=Math.min(c,y); d=Math.max(d,y); });
   const w=Math.max(10,(b-a)*1.5,(d-c)*1.6/Math.max(0.8,MAP_ASPECT*0.55)); mapFly(mapClamp(mapAim({cx:(a+b)/2,cy:(c+d)/2,w}))); }
+/* Next stop on the map: steps through the outing's spots in order, each at the time you will be there (on the day, it starts at
+   the spot you are due at; after the last it goes back to the first). The step is kept for this outing only. */
+function planCur(){ const c=state.planCur; return c&&c.p===state.plan?c.k:null; }
+function planStepLabel(){ const W=planWalk(), k=planCur(); if(k===null||W.length<2) return "Next stop ›"; const n=(k+1)%W.length; return "Stop "+(n+1)+" of "+W.length+" ›"; }
+function planStep(){ const W=planWalk(); if(!W.length) return; const k=planCur(), nx=planWalkNext(W), n=k===null?Math.max(0,W.indexOf(nx)):(k+1)%W.length, w=W[n];
+  state.planCur={p:state.plan,k:n}; const today=evDay(new Date()), off=Math.round((evDay(w.t)-today)/864e5), live=off===0&&Math.abs(w.t-Date.now())<15*6e4;
+  state.mapD=off>0&&off<=6?off:0; state.mapT=live?null:w.t.getHours()*60+Math.round(w.t.getMinutes()/5)*5;
+  const tm=$("mapTime"), now=new Date(); if(tm) tm.value=state.mapT===null?now.getHours()*60+now.getMinutes():state.mapT;
+  if(w.id){ mapSelectSpot(w.id); setSheet("half"); return; }
+  const s=state.plan.stops[w.n]; if(s&&s.ev){ mapGoStop(w.n); return; }
+  state.mapSel=s.place; state.mapSpot=null; state.mapEv=null; state.mapLm=null; state.mapWork=null; mapPanel(); mapDraw(); const [x,y]=mapXY(w.lat,w.lon); mapFly(mapAim({cx:x,cy:y,w:Math.min(mapV.w,14)})); setSheet("half"); }
 function planShow(p){ const off=Math.round((evDay(p.start)-evDay(new Date()))/864e5); state.mapD=off>0&&off<=6?off:0; state.mapT=p.start.getHours()*60+Math.round(p.start.getMinutes()/5)*5;
   state.mapSel=null; state.mapEv=null; state.mapLm=null; state.mapWork=null; state.mapSpot=null; state.view="map"; render(); setSheet("peek"); requestAnimationFrame(()=>{ mapPanel(); mapDraw(); planFit(); }); }
 function planWalkHtml(){ const W=planWalk(); if(!W.some(o=>o.id)) return ""; const nx=planWalkNext(W), tf=d=>hmText(d.getHours()*60+d.getMinutes()), lf=nx&&nx.face!=null?lightFacing(nx.face,nx.t):null;
@@ -4458,7 +4469,7 @@ function mapPlanBar(){ const p=state.plan, tf=d=>d.toLocaleTimeString("en-US",{h
   if(!p) return '<div class="planhint"><p class="hint">Tap a pin and choose Add to today to build an outing on the map, or let the app plan one.</p><button type="button" class="chip primary" data-openplan="1">Plan an outing</button></div>';
   const nx=nextStopIndex();
   const pday=Math.round((evDay(p.start)-evDay(new Date()))/864e5);
-  return '<div class="planbar"><div class="planbar-head"><b>'+(pday===1?'Tomorrow\u2019s outing':pday>1?esc(DAY_NAMES[p.start.getDay()])+'\u2019s outing':'Today\u2019s outing')+'</b><span>'+tf(p.start)+' to about '+tf(p.end)+'</span><button type="button" class="chip primary" data-nextstop="1">Next stop ›</button><button type="button" class="chip" data-openplan="1">Details</button><button type="button" class="chip" data-clearplan="1">Clear</button></div>'+
+  return '<div class="planbar"><div class="planbar-head"><b>'+(pday===1?'Tomorrow\u2019s outing':pday>1?esc(DAY_NAMES[p.start.getDay()])+'\u2019s outing':'Today\u2019s outing')+'</b><span>'+tf(p.start)+' to about '+tf(p.end)+'</span><button type="button" class="chip primary" data-nextstop="1">'+planStepLabel()+'</button><button type="button" class="chip" data-openplan="1">Details</button><button type="button" class="chip" data-clearplan="1">Clear</button></div>'+
     (()=>{ const lb=planLeaveBy(), ok=planBestOK(), m=state.planMsg; return planWarnHtml()+(lb?'<p class="msg planleave">'+esc(lb)+'</p>':'')+(ok?'<div class="intents planbest"><button type="button" class="chip" data-planbest="1">Best order for the light</button></div>':'')+(m?'<p class="msg planmsg">'+esc(m)+'</p>':'')+planStartHtml()+planWalkHtml()+planTimesHtml(); })()+
     '<div class="intents planstops">'+p.stops.map((s,n)=>'<button type="button" class="chip stopchip'+(n===nx?" next":"")+'" data-stop="'+n+'"><span class="stopn">'+(n+1)+'</span>'+esc(s.ev?(EVENTS.find(x=>x.id===s.ev)||{name:s.ev}).name:PLACES[s.place].name)+' · '+tf(s.at)+'</button>').join("")+'</div>'+planLinks()+'</div>'; }
 function mapPts(){ const key=lightAt(mapNow()), ideas=cityIdeas().filter(i=>(state.mapIntent==="all"||i.i===state.mapIntent)&&(!state.mapDark||i.w.includes("night"))), t=mapNow(), cc=CITIES[state.city], night=sunPos(t,cc.lat,cc.lon).alt<-6, sky=night?skyAt(t):null;
@@ -5226,7 +5237,7 @@ function mapInView(pts,x0,y0,x1,y1,u){ const b=$("mapInView"); if(!b) return; co
   const P=pts.filter(p=>inside(p.x,p.y)), E=(state.mapShowEv?mapEvents():[]).filter(e=>inside(e.x,e.y)), nI=P.reduce((a,p)=>a+p.n,0), nF=P.reduce((a,p)=>a+p.fit,0);
   mapInView.last={ids:P.map(p=>p.id),ev:E.map(e=>e.id)};
   const txt=P.length||E.length ? 'In view: '+(P.length?P.length+' place'+(P.length>1?'s':'')+' · '+nI+' idea'+(nI>1?'s':'')+(nF&&P.length<10?' ('+nF+' suit now)':''):'')+(E.length?(P.length?' · ':'')+E.length+' event'+(E.length>1?'s':''):'')+' ›' : 'Nothing in view here. Zoom out or pan to see places.';
-  if(b.textContent!==txt){ b.textContent=txt; } b.hidden=false; b.disabled=!(P.length||E.length);
+  if(b.textContent!==txt){ b.textContent=txt; } b.hidden=!(P.length||E.length)&&!!(state.mapSel||state.mapSpot||state.mapEv||typeof state.mapLm==="number"); b.disabled=!(P.length||E.length);
   if(state.mapInView&&!state.ivIds&&!mapInView.t) mapInView.t=setTimeout(()=>{ mapInView.t=0; if(state.mapInView&&!state.mapSel) mapPanel(); },350); }
 function ivCards(pts,evs,key){ const RW=reachWin(), cards=pts.map(p=>{ const P=PLACES[p.id], ph=PHOTOS_INLINE&&PLACE_PHOTO[p.id], best=cityIdeas().filter(x=>x.p===p.id&&(state.mapIntent==="all"||x.i===state.mapIntent)).sort((a,b)=>b.w.includes(key)-a.w.includes(key)||state.done.has(a.id)-state.done.has(b.id))[0], rt=state.pos?tripTo(p.id):null;
     return '<article class="ivc'+(state.ivFocus===p.id?' on':'')+'" data-ivc="'+p.id+'">'+(ph?'<img src="'+esc(ph.src)+'" alt="" loading="lazy" onerror="this.remove()">':'<span class="ivc-n'+(p.fit?' fit':'')+'">'+p.fit+'</span>')+
@@ -5375,7 +5386,7 @@ $("tipSheet").addEventListener("click",e=>{ if(e.target.closest("[data-tipclose]
 function spotPanel(id){ const [pid,i]=id.split(":"), S=SPOTS[pid][+i], t=mapNow(), lf=lightFacing(S[2],t), sr=sunRel(S[2],t), idea=IDEAS.find(x=>x.id===S[5]), cam=CAMERAS[state.camera];
   return '<section class="group mapsel"><button type="button" class="mapselx" data-unsel="1" aria-label="Close">×</button><div class="group-head"><b><span class="snum">'+spotNum(id)+'</span> '+esc(S[3])+'</b><span class="where">'+esc(PLACES[pid].name)+' · facing '+compass(S[2])+(state.pos?' · '+mDist(kmBetween(state.pos,{lat:S[0],lon:S[1]}))+' from you':'')+'</span></div>'+
     '<div class="callinks guidecta">'+(state.guide&&state.guide.id===id?'<button type="button" class="chip" data-guidestop="1">Stop guiding</button>':'<button type="button" class="chip primary" data-guide="'+id+'">Guide me there</button>')+svLink(pid,S,id)+'</div>'+svNote(id)+
-    '<p class="mapcount">'+esc(S[4])+'</p><p class="maplight"><span class="sdot '+lf.k+'"></span><b>'+lf.txt+' at '+hmText(t.getHours()*60+t.getMinutes())+(state.mapD?' '+mapDayName():'')+'.</b> '+(sr?esc(sr.txt)+' ':'')+LIGHT_TIP[lf.k]+'<span class="turnhint" data-face="'+S[2]+'">'+turnText(S[2])+'</span></p>'+
+    (()=>{ const W=planWalk(), w=W.find(o=>o.id===id); return w?'<p class="hint planstopline">Stop '+w.k+' of '+W.length+' on your outing · about '+hmText(w.t.getHours()*60+w.t.getMinutes())+'</p>':''; })()+'<p class="mapcount">'+esc(S[4])+'</p><p class="maplight"><span class="sdot '+lf.k+'"></span><b>'+lf.txt+' at '+hmText(t.getHours()*60+t.getMinutes())+(state.mapD?' '+mapDayName():'')+'.</b> '+(sr?esc(sr.txt)+' ':'')+(lf.tip||LIGHT_TIP[lf.k])+'<span class="turnhint" data-face="'+S[2]+'">'+turnText(S[2])+'</span></p>'+
     '<p class="spothead">Light here through the day</p>'+lightStrip(S[2])+
     '<p class="hint spotfov">The wedge on the map is what '+(cam&&state.camera!=='other'?'the '+esc(cam.name):'your camera')+' takes in from here, about '+Math.round(camFov())+'° across'+(sr?'; the dotted line points at the sun and the dark line is the shadow':'')+'. Tap a time above or drag the slider to see the light change.</p>'+
     (idea?'<button type="button" class="row" data-id="'+idea.id+'"><span class="dot" style="background:'+INTENTS[idea.i].color+'"></span><span class="t"><b>'+esc(idea.t)+'</b><span>The idea for this spot · '+esc(INTENTS[idea.i].name)+'</span></span><span class="go" aria-hidden="true">›</span></button>':'')+
@@ -6871,7 +6882,7 @@ $("map").addEventListener("click",e=>{
   const ap=e.target.closest("[data-addplan]"); if(ap){ planAdd(ap.dataset.addplan); mapPanel(); mapDraw(); return; }
   const rp=e.target.closest("[data-rmplan]"); if(rp){ planRemove(rp.dataset.rmplan); mapPanel(); mapDraw(); return; }
   const sc=e.target.closest("[data-stop]"); if(sc){ mapGoStop(+sc.dataset.stop); return; }
-  if(e.target.closest("[data-nextstop]")){ mapGoStop(nextStopIndex()); return; }
+  if(e.target.closest("[data-nextstop]")){ planStep(); return; }
   if(e.target.closest("[data-plantimes]")){ state.planTimesOpen=!state.planTimesOpen; mapPanel(); return; }
   { const sa=e.target.closest("[data-stopadj]"); if(sa&&state.plan){ const [n,d]=sa.dataset.stopadj.split(":").map(Number), st=state.plan.stops[n]; if(st&&!st.ev){ st.adj=(st.adj||0)+d; if(stopMins(st)<10) st.adj-=d; retimePlan(state.plan); savePlan(); } mapPanel(); mapDraw(); return; } }
   if(e.target.closest("[data-startopen]")){ state.startPick=state.startPick?null:"open"; mapPanel(); return; }
