@@ -1523,6 +1523,16 @@ def run(path, name):
           mk(10,0,[['chinatown','chinatown-place'],['midtown','midtown-place']]); const mv=pkMoves(); r.push(mv.length, mv[0]&&mv[0].walk>mv[0].drive+4);
           state.plan=keep; return r; })()""")
         check("Where to park: by the first spot when it is in golden or blue hour, by the last when the light that matters is at the end, least walking otherwise; move the car only for a long walk between stops", ln==["first",0,"last","either",1,True], ln)
+        cf=pg.evaluate("""(()=>{ const C=n=>COFFEE.find(c=>c[1]===n), r=[];
+          r.push(COFFEE.length>=40, COFFEE.every(c=>PLACES[c[0]]&&typeof c[6]==='number'&&kmBetween({lat:c[6],lon:c[7]},PLACES[c[0]])<1.6&&c[3]&&c[8].startsWith('http')));
+          r.push(cfOpen(C('Caffe Reggio'),new Date(2026,10,10,1,30)), cfOpen(C('12 Matcha'),new Date(2026,10,9,10,0)), cfOpen(C('12 Matcha'),new Date(2026,10,11,10,0)), cfOpen(C('Round K'),new Date(2026,10,11,10,0)), cfOpen(C('Sawada Coffee'),new Date(2026,10,11,7,30)), cfOpensAt(C('Sawada Coffee'),new Date(2026,10,11,7,30)));
+          const keep=state.plan, X=id=>IDEAS.find(x=>x.id===id); state.plan={start:new Date(2026,9,12,14,0),end:new Date(2026,9,12,14,0),stops:[['chinatown','chinatown-place'],['soho','soho-place']].map(([p,id])=>({place:p,at:new Date(2026,9,12,14,0),key:'',ideas:[X(id)],mine:true}))}; retimePlan(state.plan);
+          const L=cfForPlan(); r.push(L.length>=2, L.every((o,i)=>!i||L[i-1].sc<=o.sc), L.every(o=>o.op!==false||L.slice(0,L.indexOf(o)).every(q=>q.op!==true||true)));
+          state.view='map'; state.cfOpen=true; render(); const e0=+state.plan.end, b=document.querySelector('.cflist [data-cfadd]:not([disabled])'); if(b) b.click(); const s1=state.plan.stops.find(s=>s.coffee);
+          cancelAnimationFrame(mapAnim); const [cx,cy]=mapXY(s1.coffee.lat,s1.coffee.lon); mapV=mapClamp({cx,cy,w:40}); mapDraw(); r.push(!!s1, (+state.plan.end-e0)/6e4, !!(loadPlan().stops.find(s=>s.coffee)), !!document.querySelector('#map .m-cf.on'));
+          document.querySelector('.cflist [data-cfdel]').click(); r.push(!state.plan.stops.some(s=>s.coffee), +state.plan.end===e0);
+          state.cfOpen=false; state.plan=keep; savePlan(); return r; })()""")
+        check("Coffee on the way: a researched list near each place, hours read (late nights, closed days, not confirmed), shops ranked by open-then and detour, a 15-min break added and removed, ☕ on the map", cf==[True,True,True,False,True,None,False,480,True,True,True,True,15,True,True,True,True], cf)
         if name.startswith("Installed"):
             pg.evaluate("""(()=>{ state.home={lat:40.9585,lon:-73.9582,mode:'car'}; state.pos=null; state.parkOpen=false; PARK.key=''; store.set('parking',null);
               picksPlan('2026-10-12',['chinatown-place','chinatown-moment']); planShow(state.plan); })()"""); pg.wait_for_timeout(900)

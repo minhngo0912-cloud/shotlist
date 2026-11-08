@@ -1717,3 +1717,12 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 .tpcheck[aria-pressed="true"]{background:#1e9e48;border-color:#1e9e48;color:#fff}
 .tpcount{float:right;font-weight:600;letter-spacing:0;text-transform:none;color:var(--muted)}
 .tpdel{flex:none;width:44px;border:0;background:none;color:#d9534f;font-size:20px;font-weight:700;cursor:pointer} .tpkrow.tpedit .row{padding-left:14px} .tpedhint{margin:8px 0 0}
+
+/* Coffee on the way */
+.plancoffee{margin-top:6px} .cfbox{margin:6px 0 4px;padding:10px 12px;border:1px solid var(--line);border-radius:12px}
+.cflist{list-style:none;margin:0 0 8px;padding:0;display:flex;flex-direction:column;gap:12px}
+.cf{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:start} .cfi{font-size:18px;line-height:1.2}
+.cft{display:flex;flex-direction:column;gap:2px;min-width:0;font-size:14px} .cft span{color:var(--muted);font-size:13px} .cft .cfd{color:var(--fg);font-weight:600}
+.cf.open .cfw{color:#1e9e48;font-weight:600} .cf.shut .cfw{color:#d9534f} .cf.on .cft b::after{content:" ✓"}
+.cfb{grid-column:2;display:flex;gap:8px;flex-wrap:wrap} .cfb .chip{min-height:36px} .cfb .chip:disabled{opacity:.45}
+.m-cf{pointer-events:none} .m-cfd{fill:#fff7e8;stroke:#7a4b1d} .m-cf.on .m-cfd{fill:#ffd23f}
