@@ -146,8 +146,8 @@ def run(path, name):
         check("Today uses your location without a tap when it is already allowed", pg.evaluate("[!!state.pos, !document.querySelector('[data-todayloc]')]")==[True,True], pg.evaluate("[state.pos, !!document.querySelector('[data-todayloc]')]"))
         sk=pg.evaluate("""(()=>{ const t=d=>skyNotes(d).map(n=>n.k+': '+n.txt); const W=todayWindows(new Date(2026,10,1)).list.find(x=>x.name==='Golden hour');
           return [t(new Date(2026,9,29,20,33)), t(new Date(2026,9,24,12)), t(new Date(2026,4,24,12)).filter(x=>x.startsWith('henge')), t(new Date(2026,11,1,12)).filter(x=>x.startsWith('henge')), t(new Date(2026,9,11,15)), W&&W.s]; })()""")
-        check("Heads-up: the clocks going back (sunset 4:54 pm, golden hour about 4:15), a full moon a day ahead, Manhattanhenge later in the week; nothing on a plain day",
-              len(sk[0])==1 and sk[0][0].startswith("clock: Clocks go back an hour early Sunday (2 am): sunset moves from 5:55 pm to 4:54 pm, so golden hour starts about 4:1") and "gone until March" in sk[0][0]
+        check("Heads-up: the clocks going back (sunset 4:52 pm, golden hour about 4:14), a full moon a day ahead, Manhattanhenge later in the week; nothing on a plain day",
+              len(sk[0])==1 and sk[0][0].startswith("clock: Clocks go back an hour early Sunday (2 am): sunset moves from 5:53 pm to 4:52 pm, so golden hour starts about 4:1") and "gone until March" in sk[0][0]
               and any(x.startswith("moon: Full moon tomorrow: rises") for x in sk[1]) and len(sk[2])==1 and "setting sun" in sk[2][0] and len(sk[3])==1 and "rising sun" in sk[3][0] and sk[4]==[] and 950<=sk[5]<=990, sk)
         tl=pg.evaluate("[!!document.querySelector('.tnow details.tnowlight .tband'), document.querySelectorAll('.tnow .twin').length>=4, !document.querySelector('.tcard.tlight')]")
         check("The light today folds into the Right now card", tl==[True,True,True], tl)
@@ -1129,7 +1129,7 @@ def run(path, name):
             check("Marathon on the map on race day: the field band, the leaders and where they are", rm==[1,2,True,True], rm)
         pg.wait_for_timeout(600); pg.evaluate("cancelAnimationFrame(mapAnim); mapSelect(null); state.mapD=0; state.mapT=null")
         db=pg.evaluate("""(()=>{ const r=eventRows(evDay(new Date())).find(x=>x.e.id==='halloween'), h=evDayBar(r), q=eventRows(evDay(new Date())).find(x=>x.e.id==='balloons'), hb=evDayBar(q), m=evDayBar(eventRows(evDay(new Date())).find(x=>x.e.id==='marathon'));
-          return [/evdwin/.test(h), /7 pm to 1\\d pm<\\/b>: after dark the whole time/.test(h), /Sunset 5:5\\d pm/.test(h), /1 pm to 6 pm<\\/b>: midday sun until 3:5\\d pm, golden hour/.test(hb), /8 am to 6 pm<\\/b>: daylight until 4:1\\d pm, golden hour/.test(m), evLightTag(q,evDay(new Date())), eventLight(EVENTS.find(e=>e.id==='marathon'),new Date(2026,10,1)).join(' ').includes('4:54 pm')]; })()""")
+          return [/evdwin/.test(h), /7 pm to 1\\d pm<\\/b>: after dark the whole time/.test(h), /Sunset 5:5\\d pm/.test(h), /1 pm to 6 pm<\\/b>: midday sun until 3:5\\d pm, golden hour/.test(hb), /8 am to 6 pm<\\/b>: daylight until 4:1\\d pm, golden hour/.test(m), evLightTag(q,evDay(new Date())), eventLight(EVENTS.find(e=>e.id==='marathon'),new Date(2026,10,1)).join(' ').includes('4:52 pm')]; })()""")
         check("Event day bar: the hours over the day's light, what the light does while it is on; the tag says when an event runs into golden hour; sunset right on the day the clocks change",
               db==[True,True,True,True,True,"runs into golden hour",True], db)
         rb=pg.evaluate("""(()=>{ const off=[]; EV_ROUTE.marathon.spots.forEach(S=>{ const L=EV_ROUTE.marathon.line; let bi=0,bd=1e9; L.forEach((q,i)=>{const d=(q[0]-S[0])**2+((q[1]-S[1])*0.76)**2; if(d<bd){bd=d;bi=i;}}); const a=L[Math.max(0,bi-1)], c=L[Math.min(L.length-1,bi+1)], onc=(Math.atan2((c[1]-a[1])*0.76,c[0]-a[0])*180/Math.PI+540)%360; if(angDiff(S[2],onc)>60) off.push(S[3]); });
@@ -1574,6 +1574,15 @@ def run(path, name):
           const first=document.querySelector('#today .tpick [data-tplan]'), pid=first&&first.dataset.tplan; if(first) first.click(); r.push(state.view, !!state.plan&&state.plan.stops[0].place===pid);
           state.tMore=false; state.plan=null; savePlan(); state.view='today'; render(); return r; })()""")
         check("Where to go: ranked by new ideas and the real trip (too-late places last), a reason, heads-ups (a block party near Midtown), Show more, intent chips, Directions by the right mode, Plan from here starts at that place", wg==[True,True,True,True,True,name.startswith("Installed"),True,True,True,"map",True], wg)
+        # Right now: sun times match the published ones, and an old forecast is not passed off as today's
+        sw=pg.evaluate("""(()=>{ const c=CITIES.nyc, d=new Date(2026,10,8), r=sunTimes(d,c.lat,c.lon), sec=x=>x.getHours()*3600+x.getMinutes()*60+x.getSeconds();
+          let civ=[], prev=null; for(let m=300;m<1200;m+=0.25){ const x=new Date(+d+m*6e4), a=sunPos(x,c.lat,c.lon).alt; if(prev!==null&&((prev< -6)!==(a< -6))) civ.push(sec(x)); prev=a; }
+          return [Math.abs(sec(r[0])-(6*3600+34*60+37))<=30, Math.abs(sec(r[1])-(16*3600+44*60+22))<=30, Math.abs(civ[0]-(6*3600+5*60+44))<=30, Math.abs(civ[1]-(17*3600+13*60+15))<=30]; })()""")
+        check("Sun times match sunrise-sunset.org for New York on Nov 8 2026 (6:34:37 am, 4:44:22 pm, dawn 6:05:44, dusk 5:13:15) within 30 s", sw==[True,True,True,True], sw)
+        so=pg.evaluate("""(()=>{ const keep=WEATHER.nyc; WEATHER.nyc={updated:new Date(Date.now()-6*864e5).toISOString(),temp_c:10,condition_text:'Rain',precip_chance_today:99,hourly:{time:['2000-01-01T00:00'],pop:[99],mm:[2],cc:[100],code:[61],t:[10]}};
+          state.view='today'; render(); const t=document.querySelector('.tnow').innerText; WEATHER.nyc=keep; render(); const t2=document.querySelector('.tnow').innerText;
+          return [/No up-to-date forecast/.test(t), !/99%/.test(t), wxPcToday({updated:new Date(Date.now()-6*864e5).toISOString(),precip_chance_today:99}), (/% cloud/.test(t2)&&!/No up-to-date/.test(t2))||(!keep&&/No up-to-date forecast\\./.test(t2))]; })()""")
+        check("Right now: an old forecast says so instead of showing its rain chance; a current one shows the sky, temperature and cloud", so==[True,True,None,True], so)
         # Events: permits, groups, search
         pg.evaluate("pmGet(true)"); pg.wait_for_timeout(600)
         ep=pg.evaluate("""(()=>{ const T=evDay(new Date()), mk=(name,type,g,d)=>({e:{id:'t-'+name,name,type,geo:g},o:[d],confirmed:false});

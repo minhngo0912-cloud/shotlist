@@ -1681,18 +1681,12 @@ function eventSoon(o, today){
    The weather reading comes from the artifact database (collection "weather", doc id = city id),
    refreshed by a scheduled task. The user can override it by hand. */
 let WEATHER = {};
-function sunTimes(date,lat,lon){ date=new Date(date); date.setHours(12,0,0,0);   // the local day's sunrise and sunset, whatever the hour passed in
-  const rad=Math.PI/180, dayMs=864e5, J1970=2440588, J2000=2451545;
-  const lw=-lon*rad, phi=lat*rad, d=date/dayMs-0.5+J1970-J2000;
-  const n=Math.round(d-0.0009-lw/(2*Math.PI)), ds=0.0009+lw/(2*Math.PI)+n;
-  const M=rad*(357.5291+0.98560028*ds), C=rad*(1.9148*Math.sin(M)+0.02*Math.sin(2*M)+0.0003*Math.sin(3*M));
-  const L=M+C+rad*102.9372+Math.PI, dec=Math.asin(Math.sin(L)*Math.sin(rad*23.4397));
-  const Jnoon=J2000+ds+0.0053*Math.sin(M)-0.0069*Math.sin(2*L);
-  const w=Math.acos((Math.sin(-0.833*rad)-Math.sin(phi)*Math.sin(dec))/(Math.cos(phi)*Math.cos(dec)));
-  const Jset=J2000+0.0009+(w+lw)/(2*Math.PI)+n+0.0053*Math.sin(M)-0.0069*Math.sin(2*L), Jrise=Jnoon-(Jset-Jnoon);
-  const fromJ=j=>new Date((j+0.5-J1970)*dayMs);
-  return [fromJ(Jrise),fromJ(Jset)];
-}
+/* Sunrise and sunset for the local day: when the sun's centre is 0.833° below the horizon (refraction plus its radius), found on
+   sunPos to the second. Checked against sunrise-sunset.org for New York: Nov 8 2026 6:34:37 am and 4:44:22 pm. */
+function sunTimes(date,lat,lon){ const d0=new Date(date); d0.setHours(0,0,0,0); const h0=-0.833, f=t=>sunPos(t,lat,lon).alt-h0, at=m=>new Date(+d0+m*6e4);
+  const cross=(up)=>{ let prev=f(at(0)); for(let m=10;m<=1440;m+=10){ const v=f(at(m)); if(up?(prev<0&&v>=0):(prev>=0&&v<0)){ let lo=m-10, hi=m; for(let k=0;k<20;k++){ const mid=(lo+hi)/2, w=f(at(mid)); if(up?(w<0):(w>=0)) lo=mid; else hi=mid; } return at(hi); } prev=v; } return null; };
+  const rise=cross(true)||at(360), set=cross(false)||at(1080); return [rise,set]; }
+
 // Times when the sun crosses a given altitude (degrees) on the day around `date`: [morning, evening].
 function sunAlt(date,lat,lon,alt){
   const rad=Math.PI/180, dayMs=864e5, J1970=2440588, J2000=2451545;
@@ -1817,7 +1811,7 @@ function rainAlert(i){
   const hide=()=>{ box.hidden=true; box.innerHTML=""; };
   if(state.view==="events"||state.view==="plan"||typeof c.lat!=="number") return hide();
   if(store.get("rainAlertOff","")===today) return hide();
-  const wetNow=/rain|storm/.test(i.sky||""), likely=i.w && typeof i.w.precip_chance_today==="number" && i.w.precip_chance_today>=70 && /cloud|fog/.test(i.sky||"");
+  const wetNow=/rain|storm/.test(i.sky||""), likely=wxPcToday(i.w)!==null && wxPcToday(i.w)>=70 && /cloud|fog/.test(i.sky||"");
   const st=sunAlt(t,c.lat,c.lon,-0.833), bl=sunAlt(t,c.lat,c.lon,-6); if(!st||!bl||!(wetNow||likely)) return hide();
   const dusk=st[1], end=bl[1]; if(t<dusk-3*36e5 || t>end) return hide();
   const tf=d=>d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}).toLowerCase(), on=t>=dusk;
@@ -1837,7 +1831,7 @@ function renderNow(){
   else head=PHASE_NAME[i.phase];
   if(i.w||i.manual) sub.push(PHASE_NAME[i.phase]);
   if(i.rise) sub.push(i.t<i.rise ? "sunrise "+tf(i.rise) : i.t<i.set ? "sunset "+tf(i.set) : "sun set at "+tf(i.set));
-  if(i.w && typeof i.w.precip_chance_today==="number") sub.push("rain chance today "+Math.round(i.w.precip_chance_today)+"%");
+  if(wxPcToday(i.w)!==null) sub.push("rain chance today "+Math.round(wxPcToday(i.w))+"%");
   if(!i.manual){ if(i.w) sub.push("reading from "+(i.age<1?Math.max(1,Math.round(i.age*60))+" min":Math.round(i.age)+" h")+" ago"); else sub.push(i.age!==null?"weather reading is out of date":"weather not loaded"); }
   $("nowHead").textContent=head; $("nowSub").textContent=sub.join(" · ");
   const k=lightKey(i); $("useLight").dataset.k=k;
@@ -3275,6 +3269,8 @@ function wxKeyFor(pos){ if(!pos||kmBetween(pos,CITIES[state.city])<30) return nu
   if(w&&w.lat!=null&&kmBetween(pos,w)<15&&Date.now()-new Date(w.updated)<3*36e5) return "here";
   if(typeof loadWeatherAt==="function") loadWeatherAt(pos); return "none"; }
 function withWx(pos,fn){ const was=WX_KEY; WX_KEY=wxKeyFor(pos); try{ return fn(); } finally{ WX_KEY=was; } }
+/* The day's rain chance only when the forecast was fetched today (a stale one said "99%" a week later) */
+function wxPcToday(w){ if(!w||typeof w.precip_chance_today!=="number"||!w.updated) return null; const u=new Date(w.updated), n=new Date(); return u.toDateString()===n.toDateString()&&n-u<12*36e5?w.precip_chance_today:null; }
 function hourlyAt(t){ const w=WEATHER[WX_KEY||state.city], h=w&&w.hourly; if(!h||!h.time) return null;
   const key=t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0")+"T"+String(t.getHours()).padStart(2,"0")+":00", i=h.time.indexOf(key);
   return i<0?null:{pop:h.pop?h.pop[i]:null, mm:h.mm?h.mm[i]:null, cc:h.cc?h.cc[i]:null, code:h.code?h.code[i]:null, temp:h.t?h.t[i]:null}; }
@@ -3372,7 +3368,7 @@ function planPrep(p){
   if(!soon&&!fromFc) W.push("This plan starts more than six hours from now, so the current reading may not hold. Check the conditions panel before you leave.");
   else if(!sky) W.push("No weather reading is loaded. Check the conditions panel, or set the conditions by hand, before you leave.");
   else{
-    const tc=i.w&&typeof i.w.temp_c==="number"?i.w.temp_c:null, f=tc===null?null:Math.round(tc*9/5+32), pc=i.w&&typeof i.w.precip_chance_today==="number"?i.w.precip_chance_today:null;
+    const tc=i.w&&typeof i.w.temp_c==="number"?i.w.temp_c:null, f=tc===null?null:Math.round(tc*9/5+32), pc=wxPcToday(i.w);
     if(sky==="rain"||sky==="storm"){ W.push("It is raining: lens hood on, a cloth in your pocket, and a bag or coat you can shoot from under."+(leica?" The Q3 is sealed against light rain, not a downpour.":""));
       if(sky==="storm") W.push("Thunderstorms are about, so favour the stops with cover."); }
     else if(sky==="snow") W.push("Snow: add about +1 EV, keep the hood on, and wear gloves you can work the dials in.");
@@ -3687,10 +3683,17 @@ function mapLayersHtml(nLive){ const cur=layerSetNow(); return '<div class="mlay
   walksHtml()+'<p class="mlayers-sub">Jump to</p><div class="intents" id="mapZoom">'+MAP_PRESETS.concat(posOnMap()?[["me","Near me"]]:[]).map(z=>'<button type="button" class="chip" data-z="'+z[0]+'">'+z[1]+'</button>').join("")+'<button type="button" class="chip" data-nearspots="1">Spots near me</button></div>'; }
 
 /* Sun on the map: position of the sun for the map's time (now, or a time picked on the slider). Azimuth in degrees from north. */
-function sunPos(date,lat,lon){ const rad=Math.PI/180, e=rad*23.4397, d=date/864e5-0.5+2440588-2451545, M=rad*(357.5291+0.98560028*d),
-  C=rad*(1.9148*Math.sin(M)+0.02*Math.sin(2*M)+0.0003*Math.sin(3*M)), L=M+C+rad*102.9372+Math.PI, dec=Math.asin(Math.sin(e)*Math.sin(L)), ra=Math.atan2(Math.sin(L)*Math.cos(e),Math.cos(L)),
-  th=rad*(280.16+360.9856235*d)-rad*(-lon), H=th-ra, phi=lat*rad;
-  const az=Math.atan2(Math.sin(H),Math.cos(H)*Math.sin(phi)-Math.tan(dec)*Math.cos(phi)), alt=Math.asin(Math.sin(phi)*Math.sin(dec)+Math.cos(phi)*Math.cos(dec)*Math.cos(H));
+/* The sun's position: NOAA's solar calculator formulas (accurate to well under a minute for sunrise, sunset and twilight; the
+   simpler formulas used before ran up to two minutes late in winter). Azimuth in degrees from north, altitude in degrees. */
+function sunPos(date,lat,lon){ const rad=Math.PI/180, jd=+date/864e5+2440587.5, T=(jd-2451545)/36525;
+  const L0=((280.46646+T*(36000.76983+T*0.0003032))%360+360)%360, M=357.52911+T*(35999.05029-0.0001537*T), ec=0.016708634-T*(0.000042037+0.0000001267*T);
+  const C=Math.sin(M*rad)*(1.914602-T*(0.004817+0.000014*T))+Math.sin(2*M*rad)*(0.019993-0.000101*T)+Math.sin(3*M*rad)*0.000289;
+  const om=125.04-1934.136*T, lam=L0+C-0.00569-0.00478*Math.sin(om*rad), eps0=23+(26+(21.448-T*(46.815+T*(0.00059-T*0.001813)))/60)/60, eps=eps0+0.00256*Math.cos(om*rad);
+  const dec=Math.asin(Math.sin(eps*rad)*Math.sin(lam*rad)), y=Math.tan(eps*rad/2)**2;
+  const eot=4/rad*(y*Math.sin(2*L0*rad)-2*ec*Math.sin(M*rad)+4*ec*y*Math.sin(M*rad)*Math.cos(2*L0*rad)-0.5*y*y*Math.sin(4*L0*rad)-1.25*ec*ec*Math.sin(2*M*rad));
+  const utm=(((+date/6e4)%1440)+1440)%1440, tst=((utm+eot+4*lon)%1440+1440)%1440, ha=(tst/4<0?tst/4+180:tst/4-180)*rad, phi=lat*rad;
+  const alt=Math.asin(Math.sin(phi)*Math.sin(dec)+Math.cos(phi)*Math.cos(dec)*Math.cos(ha));
+  const az=Math.atan2(Math.sin(ha),Math.cos(ha)*Math.sin(phi)-Math.tan(dec)*Math.cos(phi));
   return {az:((az/rad+180)%360+360)%360, alt:alt/rad}; }
 /* Moon: position, phase and rise/set (after the SunCalc formulas, accurate to a degree or so, plenty for planning). Azimuth in degrees from north. */
 function moonPos(date,lat,lon){ const rad=Math.PI/180, e=rad*23.4397, d=date/864e5-0.5+2440588-2451545;
@@ -6990,18 +6993,23 @@ function renderToday(){ const box=$("today"); if(!box) return; todayAutoLoc();
   const t = state.todayAt===null ? now : atMin(state.todayAt), key=lightAt(t);
   // 1. right now: the light, what it suits, the next window, the sun
   const NL=nowLight(now), cur=list.find(x=>x.s<=nm&&x.e>nm), upcoming=list.find(x=>x.s>nm), mins=m=>m>=60?Math.floor(m/60)+' h'+(m%60?' '+(m%60)+' min':''):m+' min';
-  const nextTxt = cur ? cur.name+' until '+tf(cur.e) : upcoming ? upcoming.name+' in '+mins(upcoming.s-nm)+' ('+tf(upcoming.s)+')' : 'Next good light: blue hour tomorrow about '+tf(list[0]?list[0].s:L.rise-30);
-  const sunTxt = NL.sp.alt>0 ? 'Sun to the '+compass(NL.sp.az)+', '+Math.round(NL.sp.alt)+'° up' : 'Sun down';
-  // the light today, compact: bar with windows as labels, weather on one line
-  const runs=rainRuns(), rainTxt = runs ? (runs.length ? 'Rain likely '+runs.map(r=>hmText(r.s*60)+' to '+hmText(r.e*60)).join(" and ")+'.' : 'No rain expected today.') : (w&&typeof w.precip_chance_today==="number" ? 'Chance of rain today '+w.precip_chance_today+'%.' : '');
-  // the weather now: from this hour's forecast when there is one, otherwise the last reading if it is recent
-  const fNow=hourlyAt(now), wAge=w&&w.updated?(now-new Date(w.updated))/36e5:99, skNow=fNow?skyAt(now):null;
-  const nowTxt = fNow ? (skNow?WX_WORD[skNow]:fNow.cc>=50?"Some cloud":"Clear")+(fNow.temp!=null?', '+Math.round(fNow.temp*9/5+32)+'°F':'')
-    : w&&w.condition_text&&wAge<3 ? w.condition_text+(typeof w.temp_c==="number"?', '+Math.round(w.temp_c*9/5+32)+'°F':'') : '';
-  const wxBits = fNow ? [fNow.cc!=null?fNow.cc+'% cloud':'', fNow.pop!=null?fNow.pop+'% rain this hour':''].filter(Boolean).join(' · ') : '';
-  const ahead=runs&&runs.filter(r=>r.e*60>nm), rainNow = !runs ? rainTxt : ahead.length ? (ahead[0].s*60<=nm?'Rain until '+hmText(ahead[0].e*60):'Rain likely '+hmText(ahead[0].s*60)+' to '+hmText(ahead[0].e*60))+(ahead.length>1?', and again later':'')+'.' : runs.length ? 'No more rain expected today.' : rainTxt;
-  const wxLine = nowTxt||rainNow ? '<p class="msg twx"><span class="twxi" aria-hidden="true">'+wxIcon(skNow||(fNow&&fNow.cc>=50?"cloud":""),NL.sp.alt>0)+'</span><span>'+(nowTxt?'<b>'+esc(nowTxt)+'</b>'+(wxBits?' · '+esc(wxBits):'')+(rainNow?'<br>':''):'')+esc(rainNow)+'</span></p>' : '';
-  const nowStrip='<section class="tnow '+NL.ph+'"><div class="tnowl"><span class="tlabel">Right now · '+tf(nm)+'</span><p class="tverdict">'+esc(NL.what)+'</p>'+countdownHtml(now)+'<p class="msg">'+esc(nextTxt)+' · '+esc(sunTxt)+'</p>'+wxLine+'</div>'+
+  const tom=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1), TWt=todayWindows(tom), tFirst=TWt.list[0];
+  const nextTxt = cur ? cur.name+' until '+tf(cur.e) : upcoming ? upcoming.name+' in '+mins(upcoming.s-nm)+' ('+tf(upcoming.s)+')' : 'Next good light: '+(tFirst?tFirst.name.toLowerCase()+' tomorrow at '+tf(tFirst.s):'sunrise tomorrow at '+tf(TWt.L.rise));
+  const sunTxt = NL.sp.alt>0 ? 'Sun to the '+compass(NL.sp.az)+', '+Math.round(NL.sp.alt)+'° up · sets '+tf(L.set) : nm<L.rise ? 'Sun rises at '+tf(L.rise) : 'Sunset was '+tf(L.set)+' · rises '+tf(TWt.L.rise)+' tomorrow';
+  // the weather now and the rest of today, from this hour's forecast; nothing from a forecast that does not cover today
+  const fNow=hourlyAt(now), wUp0=w&&w.updated?new Date(w.updated):null, wAge=wUp0?(now-wUp0)/36e5:99, skNow=fNow?skyAt(now):null, runs=fNow?rainRuns():null;
+  const nowTxt = fNow ? (skNow?WX_WORD[skNow]:fNow.cc>=70?"Mostly cloudy":fNow.cc>=35?"Partly cloudy":"Clear")+(fNow.temp!=null?' · '+Math.round(fNow.temp*9/5+32)+'°F':'')
+    : w&&w.condition_text&&wAge<3 ? w.condition_text+(typeof w.temp_c==="number"?' · '+Math.round(w.temp_c*9/5+32)+'°F':'') : '';
+  const chipsWx = fNow ? [fNow.cc!=null?fNow.cc+'% cloud':'', fNow.pop!=null?fNow.pop+'% rain this hour':''].filter(Boolean) : [];
+  let rest=""; if(fNow){ const ahead=runs.filter(r=>r.e*60>nm); if(ahead.length) rest=(ahead[0].s*60<=nm?'Rain until about '+hmText(ahead[0].e*60):'Rain likely '+hmText(ahead[0].s*60)+' to '+hmText(ahead[0].e*60))+(ahead.length>1?', and again later':'')+'.';
+    else { let mx=0; for(let h=now.getHours()+1;h<24;h++){ const f=hourlyAt(atMin(h*60)); if(f&&f.pop!=null) mx=Math.max(mx,f.pop); } rest=now.getHours()>=23?'':mx>=30?'Rain chance later today up to '+mx+'%.':'No rain expected for the rest of today.'; } }
+  const fRise=!cur&&!upcoming?hourlyAt(clk(tom,TWt.L.rise)):null, skR=fRise?skyAt(clk(tom,TWt.L.rise)):null;
+  const tmrTxt = fRise ? 'Tomorrow at sunrise ('+tf(TWt.L.rise)+'): '+(skR?WX_WORD[skR].toLowerCase():fRise.cc>=70?'mostly cloudy':fRise.cc>=35?'partly cloudy':'clear')+(fRise.cc!=null?', '+fRise.cc+'% cloud':'')+(fRise.pop!=null?', '+fRise.pop+'% rain':'')+'.' : '';
+  const staleTxt = !fNow&&!nowTxt ? 'No up-to-date forecast'+(wUp0&&!isNaN(wUp0)?': the last one is from '+(wUp0.toDateString()===now.toDateString()?tf(dayMin(wUp0)):wUp0.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})):'')+'. The light and the ideas go by the sun alone until it updates.' : '';
+  const wxLine = nowTxt||staleTxt ? '<div class="twx'+(staleTxt?' stale':'')+'"><span class="twxi" aria-hidden="true">'+wxIcon(skNow||(fNow&&fNow.cc>=50?"cloud":""),NL.sp.alt>0)+'</span><div class="twxb">'+
+      (nowTxt?'<p class="twxnow"><b>'+esc(nowTxt)+'</b>'+chipsWx.map(c=>'<span class="twxc">'+esc(c)+'</span>').join("")+'</p>':'')+(rest?'<p class="msg">'+esc(rest)+'</p>':'')+(tmrTxt?'<p class="msg twxtmr">'+esc(tmrTxt)+'</p>':'')+
+      (staleTxt?'<p class="msg">'+esc(staleTxt)+' <button type="button" class="linkbtn" data-trefresh="1">Try again</button></p>':'')+'</div></div>' : '';
+  const nowStrip='<section class="tnow '+NL.ph+'"><div class="tnowl"><span class="tlabel">Right now · '+tf(nm)+'</span><p class="tverdict">'+esc(NL.what)+'</p>'+(()=>{ const cd=countdownHtml(now); return cd+'<p class="msg">'+esc((cd&&(cur||upcoming)?'':nextTxt+' · ')+sunTxt)+'</p>'; })()+wxLine+'</div>'+
     '<div class="tnowb"><button type="button" class="btn primary tshoot" data-shootnow="1">Shoot now</button><button type="button" class="btn tlightf" data-lightf="1">Light here</button></div>@@LIGHT@@</section>';
   // when the data was last refreshed: the page itself, and the forecast
   const wUp=w&&w.updated?new Date(w.updated):null, wHrs=wUp?(now-wUp)/36e5:null;
