@@ -1422,6 +1422,14 @@ def run(path, name):
         mo=pg.evaluate("""(()=>{ state.plan=null; state.view='browse'; state.when='am'; render(); const c=bestOutings(matches(false))[0]; document.querySelector('#list [data-tmbestplan="0"]').click();
           const st=state.plan&&state.plan.start, m=st?st.getHours()*60+st.getMinutes():-1; return [c&&c.o.id, m>=c.o.s-15&&m<=c.o.e-25, state.view]; })()""")
         check("Plan this outing keeps a morning outing in the morning", mo[0]=="am" and mo[1] and mo[2]=="map", mo)
+        ol=pg.evaluate("""(()=>{ state.tmrw=false; state.onNow=true; state.when='all'; state.view='browse'; syncOnNow(); render(); const t0=new Date(), G=nowGroups(matches(false),t0,lightAt(t0));
+          const heads=[...document.querySelectorAll('#list .nowgroup .group-head b')].map(b=>b.textContent), rows=document.querySelectorAll('#list .nowrow').length, left=document.querySelectorAll('#list .nowrow .nowleft').length;
+          const order=G.groups.every(g=>{ if(g.flat) return g.L.every((o,i)=>o.soon&&(!i||g.L[i-1].left<=o.left)); const live=g.L.filter(o=>!o.late); return live.every((o,i)=>!i||(live[i-1].reach||0)<=(o.reach||0)) && g.L.findIndex(o=>o.late)<0 || g.L.slice(g.L.findIndex(o=>o.late)).every(o=>o.late); });
+          const L=G.groups.flatMap(g=>g.L), txt=L.every(o=>/^(Good for|Over before)/.test(o.leftTxt)), why=L.filter(o=>o.left!==Infinity&&o.left<180).every(o=>/(dark by|golden hour|rain|closes|light|forecast|first light)/.test(o.leftTxt));
+          const sorted=document.getElementById('isort')===null;
+          const far=[...document.querySelectorAll('#list details.nowfold summary')].map(s=>s.textContent);
+          return [G.groups.length>0, heads.length===G.groups.length, rows===L.length&&rows===matches(false).length, left===rows, order, txt, why, sorted, far.every(f=>f.startsWith('Further')), !G.groups.some((g,i)=>g.name.startsWith('Anywhere')&&i!==G.groups.length-1)]; })()""")
+        check("On now list: ending soon first, then grouped by the trip (place by place, nearest first), each idea with how long it stays good and why; no Sort menu; Further folded; no-place ideas last", ol==[True]*10, ol)
         nb=pg.evaluate("""(()=>{ state.plan=null; savePlan(); state.tmrw=false; state.onNow=true; state.when='all'; state.view='browse'; syncOnNow(); render(); const card=document.querySelector('#list .nowbest'), B=nowOutings(matches(false));
           if(!card||!B.length) return ['no card', B.length]; const shown=[...card.querySelectorAll('.tmb-ideas li')].map(li=>li.textContent), now=Date.now();
           const ok=B.every(c=>c.I.every(x=>onNowIdea(x,c.at))), alt=card.querySelector('[data-nowbest]'); let sw=true; if(alt){ const want=B[+alt.dataset.nowbest].g.name; alt.click(); sw=(document.querySelector('#list .nowbest .tmb-what b')||{}).textContent===want; state.nowBest=0; render(); }

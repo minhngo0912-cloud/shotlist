@@ -2081,6 +2081,32 @@ function nowBestHtml(m){ const B=nowOutings(m); if(!B.length) return ""; const i
     '<p class="tmb-ord">In the recommended order</p><ol class="tmb-ideas">'+O.map(({x,t},n)=>'<li><span class="tmb-n">'+(n+1)+'</span><span class="tmb-t">'+(t?tf(t):'')+'</span><span class="tmb-x"><b><span class="dot" style="background:'+INTENTS[x.i].color+'"></span>'+esc(x.t)+'</b><span class="msg">'+esc(PLACES[x.p].name)+'</span></span></li>').join("")+'</ol>'+
     '<div class="callinks"><button type="button" class="chip primary" data-nowbestplan="'+i+'">Plan this outing</button>'+(O[0]?(()=>{ const sp=spotFor(O[0].x), g=sp?{lat:sp.S[0],lon:sp.S[1]}:PLACES[O[0].x.p]; return '<a class="chip" href="https://www.google.com/maps/dir/?api=1&destination='+g.lat.toFixed(5)+','+g.lon.toFixed(5)+'&travelmode='+(c.how==="on foot"?'walking':c.how==="by car"?'driving':'transit')+'" target="_blank" rel="noopener">Go now ↗</a>'; })():'')+'</div>'+
     (B.length>1?'<p class="tmb-oth">Other good options</p>'+B.map((b,j)=>j===i?'':'<button type="button" class="tmb-alt" data-nowbest="'+j+'"><b>'+esc(b.g.name)+'</b><span>'+esc((b.mins<=2?'Here':b.mins+' min '+b.how)+' · '+b.I.length+' idea'+(b.I.length>1?'s':'')+(b.lt&&b.lt.e>b.o.s?' · '+b.lt.name.toLowerCase()+' until '+hmText(b.lt.e):''))+'</span></button>').join(""):'')+'</section>'; }
+/* On now, organised: how long each idea stays good (until its light changes, the place closes or the weather turns) and how long
+   it takes to get there; grouped by the trip, ideas ending soon first. An idea that ends before you could arrive goes to the bottom. */
+/* What ends an idea's time: the light turning (a phrase for each change), the place closing, or the weather */
+function nowWhy(k0,k1){ if(k1==="rain") return "rain likely from"; if(k0==="rain") return "the rain stops at"; if(k1==="gold") return "golden hour starts at"; if(k1==="night") return "dark by";
+  if(k1==="am") return "first light at"; if(k1==="mid") return k0==="am"?"morning light ends at":"golden hour ends at"; return "the light changes at"; }
+function nowLeft(x,t0,k0){ const step=10, max=360;
+  for(let mm=step;mm<=max;mm+=step){ const t=new Date(+t0+mm*6e4); if(onNowIdea(x,t)) continue;
+    const half=new Date(+t0+(mm-5)*6e4), end=onNowIdea(x,half)?t:half, sky=skyAt(end), k1=lightAt(end), why=k1!==k0?nowWhy(k0,k1):!ideaOpen(x,end,sky)?"closes at":"the forecast changes at";
+    return {mins:Math.round((end-t0)/6e4),at:end,why}; }
+  return {mins:Infinity,at:null,why:""}; }
+/* Ending soon (within 30 minutes and still reachable) first; then by the trip, place by place, nearest first; ideas with no fixed
+   place (the subway) last. An idea that ends before you could arrive goes to the bottom of its group. */
+function nowGroups(m,t0,k0){ const from=state.pos||state.home||null, fk=state.pos?"you":from?"home":null, car=!state.pos&&state.home&&state.home.mode==="car", tf=d=>hmText(d.getHours()*60+d.getMinutes()), sky0=skyAt(t0);
+  const R=m.map(x=>{ const sp=spotFor(x), g=sp?{lat:sp.S[0],lon:sp.S[1]}:(typeof PLACES[x.p].lat==="number"?PLACES[x.p]:null), km=from&&g?kmBetween(from,g):null;
+    const reach=km===null?null:km<1.6?walkMin(km):travelMins(from,g,car?"car":"transit",t0), how=km===null?"":km<1.6?"walk":car?"by car":"by subway";
+    const L=nowLeft(x,t0,k0), late=reach!==null&&L.mins!==Infinity&&L.mins<reach+10, soon=L.mins<=30&&!late;
+    const dur=n=>n>=60?(Math.floor(n/60)+" h"+(n%60?" "+n%60+" min":"")):n+" min";
+    const reachTxt=!g?"":km===null?"":km<0.12?"you are here":reach+" min "+how, leftTxt=L.mins===Infinity||L.mins>=180?"Good for 3+ hours":late?("Over before you could get there ("+L.why+" "+tf(L.at)+")"):"Good for "+dur(L.mins)+" more · "+L.why+" "+tf(L.at);
+    return {x,g,reach,late,soon,left:L.mins,reachTxt,leftTxt,rank:nowRank(x,t0,k0,sky0)}; });
+  const byPlace=(p,q)=>(p.late-q.late)||((p.reach||0)-(q.reach||0))||(p.x.p<q.x.p?-1:p.x.p>q.x.p?1:0)||(state.done.has(p.x.id)-state.done.has(q.x.id))||(p.rank-q.rank);
+  const soon=R.filter(o=>o.soon).sort((p,q)=>p.left-q.left||(p.reach||0)-(q.reach||0)), rest=R.filter(o=>!o.soon);
+  const B=fk?[["Within a 10-minute trip",0,10],["10 to 30 minutes away",10.5,30],["30 to 60 minutes away",30.5,60],["Further",60.5,1e9]]:[["On now",-1,1e9]];
+  const groups=[]; if(soon.length) groups.push({name:"Ending soon",L:soon,soon:true,flat:true});
+  B.forEach(([name,a,b],i)=>{ const L=rest.filter(o=>o.g&&(o.reach===null?0:o.reach)>=a&&(o.reach===null?0:o.reach)<=b).sort(byPlace); if(L.length) groups.push({name,L,fold:!!fk&&i===3}); });
+  const nowhere=rest.filter(o=>!o.g).sort(byPlace); if(nowhere.length) groups.push({name:"Anywhere: no fixed place",L:nowhere});
+  return {from:fk,groups}; }
 function bestOutingHtml(m){ const B=bestOutings(m); if(!B.length) return ""; const i=Math.min(state.tmBest||0,B.length-1), c=B[i], O=bestOrder(c), dk=ymdKey(tmrwDay());
   const line=c=>esc(c.o.name+' '+hmSpan(c.o.s,c.o.e)+' · '+tmrwSky(c.o));
   return '<section class="tmbest"><p class="tlabel">Best outing tomorrow</p><p class="tmb-what"><b>'+esc(c.g.name)+'</b><br>'+line(c)+'</p>'+
@@ -2671,6 +2697,15 @@ function renderList(){ qCount();
         G.sort((a,b)=>b.L.length-a.L.length);
         return '<section class="group flat tmgroup"><div class="group-head"><b>'+esc(o.name)+'</b><span class="where">'+esc(hmSpan(o.s,o.e)+' · '+tmrwSky(o)+' · '+L.length+' idea'+(L.length>1?'s':''))+'</span></div>'+
           G.map(g=>'<p class="tmwalk">'+esc(g.name)+' · '+g.L.length+' idea'+(g.L.length>1?'s':'')+(g.pids.length>1?' · up to '+g.span+' min apart on foot':'')+'</p>'+g.L.map(trow).join("")).join("")+'</section>'; }).join("")+followAll(); return; }
+  if(state.onNow&&!saved&&!again){ const G=nowGroups(m,t0,key0);
+    const nrow=(o,showPlace)=>{ const x=o.x, pl=PLACES[x.p], last=lastShot(x.id), sub=[showPlace?pl.name:"",showPlace?o.reachTxt:"",esc(INTENTS[x.i].name)].filter(Boolean);
+      return '<button type="button" class="row nowrow'+(state.done.has(x.id)?" done":"")+(o.late?" late":"")+'" data-id="'+x.id+'"><span class="dot" style="background:'+INTENTS[x.i].color+'"></span>'+
+        '<span class="t"><b>'+qMarkTitle(x)+'</b><span>'+esc(sub.join(" · "))+(state.done.has(x.id)?' · shot '+esc(agoText(last?last.t:Date.now())):'')+'</span><span class="nowleft'+(o.soon?' nlsoon':'')+(o.late?' nllate':'')+'">'+esc(o.leftTxt)+'</span></span>'+
+        '<span class="marks">'+(state.saved.has(x.id)?'<span class="pill">Saved</span>':'')+'</span><span class="go" aria-hidden="true">›</span></button>'; };
+    const body=g=>{ if(g.flat) return g.L.map(o=>nrow(o,true)).join(""); let out="", cur=null; g.L.forEach(o=>{ if(o.x.p!==cur){ cur=o.x.p; const n=g.L.filter(q=>q.x.p===cur).length; out+='<p class="tmwalk nowplace">'+esc(PLACES[cur].name+(o.reachTxt?' · '+o.reachTxt:'')+' · '+n+' idea'+(n>1?'s':''))+'</p>'; } out+=nrow(o,false); }); return out; };
+    box.innerHTML=head.replace(sortSel,'')+nowBest+'<p class="msg tmlead">On now: ending soon first, then '+(G.from?'by how long it takes to get there'+(G.from==="home"?' from home':'')+', place by place':'place by place')+'.</p>'+
+      G.groups.map(g=>{ const inner='<section class="group flat nowgroup'+(g.soon?' nowsoon':'')+'"><div class="group-head"><b>'+esc(g.name)+'</b><span class="where">'+g.L.length+' idea'+(g.L.length>1?'s':'')+'</span></div>'+body(g)+'</section>';
+        return g.fold?'<details class="nowfold"><summary>'+esc(g.name)+' · '+g.L.length+' idea'+(g.L.length>1?'s':'')+'</summary>'+inner+'</details>':inner; }).join("")+followAll(); return; }
   if(sort!=="place"){ const R=m.map(x=>({x,n:nowRank(x,t0,key0,sky0),d:milesTo(PLACES[x.p]),l:lastShot(x.id)}));
     if(sort==="now") R.sort((a,b)=>a.n-b.n);
     if(sort==="near") R.sort((a,b)=>(a.d===null?1e9:a.d)-(b.d===null?1e9:b.d)||a.n-b.n);

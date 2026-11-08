@@ -1697,3 +1697,10 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 .planonly .m-pin:not(.inplan):not(.on), .planonly .m-spotg:not(.inplan):not(.on):not(.m-pspot), .planonly .m-clu{display:none}
 .psfoot .chip[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
 .pklean{margin:0 0 6px} .pklean b{font-weight:600} .pkmove{margin:0 0 8px}
+
+/* On now, organised by trip and time left */
+.nowrow .t .nowleft{display:block;font-size:13px;color:var(--muted);margin-top:1px} .nowrow .t .nowleft.nlsoon{color:#d9534f;font-weight:600} .nowrow .t .nowleft.nllate{color:var(--muted);font-weight:400}
+.nowrow.late{opacity:.55}
+.nowfold{margin:10px 0} .nowfold>summary{cursor:pointer;font-weight:700;padding:10px 2px;list-style-position:inside}
+.nowplace{margin:0;padding:10px 16px 4px;font-weight:700} .nowsoon .group-head{background:#b3261e}
+.nowrow .t{text-align:left} .nowrow .t .nowleft{text-align:left}
