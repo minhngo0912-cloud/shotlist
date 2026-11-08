@@ -10,20 +10,30 @@ fetch("events.json",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{ if
 const WMO = c => c===0?"Clear":c===1?"Mainly clear":c===2?"Partly cloudy":c===3?"Overcast":(c===45||c===48)?"Fog":(c>=51&&c<=57)?"Drizzle":(c>=61&&c<=67)?"Rain":(c>=71&&c<=77)?"Snow":(c>=80&&c<=82)?"Rain showers":(c===85||c===86)?"Snow showers":c>=95?"Thunderstorm":"";
 WEATHER = store.get("weather",{}) || {};
 let weatherBusy=false;
-const WX_Q="&current=temperature_2m,weather_code,is_day&daily=precipitation_probability_max&hourly=precipitation_probability,precipitation,cloud_cover,weather_code,temperature_2m&timezone=auto&forecast_days=7";
+const WX_Q="&current=temperature_2m,weather_code,is_day&daily=precipitation_probability_max&hourly=precipitation_probability,precipitation,cloud_cover,weather_code,temperature_2m,apparent_temperature,uv_index&timezone=auto&forecast_days=7";
 function wxParse(j){ const cur=j.current||{}, txt=WMO(cur.weather_code); if(typeof cur.temperature_2m!=="number"||!txt) return null;
   return {updated:new Date().toISOString(),temp_c:cur.temperature_2m,condition:txt,condition_text:txt,is_day:!!cur.is_day,
     precip_chance_today:j.daily&&j.daily.precipitation_probability_max?j.daily.precipitation_probability_max[0]:undefined,
-    hourly:j.hourly&&j.hourly.time?{time:j.hourly.time,pop:j.hourly.precipitation_probability,mm:j.hourly.precipitation,cc:j.hourly.cloud_cover,code:j.hourly.weather_code,t:j.hourly.temperature_2m}:null}; }
+    hourly:j.hourly&&j.hourly.time?{time:j.hourly.time,pop:j.hourly.precipitation_probability,mm:j.hourly.precipitation,cc:j.hourly.cloud_cover,code:j.hourly.weather_code,t:j.hourly.temperature_2m,at:j.hourly.apparent_temperature,uv:j.hourly.uv_index}:null}; }
 async function loadWeather(){
   const id=state.city, c=CITIES[id]; if(weatherBusy||typeof c.lat!=="number") return; weatherBusy=true;
   try{
     const r=await fetch("https://api.open-meteo.com/v1/forecast?latitude="+c.lat+"&longitude="+c.lon+WX_Q);
     if(!r.ok) throw new Error("weather "+r.status);
-    const v=wxParse(await r.json()); if(v){ WEATHER[id]=v; store.set("weather",WEATHER); }
+    const v=wxParse(await r.json()); if(v){ const old=WEATHER[id]; if(old&&old.aq) v.aq=old.aq; if(old&&old.nws) v.nws=old.nws; WEATHER[id]=v; store.set("weather",WEATHER); }
   }catch(e){} finally{ weatherBusy=false; }
+  await loadHealth(id);
   renderNow(); if(state.view==="today") renderToday(); if(state.view==="map"&&$("mapSvg")){ mapDraw(); mapPanel(); } if(state.view==="shoot"&&state.tab==="settings"&&openTip===null&&document.activeElement.id!=="camera") renderCard();
 }
+/* Health on an outing: the hourly air quality (US AQI, from Open-Meteo's air-quality forecast) and the National Weather Service's
+   active alerts for the city (heat, air quality, wind chill, winter storms, coastal floods). Both free, no account; kept with the weather. */
+let healthAt=0;
+async function loadHealth(id){ const c=CITIES[id]; if(!c||typeof c.lat!=="number"||Date.now()-healthAt<20*60*1000) return; healthAt=Date.now(); const W=WEATHER[id]; if(!W) return;
+  try{ const r=await fetch("https://air-quality-api.open-meteo.com/v1/air-quality?latitude="+c.lat+"&longitude="+c.lon+"&hourly=us_aqi,pm2_5&timezone=auto&forecast_days=5");
+    if(r.ok){ const j=await r.json(); if(j.hourly&&j.hourly.time) W.aq={time:j.hourly.time,aqi:j.hourly.us_aqi,pm:j.hourly.pm2_5,at:new Date().toISOString()}; } }catch(e){}
+  try{ const r=await fetch("https://api.weather.gov/alerts/active?point="+c.lat.toFixed(4)+","+c.lon.toFixed(4),{headers:{Accept:"application/geo+json"}});
+    if(r.ok){ const j=await r.json(); W.nws={at:new Date().toISOString(),list:(j.features||[]).map(f=>f.properties||{}).filter(p=>p.event&&p.status!=="Test").map(p=>({ev:p.event,sev:p.severity||"",s:p.onset||p.effective||p.sent,e:p.ends||p.expires,head:p.headline||"",inst:String(p.instruction||"").replace(/\s+/g," ").trim().slice(0,400)}))}; } }catch(e){}
+  try{ store.set("weather",WEATHER); }catch(e){} if(state.view==="today") renderToday(); if(state.view==="map"&&$("mapSvg")) mapPanel(); }
 /* The forecast for where you are, for Light here away from the city. Kept as WEATHER.here with its position; fetched at most every 10 minutes. */
 let wxHereAt=0;
 async function loadWeatherAt(pos){ if(Date.now()-wxHereAt<10*60*1000) return; wxHereAt=Date.now();

@@ -101,6 +101,11 @@ def run(path, name):
               {"on_street":"MOTT STREET","from_street":"BAYARD STREET","to_street":"CANAL STREET","side_of_street":"W","sign_description":"NO PARKING (SANITATION BROOM SYMBOL) 11:30AM-1PM TUES & FRI","sign_x_coord":"984943","sign_y_coord":"200207"}]
         pg.route("**/data.cityofnewyork.us/resource/693u-uax6.json*", lambda r: r.fulfill(status=200, content_type="application/json", body=_j.dumps(_pkm)))
         pg.route("**/data.cityofnewyork.us/resource/nfid-uabd.json*", lambda r: r.fulfill(status=200, content_type="application/json", body=_j.dumps(_pks)))
+        _aqt=["2026-10-%sT%02d:00"%(d,h) for d in ("11","12") for h in range(24)]
+        _aq={"hourly":{"time":_aqt,"us_aqi":[160 if (t.startswith("2026-10-11") and 15<=int(t[11:13])<19) else 40 for t in _aqt],"pm2_5":[60 if (t.startswith("2026-10-11") and 15<=int(t[11:13])<19) else 8 for t in _aqt]}}
+        pg.route("**/air-quality-api.open-meteo.com/**", lambda r: r.fulfill(status=200, content_type="application/json", body=_j.dumps(_aq)))
+        _nws={"features":[{"properties":{"event":"Air Quality Alert","severity":"Unknown","status":"Actual","onset":"2026-10-11T11:00:00-04:00","ends":"2026-10-11T23:00:00-04:00","headline":"Air Quality Alert issued","instruction":"Limit strenuous outdoor activity. People with heart or lung disease should stay indoors."}}]}
+        pg.route("**/api.weather.gov/**", lambda r: r.fulfill(status=200, content_type="application/geo+json", body=_j.dumps(_nws)))
         pg.route("**/api-endpoint.mta.info/**", lambda r: r.fulfill(status=200, content_type="application/json", body=_j.dumps(_mta)))
         _geo={"results":[{"name":"Ridgewood","latitude":40.97926,"longitude":-74.11653,"country_code":"US","country":"United States","admin1":"New Jersey","admin2":"Bergen"},{"name":"Ridgewood","latitude":40.70010,"longitude":-73.90569,"country_code":"US","country":"United States","admin1":"New York","admin2":"Queens"}]}
         pg.route("**/geocoding-api.open-meteo.com/**", lambda r: r.fulfill(status=200, content_type="application/json", body=_j.dumps(_geo)))
@@ -1589,6 +1594,13 @@ def run(path, name):
           mapSelectSpot('cpark:1'); r.push(/Finding it: about \d+ m [a-z-]+ of Bethesda Fountain\. Nearest entrance: Inventors' Gate/.test(document.querySelector('#mapPanel .spotfind').textContent));
           const mall=SPOTS.cpark.find(S=>S[3]==='The Mall'); r.push(Math.abs(mall[1]-(-73.97197))<0.0002); mapSelect(null); return r; })()""")
         check("Central Park in detail: named features and gates drawn when zoomed in (not when far out), and a spot says how to find it from the nearest feature and gate; the Mall spots sit on the Mall", cp==[True,True,True,True,True,True,True], cp)
+        if name.startswith("Installed"):
+            hl=pg.evaluate("""(()=>{ const w=WEATHER.nyc, keepAt=w.hourly.at, keepUv=w.hourly.uv; w.hourly.at=w.hourly.time.map(t=>t.startsWith('2026-10-11')&&+t.slice(11,13)>=13&&+t.slice(11,13)<16?34:12); w.hourly.uv=w.hourly.time.map(t=>t.startsWith('2026-10-11')&&+t.slice(11,13)===13?9:2);
+              const now=new Date(), H=healthFor(new Date(+now-2*36e5),new Date(+now+3*36e5)), ks=H.map(h=>h.k+h.lvl);
+              const late=healthFor(new Date(2026,9,12,9,0),new Date(2026,9,12,11,0)).map(h=>h.k);
+              state.view='today'; render(); const t=document.querySelector('.tnow').innerText;
+              w.hourly.at=keepAt; w.hourly.uv=keepUv; render(); return [ks, /Unhealthy air \(AQI up to 160/.test(t), /Air Quality Alert/.test(t), late]; })()""")
+            check("Health on an outing: the National Weather Service alert first, unhealthy air (AQI over 150) with its hours, heat as it feels, strong UV; none when the day is clear", hl[0][0]=="nws1" and "air2" in hl[0] and "heat1" in hl[0] and "uv1" in hl[0] and hl[1] and hl[2] and hl[3]==[], hl)
         # Right now: sun times match the published ones, and an old forecast is not passed off as today's
         sw=pg.evaluate("""(()=>{ const c=CITIES.nyc, d=new Date(2026,10,8), r=sunTimes(d,c.lat,c.lon), sec=x=>x.getHours()*3600+x.getMinutes()*60+x.getSeconds();
           let civ=[], prev=null; for(let m=300;m<1200;m+=0.25){ const x=new Date(+d+m*6e4), a=sunPos(x,c.lat,c.lon).alt; if(prev!==null&&((prev< -6)!==(a< -6))) civ.push(sec(x)); prev=a; }

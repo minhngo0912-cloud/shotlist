@@ -3275,7 +3275,29 @@ function withWx(pos,fn){ const was=WX_KEY; WX_KEY=wxKeyFor(pos); try{ return fn(
 function wxPcToday(w){ if(!w||typeof w.precip_chance_today!=="number"||!w.updated) return null; const u=new Date(w.updated), n=new Date(); return u.toDateString()===n.toDateString()&&n-u<12*36e5?w.precip_chance_today:null; }
 function hourlyAt(t){ const w=WEATHER[WX_KEY||state.city], h=w&&w.hourly; if(!h||!h.time) return null;
   const key=t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0")+"T"+String(t.getHours()).padStart(2,"0")+":00", i=h.time.indexOf(key);
-  return i<0?null:{pop:h.pop?h.pop[i]:null, mm:h.mm?h.mm[i]:null, cc:h.cc?h.cc[i]:null, code:h.code?h.code[i]:null, temp:h.t?h.t[i]:null}; }
+  return i<0?null:{pop:h.pop?h.pop[i]:null, mm:h.mm?h.mm[i]:null, cc:h.cc?h.cc[i]:null, code:h.code?h.code[i]:null, temp:h.t?h.t[i]:null, feels:h.at?h.at[i]:null, uv:h.uv?h.uv[i]:null}; }
+/* Health on an outing, between two times: the air (US AQI), heat and cold you feel, strong midday UV, and official alerts in force.
+   Each item: {k, lvl (1 take care, 2 think again), txt}. Nothing when the data is not loaded. */
+const hKey = t => t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0")+"T"+String(t.getHours()).padStart(2,"0")+":00";
+function aqAt(t){ const w=WEATHER[state.city], a=w&&w.aq; if(!a||!a.time) return null; const i=a.time.indexOf(hKey(t)); return i<0||a.aqi[i]==null?null:a.aqi[i]; }
+function healthFor(t0,t1){ const out=[], tf=d=>hmText(d.getHours()*60+d.getMinutes()), hrs=[]; for(let t=new Date(+t0-(+t0%36e5)); t<=t1; t=new Date(+t+36e5)) hrs.push(t);
+  const span=(L,pick)=>{ const H=hrs.filter(pick); if(!H.length) return null; return {a:H[0],b:new Date(+H[H.length-1]+36e5),v:H}; };
+  // air
+  let amax=null; hrs.forEach(t=>{ const v=aqAt(t); if(v!=null&&(amax===null||v>amax)) amax=v; });
+  if(amax!==null&&amax>100){ const S=span(0,t=>(aqAt(t)||0)>100), bad=amax>150;
+    out.push({k:"air",lvl:bad?2:1,txt:(bad?"Unhealthy air":"Air unhealthy for sensitive groups")+" (AQI up to "+Math.round(amax)+", "+tf(S.a)+"–"+tf(S.b)+"): "+(bad?"everyone should cut long walks short; a well-fitting N95 helps. Think about moving the outing.":"if you have asthma or a heart or lung condition, keep it short or wear an N95.")+" Smoky haze can turn a low sun deep orange."}); }
+  // heat and cold, as it feels
+  let fmax=null, fmin=null; hrs.forEach(t=>{ const f=hourlyAt(t); if(f&&f.feels!=null){ const F=f.feels*9/5+32; fmax=fmax===null?F:Math.max(fmax,F); fmin=fmin===null?F:Math.min(fmin,F); } });
+  if(fmax!==null&&fmax>=90) out.push({k:"heat",lvl:fmax>=103?2:1,txt:"Feels like up to "+Math.round(fmax)+"°F: "+(fmax>=103?"dangerous heat for a long walk. Go early or late, keep stops in the shade, and carry water.":"take water, use shade between stops and rest indoors if you feel dizzy.")});
+  if(fmin!==null&&fmin<=20) out.push({k:"cold",lvl:fmin<=0?2:1,txt:"Feels like down to "+Math.round(fmin)+"°F: "+(fmin<=0?"frostbite risk on bare skin within 30 minutes. Cover hands and face, and warm up indoors between stops.":"gloves you can shoot in, a hat, and a warm-up stop indoors.")+" Cold drains camera batteries fast: keep a spare in an inside pocket."});
+  // UV at midday
+  let umax=null; hrs.forEach(t=>{ const f=hourlyAt(t); if(f&&f.uv!=null) umax=umax===null?f.uv:Math.max(umax,f.uv); });
+  if(umax!==null&&umax>=8) out.push({k:"uv",lvl:1,txt:"Very strong sun (UV "+Math.round(umax)+"): sunscreen and a hat for midday stops."});
+  // official alerts in force during the outing
+  const w=WEATHER[state.city], N=w&&w.nws&&w.nws.list||[];
+  N.forEach(a=>{ const s=a.s?new Date(a.s):null, e=a.e?new Date(a.e):null; if(s&&s>t1||e&&e<t0) return; out.unshift({k:"nws",lvl:/Warning|Extreme|Excessive/.test(a.ev)?2:1,txt:a.ev+(e?" until "+(e.toDateString()===t0.toDateString()?tf(e):e.toLocaleDateString("en-US",{weekday:"short"})+" "+tf(e)):"")+" (National Weather Service)."+(a.inst?" "+a.inst.split(/(?<=\.)\s/).slice(0,2).join(" "):"")}); });
+  return out; }
+function hlHtml(t0,t1,cls){ const H=healthFor(t0,t1); if(!H.length) return ""; return '<div class="health '+(cls||"")+'">'+H.map(h=>'<p class="hl lv'+h.lvl+' '+h.k+'"><span class="hli" aria-hidden="true">'+({air:"😷",heat:"🌡",cold:"🧤",uv:"☀",nws:"⚠"}[h.k])+'</span><span>'+esc(h.txt)+'</span></p>').join("")+'</div>'; }
 function skyAt(t){ const f=hourlyAt(t); if(!f) return undefined; const c=f.code;
   if((c>=51&&c<=67)||(c>=80&&c<=82)||(c>=95)||(f.pop>=60&&f.mm>=0.2)) return "rain";
   if((c>=71&&c<=77)||c===85||c===86) return "snow";
@@ -4880,7 +4902,7 @@ function mapPlanBar(){ const p=state.plan, tf=d=>d.toLocaleTimeString("en-US",{h
     : (ok?'<div class="intents planbest"><button type="button" class="chip" data-planbest="1">Best order for the light</button></div>':'')+planWalkHtml()+planTimesHtml()+
       (W.length?'':'<div class="intents planstops">'+p.stops.map((s,n)=>'<button type="button" class="chip stopchip'+(n===nx?" next":"")+'" data-stop="'+n+'"><span class="stopn">'+(n+1)+'</span>'+esc(s.ev?(EVENTS.find(x=>x.id===s.ev)||{name:s.ev}).name:PLACES[s.place].name)+' · '+tf(s.at)+'</button>').join("")+'</div>');
   return '<div class="planbar"><div class="planbar-head pbh2"><div class="pbh-t"><b>'+(pday===1?'Tomorrow\u2019s outing':pday>1?esc(DAY_NAMES[p.start.getDay()])+'\u2019s outing':'Today\u2019s outing')+'</b><span>'+tf(p.start)+' to about '+tf(p.end)+' · <button type="button" class="linkbtn" data-openplan="1">Details</button> · <button type="button" class="linkbtn" data-clearplan="1">Clear</button></span></div>'+(W.length?'<button type="button" class="chip primary" data-walkmode="1">Walk mode</button>':'')+'</div>'+planStepRow()+
-    planWarnHtml()+(m?'<p class="msg planmsg">'+esc(m)+'</p>':'')+
+    planWarnHtml()+hlHtml(p.start,p.end,'planhealth')+(m?'<p class="msg planmsg">'+esc(m)+'</p>':'')+
     '<div class="ptabs" role="tablist">'+tabs.map(tabBtn).join("")+'</div><div class="ptabbody ptab-'+tab+'" role="tabpanel">'+body+'</div></div>'; }
 function mapPts(){ const key=lightAt(mapNow()), ideas=cityIdeas().filter(i=>(state.mapIntent==="all"||i.i===state.mapIntent)&&(!state.mapDark||i.w.includes("night"))), t=mapNow(), cc=CITIES[state.city], night=sunPos(t,cc.lat,cc.lon).alt<-6, sky=night?skyAt(t):null;
   return Object.keys(CITIES[state.city].places).filter(id=>typeof PLACES[id].lat==="number").map(id=>{ const [x,y]=mapXY(PLACES[id].lat,PLACES[id].lon), mine=ideas.filter(i=>i.p===id);
@@ -7078,7 +7100,8 @@ function renderToday(){ const box=$("today"); if(!box) return; todayAutoLoc();
   const wxLine = nowTxt||staleTxt ? '<div class="twx'+(staleTxt?' stale':'')+'"><span class="twxi" aria-hidden="true">'+wxIcon(skNow||(fNow&&fNow.cc>=50?"cloud":""),NL.sp.alt>0)+'</span><div class="twxb">'+
       (nowTxt?'<p class="twxnow"><b>'+esc(nowTxt)+'</b>'+chipsWx.map(c=>'<span class="twxc">'+esc(c)+'</span>').join("")+'</p>':'')+(rest?'<p class="msg">'+esc(rest)+'</p>':'')+(tmrTxt?'<p class="msg twxtmr">'+esc(tmrTxt)+'</p>':'')+
       (staleTxt?'<p class="msg">'+esc(staleTxt)+' <button type="button" class="linkbtn" data-trefresh="1">Try again</button></p>':'')+'</div></div>' : '';
-  const nowStrip='<section class="tnow '+NL.ph+'"><div class="tnowl"><span class="tlabel">Right now · '+tf(nm)+'</span><p class="tverdict">'+esc(NL.what)+'</p>'+(()=>{ const cd=countdownHtml(now); return cd+'<p class="msg">'+esc((cd&&(cur||upcoming)?'':nextTxt+' · ')+sunTxt)+'</p>'; })()+wxLine+'</div>'+
+  const hNow=hlHtml(now,new Date(+now+3*36e5),'nowhealth');
+  const nowStrip='<section class="tnow '+NL.ph+'"><div class="tnowl"><span class="tlabel">Right now · '+tf(nm)+'</span><p class="tverdict">'+esc(NL.what)+'</p>'+(()=>{ const cd=countdownHtml(now); return cd+'<p class="msg">'+esc((cd&&(cur||upcoming)?'':nextTxt+' · ')+sunTxt)+'</p>'; })()+wxLine+hNow+'</div>'+
     '<div class="tnowb"><button type="button" class="btn primary tshoot" data-shootnow="1">Shoot now</button><button type="button" class="btn tlightf" data-lightf="1">Light here</button></div>@@LIGHT@@</section>';
   // when the data was last refreshed: the page itself, and the forecast
   const wUp=w&&w.updated?new Date(w.updated):null, wHrs=wUp?(now-wUp)/36e5:null;

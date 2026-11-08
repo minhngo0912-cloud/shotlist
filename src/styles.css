@@ -1784,3 +1784,9 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 .tmb-open b{display:flex;align-items:center;gap:8px;font-weight:500} .tmb-open .msg{font-size:13px;margin-left:18px}
 .tmb-set{align-self:flex-start;margin:4px 0 0 18px;border:1px solid var(--line);background:transparent;color:inherit;border-radius:9px;padding:3px 8px;font:inherit;font-size:12.5px;font-family:var(--mono,ui-monospace,monospace);cursor:pointer}
 .tmb-set{white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+
+/* Health on an outing */
+.health{display:flex;flex-direction:column;gap:6px;margin:8px 0}
+.hl{display:flex;gap:8px;align-items:flex-start;margin:0;padding:8px 10px;border-radius:10px;font-size:13.5px;line-height:1.35;background:rgba(224,161,0,.14);border-left:3px solid #e0a100}
+.hl.lv2{background:rgba(217,83,79,.14);border-left-color:#d9534f} .hli{flex:none}
+.tnow .hl{color:#fff;background:rgba(255,200,80,.16)} .tnow .hl.lv2{background:rgba(255,110,100,.2)}
