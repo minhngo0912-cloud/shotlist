@@ -1685,3 +1685,14 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 .m-pkd{fill:#2563eb;stroke:#fff} .m-pkn{fill:#fff;font-weight:800;pointer-events:none}
 .m-pkleg{fill:none;stroke:#2563eb;stroke-linecap:round} .m-pkleg.back{opacity:.55}
 .m-pk,.m-pkc{pointer-events:none}
+
+/* The outing highlighted on the map */
+.m-pring{fill:none;stroke:#ffd23f} .m-pspot.next .m-pspotd{stroke:#14161a}
+.m-phalo{fill:none;stroke:#ffd23f;opacity:.9;transform-box:fill-box;transform-origin:center;animation:phalo 1.8s ease-out infinite}
+@keyframes phalo{0%{opacity:.95;transform:scale(.8)}100%{opacity:0;transform:scale(1.35)}}
+@media (prefers-reduced-motion:reduce){.m-phalo{animation:none}}
+.m-plab{font-weight:700} .m-plab.on{font-weight:800}
+.planon .m-pin:not(.inplan):not(.on){opacity:.32}
+.planon .m-spotg:not(.inplan):not(.on):not(.m-pspot){opacity:.28}
+.planonly .m-pin:not(.inplan):not(.on), .planonly .m-spotg:not(.inplan):not(.on):not(.m-pspot), .planonly .m-clu{display:none}
+.psfoot .chip[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}

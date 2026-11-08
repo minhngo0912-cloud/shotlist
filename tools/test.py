@@ -1412,6 +1412,13 @@ def run(path, name):
           const el2=document.querySelector('.mapsel .mapcount'), mk2=x=>new Touch({identifier:1,target:el2,clientX:x,clientY:y});
           el2.dispatchEvent(new TouchEvent('touchstart',{bubbles:true,touches:[mk2(100)],changedTouches:[mk2(100)]})); el2.dispatchEvent(new TouchEvent('touchend',{bubbles:true,touches:[],changedTouches:[mk2(260)]})); return [a,planCur()]; })()""")
         check("Swiping the spot card goes to the next or previous stop", sw==[2,1], sw)
+        pg.evaluate("planWhole()"); pg.wait_for_timeout(1200)
+        hl=pg.evaluate("""(()=>{ mapDraw(); const c=document.getElementById('mapSvg').getAttribute('class'), W=planWalk(), places=new Set(state.plan.stops.map(s=>s.place));
+          const pins=[...document.querySelectorAll('#mapSvg .m-pin')], inp=pins.filter(g=>g.classList.contains('inplan')).map(g=>g.dataset.p), rings=document.querySelectorAll('#mapSvg .m-pring').length, halo=document.querySelectorAll('#mapSvg .m-phalo').length, labs=document.querySelectorAll('#mapSvg .m-plab').length;
+          document.querySelector('[data-planonly]').click(); const c2=document.getElementById('mapSvg').getAttribute('class'), op=document.querySelector('#mapSvg .m-pin:not(.inplan)'), hid=op?getComputedStyle(op).display:'none';
+          document.querySelector('[data-planonly]').click(); const off=(state.mapD=(state.mapD+1)%7, mapDraw(), document.getElementById('mapSvg').getAttribute('class')); state.mapD=(state.mapD+6)%7; mapDraw();
+          return [/planon/.test(c), !/planonly/.test(c), inp.every(id=>places.has(id)), rings===W.length, halo===1, labs===W.length, /planonly/.test(c2), hid, /planon/.test(off)]; })()""")
+        check("Tomorrow's outing is highlighted on the map: its places and spots stand out, every stop ringed and labelled, the next one pulsing; Outing only hides the rest; not on other days", hl==[True,True,True,True,True,True,True,"none",False], hl)
         mo=pg.evaluate("""(()=>{ state.plan=null; state.view='browse'; state.when='am'; render(); const c=bestOutings(matches(false))[0]; document.querySelector('#list [data-tmbestplan="0"]').click();
           const st=state.plan&&state.plan.start, m=st?st.getHours()*60+st.getMinutes():-1; return [c&&c.o.id, m>=c.o.s-15&&m<=c.o.e-25, state.view]; })()""")
         check("Plan this outing keeps a morning outing in the morning", mo[0]=="am" and mo[1] and mo[2]=="map", mo)
