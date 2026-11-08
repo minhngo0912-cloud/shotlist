@@ -1373,6 +1373,9 @@ def run(path, name):
         pg.click("#list [data-tmbestplan='0']"); pg.wait_for_timeout(300)
         bp=pg.evaluate("[state.view, state.plan&&state.plan.start.getDate(), /Planned from the best outing/.test(state.planMsg||''), state.plan&&state.plan.stops.flatMap(s=>s.ideas.map(x=>x.id)).sort().join()]")
         check("Plan this outing: tomorrow's outing on the map with the recommended ideas", bp[0]=="map" and bp[1]==12 and bp[2] and bp[3]==",".join(sorted(bo[1])), [bp,bo[1]])
+        em=pg.evaluate("""(()=>{ const x=IDEAS.find(i=>i.id==='les-moment'), sun=new Date(2026,9,18), mon=new Date(2026,9,19), am=d=>daySlots(d).find(o=>o.id==='am');
+          return [ideaOpen(x,new Date(2026,9,18,9,0)), ideaOpen(x,new Date(2026,9,18,11,0)), ideaOpen(x,new Date(2026,9,19,9,0)), ideaOpen(x,new Date(2026,9,17,20,30)), slotOpen(x,am(sun),sun), slotOpen(x,am(mon),mon), /Sun 10 am to 6 pm/.test(availText(x))]; })()""")
+        check("Essex Market keeps its Sunday hours (10 am to 6 pm): not in the morning slot on Sunday, open from 8 am other days", em==[False,True,True,True,False,True,True], em)
         pg.wait_for_timeout(900)
         fr=pg.evaluate("""(()=>{ const W=planWalk(); if(!W.length||!mapV) return [false]; const h=mapV.w*MAP_ASPECT; return [W.every(o=>{ const [x,y]=mapXY(o.lat,o.lon); return Math.abs(x-mapV.cx)<=mapV.w/2 && Math.abs(y-mapV.cy)<=h/2; }), mapV.w<200, W.length]; })()""")
         check("Plan this outing moves the map to the outing's spots", fr[0] and fr[1], fr)
