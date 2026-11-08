@@ -2053,12 +2053,34 @@ function bestIdeas(c){ const per={}; return c.I.slice().sort((a,b)=>(state.done.
 /* The best outing's ideas in the order Plan this outing would walk them, each with the time you would get there
    (the same plan, worked out without saving it). Ideas the plan leaves out keep their place at the end. */
 const BEST_ORDER=new Map();
-function bestOrder(c){ const X=bestIdeas(c), dk=ymdKey(tmrwDay()), w=WEATHER[state.city], key=dk+"|"+X.map(x=>x.id).join()+"|"+c.o.s+"-"+c.o.e+"|"+(w&&w.updated||"")+"|"+state.cond;
+function bestOrder(c,dk){ const X=bestIdeas(c); dk=dk||ymdKey(tmrwDay()); const w=WEATHER[state.city], key=dk+"|"+X.map(x=>x.id).join()+"|"+c.o.s+"-"+c.o.e+"|"+(w&&w.updated||"")+"|"+state.cond;
   if(BEST_ORDER.has(key)) return BEST_ORDER.get(key);
   const p=picksPlan(dk,X.map(x=>x.id),{s:c.o.s,e:c.o.e},true), out=[];
   if(p) p.stops.forEach(s=>{ let t=+s.at; s.ideas.forEach(x=>{ out.push({x,t:new Date(t)}); t+=ideaMins(x)*6e4; }); });
   X.forEach(x=>{ if(!out.some(o=>o.x.id===x.id)) out.push({x,t:null}); });
   if(BEST_ORDER.size>8) BEST_ORDER.clear(); BEST_ORDER.set(key,out); return out; }
+/* Best outing now (Ideas with On now): the walk you can still make in the light you have. Places that make one walk, reached from
+   where you are (or home), with the ideas that will still be on when you get there; quick to reach and many fresh ideas score best.
+   The light you are in, and when it ends, says how long the outing can run. */
+function nowLight(t){ const m=t.getHours()*60+t.getMinutes(), {list}=todayWindows(evDay(t)), cur=list.find(x=>x.s<=m&&x.e>m), nx=list.find(x=>x.s>m); return cur?{name:cur.name.replace("Morning ",""),e:cur.e}:nx&&nx.s-m<=150?{next:nx.name.replace("Morning ",""),s:nx.s}:null; }
+function nowOutings(m){ const now=new Date(), nm=now.getHours()*60+now.getMinutes(), from=state.pos||state.home||null, car=!state.pos&&state.home&&state.home.mode==="car", out=[];
+  if(nm>23*60) return out; const L=m.filter(x=>typeof PLACES[x.p].lat==="number"), pids=[...new Set(L.map(x=>x.p))];
+  for(const g of walkGroups(pids)){ const near=from?g.pids.map(p=>({p,km:kmBetween(from,PLACES[p])})).sort((a,b)=>a.km-b.km)[0]:null;
+    const mins=near?(near.km<1.6?walkMin(near.km):travelMins(from,PLACES[near.p],car?"car":"transit",now)):0; if(mins>75) continue;
+    const at=new Date(+now+mins*6e4), I=L.filter(x=>g.pids.includes(x.p)&&onNowIdea(x,at)); if(!I.length) continue;
+    const fresh=I.filter(x=>!state.done.has(x.id)).length, k=lightAt(at), lt=nowLight(at), left=lt&&lt.e?lt.e-(nm+mins):null;
+    const score=(TM_Q[k==="gold"?"gold":k==="night"?"night":k==="rain"?"rain":"mid"]||1)*1.5+Math.min(fresh,6)+Math.min(I.length-fresh,4)*0.3-mins/8-(g.span>15?(g.span-15)/10:0)-(left!==null&&left<20?2:0);
+    out.push({g,I,fresh,mins,from:near?(from===state.home?"home":"you"):null,how:near?(near.km<1.6?"on foot":car?"by car":"by subway"):"",at,lt,o:{s:nm+mins,e:Math.min(1439,nm+mins+(lt&&lt.e&&lt.e-(nm+mins)>=45?Math.max(60,lt.e-(nm+mins)+20):lt&&lt.next?Math.max(90,lt.s-(nm+mins)+60):120)),name:"now"},score}); }
+  return out.sort((a,b)=>b.score-a.score).slice(0,3); }
+function nowBestHtml(m){ const B=nowOutings(m); if(!B.length) return ""; const i=Math.min(state.nowBest||0,B.length-1), c=B[i], dk=ymdKey(new Date()), O=bestOrder(c,dk), tf=d=>hmText(d.getHours()*60+d.getMinutes());
+  const go=c.mins<=2?'You are there':'About '+c.mins+' min '+c.how+' from '+(c.from==="home"?'home':'you')+' · there by '+tf(c.at);
+  const lt=c.lt?(c.lt.next?c.lt.next.toLowerCase()+' from '+hmText(c.lt.s):c.lt.e>c.o.s?c.lt.name+' until '+hmText(c.lt.e):''):'';
+  return '<section class="tmbest nowbest"><p class="tlabel">Best outing now</p><p class="tmb-what"><b>'+esc(c.g.name)+'</b><br>'+esc(go+(lt?' · '+lt:''))+'</p>'+
+    '<p class="msg">'+c.I.length+' idea'+(c.I.length>1?'s':'')+' on when you get there'+(c.fresh<c.I.length?' ('+c.fresh+' not shot yet)':'')+(O.length<c.I.length?', the best '+O.length+' below':'')+(c.g.pids.length>1?' · up to '+c.g.span+' min apart on foot':'')+'</p>'+
+    (c.lt&&c.lt.e&&c.lt.e-c.o.s<25&&c.lt.e>c.o.s?'<p class="msg tmwarn">'+esc(c.lt.name)+' ends '+(c.lt.e-c.o.s)+' min after you arrive: go straight to the first idea.</p>':'')+
+    '<p class="tmb-ord">In the recommended order</p><ol class="tmb-ideas">'+O.map(({x,t},n)=>'<li><span class="tmb-n">'+(n+1)+'</span><span class="tmb-t">'+(t?tf(t):'')+'</span><span class="tmb-x"><b><span class="dot" style="background:'+INTENTS[x.i].color+'"></span>'+esc(x.t)+'</b><span class="msg">'+esc(PLACES[x.p].name)+'</span></span></li>').join("")+'</ol>'+
+    '<div class="callinks"><button type="button" class="chip primary" data-nowbestplan="'+i+'">Plan this outing</button>'+(O[0]?(()=>{ const sp=spotFor(O[0].x), g=sp?{lat:sp.S[0],lon:sp.S[1]}:PLACES[O[0].x.p]; return '<a class="chip" href="https://www.google.com/maps/dir/?api=1&destination='+g.lat.toFixed(5)+','+g.lon.toFixed(5)+'&travelmode='+(c.how==="on foot"?'walking':c.how==="by car"?'driving':'transit')+'" target="_blank" rel="noopener">Go now ↗</a>'; })():'')+'</div>'+
+    (B.length>1?'<p class="tmb-oth">Other good options</p>'+B.map((b,j)=>j===i?'':'<button type="button" class="tmb-alt" data-nowbest="'+j+'"><b>'+esc(b.g.name)+'</b><span>'+esc((b.mins<=2?'Here':b.mins+' min '+b.how)+' · '+b.I.length+' idea'+(b.I.length>1?'s':'')+(b.lt&&b.lt.e>b.o.s?' · '+b.lt.name.toLowerCase()+' until '+hmText(b.lt.e):''))+'</span></button>').join(""):'')+'</section>'; }
 function bestOutingHtml(m){ const B=bestOutings(m); if(!B.length) return ""; const i=Math.min(state.tmBest||0,B.length-1), c=B[i], O=bestOrder(c), dk=ymdKey(tmrwDay());
   const line=c=>esc(c.o.name+' '+hmSpan(c.o.s,c.o.e)+' · '+tmrwSky(c.o));
   return '<section class="tmbest"><p class="tlabel">Best outing tomorrow</p><p class="tmb-what"><b>'+esc(c.g.name)+'</b><br>'+line(c)+'</p>'+
@@ -2637,6 +2659,7 @@ function renderList(){ qCount();
       '<span class="t"><b>'+qMarkTitle(x)+'</b><span>'+(!flat&&fit&&open?'<span class="nowtag">Now</span>':'')+(flat?esc(pl.name)+(mi!==null?' · '+milesText(mi):'')+' · '+status+(sort==="recent"&&last?' · shot '+esc(agoText(last.t)):''):esc(INTENTS[x.i].name)+(COMPOSE[x.id]?' · '+esc(TECH[COMPOSE[x.id][0]][0]):''))+'</span>'+(snip?'<span class="qsnip">'+snip+'</span>':'')+'</span>'+
       '<span class="marks">'+(state.saved.has(x.id)?'<span class="pill">Saved</span>':'')+(state.done.has(x.id)?'<span class="pill">'+((last||{}).r==="keep"?'Keeper':(last||{}).r==="again"?'Try again':'Shot')+'</span>':'')+(state.notes[x.id]?'<span class="pill">Note</span>':'')+'</span>'+
       '<span class="go" aria-hidden="true">›</span></button>'; };
+  const nowBest=state.onNow&&!saved&&!again?nowBestHtml(m):"";
   if(state.tmrw&&!saved){ const d=tmrwDay(), dk=ymdKey(d), S=tmrwSlots(), anyFc=S.some(o=>o.sky!==undefined), PK=picksFor(dk);
     const trow=x=>{ const pl=PLACES[x.p], mi=milesTo(pl), last=lastShot(x.id), on=PK.ids.includes(x.id);
       return '<div class="tmrow"><button type="button" class="row'+(state.done.has(x.id)?" done":"")+'" data-id="'+x.id+'"><span class="dot" style="background:'+INTENTS[x.i].color+'"></span><span class="t"><b>'+qMarkTitle(x)+'</b><span>'+esc(pl.name)+(mi!==null?' · '+milesText(mi):'')+' · '+esc(INTENTS[x.i].name)+(state.done.has(x.id)?' · shot '+esc(agoText(last?last.t:Date.now())):'')+'</span></span>'+
@@ -2653,13 +2676,13 @@ function renderList(){ qCount();
     if(sort==="near") R.sort((a,b)=>(a.d===null?1e9:a.d)-(b.d===null?1e9:b.d)||a.n-b.n);
     if(sort==="fresh") R.sort((a,b)=>(state.done.has(a.x.id)?1:0)-(state.done.has(b.x.id)?1:0)||a.n-b.n);
     if(sort==="recent") R.sort((a,b)=>(b.l?b.l.t:0)-(a.l?a.l.t:0)||a.n-b.n);
-    box.innerHTML=head+(sort==="recent"&&!R.some(r=>r.l)?'<p class="msg">Nothing shot yet: these are in order of how well they fit now.</p>':'')+'<section class="group flat">'+R.map(r=>rowHtml(r.x,true)).join("")+'</section>'+(saved?"":followAll()); return; }
+    box.innerHTML=head+nowBest+(sort==="recent"&&!R.some(r=>r.l)?'<p class="msg">Nothing shot yet: these are in order of how well they fit now.</p>':'')+'<section class="group flat">'+R.map(r=>rowHtml(r.x,true)).join("")+'</section>'+(saved?"":followAll()); return; }
   // places fold: the first (nearest) place starts open; searching, a narrow filter, Saved and Try again open them all
   const foldAll = saved||!!state.q||m.length<=24, firstPid=placeOrder().find(pid=>m.some(x=>x.p===pid));
   if(!state.openPlaces) state.openPlaces=new Set(store.get("openPlaces",null)||(firstPid?[firstPid]:[]));
   const isOpen = pid => foldAll||state.openPlaces.has(pid), anyClosed=!foldAll&&placeOrder().some(pid=>m.some(x=>x.p===pid)&&!state.openPlaces.has(pid));
   const foldBar = foldAll?'':'<p class="foldbar"><button type="button" class="linkbtn" data-pfold="'+(anyClosed?'open':'close')+'">'+(anyClosed?'Open all places':'Fold all places')+'</button></p>';
-  box.innerHTML = head+foldBar+
+  box.innerHTML = head+nowBest+foldBar+
   (state.pos||state.place!=="all"?"":'<div class="intents areajump">'+Object.keys(AREAS).filter(a=>placeOrder().some(pid=>areaOf(pid)===a&&m.some(x=>x.p===pid))).map(a=>'<a class="chip" href="#area-'+a+'">'+AREAS[a]+'</a>').join("")+'</div>')+
   placeOrder().map((pid,n,arr)=>{ const p=PLACES[pid];
     const rows=m.filter(x=>x.p===pid); if(!rows.length) return "";
@@ -7262,6 +7285,9 @@ document.addEventListener("click",e=>{ if(!e.target.closest) return;
   { const tp=e.target.closest("[data-tmpick]"); if(tp){ pickToggle(tp.dataset.tmpick,tp.dataset.day); render(); return; } }
   { const tw=e.target.closest("[data-tmswap]"); if(tw){ const [a,b,dk]=tw.dataset.tmswap.split("|"); pickToggle(a,dk); pickToggle(b,dk); render(); return; } }
   { const bs=e.target.closest("[data-tmbest]"); if(bs){ state.tmBest=+bs.dataset.tmbest; render(); return; } }
+  { const nb=e.target.closest("[data-nowbest]"); if(nb){ state.nowBest=+nb.dataset.nowbest; render(); return; } }
+  { const np=e.target.closest("[data-nowbestplan]"); if(np){ const c=nowOutings(matches(false))[+np.dataset.nowbestplan]; if(!c) return; const ids=bestIdeas(c).map(x=>x.id), p=picksPlan(ymdKey(new Date()),ids,{s:c.o.s,e:c.o.e});
+      if(!p){ evToast('<span>That outing cannot be planned for the time left today.</span>'); return; } planShow(p); return; } }
   { const bp=e.target.closest("[data-tmbestplan],[data-tmbeststar]"); if(bp){ const B=bestOutings(matches(false)), c=B[+(bp.dataset.tmbestplan||bp.dataset.tmbeststar)]; if(!c) return; const ids=bestIdeas(c).map(x=>x.id), dk=ymdKey(tmrwDay());
       if(bp.dataset.tmbeststar!==undefined){ const E=picksFor(dk); ids.forEach(id=>{ if(!E.ids.includes(id)) pickToggle(id,dk); }); render(); return; }
       const p=picksPlan(dk,ids,{s:c.o.s,e:c.o.e}); if(!p){ evToast('<span>That outing cannot be planned for the hours left.</span>'); return; } const off=Math.round((evDay(p.start)-evDay(new Date()))/864e5);

@@ -1422,6 +1422,13 @@ def run(path, name):
         mo=pg.evaluate("""(()=>{ state.plan=null; state.view='browse'; state.when='am'; render(); const c=bestOutings(matches(false))[0]; document.querySelector('#list [data-tmbestplan="0"]').click();
           const st=state.plan&&state.plan.start, m=st?st.getHours()*60+st.getMinutes():-1; return [c&&c.o.id, m>=c.o.s-15&&m<=c.o.e-25, state.view]; })()""")
         check("Plan this outing keeps a morning outing in the morning", mo[0]=="am" and mo[1] and mo[2]=="map", mo)
+        nb=pg.evaluate("""(()=>{ state.plan=null; savePlan(); state.tmrw=false; state.onNow=true; state.when='all'; state.view='browse'; syncOnNow(); render(); const card=document.querySelector('#list .nowbest'), B=nowOutings(matches(false));
+          if(!card||!B.length) return ['no card', B.length]; const shown=[...card.querySelectorAll('.tmb-ideas li')].map(li=>li.textContent), now=Date.now();
+          const ok=B.every(c=>c.I.every(x=>onNowIdea(x,c.at))), alt=card.querySelector('[data-nowbest]'); let sw=true; if(alt){ const want=B[+alt.dataset.nowbest].g.name; alt.click(); sw=(document.querySelector('#list .nowbest .tmb-what b')||{}).textContent===want; state.nowBest=0; render(); }
+          document.querySelector('#list [data-nowbestplan="0"]').click(); const p=state.plan, ids=p?p.stops.flatMap(s=>s.ideas.map(x=>x.x||x.t)):[];
+          const r=[!!card, ok, sw, state.view, !!p&&+p.start>=now-6e4&&p.start.getDate()===new Date().getDate(), !!p&&shown.length===p.stops.reduce((a,s)=>a+s.ideas.length,0)&&p.stops.flatMap(s=>s.ideas).every((x,n)=>shown[n].includes(x.t))];
+          state.onNow=false; state.tmrw=true; syncOnNow(); return r; })()""")
+        check("Best outing now (On now): places within reach whose ideas are still on when you get there, in walking order with times; switch options; Plan this outing starts today from now", nb==[True,True,True,"map",True,True], nb)
         pg.evaluate("state.plan=null; savePlan(); state.mapD=0; state.mapT=null; state.view='browse'; state.when='am'; render()")
         bm=pg.evaluate("[bestOutings(matches(false)).every(c=>c.o.id==='am'), /Morning/.test((document.querySelector('#list .tmbest')||{}).textContent||'')]")
         pg.evaluate("state.when='all'; state.tmrw=false; store.set('tmrw',false); syncOnNow(); state.view='today'; render()")
