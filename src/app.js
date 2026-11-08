@@ -2031,9 +2031,9 @@ function picksPlan(dk,only,win){ const E=only?{ids:only}:picksFor(dk), d=ymdDate
    since rain ideas want it), how many ideas fit and how many you have not shot, events that day close by, how far it is from where
    you will start (home when saved, else where you are) and how spread out the walk is. The top one is shown with two others, one of them at another time of day when there is one. */
 const TM_Q = {gold:3,night:2.2,am:2,rain:1.6,mid:1};
-function bestOutings(m){ const d=tmrwDay(), S=tmrwSlots().filter(o=>slotOk(o,state.when)), from=state.home||state.pos||null, mode=state.home&&state.home.mode==="car"?"car":"transit", out=[];
+function bestOutings(m,w){ if(w===undefined) w=state.when; const d=tmrwDay(), S=tmrwSlots().filter(o=>slotOk(o,w)), from=state.home||state.pos||null, mode=state.home&&state.home.mode==="car"?"car":"transit", out=[];
   const t0=evDay(new Date()), evs=eventRows(t0).filter(r=>!r.cancelled&&evOnDay(r,d,false)).map(r=>({r,g:r.e.geo||eventGeo(r.e.id)})).filter(x=>x.g);
-  for(const o of S){ const L=m.filter(x=>tmrwFit(x)===o); if(!L.length) continue; const pids=[...new Set(L.map(x=>x.p))];
+  for(const o of S){ const L=m.filter(x=>dayFit(x,d,w)===o); if(!L.length) continue; const pids=[...new Set(L.map(x=>x.p))];
     for(const g of walkGroups(pids)){ const I=L.filter(x=>g.pids.includes(x.p)), fresh=I.filter(x=>!state.done.has(x.id)).length;
       const ev=evs.filter(e=>g.pids.some(p=>typeof PLACES[p].lat==="number"&&kmBetween(PLACES[p],{lat:e.g[0],lon:e.g[1]})<=1.2)).slice(0,2);
       const near=from?g.pids.filter(p=>typeof PLACES[p].lat==="number").map(p=>({p,km:kmBetween(from,PLACES[p])})).sort((a,b)=>a.km-b.km)[0]:null;
@@ -6502,16 +6502,17 @@ function renderToday(){ const box=$("today"); if(!box) return; todayAutoLoc();
     const at=clk(tmr,mg.s), f=hourlyAt(at), sky=skyAt(at), F=f&&f.temp!=null?Math.round(f.temp*9/5+32)+'°F':'';
     const MW={rain:"Rain at sunrise: wet streets and reflections; umbrellas from blue hour on.",snow:"Snow: clean, quiet streets before the city wakes up.",fog:"Fog at sunrise is rare: layered streets and soft silhouettes. Worth getting up for.",cloud:"Overcast: no sunrise colour, but soft, even light for faces and quiet streets."};
     const skyTxt = sky===undefined ? '' : '<p class="msg twx2"><span class="twxi" aria-hidden="true">'+wxIcon(sky||(f&&f.cc>=50?"cloud":""),true)+'</span><span>'+(sky?esc(WX_WORD[sky]):f&&f.cc>=50?'Some cloud':'Clear')+' at golden hour'+(F?', '+F:'')+'. '+(sky?MW[sky]:f&&f.cc>=50?'Broken cloud can catch colour just before sunrise.':'Clear: low, warm sun down the east–west streets and long shadows.')+'</span></p>';
-    const top=todayPicks(at)[0], P=top&&PLACES[top.id], tg=top&&(START_GEO[top.id]||[P.lat,P.lon]);
+    const BO=bestOutings(cityIdeas(),"am")[0], BX=BO?bestIdeas(BO):[], BP=BO&&BO.g.pids[0];
+    const top=BO?{id:BP,best:BX[0]||null,mi:milesTo(PLACES[BP])}:todayPicks(at)[0], P=top&&PLACES[top.id], tg=top&&(START_GEO[top.id]||[P.lat,P.lon]);
     const startM=mb?mb.s:mg.s, cal={summary:"Shot List: sunrise at "+(P?P.name:"golden hour"),start:calIso(clk(tmr,startM)),end:calIso(clk(tmr,mg.e)),location:P?P.name+", New York, NY":"",description:(top&&top.best?top.best.t+". ":"")+"Blue hour "+tf(startM)+", golden hour "+tf(mg.s)+" to "+tf(mg.e)+", sunrise "+tf(TW.L.rise)+". Open Shot List: https://minhngo0912-cloud.github.io/shotlist/",remind:60};
     const g="https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent(cal.summary)+"&dates="+lfStamp(clk(tmr,startM))+"/"+lfStamp(clk(tmr,mg.e))+"&details="+encodeURIComponent(cal.description)+"&location="+encodeURIComponent(cal.location);
     const h=Math.max(5,Math.floor((startM-30)/60));
     return '<section class="tcard ttmr"><p class="tlabel">Tomorrow morning · '+DAY_NAMES[tmr.getDay()]+'</p>'+
       '<p class="ttmrw">'+(mb?'<span><span class="lk blue"></span>Blue '+tf(mb.s)+'</span>':'')+'<span><span class="lk gold"></span>Golden '+tf(mg.s).replace(/ am$/,"")+'–'+tf(mg.e)+'</span><span><span class="lk rise"></span>Sunrise '+tf(TW.L.rise)+'</span></p>'+skyTxt+
-      (top?'<p class="msg">Best place for that light: <b>'+esc(P.name)+'</b>'+(top.mi!==null?' · '+milesText(top.mi):'')+'.</p>'+
+      (top?'<p class="msg">'+(BO?'Best outing for that light: <b>'+esc(BO.g.name)+'</b> · '+BO.I.length+' idea'+(BO.I.length>1?'s':'')+(BO.g.pids.length>1?', up to '+BO.g.span+' min apart on foot':''):'Best place for that light: <b>'+esc(P.name)+'</b>')+(top.mi!==null?' · '+milesText(top.mi):'')+'.</p>'+
         (top.best?'<button type="button" class="row" data-id="'+top.best.id+'"><span class="dot" style="background:'+INTENTS[top.best.i].color+'"></span><span class="t"><b>'+esc(top.best.t)+'</b><span>'+esc(INTENTS[top.best.i].name)+'</span></span><span class="go" aria-hidden="true">›</span></button>':'')+
         leaveBy(tg,startM,tmr,mb?"blue hour":"golden hour"):'')+
-      '<div class="callinks"><button type="button" class="chip primary" data-planday="'+h+'" data-planoff="1">Plan tomorrow morning</button>'+(CAL_MCP?calBtn(cal):'<a class="chip" href="'+esc(g)+'" target="_blank" rel="noopener">Google Calendar ↗</a>')+'</div></section>'; })() : '';
+      '<div class="callinks"><button type="button" class="chip primary" data-planday="'+h+'" data-planoff="1"'+(BO?' data-planbestam="1"':'')+'>Plan tomorrow morning</button>'+(CAL_MCP?calBtn(cal):'<a class="chip" href="'+esc(g)+'" target="_blank" rel="noopener">Google Calendar ↗</a>')+'</div></section>'; })() : '';
   // a nudge
   const savedOpen=cityIdeas().filter(x=>state.saved.has(x.id)&&!state.done.has(x.id));
   const nudge = savedOpen.length ? (x=>'<p class="tlabel">From your saved ideas</p><button type="button" class="row" data-id="'+x.id+'"><span class="dot" style="background:'+INTENTS[x.i].color+'"></span><span class="t"><b>'+esc(x.t)+'</b><span>'+esc(PLACES[x.p].name)+(x.w.includes(key)?' · suits '+esc(lname):'')+'</span></span><span class="go" aria-hidden="true">›</span></button>')(savedOpen[dayN%savedOpen.length])
@@ -6988,7 +6989,10 @@ $("today").addEventListener("click",e=>{
   const tl=e.target.closest("[data-todayloc]"); if(tl){ tl.textContent="…"; const done=()=>{ renderToday(); if(!state.pos) $("today").insertAdjacentHTML("afterbegin",'<p class="msg">Your location is not available here. In the installed app, allow location access for Shot List when asked.</p>'); };
     if(!navigator.geolocation){ done(); return; } try{ navigator.geolocation.getCurrentPosition(p=>{ state.pos={lat:p.coords.latitude,lon:p.coords.longitude}; fillPlaces(); syncNear(); done(); }, done, {timeout:10000,maximumAge:120000}); }catch(err){ done(); } return; }
   const mg=e.target.closest("[data-mapgo]"); if(mg){ const id=mg.dataset.mapgo; state.mapT=state.todayAt; state.view="map"; render(); requestAnimationFrame(()=>requestAnimationFrame(()=>{ mapSelect(id); })); return; }
-  const pd=e.target.closest("[data-planday]"); if(pd){ planToday(pd.dataset.planday,+pd.dataset.planoff||0); return; }
+  const pd=e.target.closest("[data-planday]"); if(pd){
+    // tomorrow morning: the same best outing as Ideas › Tomorrow, planned inside the morning
+    if(pd.dataset.planbestam){ const c=bestOutings(cityIdeas(),"am")[0]; if(c){ const p=picksPlan(ymdKey(tmrwDay()),bestIdeas(c).map(x=>x.id),{s:c.o.s,e:c.o.e}); if(p){ state.mapD=1; state.mapT=p.start.getHours()*60+Math.round(p.start.getMinutes()/5)*5; state.view="map"; render(); return; } } }
+    planToday(pd.dataset.planday,+pd.dataset.planoff||0); return; }
   const gv=e.target.closest("[data-goview]"); if(gv){ state.view=gv.dataset.goview; render(); window.scrollTo({top:0}); return; }
   const ev=e.target.closest("[data-event]"); if(ev){ showEvent(ev.dataset.event); return; }
   const r=e.target.closest(".row[data-id]"); if(r){ show(r.dataset.id); state.view="shoot"; render(); window.scrollTo({top:0}); }

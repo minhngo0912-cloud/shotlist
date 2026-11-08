@@ -1418,6 +1418,12 @@ def run(path, name):
         pg.click("#today [data-homeclear]"); pg.wait_for_timeout(50); hm.append(pg.evaluate("state.home")); pg.evaluate("state.homeEdit=false; render()")
         exp=[True,True,2,["Ridgewood, New Jersey",True],"transit",["map",True],[True,"transit",False,True,True],True,None] if pg.evaluate("PHOTOS_INLINE") else [True,False,"transit",["map",True],[True,"transit",False,True,True],True,None]
         check("Home in Settings: search a town (installed app), travel mode, pick on the map by press and hold, the same editor on Today, and remove", hm==exp, hm)
+        # After dark, Today's tomorrow-morning card recommends the same outing as Ideas › Tomorrow, and plans it in the morning
+        pg.clock.set_system_time("2026-10-11T21:30:00-04:00"); pg.evaluate("state.plan=null; savePlan(); state.view='today'; render()"); pg.wait_for_timeout(100)
+        tmo=pg.evaluate("""(()=>{ const c=bestOutings(cityIdeas(),'am')[0], card=document.querySelector('#today .ttmr'), txt=card?card.textContent:''; document.querySelector('#today .ttmr [data-planday]').click();
+          const p=state.plan, m=p?p.start.getHours()*60+p.start.getMinutes():-1; return [!!c&&txt.includes('Best outing for that light: '+c.g.name), state.view, !!p&&p.stops.every(s=>c.g.pids.includes(s.place)), m>=c.o.s-15&&m<=c.o.e-25, p&&p.start.getDate()]; })()""")
+        pg.evaluate("state.plan=null; savePlan(); state.mapD=0; state.mapT=null"); pg.clock.set_system_time("2026-10-11T15:00:00-04:00"); pg.evaluate("state.view='today'; render()")
+        check("Today after dark: Plan tomorrow morning plans the best morning outing (the same as Ideas › Tomorrow), starting in the morning", tmo==[True,"map",True,True,12], tmo)
         # Dark theme renders too
         pg.evaluate("document.documentElement.dataset.theme='dark'; state.view='shoot'; render()"); pg.wait_for_timeout(80)
         check("no script errors", not errors, errors[:3])
