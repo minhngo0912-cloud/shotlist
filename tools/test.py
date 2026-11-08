@@ -93,6 +93,8 @@ def run(path, name):
         _mta={"header":{},"entity":[_al("lmm:1",["B","D","F","M"],"Planned - Part Suspended",1791727200,1791763200,"No B D F M trains between 47-50 Sts and W 4 St"),
               _al("lmm:2",["F"],"Elevator Outage",1791727200,1791763200,"Elevator out"),_al("lmm:3",["7"],"Planned - Express to Local",1791986400,1792022400,"7 trains run local")]}
         pg.route("**/api-endpoint.mta.info/**", lambda r: r.fulfill(status=200, content_type="application/json", body=_j.dumps(_mta)))
+        _geo={"results":[{"name":"Ridgewood","latitude":40.97926,"longitude":-74.11653,"country_code":"US","country":"United States","admin1":"New Jersey","admin2":"Bergen"},{"name":"Ridgewood","latitude":40.70010,"longitude":-73.90569,"country_code":"US","country":"United States","admin1":"New York","admin2":"Queens"}]}
+        pg.route("**/geocoding-api.open-meteo.com/**", lambda r: r.fulfill(status=200, content_type="application/json", body=_j.dumps(_geo)))
         pg.route("**/data.cityofnewyork.us/resource/i6b5-j7bu.geojson*", lambda r: r.fulfill(status=200, content_type="application/json", body=_j.dumps(_cl)))
         # The Claude build has no charset of its own (the artifact page supplies it), so the browser could guess the wrong one
         # from a file: test a copy that states UTF-8, as the published page does.
@@ -1397,6 +1399,22 @@ def run(path, name):
           state.plan.stops.forEach(s=>s.at=new Date(+s.at-864e5)); state.plan.start=new Date(+state.plan.start-864e5); r.push(planStart().kind);
           state.home=keepH; state.pos=keepP; state.plan=null; savePlan(); state.mapD=0; state.mapT=null; state.startPick=null; state.view='today'; render(); return r; })()""")
         check("Outing start: home for tomorrow with leave-by from home by car, a start marker and leg to spot 1; Start from sets where you are or a point held on the map (kept with the outing); Automatic goes back; on the day it is where you are", st==["home",True,True,True,True,True,True,True,True,"home","you"], st)
+        # Home: set from Settings by searching (installed app), picking on the map, or where you are; travel mode; remove
+        pg.evaluate("state.home=null; store.set('home',null); state.view='today'; render()"); pg.click("#setOpen"); pg.wait_for_timeout(300)
+        hm=[pg.evaluate("!!document.querySelector('#setHomeEd .homeed')"), pg.evaluate("!!document.querySelector('#setHomeEd .homeq')")]
+        if pg.evaluate("PHOTOS_INLINE"):
+            pg.fill("#setHomeEd .homeq","Ridgewood NJ"); pg.click("#setHomeEd [data-homefind]"); pg.wait_for_timeout(300)
+            hm.append(pg.evaluate("document.querySelectorAll('#setHomeEd .homeres [data-homeset]').length")); pg.click("#setHomeEd .homeres [data-homeset]"); pg.wait_for_timeout(100)
+            hm.append(pg.evaluate("[state.home&&state.home.label, /Home: Ridgewood, New Jersey/.test(document.querySelector('#setHomeEd').textContent)]"))
+        pg.click("#setHomeEd [data-homemode='transit']"); pg.wait_for_timeout(50); hm.append(pg.evaluate("state.home?state.home.mode:state.homeMode"))
+        pg.click("#setHomeEd [data-homepick]"); pg.wait_for_timeout(400)
+        hm.append(pg.evaluate("[state.view, !!document.querySelector('#mapPanel .homepicklead')]"))
+        pg.evaluate("(()=>{ const [x,y]=mapXY(40.7380,-73.9890); mapLongPress(x,y); })()"); pg.wait_for_timeout(100)
+        hm.append(pg.evaluate("[!!state.home&&Math.abs(state.home.lat-40.738)<0.001, state.home&&state.home.mode, state.homePick, !document.querySelector('#mapPanel .homepicklead'), !LF.open]"))
+        pg.evaluate("state.view='today'; state.homeEdit=true; render()"); hm.append(pg.evaluate("!!document.querySelector('#today .thomeedit .homeed')"))
+        pg.click("#today [data-homeclear]"); pg.wait_for_timeout(50); hm.append(pg.evaluate("state.home")); pg.evaluate("state.homeEdit=false; render()")
+        exp=[True,True,2,["Ridgewood, New Jersey",True],"transit",["map",True],[True,"transit",False,True,True],True,None] if pg.evaluate("PHOTOS_INLINE") else [True,False,"transit",["map",True],[True,"transit",False,True,True],True,None]
+        check("Home in Settings: search a town (installed app), travel mode, pick on the map by press and hold, the same editor on Today, and remove", hm==exp, hm)
         # Dark theme renders too
         pg.evaluate("document.documentElement.dataset.theme='dark'; state.view='shoot'; render()"); pg.wait_for_timeout(80)
         check("no script errors", not errors, errors[:3])

@@ -1652,6 +1652,9 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 /* The outing's start */
 .m-startleg{fill:none;stroke:#1e9e48;stroke-linecap:round;pointer-events:none} .m-pstartd{fill:#1e9e48;stroke:#fff} .m-pstartn{fill:#fff;font-family:var(--sans);font-weight:800;pointer-events:none}
 .planstart{margin:8px 0 0;max-width:none} .startpick{margin:4px 0 0}
+/* Home editor (Settings and Today) */
+.homeed{display:flex;flex-direction:column;gap:8px} .homesearch{display:flex;gap:8px} .homesearch input{flex:1;min-width:0;min-height:44px;border-radius:12px;border:1.5px solid var(--line);background:var(--panel);color:var(--fg);font:inherit;padding:0 12px}
+.homeres{flex-wrap:wrap;margin-inline:0;padding-inline:0} .homeres .chip{white-space:normal;text-align:left;min-height:40px} .homeh{margin:4px 0 0} .homenow b{color:var(--fg)} .thomeedit{display:flex;flex-direction:column;gap:8px;margin-top:8px}
 </style>
 
 <div class="app">
@@ -1729,7 +1732,7 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
   <div class="sh-body">
   <p class="sh-l">Your camera</p><div class="setcams" id="setCams" role="radiogroup" aria-label="Your camera"></div><p class="msg">Every idea's settings, focus advice and crop frames are written for this camera.</p>
   <p class="sh-l">Appearance</p><div class="seg3" id="setTheme" role="group" aria-label="Appearance"><button type="button" data-th="auto">Auto</button><button type="button" data-th="light">Light</button><button type="button" data-th="dark">Dark</button></div>
-  <p class="sh-l">Home</p><div class="sethome"><span id="setHome"></span><button type="button" class="chip" id="setHomeBtn">Set home</button></div>
+  <p class="sh-l">Home</p><div id="setHomeEd"></div><p class="msg">Today’s leave-by times and tomorrow’s outing on the map start from here.</p>
   <p class="sh-l">Other devices</p>
   <details class="syncbox" id="syncbox">
     <summary>Move saved ideas, shot marks and notes to another device</summary>
@@ -6648,7 +6651,7 @@ function xItem(k){ const id=k.slice(k.indexOf(":")+1);
   if(k.startsWith("wet:")){ const P=WET_SPOTS[+id]; return P?mapXY(P[1],P[2]):null; }
   if(k.startsWith("permit:")){ const it=pmItems().find(x=>x.id===id); return it&&it.lat!=null?mapXY(it.lat,it.lon):null; }
   const [pid,i]=id.split(":"), S=SPOTS[pid]&&SPOTS[pid][+i]; return S?mapXY(S[0],S[1]):null; }
-const xLead = () => wetLead()+newLead();
+const xLead = () => (state.homePick?'<div class="xlead homepicklead"><p class="msg"><b>⌂ Press and hold on the map where home is.</b> Zoom out or drag to find it. <button type="button" class="linkbtn" data-homepickx="1">Cancel</button></p></div>':'')+wetLead()+newLead();
 /* Street happenings from the city's permits (installed app): NYC Open Data's "NYC Permitted Event Information", every approved event for the
    coming month. Kept: street fairs, block parties, farmers markets, plaza and Open Streets events, parades and processions, races, and
    park events with a name that is not a private gathering. Left out: youth and adult sports, film productions, theatre load-ins and
@@ -7055,6 +7058,7 @@ function followStop(){ if(!state.mapFollow) return; state.mapFollow=false; walkS
   const b=document.querySelector("#map [data-locate]"); if(b){ b.setAttribute("aria-pressed","false"); b.title="Find me"; } mapDraw(); }
 /* Press and hold on the map: the light at that corner, in Light here. */
 function mapLongPress(x,y){ const lat=40.95-y/2000, lon=x/(0.758*2000)-74.30; try{ navigator.vibrate&&navigator.vibrate(12); }catch(e){}
+  if(state.homePick){ state.homePick=false; homeSet(lat,lon,nearestHood(lat,lon)||"the point you picked"); evToast('<span>Home saved: '+esc(homeName(state.home))+'.</span>'); return; }
   if(state.startPick==="map"&&state.plan){ state.plan.from={lat:+lat.toFixed(5),lon:+lon.toFixed(5),label:nearestHood(lat,lon)||"the point you picked"}; state.plan.fromHome=false; state.startPick=null; savePlan(); mapPanel(); mapDraw(); return; }
   lfOpen({id:"pick",name:"The corner you picked · "+nearestHood(lat,lon),lat:+lat.toFixed(5),lon:+lon.toFixed(5),picked:true}); }
 /* While the time slider moves: the time and the light, over the thumb. */
@@ -8058,13 +8062,28 @@ function leaveBy(to,startMin,day,what){ const H=fromHome(); if(!H||!to) return "
   if(leave>now) return '<p class="tleave"><b>Leave home by '+hmText(dayMin(leave))+'</b> · about '+durText(m)+' '+HOME_MODES[H.mode]+(what?', there 15 min before '+esc(what):'')+'.'+link+'</p>';
   const there=new Date(Math.ceil((+now+travelMins(H,{lat:to[0],lon:to[1]},H.mode,now)*6e4)/3e5)*3e5), late=Math.round((there-(+d+startMin*6e4))/6e4);
   return '<p class="tleave late"><b>Leaving now, you would get there about '+hmText(dayMin(there))+'</b>'+(late>0&&what?', '+durText(late)+' into '+esc(what):'')+'.'+link+'</p>'; }
+/* Home: where leave-by times and tomorrow's outing start from. Set by searching for a town or ZIP code (installed app), from where you
+   are, or by pressing and holding on the map. Saved on this device only. */
+const homeName = H => H.label || (H.lat.toFixed(3)+", "+H.lon.toFixed(3));
+function homeEditorHtml(){ const H=state.home&&typeof state.home.lat==="number"?state.home:null, online=typeof loadWeather==="function", mode=H?H.mode:(state.homeMode||"car");
+  return '<div class="homeed"><p class="msg homenow">'+(H?'<b>Home: '+esc(homeName(H))+'</b> · '+esc(HOME_MODES[H.mode]||HOME_MODES.car):'No home yet.')+' Saved on this device only.</p>'+
+    (online?'<div class="homesearch"><input type="search" class="homeq" placeholder="Town or ZIP code, e.g. Ridgewood NJ" aria-label="Town or ZIP code of your home" autocomplete="off" enterkeyhint="search"><button type="button" class="chip" data-homefind="1">Search</button></div><div class="intents homeres"></div>':'')+
+    '<div class="intents"><button type="button" class="chip" data-homehere="1">◎ Use where I am now</button><button type="button" class="chip" data-homepick="1">Pick on the map</button></div>'+
+    '<p class="msg homeh">How you travel in</p><div class="intents">'+Object.entries(HOME_MODES).map(([k,v])=>'<button type="button" class="chip" data-homemode="'+k+'" aria-pressed="'+(mode===k)+'">'+(k==="car"?"Car":"Bus and subway")+'</button>').join("")+
+    (H?'<button type="button" class="chip" data-homeclear="1">Remove home</button>':'')+'</div><p class="msg homemsg" role="status"></p></div>'; }
 function homeHtml(){ const H=state.home;
   if(!state.homeEdit) return H ? '<p class="msg thome">Leave-by times are from home, '+HOME_MODES[H.mode]+'. <button type="button" class="linkbtn" data-homeedit="1">Change</button></p>'
     : '<p class="msg thome">Travelling in from outside the city? <button type="button" class="linkbtn" data-homeedit="1">Set home</button> to see when to leave.</p>';
-  return '<div class="thomeedit"><p class="msg">Home is saved on this device only. Set it while you are at home, then choose how you travel in.</p>'+
-    '<div class="intents"><button type="button" class="chip" data-homehere="1">'+(H?'Use where I am now':'Use where I am now as home')+'</button>'+
-    Object.entries(HOME_MODES).map(([k,v])=>'<button type="button" class="chip" data-homemode="'+k+'" aria-pressed="'+(H?H.mode===k:k===(state.homeMode||"car"))+'">'+(k==="car"?"Car":"Bus and subway")+'</button>').join("")+
-    (H?'<button type="button" class="chip" data-homeclear="1">Remove home</button>':'')+'<button type="button" class="chip" data-homedone="1">Done</button></div><p class="msg" id="homeMsg" role="status"></p></div>'; }
+  return '<div class="thomeedit">'+homeEditorHtml()+'<div class="intents"><button type="button" class="chip primary" data-homedone="1">Done</button></div></div>'; }
+function homeSet(lat,lon,label){ state.home={lat:+(+lat).toFixed(4),lon:+(+lon).toFixed(4),mode:(state.home&&state.home.mode)||state.homeMode||"car",label:label||""}; store.set("home",state.home); homeRefresh("Home saved: "+homeName(state.home)+"."); }
+function homeRefresh(msg){ if(!$("setSheet").hidden) renderSettings(); if(state.view==="today") renderToday(); if(state.view==="map"){ mapPanel(); mapDraw(); }
+  if(msg) document.querySelectorAll(".homemsg").forEach(el=>{ el.textContent=msg; }); }
+async function homeFind(btn){ const box=btn.closest(".homeed"), q=box&&box.querySelector(".homeq"), res=box&&box.querySelector(".homeres"), txt=q?q.value.trim():""; if(!res) return;
+  if(txt.length<2){ res.innerHTML='<p class="msg">Type a town or a ZIP code.</p>'; return; } res.innerHTML='<p class="msg">Searching…</p>';
+  try{ const r=await fetch("https://geocoding-api.open-meteo.com/v1/search?count=6&language=en&format=json&name="+encodeURIComponent(txt.replace(/,/g," "))); const j=r.ok?await r.json():null;
+    const L=(j&&j.results||[]).filter(x=>typeof x.latitude==="number").sort((a,b)=>(b.country_code==="US")-(a.country_code==="US")).slice(0,6);
+    res.innerHTML=L.length?L.map(x=>{ const lab=[x.name,x.admin1,x.country_code!=="US"?x.country:""].filter(Boolean).join(", "); return '<button type="button" class="chip" data-homeset="'+x.latitude+','+x.longitude+'" data-homelab="'+esc(x.name+(x.admin1?", "+x.admin1:""))+'">'+esc(lab)+(x.admin2?' <span class="msg">('+esc(x.admin2)+')</span>':'')+'</button>'; }).join(""):'<p class="msg">Nothing found. Try the town and state, or a ZIP code.</p>'; }
+  catch(e){ res.innerHTML='<p class="msg">The search is not reachable right now. Use where you are, or pick home on the map.</p>'; } }
 
 /* The week ahead: for each of the next seven evenings, sunset, golden and blue hour, the forecast for that light, and what is on. */
 function weekDays(){ const now=new Date(), today=new Date(now.getFullYear(),now.getMonth(),now.getDate()), rows=eventRows(today), out=[];
@@ -8539,13 +8558,13 @@ function sheetOpen(id){ const el=$(id); sheetFrom=document.activeElement; el.hid
 function sheetClose(id){ const el=$(id); if(el.hidden) return; el.classList.remove("on"); document.body.classList.remove("sheetopen"); setTimeout(()=>{ el.hidden=true; },180); if(sheetFrom&&sheetFrom.focus) sheetFrom.focus({preventScroll:true}); }
 function renderSettings(){ $("setCams").innerHTML=Object.entries(CAMERAS).map(([k,v])=>'<button type="button" role="radio" class="setcam" data-cam="'+k+'" aria-checked="'+(k===state.camera)+'"><b>'+esc(v.name)+'</b><span>'+(k==="q343"?"43 mm f/2 · crops 60–150 mm":k==="q328"?"28 mm f/1.7 · crops 35–90 mm":k==="iphone"?"Main camera, settings in plain words":"General advice for any camera")+'</span></button>').join("");
   if($("setHealth")) $("setHealth").innerHTML=healthHtml();
-  const h=state.home; $("setHome").textContent=h&&h.lat!=null?"Set ("+(h.mode==="transit"?"by transit":h.mode==="walk"?"on foot":"by car")+"). Today shows when to leave.":"Not set. Set it to see when to leave home for the next good light."; $("setHomeBtn").textContent=h&&h.lat!=null?"Change":"Set home"; syncTheme(); }
+  if($("setHomeEd")) $("setHomeEd").innerHTML=homeEditorHtml(); syncTheme(); }
 $("setOpen").addEventListener("click",()=>{ renderSettings(); sheetOpen("setSheet"); });
 $("setSheet").addEventListener("click",e=>{ if(e.target.closest("[data-sclose]")){ sheetClose("setSheet"); return; }
   if(e.target.closest("#healthClear")){ store.set("health",[]); $("setHealth").innerHTML=healthHtml(); return; }
   if(e.target.closest("#healthCopy")){ const rep=healthReport(), m=$("healthMsg"); try{ navigator.clipboard.writeText(rep).then(()=>{ m.textContent="Copied. Paste it into a message to Claude."; },()=>{ m.textContent="Copying isn't available here."; }); }catch(x){ m.textContent="Copying isn't available here."; } return; }
   const c=e.target.closest("[data-cam]"); if(c&&CAMERAS[c.dataset.cam]){ state.camera=c.dataset.cam; store.set("camera",state.camera); openTip=null; renderSettings(); render(); return; }
-  if(e.target.closest("#setHomeBtn")){ sheetClose("setSheet"); state.view="today"; state.homeEdit=true; render(); requestAnimationFrame(()=>{ const t=document.querySelector("#today .thome, #today [data-homesave], #today .homeedit"); if(t) t.scrollIntoView({block:"center"}); }); } });
+ });
 $("fOpen").addEventListener("click",()=>{ fSync(); sheetOpen("fSheet"); });
 $("fSheet").addEventListener("click",e=>{ if(e.target.closest("[data-fclose]")) sheetClose("fSheet"); });
 $("fClear").addEventListener("click",()=>{ state.intent="all"; store.set("intent","all"); syncChips(); state.place="all"; state.stayPrev=null; store.set("place","all"); $("place").value="all";
@@ -8789,15 +8808,6 @@ $("today").addEventListener("click",e=>{
   const wp=e.target.closest("[data-weekplan]"); if(wp){ weekPlan(wp.dataset.weekplan); return; }
   const wm=e.target.closest("[data-weekmap]"); if(wm){ weekMap(wm.dataset.weekmap); return; }
   const al=e.target.closest("[data-alert]"); if(al){ alertMap(al.dataset.alert); return; }
-  if(e.target.closest("[data-homeedit]")){ state.homeEdit=true; renderToday(); return; }
-  if(e.target.closest("[data-homedone]")){ state.homeEdit=false; renderToday(); return; }
-  if(e.target.closest("[data-homeclear]")){ state.home=null; store.set("home",null); state.homeEdit=false; renderToday(); return; }
-  const hm=e.target.closest("[data-homemode]"); if(hm){ if(state.home){ state.home.mode=hm.dataset.homemode; store.set("home",state.home); } else state.homeMode=hm.dataset.homemode; renderToday(); return; }
-  const hh=e.target.closest("[data-homehere]"); if(hh){ const msg=()=>$("homeMsg"); hh.textContent="Finding you…";
-    const fail=()=>{ renderToday(); if(msg()) msg().textContent="Your location is not available here. In the installed app on your phone, allow location access for Shot List and try again at home."; };
-    if(!navigator.geolocation){ fail(); return; }
-    try{ navigator.geolocation.getCurrentPosition(p=>{ state.home={lat:+p.coords.latitude.toFixed(4),lon:+p.coords.longitude.toFixed(4),mode:(state.home&&state.home.mode)||state.homeMode||"car"}; store.set("home",state.home); state.pos={lat:p.coords.latitude,lon:p.coords.longitude}; state.homeEdit=false; renderToday(); }, fail, {timeout:12000,maximumAge:60000}); }catch(err){ fail(); }
-    return; }
   const tp=e.target.closest("[data-tpick]"); if(tp){ state.tpOpen=tp.dataset.tpick; renderToday(); const a=$("today").querySelector(".tpick"); if(a&&a.scrollIntoView) a.scrollIntoView({block:"nearest",behavior:"smooth"}); return; }
   if(e.target.closest("[data-trefresh]")){ todayRefresh(); return; }
   const ca=e.target.closest("[data-caladd]"); if(ca){ calAdd(ca); return; }
@@ -8813,6 +8823,23 @@ $("today").addEventListener("click",e=>{
   const r=e.target.closest(".row[data-id]"); if(r){ show(r.dataset.id); state.view="shoot"; render(); window.scrollTo({top:0}); }
 });
 setInterval(()=>{ try{ if(state.view==="today"&&!document.hidden&&performance.now()-HEALTH.touch>8000) renderToday(); }catch(e){} }, 60000);
+/* Home, from Settings, Today or the map */
+document.addEventListener("click",e=>{ if(!e.target.closest) return;
+  if(e.target.closest("[data-homeedit]")){ state.homeEdit=true; renderToday(); return; }
+  if(e.target.closest("[data-homedone]")){ state.homeEdit=false; renderToday(); return; }
+  if(e.target.closest("[data-homeclear]")){ state.home=null; store.set("home",null); homeRefresh("Home removed."); return; }
+  const hm=e.target.closest("[data-homemode]"); if(hm){ if(state.home){ state.home.mode=hm.dataset.homemode; store.set("home",state.home); } else state.homeMode=hm.dataset.homemode; homeRefresh(); return; }
+  const hf=e.target.closest("[data-homefind]"); if(hf){ homeFind(hf); return; }
+  const hs=e.target.closest("[data-homeset]"); if(hs){ const [la,lo]=hs.dataset.homeset.split(",").map(Number); homeSet(la,lo,hs.dataset.homelab); return; }
+  const hh=e.target.closest("[data-homehere]"); if(hh){ hh.textContent="Finding you…";
+    const fail=()=>homeRefresh("Your location is not available here. Search for your town, or pick home on the map.");
+    if(!navigator.geolocation){ fail(); return; }
+    try{ navigator.geolocation.getCurrentPosition(p=>{ state.pos={lat:p.coords.latitude,lon:p.coords.longitude}; homeSet(p.coords.latitude,p.coords.longitude,"where you set it"); }, fail, {timeout:12000,maximumAge:60000}); }catch(err){ fail(); }
+    return; }
+  if(e.target.closest("[data-homepick]")){ sheetClose("setSheet"); state.homePick=true; state.mapD=0; state.view="map"; render(); requestAnimationFrame(()=>{ mapFly(mapClamp({cx:mapV.cx,cy:mapV.cy,w:Math.max(mapV.w,220)})); mapPanel(); }); return; }
+  if(e.target.closest("[data-homepickx]")){ state.homePick=false; mapPanel(); return; }
+});
+document.addEventListener("keydown",e=>{ if(e.key==="Enter"&&e.target.classList&&e.target.classList.contains("homeq")){ e.preventDefault(); const b=e.target.closest(".homeed").querySelector("[data-homefind]"); if(b) homeFind(b); } });
 /* Tomorrow's shortlist: star, swap, clear, change and plan, from Ideas and Today */
 document.addEventListener("click",e=>{ if(!e.target.closest) return;
   { const tp=e.target.closest("[data-tmpick]"); if(tp){ pickToggle(tp.dataset.tmpick,tp.dataset.day); render(); return; } }
