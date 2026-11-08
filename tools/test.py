@@ -1436,7 +1436,8 @@ def run(path, name):
         check("Time at each stop: ideas take 15 to 45 minutes by kind (Bow Bridge 35, the arcade 20, Verdi Square 20), the stop shows them, and +5 moves the rest of the outing and stays", du==[20,35,20,True,True,True,True,True,True,True,True], du)
         bw=pg.evaluate("""(()=>{ const i=LANDMARKS.findIndex(L=>L[0]==='Bow Bridge'); if(i<0) return ['missing']; state.view='map'; state.mapShowLm=true; render(); const [x,y]=mapXY(40.7756,-73.9719); mapV=mapClamp({cx:x,cy:y,w:20}); mapSelect(null); mapDraw();
           const shown=[...document.querySelectorAll('#mapDyn .m-lm')].some(g=>+g.dataset.l===i); mapSelectLm(i); const t=document.querySelector('#mapPanel').textContent; state.view='today'; render(); return [shown, /Bow Bridge/.test(t)&&/Bethesda Terrace/.test(t), mqItems('bow').some(o=>/Bow Bridge/.test(o.t||o.name||o.label||JSON.stringify(o)))]; })()""")
-        check("Bow Bridge is a landmark on the map, with its panel and in search", bw==[True,True,True], bw)
+        bw.append(pg.evaluate("(()=>{ state.view='map'; render(); const [x,y]=mapXY(40.7758,-73.9718); mapV=mapClamp({cx:x,cy:y,w:8}); mapDraw(); const n=document.querySelectorAll('#mapDyn .m-fbg').length; mapV=mapClamp({cx:x,cy:y,w:200}); mapDraw(); const m=document.querySelectorAll('#mapDyn .m-fbg').length; state.view='today'; render(); return [n,m]; })()"))
+        check("Bow Bridge is a landmark on the map, with its panel and in search, and its deck is drawn across the Lake when zoomed in", bw==[True,True,True,[1,0]], bw)
         # Dark theme renders too
         pg.evaluate("document.documentElement.dataset.theme='dark'; state.view='shoot'; render()"); pg.wait_for_timeout(80)
         check("no script errors", not errors, errors[:3])
