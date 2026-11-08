@@ -1662,6 +1662,25 @@ body.onmap #map:not(.full) .mguide{top:calc(max(10px,env(safe-area-inset-top,0px
 /* Footbridges drawn on the water */
 .m-fbc{fill:none;stroke:#2d2a26;stroke-linecap:butt;pointer-events:none} .m-fb{fill:none;stroke:#efe8d6;stroke-linecap:butt;pointer-events:none}
 [data-sky="night"] .m-fb{stroke:#b9b2a0}
+
+/* Outing stops: back, each spot with its time, forward; and on the spot card */
+.planstep{display:flex;align-items:center;gap:6px;margin-top:10px}
+.planstep .psrow{flex:1;margin-inline:0;padding-inline:2px;gap:6px}
+.psarrow{min-width:44px;min-height:40px;justify-content:center;font-size:20px;font-weight:800;padding-inline:0}
+.psarrow:disabled{opacity:.35}
+.pschip{min-height:40px;font-size:14px;gap:6px;white-space:nowrap}
+.pschip.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.pschip.next{border-color:var(--fg);border-style:dashed}
+.psfoot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px;font-size:13px;color:var(--muted)}
+.psfoot span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.psfoot .chip{flex:none;min-height:36px}
+.psline{display:flex;align-items:center;gap:8px;margin:8px 0 2px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+.psline span{flex:1;min-width:120px} .psline b{color:var(--fg)}
+.psline .chip{min-height:38px}
+@keyframes swl{from{transform:translateX(24px);opacity:.4}to{transform:none;opacity:1}}
+@keyframes swr{from{transform:translateX(-24px);opacity:.4}to{transform:none;opacity:1}}
+.mapsel.swl{animation:swl .22s ease-out} .mapsel.swr{animation:swr .22s ease-out}
+@media (prefers-reduced-motion:reduce){.mapsel.swl,.mapsel.swr{animation:none}}
 </style>
 
 <div class="app">
@@ -6286,18 +6305,32 @@ function planTimesHtml(){ const p=state.plan; if(!p) return ""; const open=!!sta
     '<p class="hint">Each idea gets the time it usually takes: a slow shutter or waiting for a moment takes longer, a detail is quick. Walking time between stops is added.</p></div>':''); }
 /* Show the whole outing: the map moves to its spots (not the start at home), leaving room for the sheet */
 function planFit(){ const W=planWalk(); if(!W.length||!mapV) return; let a=1e9,b=-1e9,c=1e9,d=-1e9; W.forEach(o=>{ const [x,y]=mapXY(o.lat,o.lon); a=Math.min(a,x); b=Math.max(b,x); c=Math.min(c,y); d=Math.max(d,y); });
-  const w=Math.max(10,(b-a)*1.5,(d-c)*1.6/Math.max(0.8,MAP_ASPECT*0.55)); mapFly(mapClamp(mapAim({cx:(a+b)/2,cy:(c+d)/2,w}))); }
+  const svg=$("mapSvg"), W0=(svg&&svg.clientWidth)||360, H0=(svg&&svg.clientHeight)||W0*MAP_ASPECT, Hv=Math.max(120,H0-sheetPx()-topPx()-40); const w=Math.max(10,(b-a)*1.35+8,((d-c)*1.35+8)*W0/Hv); mapFly(mapClamp(mapAim({cx:(a+b)/2,cy:(c+d)/2,w}))); }
 /* Next stop on the map: steps through the outing's spots in order, each at the time you will be there (on the day, it starts at
    the spot you are due at; after the last it goes back to the first). The step is kept for this outing only. */
 function planCur(){ const c=state.planCur; return c&&c.p===state.plan?c.k:null; }
-function planStepLabel(){ const W=planWalk(), k=planCur(); if(k===null||W.length<2) return "Next stop ›"; const n=(k+1)%W.length; return "Stop "+(n+1)+" of "+W.length+" ›"; }
-function planStep(){ const W=planWalk(); if(!W.length) return; const k=planCur(), nx=planWalkNext(W), n=k===null?Math.max(0,W.indexOf(nx)):(k+1)%W.length, w=W[n];
+/* Go to the outing's spot n (0-based in the walk), at the time you will be there. */
+function planGo(n){ const W=planWalk(); if(!W.length) return; n=((n%W.length)+W.length)%W.length; const w=W[n];
   state.planCur={p:state.plan,k:n}; const today=evDay(new Date()), off=Math.round((evDay(w.t)-today)/864e5), live=off===0&&Math.abs(w.t-Date.now())<15*6e4;
   state.mapD=off>0&&off<=6?off:0; state.mapT=live?null:w.t.getHours()*60+Math.round(w.t.getMinutes()/5)*5;
   const tm=$("mapTime"), now=new Date(); if(tm) tm.value=state.mapT===null?now.getHours()*60+now.getMinutes():state.mapT;
-  if(w.id){ mapSelectSpot(w.id); setSheet("half"); return; }
-  const s=state.plan.stops[w.n]; if(s&&s.ev){ mapGoStop(w.n); return; }
-  state.mapSel=s.place; state.mapSpot=null; state.mapEv=null; state.mapLm=null; state.mapWork=null; mapPanel(); mapDraw(); const [x,y]=mapXY(w.lat,w.lon); mapFly(mapAim({cx:x,cy:y,w:Math.min(mapV.w,14)})); setSheet("half"); }
+  if(w.id){ mapSelectSpot(w.id); setSheet("half"); }
+  else { const s=state.plan.stops[w.n]; if(s&&s.ev){ mapGoStop(w.n); }
+    else { state.mapSel=s.place; state.mapSpot=null; state.mapEv=null; state.mapLm=null; state.mapWork=null; mapPanel(); mapDraw(); const [x,y]=mapXY(w.lat,w.lon); mapFly(mapAim({cx:x,cy:y,w:Math.min(mapV.w,14)})); setSheet("half"); } }
+  requestAnimationFrame(()=>{ const c=document.querySelector('.planstep [data-planstop="'+n+'"]'); if(c&&c.scrollIntoView) c.scrollIntoView({block:"nearest",inline:"center"}); }); }
+/* Step forward or back: the first step goes to the spot you are due at (on the day) or the first spot (before it). */
+function planStep(d){ d=d||1; const W=planWalk(); if(!W.length) return; const k=planCur(); planGo(k===null?Math.max(0,W.indexOf(planWalkNext(W))):k+d); }
+/* The whole outing in view, with nothing selected. */
+function planWhole(){ const p=state.plan; if(!p) return; state.planCur=null; state.mapSel=null; state.mapSpot=null; state.mapEv=null; state.mapLm=null; state.mapWork=null;
+  const off=Math.round((evDay(p.start)-evDay(new Date()))/864e5), live=off===0&&p.start<=Date.now(); state.mapD=off>0&&off<=6?off:0; state.mapT=live?null:p.start.getHours()*60+Math.round(p.start.getMinutes()/5)*5;
+  const tm=$("mapTime"), now=new Date(); if(tm) tm.value=state.mapT===null?now.getHours()*60+now.getMinutes():state.mapT;
+  setSheet("peek"); mapPanel(); mapDraw(); requestAnimationFrame(()=>planFit()); }
+/* The row of stops in the outing bar: back, every spot with its time, forward, and the whole route. */
+function planStepRow(){ const W=planWalk(); if(!W.length) return ""; const k=planCur(), nx=planWalkNext(W), tf=d=>hmText(d.getHours()*60+d.getMinutes());
+  return '<div class="planstep"><button type="button" class="chip psarrow" data-planprev="1" aria-label="Previous stop"'+(k===null?' disabled':'')+'>‹</button>'+
+    '<div class="intents psrow">'+W.map((w,i)=>'<button type="button" class="chip pschip'+(k===i?' on':k===null&&w===nx?' next':'')+'" data-planstop="'+i+'" aria-pressed="'+(k===i)+'" aria-label="'+esc('Stop '+(i+1)+': '+w.name+', '+tf(w.t))+'"><span class="stopn">'+(i+1)+'</span>'+tf(w.t)+'</button>').join("")+'</div>'+
+    '<button type="button" class="chip psarrow" data-nextstop="1" aria-label="'+(k===null?'Next stop':'Next stop: '+(((k+1)%W.length)+1))+'">›</button></div>'+
+    '<div class="psfoot">'+(k!==null?'<span>Stop '+(k+1)+' of '+W.length+': '+esc(W[k].name)+'</span>':'<span>Tap a stop, or › to start</span>')+'<button type="button" class="chip" data-planall="1">Whole route</button></div>'; }
 function planShow(p){ const off=Math.round((evDay(p.start)-evDay(new Date()))/864e5); state.mapD=off>0&&off<=6?off:0; state.mapT=p.start.getHours()*60+Math.round(p.start.getMinutes()/5)*5;
   state.mapSel=null; state.mapEv=null; state.mapLm=null; state.mapWork=null; state.mapSpot=null; state.view="map"; render(); setSheet("peek"); requestAnimationFrame(()=>{ mapPanel(); mapDraw(); planFit(); }); }
 function planWalkHtml(){ const W=planWalk(); if(!W.some(o=>o.id)) return ""; const nx=planWalkNext(W), tf=d=>hmText(d.getHours()*60+d.getMinutes()), lf=nx&&nx.face!=null?lightFacing(nx.face,nx.t):null;
@@ -6319,9 +6352,9 @@ function mapPlanBar(){ const p=state.plan, tf=d=>d.toLocaleTimeString("en-US",{h
   if(!p) return '<div class="planhint"><p class="hint">Tap a pin and choose Add to today to build an outing on the map, or let the app plan one.</p><button type="button" class="chip primary" data-openplan="1">Plan an outing</button></div>';
   const nx=nextStopIndex();
   const pday=Math.round((evDay(p.start)-evDay(new Date()))/864e5);
-  return '<div class="planbar"><div class="planbar-head"><b>'+(pday===1?'Tomorrow\u2019s outing':pday>1?esc(DAY_NAMES[p.start.getDay()])+'\u2019s outing':'Today\u2019s outing')+'</b><span>'+tf(p.start)+' to about '+tf(p.end)+'</span><button type="button" class="chip primary" data-nextstop="1">'+planStepLabel()+'</button><button type="button" class="chip" data-openplan="1">Details</button><button type="button" class="chip" data-clearplan="1">Clear</button></div>'+
+  return '<div class="planbar"><div class="planbar-head"><b>'+(pday===1?'Tomorrow\u2019s outing':pday>1?esc(DAY_NAMES[p.start.getDay()])+'\u2019s outing':'Today\u2019s outing')+'</b><span>'+tf(p.start)+' to about '+tf(p.end)+'</span><button type="button" class="chip" data-openplan="1">Details</button><button type="button" class="chip" data-clearplan="1">Clear</button></div>'+planStepRow()+
     (()=>{ const lb=planLeaveBy(), ok=planBestOK(), m=state.planMsg; return planWarnHtml()+(lb?'<p class="msg planleave">'+esc(lb)+'</p>':'')+(ok?'<div class="intents planbest"><button type="button" class="chip" data-planbest="1">Best order for the light</button></div>':'')+(m?'<p class="msg planmsg">'+esc(m)+'</p>':'')+planStartHtml()+planWalkHtml()+planTimesHtml(); })()+
-    '<div class="intents planstops">'+p.stops.map((s,n)=>'<button type="button" class="chip stopchip'+(n===nx?" next":"")+'" data-stop="'+n+'"><span class="stopn">'+(n+1)+'</span>'+esc(s.ev?(EVENTS.find(x=>x.id===s.ev)||{name:s.ev}).name:PLACES[s.place].name)+' · '+tf(s.at)+'</button>').join("")+'</div>'+planLinks()+'</div>'; }
+    (planWalk().length?'':'<div class="intents planstops">'+p.stops.map((s,n)=>'<button type="button" class="chip stopchip'+(n===nx?" next":"")+'" data-stop="'+n+'"><span class="stopn">'+(n+1)+'</span>'+esc(s.ev?(EVENTS.find(x=>x.id===s.ev)||{name:s.ev}).name:PLACES[s.place].name)+' · '+tf(s.at)+'</button>').join("")+'</div>')+planLinks()+'</div>'; }
 function mapPts(){ const key=lightAt(mapNow()), ideas=cityIdeas().filter(i=>(state.mapIntent==="all"||i.i===state.mapIntent)&&(!state.mapDark||i.w.includes("night"))), t=mapNow(), cc=CITIES[state.city], night=sunPos(t,cc.lat,cc.lon).alt<-6, sky=night?skyAt(t):null;
   return Object.keys(CITIES[state.city].places).filter(id=>typeof PLACES[id].lat==="number").map(id=>{ const [x,y]=mapXY(PLACES[id].lat,PLACES[id].lon), mine=ideas.filter(i=>i.p===id);
     return {id,x,y,n:mine.length,fit:mine.filter(i=>i.w.includes(key)).length,done:mine.filter(i=>state.done.has(i.id)).length,empty:!mine.length,night,nopen:night?mine.filter(i=>i.w.includes("night")&&ideaOpen(i,t,sky)).length:0}; })
@@ -7236,7 +7269,7 @@ $("tipSheet").addEventListener("click",e=>{ if(e.target.closest("[data-tipclose]
 function spotPanel(id){ const [pid,i]=id.split(":"), S=SPOTS[pid][+i], t=mapNow(), lf=lightFacing(S[2],t), sr=sunRel(S[2],t), idea=IDEAS.find(x=>x.id===S[5]), cam=CAMERAS[state.camera];
   return '<section class="group mapsel"><button type="button" class="mapselx" data-unsel="1" aria-label="Close">×</button><div class="group-head"><b><span class="snum">'+spotNum(id)+'</span> '+esc(S[3])+'</b><span class="where">'+esc(PLACES[pid].name)+' · facing '+compass(S[2])+(state.pos?' · '+mDist(kmBetween(state.pos,{lat:S[0],lon:S[1]}))+' from you':'')+'</span></div>'+
     '<div class="callinks guidecta">'+(state.guide&&state.guide.id===id?'<button type="button" class="chip" data-guidestop="1">Stop guiding</button>':'<button type="button" class="chip primary" data-guide="'+id+'">Guide me there</button>')+svLink(pid,S,id)+'</div>'+svNote(id)+
-    (()=>{ const W=planWalk(), w=W.find(o=>o.id===id); return w?'<p class="hint planstopline">Stop '+w.k+' of '+W.length+' on your outing · about '+hmText(w.t.getHours()*60+w.t.getMinutes())+'</p>':''; })()+'<p class="mapcount">'+esc(S[4])+'</p><p class="maplight"><span class="sdot '+lf.k+'"></span><b>'+lf.txt+' at '+hmText(t.getHours()*60+t.getMinutes())+(state.mapD?' '+mapDayName():'')+'.</b> '+(sr?esc(sr.txt)+' ':'')+(lf.tip||LIGHT_TIP[lf.k])+'<span class="turnhint" data-face="'+S[2]+'">'+turnText(S[2])+'</span></p>'+
+    (()=>{ const W=planWalk(), w=W.find(o=>o.id===id); return w?'<div class="psline planstopline"><button type="button" class="chip psarrow" data-planstop="'+(w.k-2)+'" aria-label="Previous stop">‹</button><span><b>Stop '+w.k+' of '+W.length+'</b> on your outing · about '+hmText(w.t.getHours()*60+w.t.getMinutes())+'</span><button type="button" class="chip psarrow" data-planstop="'+w.k+'" aria-label="Next stop">›</button><button type="button" class="chip" data-planall="1">Whole route</button></div>':''; })()+'<p class="mapcount">'+esc(S[4])+'</p><p class="maplight"><span class="sdot '+lf.k+'"></span><b>'+lf.txt+' at '+hmText(t.getHours()*60+t.getMinutes())+(state.mapD?' '+mapDayName():'')+'.</b> '+(sr?esc(sr.txt)+' ':'')+(lf.tip||LIGHT_TIP[lf.k])+'<span class="turnhint" data-face="'+S[2]+'">'+turnText(S[2])+'</span></p>'+
     '<p class="spothead">Light here through the day</p>'+lightStrip(S[2])+
     '<p class="hint spotfov">The wedge on the map is what '+(cam&&state.camera!=='other'?'the '+esc(cam.name):'your camera')+' takes in from here, about '+Math.round(camFov())+'° across'+(sr?'; the dotted line points at the sun and the dark line is the shadow':'')+'. Tap a time above or drag the slider to see the light change.</p>'+
     (idea?'<button type="button" class="row" data-id="'+idea.id+'"><span class="dot" style="background:'+INTENTS[idea.i].color+'"></span><span class="t"><b>'+esc(idea.t)+'</b><span>The idea for this spot · '+esc(INTENTS[idea.i].name)+'</span></span><span class="go" aria-hidden="true">›</span></button>':'')+
@@ -7400,7 +7433,7 @@ function mapGestures(svg){
       const w=Math.min(MAP_LIM.w[1],Math.max(MAP_LIM.w[0],g.v.w*d0/d1)), k2=w/r.width; mapV=mapClamp({cx:ax-(m1x-r.left)*k2+w/2, cy:ay-(m1y-r.top)*k2+w*MAP_ASPECT/2, w}); }
     redraw(); });
   const end=e=>{ lpClear(); if(!ptr.has(e.pointerId)) return; ptr.delete(e.pointerId); if(ptr.size){ start(); return; } const was=g; g=null; if(!was||was.moved||e.type==="pointercancel") return;
-    const now=Date.now(); if(was.moon){ lastTap=0; moonOpen(); return; } if(was.wk){ lastTap=0; mapSelectWork(was.wk); return; } if(was.evsp){ lastTap=0; mapSelectEvSpot(was.evsp); return; } if(was.evrt){ lastTap=0; mapSelectEv(was.evrt); return; } if(was.shot&&was.shot.startsWith("ev:")){ lastTap=0; showEvent(was.shot.slice(3)); return; } if(was.shot){ lastTap=0; show(was.shot); state.view="shoot"; render(); window.scrollTo({top:0}); return; } if(was.cl){ lastTap=0; mapZoomCluster(was.cl.split(",")); return; } if(was.spot){ lastTap=0; mapSelectSpot(was.spot); return; } if(was.pin){ lastTap=0; mapSelect(was.pin); return; } if(was.ev){ lastTap=0; mapSelectEv(was.ev); return; } if(was.lm!==null&&was.lm!==undefined){ lastTap=0; mapSelectLm(was.lm); return; } if(was.run!==null&&was.run!==undefined){ lastTap=0; mapSelectRun(was.run); return; } if(was.ferry){ lastTap=0; mapSelectFerry(was.ferry); return; }
+    const now=Date.now(); if(was.moon){ lastTap=0; moonOpen(); return; } if(was.wk){ lastTap=0; mapSelectWork(was.wk); return; } if(was.evsp){ lastTap=0; mapSelectEvSpot(was.evsp); return; } if(was.evrt){ lastTap=0; mapSelectEv(was.evrt); return; } if(was.shot&&was.shot.startsWith("ev:")){ lastTap=0; showEvent(was.shot.slice(3)); return; } if(was.shot){ lastTap=0; show(was.shot); state.view="shoot"; render(); window.scrollTo({top:0}); return; } if(was.cl){ lastTap=0; mapZoomCluster(was.cl.split(",")); return; } if(was.spot){ lastTap=0; const wi=planWalk().findIndex(o=>o.id===was.spot); if(wi>=0) planGo(wi); else mapSelectSpot(was.spot); return; } if(was.pin){ lastTap=0; mapSelect(was.pin); return; } if(was.ev){ lastTap=0; mapSelectEv(was.ev); return; } if(was.lm!==null&&was.lm!==undefined){ lastTap=0; mapSelectLm(was.lm); return; } if(was.run!==null&&was.run!==undefined){ lastTap=0; mapSelectRun(was.run); return; } if(was.ferry){ lastTap=0; mapSelectFerry(was.ferry); return; }
     if(now-lastTap<320){ lastTap=0; zoomAt(e,0.5,true); return; } lastTap=now; if(state.mapSel||state.mapEv||state.mapLm!==null&&state.mapLm!==undefined||state.mapRun!==null||state.mapFerry||state.mapWork) mapSelect(null); };
   svg.addEventListener("pointerup",end); svg.addEventListener("pointercancel",end);
   svg.addEventListener("wheel",e=>{ e.preventDefault(); zoomAt(e,Math.exp(Math.max(-60,Math.min(60,e.deltaY))*0.004),false); },{passive:false});
@@ -8514,7 +8547,7 @@ function healthHtml(){ const L=healthList().slice().reverse(), wk=Date.now()-7*8
   return '<p class="msg">'+(nS||nE?'In the last 7 days: '+nS+' stall'+(nS===1?'':'s')+', '+nE+' error'+(nE===1?'':'s')+', opened '+nO+' time'+(nO===1?'':'s')+'.':'No stalls or errors recorded in the last 7 days'+(nO?' (opened '+nO+' time'+(nO===1?'':'s')+')':'')+'.')+' Data on this device: '+Math.round(kb)+' KB.</p>'+
     (L.length?'<ul class="healthlog">'+L.slice(0,25).map(x=>'<li class="hl-'+x.k+'"><b>'+when(x.t)+'</b> '+esc(x.k==="open"?x.m:(x.k==="stall"?"Stall: ":"Error: ")+x.m)+(x.n>1?' ×'+x.n:'')+'</li>').join("")+'</ul>':'')+
     '<div class="callinks">'+(typeof window.appUpdate==="function"?'<button type="button" class="chip" id="appUpdate">Check for updates</button>':'')+'<button type="button" class="chip" id="healthCopy">Copy report</button><button type="button" class="chip" id="healthClear">Clear</button></div><p class="msg" id="healthMsg" role="status"></p><p class="msg">Version '+APP_BUILD+'.</p>'; }
-const APP_BUILD = "Nov 7, 9:48 pm";
+const APP_BUILD = "Nov 7, 10:02 pm";
 function healthReport(){ const L=healthList(); return "Shot List health report\n"+navigator.userAgent+"\nStandalone: "+(!!(window.navigator.standalone||matchMedia("(display-mode: standalone)").matches))+"\n"+L.map(x=>new Date(x.t).toISOString()+" "+x.k+" ["+x.v+"] "+x.m+(x.n>1?" x"+x.n:"")).join("\n"); }
 /* If drawing a screen fails, say so with a way out instead of leaving a half-drawn screen that ignores taps. */
 function renderBroken(e){ healthLog("error","Drawing "+state.view+": "+(e&&e.message||e)); let b=$("brokenBar"); if(!b){ b=document.createElement("div"); b.id="brokenBar"; b.className="rowtoast on brokenbar"; b.setAttribute("role","alert"); document.body.appendChild(b); }
@@ -8733,6 +8766,9 @@ $("map").addEventListener("click",e=>{
   const rp=e.target.closest("[data-rmplan]"); if(rp){ planRemove(rp.dataset.rmplan); mapPanel(); mapDraw(); return; }
   const sc=e.target.closest("[data-stop]"); if(sc){ mapGoStop(+sc.dataset.stop); return; }
   if(e.target.closest("[data-nextstop]")){ planStep(); return; }
+  if(e.target.closest("[data-planprev]")){ planStep(-1); return; }
+  { const pc=e.target.closest("[data-planstop]"); if(pc){ planGo(+pc.dataset.planstop); return; } }
+  if(e.target.closest("[data-planall]")){ planWhole(); return; }
   if(e.target.closest("[data-plantimes]")){ state.planTimesOpen=!state.planTimesOpen; mapPanel(); return; }
   { const sa=e.target.closest("[data-stopadj]"); if(sa&&state.plan){ const [n,d]=sa.dataset.stopadj.split(":").map(Number), st=state.plan.stops[n]; if(st&&!st.ev){ st.adj=(st.adj||0)+d; if(stopMins(st)<10) st.adj-=d; retimePlan(state.plan); savePlan(); } mapPanel(); mapDraw(); return; } }
   if(e.target.closest("[data-startopen]")){ state.startPick=state.startPick?null:"open"; mapPanel(); return; }
@@ -8804,7 +8840,11 @@ $("map").addEventListener("input",e=>{ if(e.target.id==="mapQ") mqRender(); });
 $("map").addEventListener("focusin",e=>{ if(e.target.id!=="mapQ") return; const q=e.target; setTimeout(()=>{ try{ q.select(); }catch(err){} mqRender(); },0); mapIntentPop(false); });
 $("map").addEventListener("focusout",e=>{ if(e.target.id!=="mapQ") return; setTimeout(()=>{ const a=document.activeElement; if(!(a&&a.closest&&a.closest("#mapQres"))) mqClose(); },200); });
 $("map").addEventListener("keydown",e=>{ if(e.target.id!=="mapQ") return; if(e.key==="Escape"){ mqClose(); e.target.blur(); } if(e.key==="Enter"){ e.preventDefault(); const f=document.querySelector("#mapQres .mq-it"); if(f) mqGo(f.dataset.mq); } });
-$("map").addEventListener("keydown",e=>{ if(e.key!=="Enter"&&e.key!==" ") return; if(e.target.closest(".m-moon")){ e.preventDefault(); moonOpen(); return; } const p=e.target.closest(".m-pin"); const v=e.target.closest(".m-ev"); const spk=e.target.closest(".m-spotg"); if(spk){ e.preventDefault(); mapSelectSpot(spk.dataset.s); return; } const lmk=e.target.closest(".m-lm"); if(lmk){ e.preventDefault(); mapSelectLm(+lmk.dataset.l); return; } const evsk=e.target.closest(".m-evsp"); if(evsk){ e.preventDefault(); mapSelectEvSpot(evsk.dataset.evsp); return; } const wkk=e.target.closest("[data-wk]"); if(wkk){ e.preventDefault(); mapSelectWork(wkk.dataset.wk); return; } const fyk=e.target.closest(".m-ferryg"); if(fyk){ e.preventDefault(); mapSelectFerry(fyk.dataset.f); return; } if(v){ e.preventDefault(); mapSelectEv(v.dataset.e); return; }
+/* Swipe the card of an outing spot left or right for the next or previous stop (a clear sideways swipe only, so scrolling the sheet still works). */
+{ let sw=null; $("map").addEventListener("touchstart",e=>{ const c=e.target.closest&&e.target.closest(".mapsel"), ln=c&&c.querySelector(".planstopline"); sw=ln&&e.touches.length===1&&!e.target.closest(".intents,.lstrip,input")?{x:e.touches[0].clientX,y:e.touches[0].clientY,t:Date.now(),id:state.mapSpot}:null; },{passive:true});
+  $("map").addEventListener("touchend",e=>{ if(!sw) return; const t=e.changedTouches[0], dx=t.clientX-sw.x, dy=t.clientY-sw.y, o=sw; sw=null; if(Math.abs(dx)<60||Math.abs(dx)<2*Math.abs(dy)||Date.now()-o.t>700) return;
+    const wi=planWalk().findIndex(w=>w.id===o.id); if(wi<0) return; planGo(wi+(dx<0?1:-1)); requestAnimationFrame(()=>{ const c=document.querySelector(".mapsel"); if(c) c.classList.add(dx<0?"swl":"swr"); }); },{passive:true}); }
+$("map").addEventListener("keydown",e=>{ if(e.key!=="Enter"&&e.key!==" ") return; if(e.target.closest(".m-moon")){ e.preventDefault(); moonOpen(); return; } const p=e.target.closest(".m-pin"); const v=e.target.closest(".m-ev"); const spk=e.target.closest(".m-spotg"); if(spk){ e.preventDefault(); const wi=planWalk().findIndex(o=>o.id===spk.dataset.s); if(wi>=0) planGo(wi); else mapSelectSpot(spk.dataset.s); return; } const lmk=e.target.closest(".m-lm"); if(lmk){ e.preventDefault(); mapSelectLm(+lmk.dataset.l); return; } const evsk=e.target.closest(".m-evsp"); if(evsk){ e.preventDefault(); mapSelectEvSpot(evsk.dataset.evsp); return; } const wkk=e.target.closest("[data-wk]"); if(wkk){ e.preventDefault(); mapSelectWork(wkk.dataset.wk); return; } const fyk=e.target.closest(".m-ferryg"); if(fyk){ e.preventDefault(); mapSelectFerry(fyk.dataset.f); return; } if(v){ e.preventDefault(); mapSelectEv(v.dataset.e); return; }
   if(p){ e.preventDefault(); mapSelect(p.dataset.p); const n=document.querySelector('.m-pin[data-p="'+p.dataset.p+'"]'); if(n) n.focus(); } });
 window.addEventListener("resize",()=>{ if(state.view==="map") mapLayout(); });
 $("learn").addEventListener("click",e=>{

@@ -446,7 +446,7 @@ def run(path, name):
         links=pg.evaluate("[...document.querySelectorAll('.planlinks a')].map(a=>a.href)")
         check("Outing opens in Google Maps", len(links)==2 and "destination=" in links[0] and "waypoints=" in links[1] and links[1].count("destination=")==1, links)
         pg.evaluate("setSheet('full')"); pg.wait_for_timeout(300)
-        pg.click("[data-stop='1']"); pg.wait_for_timeout(500)
+        pg.click(".planstep [data-planstop]:last-child"); pg.wait_for_timeout(500)
         check("Stop chip moves the slider", pg.evaluate("state.mapT") is not None)
         marks=pg.evaluate("[...document.querySelectorAll('#lightMarks [data-jump]')].map(b=>b.textContent)")
         check("Light marks on the slider", any(m.startswith("Golden hour") for m in marks) and any(m.startswith("Blue hour") for m in marks) and "--band" in pg.evaluate("document.getElementById('mapTime').getAttribute('style')||''"), marks)
@@ -458,7 +458,7 @@ def run(path, name):
         check("Bridges cross the rivers and tunnels are dashed", pg.evaluate("[MAPD_BRIDGES.length>=25, MAPD_BRIDGES.filter(b=>b[1]==='tunnel').length>=4, MAPD_BRIDGES.some(b=>b[0]==='Brooklyn Bridge'), MAPD_BRIDGES.some(b=>b[0]==='George Washington Bridge'), document.querySelectorAll('.m-brg').length>=6, document.querySelectorAll('.m-brg.tun .m-tun').length>=1]")==[True]*6, pg.evaluate("[MAPD_BRIDGES.length, document.querySelectorAll('.m-brg').length]"))
         walks=pg.evaluate("LANDMARKS.filter(l=>l[3]==='walk')")
         check("Twelve bridge walkway entrances with a heading and a walk across", len(walks)==12 and all(isinstance(l[6],(int,float)) and l[7]>0 for l in walks), len(walks))
-        pg.evaluate("state.mapLm=LANDMARKS.findIndex(l=>l[0].startsWith('Brooklyn Bridge walkway, Manhattan')); mapPanel()"); pg.wait_for_timeout(100)
+        pg.evaluate("state.mapSpot=null; state.mapSel=null; state.mapLm=LANDMARKS.findIndex(l=>l[0].startsWith('Brooklyn Bridge walkway, Manhattan')); mapPanel()"); pg.wait_for_timeout(100)
         check("A walkway entrance offers Guide me there and Street View", pg.evaluate("[!!document.querySelector('#mapPanel [data-guide^=\"lm:\"]'), !!document.querySelector('#mapPanel a[href*=map_action]'), guideTarget('lm:'+state.mapLm)[3].startsWith('Brooklyn Bridge')]")==[True,True,True])
         pg.evaluate("state.mapLm=null; mapPanel()")
         check("Roads have casings and the water and parks a texture", pg.evaluate("[Math.min(4,document.querySelectorAll('.m-rdc .m-rd').length), !!document.querySelector('#pWater'), !!document.querySelector('.m-parktex'), !!document.querySelector('.m-coastglow')]")==[4,True,True,True])
@@ -1382,7 +1382,24 @@ def run(path, name):
         ns=pg.evaluate("""(()=>{ const W=planWalk(), out=[]; for(let i=0;i<=W.length;i++){ const lab=document.querySelector('[data-nextstop]').textContent; document.querySelector('[data-nextstop]').click(); out.push([lab,state.mapSpot||state.mapSel,state.mapT]); }
           return [W.map(o=>o.id||W.indexOf(o)), W.map(o=>o.t.getHours()*60+Math.round(o.t.getMinutes()/5)*5), out, /Stop 1 of /.test((document.querySelector('.planstopline')||{}).textContent||'')]; })()""")
         ids,ts,out,line=ns
-        check("Next stop steps through the outing's spots in order at their times, then back to the first", len(ids)>=2 and [o[1] for o in out[:len(ids)]]==[i for i in ids] and out[len(ids)][1]==ids[0] and [o[2] for o in out[:len(ids)]]==ts and out[0][0].startswith("Next stop") and out[1][0].startswith("Stop 2 of") and line, ns)
+        check("Next stop steps through the outing's spots in order at their times, then back to the first", len(ids)>=2 and [o[1] for o in out[:len(ids)]]==[i for i in ids] and out[len(ids)][1]==ids[0] and [o[2] for o in out[:len(ids)]]==ts and line, ns)
+        nv=pg.evaluate("""(()=>{ const W=planWalk(), r=[]; planGo(2); r.push(document.querySelector('.planstep .pschip.on')?.dataset.planstop);
+          document.querySelector('.planstep [data-planprev]').click(); r.push(planCur(), state.mapSpot===W[1].id);
+          document.querySelectorAll('.mapsel .psline [data-planstop]')[1].click(); r.push(planCur());
+          document.querySelector('[data-planall]').click(); r.push(planCur(), state.mapSpot, state.mapT===state.plan.start.getHours()*60+Math.round(state.plan.start.getMinutes()/5)*5);
+          return r; })()""")
+        check("Outing stops: a row of stops with times to jump to, back and forward, arrows on the spot card, and Whole route", nv==["2",1,True,2,None,None,True], nv)
+        pg.wait_for_timeout(900)
+        mk=pg.evaluate("""(()=>{ const W=planWalk(), g=document.querySelector('.m-pspot[data-s="'+W[1].id+'"]'); if(!g) return ['no marker']; const r=g.querySelector('circle').getBoundingClientRect(); return [r.x+r.width/2, r.y+r.height/2, W[1].id]; })()""")
+        if len(mk)==3:
+            pg.mouse.click(mk[0],mk[1]); pg.wait_for_timeout(500)
+        tp=pg.evaluate("[planCur(), state.mapSpot]")
+        check("Tapping a numbered stop on the route opens that stop of the outing", len(mk)==3 and tp==[1,mk[2]], [mk,tp])
+        sw=pg.evaluate("""(()=>{ const el=document.querySelector('.mapsel .mapcount'); if(!el) return ['no card']; const y=el.getBoundingClientRect().y+5, mk=x=>new Touch({identifier:1,target:el,clientX:x,clientY:y});
+          el.dispatchEvent(new TouchEvent('touchstart',{bubbles:true,touches:[mk(300)],changedTouches:[mk(300)]})); el.dispatchEvent(new TouchEvent('touchend',{bubbles:true,touches:[],changedTouches:[mk(140)]})); const a=planCur();
+          const el2=document.querySelector('.mapsel .mapcount'), mk2=x=>new Touch({identifier:1,target:el2,clientX:x,clientY:y});
+          el2.dispatchEvent(new TouchEvent('touchstart',{bubbles:true,touches:[mk2(100)],changedTouches:[mk2(100)]})); el2.dispatchEvent(new TouchEvent('touchend',{bubbles:true,touches:[],changedTouches:[mk2(260)]})); return [a,planCur()]; })()""")
+        check("Swiping the spot card goes to the next or previous stop", sw==[2,1], sw)
         mo=pg.evaluate("""(()=>{ state.plan=null; state.view='browse'; state.when='am'; render(); const c=bestOutings(matches(false))[0]; document.querySelector('#list [data-tmbestplan="0"]').click();
           const st=state.plan&&state.plan.start, m=st?st.getHours()*60+st.getMinutes():-1; return [c&&c.o.id, m>=c.o.s-15&&m<=c.o.e-25, state.view]; })()""")
         check("Plan this outing keeps a morning outing in the morning", mo[0]=="am" and mo[1] and mo[2]=="map", mo)
